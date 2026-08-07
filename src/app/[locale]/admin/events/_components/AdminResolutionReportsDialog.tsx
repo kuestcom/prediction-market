@@ -1,7 +1,6 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { CircleCheckIcon, CircleXIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 
@@ -9,6 +8,7 @@ import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminE
 import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
 
 import EventIconImage from '@/components/EventIconImage'
+import ResolutionReporterHistoryBadges from '@/components/ResolutionReporterHistoryBadges'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,12 +28,12 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Spinner } from '@/components/ui/spinner'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { formatTimeAgo, truncateAddress } from '@/lib/formatters'
 import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
+import { buildPublicProfilePath } from '@/lib/platform-routing'
 
 interface AdminResolutionReport {
   id: string
@@ -172,50 +172,45 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                   const outcomeIndex = report.outcome === 'yes' ? 0 : report.outcome === 'no' ? 1 : null
                   const outcomeLabel = outcomeIndex === null ? t('Inconclusive result') : report.outcomeLabel
                   const theme = outcomeIndex === null ? null : resolveOutcomeButtonTheme(outcomeLabel, outcomeIndex)
-                  const historyTotal = report.historyCorrectCount + report.historyIncorrectCount
-                  const profileHref = `/profile/${encodeURIComponent(report.reporterProfileSlug)}`
+                  const profileHref = buildPublicProfilePath(report.reporterProfileSlug)
                   return (
                     <div key={report.id} className="flex min-w-0 items-center gap-3 px-3 py-3">
-                      <Link
-                        href={profileHref}
-                        className="shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                        aria-label={`${report.reporterUsername || truncateAddress(report.reporterProfileSlug)} — ${t('Profile')}`}
-                      >
-                        <ReporterAvatar report={report} />
-                      </Link>
-                      <div className="min-w-0 flex-1">
+                      {profileHref ? (
                         <Link
-                          href={profileHref}
-                          className="block truncate text-sm font-medium underline-offset-4 hover:underline"
+                          href={profileHref as any}
+                          className="shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                          aria-label={`${report.reporterUsername || truncateAddress(report.reporterProfileSlug)} — ${t('Profile')}`}
                         >
-                          {report.reporterUsername || truncateAddress(report.reporterProfileSlug)}
+                          <ReporterAvatar report={report} />
                         </Link>
+                      ) : (
+                        <ReporterAvatar report={report} />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        {profileHref ? (
+                          <Link
+                            href={profileHref as any}
+                            className="block truncate text-sm font-medium underline-offset-4 hover:underline"
+                          >
+                            {report.reporterUsername || truncateAddress(report.reporterProfileSlug)}
+                          </Link>
+                        ) : (
+                          <p className="truncate text-sm font-medium">
+                            {report.reporterUsername || truncateAddress(report.reporterProfileSlug)}
+                          </p>
+                        )}
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <span>{formatTimeAgo(report.signedAt)}</span>
-                          {historyTotal > 0 && (
-                            <Tooltip>
-                              <TooltipTrigger
-                                render={
-                                  <span className="inline-flex items-center gap-1.5 tabular-nums">
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-yes/25 bg-yes/8 px-1.5 py-0.5 font-medium text-yes">
-                                      <CircleCheckIcon className="size-3.5" aria-hidden />
-                                      {report.historyCorrectCount}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-no/25 bg-no/8 px-1.5 py-0.5 font-medium text-no">
-                                      <CircleXIcon className="size-3.5" aria-hidden />
-                                      {report.historyIncorrectCount}
-                                    </span>
-                                  </span>
-                                }
-                              />
-                              <TooltipContent>
-                                {t('Proposal history: {correct} correct and {incorrect} incorrect.', {
-                                  correct: String(report.historyCorrectCount),
-                                  incorrect: String(report.historyIncorrectCount),
-                                })}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                          <ResolutionReporterHistoryBadges
+                            correctCount={report.historyCorrectCount}
+                            incorrectCount={report.historyIncorrectCount}
+                            correctLabel={t('Correct')}
+                            incorrectLabel={t('Incorrect')}
+                            historyLabel={t('Proposal history: {correct} correct and {incorrect} incorrect.', {
+                              correct: String(report.historyCorrectCount),
+                              incorrect: String(report.historyIncorrectCount),
+                            })}
+                          />
                         </div>
                       </div>
                       <Badge

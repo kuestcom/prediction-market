@@ -5,19 +5,20 @@ import type { Address, Hex } from 'viem'
 
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
+  BadgeCheckIcon,
   BookOpenCheckIcon,
   ChevronDownIcon,
-  CircleCheckIcon,
   CircleXIcon,
   ExternalLinkIcon,
   GiftIcon,
   LinkIcon,
   LockKeyholeIcon,
   TriangleAlertIcon,
+  XIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { encodeFunctionData, erc20Abi, formatUnits, getAddress, isAddress } from 'viem'
 import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 
@@ -26,6 +27,7 @@ import type { FeeOverrides } from '@/lib/transaction-fees'
 import type { Event } from '@/types'
 
 import EventIconImage from '@/components/EventIconImage'
+import ResolutionReporterHistoryBadges from '@/components/ResolutionReporterHistoryBadges'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -49,6 +51,7 @@ import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS, RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
@@ -67,6 +70,7 @@ import {
 } from '@/lib/direct-resolution'
 import { resolveFallbackOutcomeUnitPrice } from '@/lib/market-pricing'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
+import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { readCreatorProposerWhitelistStatus } from '@/lib/proposer-whitelist'
 import { getResolutionRewardMarketId, RESOLUTION_REWARDS_ABI, RESOLUTION_REWARD_SIDE } from '@/lib/resolution-rewards'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
@@ -82,6 +86,8 @@ interface DirectResolutionButtonProps {
   size?: 'sm' | 'default'
   className?: string
   disabled?: boolean
+  showResolutionBadge?: boolean
+  onResolutionRewardAmountChange?: (amount: string | null) => void
   onClick?: (event: MouseEvent<HTMLButtonElement>) => void
 }
 
@@ -114,6 +120,8 @@ interface ResolutionReportSummary {
   outcomeCounts: Record<DirectResolutionOutcome, number>
   reporters: Array<{
     seed: string
+    wallet?: string
+    username?: string
     image: string
     outcome: DirectResolutionOutcome
     historyCorrectCount: number
@@ -122,6 +130,8 @@ interface ResolutionReportSummary {
   currentOutcome: DirectResolutionOutcome | null
   eligibility: ResolutionReportEligibility
 }
+
+type ResolutionReporter = ResolutionReportSummary['reporters'][number]
 
 const WALLET_TRANSACTION_GAS_BUFFER_NUMERATOR = 3n
 const WALLET_TRANSACTION_GAS_BUFFER_DENOMINATOR = 2n
@@ -236,6 +246,44 @@ function formatOutcomePercentage(value: number | string | null | undefined) {
   return `${percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`
 }
 
+function ResolutionReporterHistory({
+  reporters,
+  showHistory,
+  correctLabel,
+  incorrectLabel,
+}: {
+  reporters: ResolutionReportSummary['reporters']
+  showHistory: boolean
+  correctLabel: string
+  incorrectLabel: string
+}) {
+  if (!showHistory) {
+    return null
+  }
+
+  const reportersWithHistory = reporters.filter(
+    (reporter) => reporter.historyCorrectCount + reporter.historyIncorrectCount > 0,
+  )
+  if (reportersWithHistory.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2">
+      {reportersWithHistory.map((reporter) => (
+        <ResolutionReporterHistoryBadges
+          key={`${reporter.seed}-history`}
+          correctCount={reporter.historyCorrectCount}
+          incorrectCount={reporter.historyIncorrectCount}
+          correctLabel={correctLabel}
+          incorrectLabel={incorrectLabel}
+          historyLabel={`${reporter.historyCorrectCount} ${correctLabel}, ${reporter.historyIncorrectCount} ${incorrectLabel}`}
+        />
+      ))}
+    </div>
+  )
+}
+
 function ResolutionReporterStack({
   reporters,
   totalCount,
@@ -284,28 +332,107 @@ function ResolutionReporterStack({
           </span>
         )}
       </div>
-      {showHistory &&
-        reporters.map((reporter) => {
-          const historyTotal = reporter.historyCorrectCount + reporter.historyIncorrectCount
-          return historyTotal > 0 ? (
-            <span key={`${reporter.seed}-history`} className="inline-flex items-center gap-1.5 tabular-nums">
-              <span
-                className="inline-flex items-center gap-1 rounded-md border border-yes/25 bg-yes/8 px-1.5 py-0.5 text-xs font-medium text-yes"
-                aria-label={`${reporter.historyCorrectCount} ${correctLabel}`}
-              >
-                <CircleCheckIcon className="size-3.5" aria-hidden />
-                {reporter.historyCorrectCount}
-              </span>
-              <span
-                className="inline-flex items-center gap-1 rounded-md border border-no/25 bg-no/8 px-1.5 py-0.5 text-xs font-medium text-no"
-                aria-label={`${reporter.historyIncorrectCount} ${incorrectLabel}`}
-              >
-                <CircleXIcon className="size-3.5" aria-hidden />
-                {reporter.historyIncorrectCount}
-              </span>
-            </span>
-          ) : null
-        })}
+      <ResolutionReporterHistory
+        reporters={reporters}
+        showHistory={showHistory}
+        correctLabel={correctLabel}
+        incorrectLabel={incorrectLabel}
+      />
+    </div>
+  )
+}
+
+function ResolutionReporterAvatar({ reporter }: { reporter: ResolutionReporter | null }) {
+  if (!reporter) {
+    return (
+      <span
+        className="size-9 shrink-0 rounded-full border border-dashed border-muted-foreground/50 bg-transparent"
+        aria-hidden
+      />
+    )
+  }
+
+  const username = reporter.username?.trim() ?? ''
+  const wallet = reporter.wallet?.trim() ?? ''
+  const profileSlug = username || wallet || reporter.seed
+  const profileHref = buildPublicProfilePath(profileSlug)
+  const showPlaceholder = shouldUseAvatarPlaceholder(reporter.image)
+  const displayName = username || wallet || reporter.seed
+
+  const avatar = showPlaceholder ? (
+    <span
+      className="block size-9 rounded-full border border-border/80"
+      style={getAvatarPlaceholderStyle(reporter.seed)}
+    />
+  ) : (
+    <Image
+      src={reporter.image}
+      alt={displayName}
+      width={36}
+      height={36}
+      className="block size-9 rounded-full border border-border/80 object-cover"
+    />
+  )
+
+  return profileHref ? (
+    <Link
+      href={profileHref as any}
+      aria-label={displayName}
+      title={displayName}
+      className="block size-9 shrink-0 rounded-full transition-opacity hover:opacity-80"
+    >
+      {avatar}
+    </Link>
+  ) : (
+    avatar
+  )
+}
+
+function ResolutionReporterComparison({
+  firstReporter,
+  secondReporter,
+  correctLabel,
+  incorrectLabel,
+  historyLabel,
+}: {
+  firstReporter: ResolutionReporter | null
+  secondReporter: ResolutionReporter | null
+  correctLabel: string
+  incorrectLabel: string
+  historyLabel: (correct: number, incorrect: number) => string
+}) {
+  return (
+    <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-4">
+      <div className="flex min-w-0 items-center justify-end gap-2.5">
+        {firstReporter && (
+          <ResolutionReporterHistoryBadges
+            correctCount={firstReporter.historyCorrectCount}
+            incorrectCount={firstReporter.historyIncorrectCount}
+            correctLabel={correctLabel}
+            incorrectLabel={incorrectLabel}
+            historyLabel={historyLabel(firstReporter.historyCorrectCount, firstReporter.historyIncorrectCount)}
+          />
+        )}
+        <ResolutionReporterAvatar reporter={firstReporter} />
+      </div>
+      <span
+        className="pointer-events-none grid size-7 place-items-center rounded-full border border-border/80 bg-background text-muted-foreground shadow-xs"
+        aria-hidden
+      >
+        <XIcon className="size-3.5" />
+      </span>
+      <div className="flex min-w-0 items-center justify-start gap-2.5">
+        <ResolutionReporterAvatar reporter={secondReporter} />
+        {secondReporter && (
+          <ResolutionReporterHistoryBadges
+            correctCount={secondReporter.historyCorrectCount}
+            incorrectCount={secondReporter.historyIncorrectCount}
+            correctLabel={correctLabel}
+            incorrectLabel={incorrectLabel}
+            historyLabel={historyLabel(secondReporter.historyCorrectCount, secondReporter.historyIncorrectCount)}
+          />
+        )}
+      </div>
     </div>
   )
 }
@@ -316,6 +443,8 @@ export default function DirectResolutionButton({
   size = 'sm',
   className,
   disabled = false,
+  showResolutionBadge = false,
+  onResolutionRewardAmountChange,
   onClick,
 }: DirectResolutionButtonProps) {
   const t = useExtracted()
@@ -333,6 +462,8 @@ export default function DirectResolutionButton({
   const sourceCheckboxId = useId()
   const rulesDisclosureRef = useRef<HTMLDetailsElement>(null)
   const sourceConfirmationRef = useRef<HTMLDivElement>(null)
+  const resolutionRewardAmountChangeRef = useRef(onResolutionRewardAmountChange)
+  resolutionRewardAmountChangeRef.current = onResolutionRewardAmountChange
   const [open, setOpen] = useState(false)
   const [bondConfirmationOpen, setBondConfirmationOpen] = useState(false)
   const [selectedOutcome, setSelectedOutcome] = useState<DirectResolutionOutcome | null>(null)
@@ -373,6 +504,7 @@ export default function DirectResolutionButton({
   const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user.deposit_wallet_status === 'deployed')
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const isProposalOnly = resolutionAccess === false
+  const hasResolutionRewardAmountListener = Boolean(onResolutionRewardAmountChange)
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
   const canAttemptSubmit = Boolean(
     isDirect &&
@@ -561,53 +693,72 @@ export default function DirectResolutionButton({
     }
   }
 
+  const loadReportSummary = useCallback(
+    async ({ preserveEligibilityOnError = false } = {}) => {
+      setReportSummaryLoading(true)
+      try {
+        if (!publicClient) {
+          throw new Error('Public client is unavailable.')
+        }
+        const adapterAddress = getDirectResolutionAdapterAddress(market)
+        const { adapterQuestionId } = getDirectResolutionQuestionIds(market)
+        if (!adapterAddress || !adapterQuestionId) {
+          throw new Error('Reward request is unavailable.')
+        }
+        const question = normalizeQuestionData(
+          await publicClient.readContract({
+            address: adapterAddress,
+            abi: CTF_ADAPTER_QUESTION_ABI,
+            functionName: 'getQuestion',
+            args: [adapterQuestionId],
+          }),
+        )
+        if (!question?.ancillaryData || question.ancillaryData === '0x') {
+          throw new Error('Reward request is unavailable.')
+        }
+        const marketId = getResolutionRewardMarketId(adapterAddress, question.ancillaryData)
+        const searchParams = new URLSearchParams({ conditionId: market.condition_id, marketId })
+        const response = await fetch(`/api/resolution-reports?${searchParams.toString()}`, { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Resolution report summary failed with ${response.status}.`)
+        }
+        const summary = (await response.json()) as ResolutionReportSummary
+        setReportSummary(summary)
+        try {
+          resolutionRewardAmountChangeRef.current?.(
+            BigInt(summary.rewardPool) > 0n ? formatUsdcAmount(summary.rewardPool) : null,
+          )
+        } catch {
+          resolutionRewardAmountChangeRef.current?.(null)
+        }
+        if (summary.currentOutcome) {
+          setSelectedOutcome((current) => current ?? summary.currentOutcome)
+        }
+      } catch (error) {
+        console.error('Could not load resolution report summary:', error)
+        resolutionRewardAmountChangeRef.current?.(null)
+        if (!preserveEligibilityOnError) {
+          setReportSummary((current) => ({ ...current, eligibility: 'unavailable' }))
+        }
+      } finally {
+        setReportSummaryLoading(false)
+      }
+    },
+    [market, publicClient],
+  )
+
+  useEffect(() => {
+    if (!hasResolutionRewardAmountListener || !isDirect || !publicClient) {
+      return
+    }
+
+    void loadReportSummary({ preserveEligibilityOnError: true })
+  }, [hasResolutionRewardAmountListener, isDirect, loadReportSummary, publicClient])
+
   async function checkResolutionAccess() {
     const allowed = await checkWhitelist()
     await loadReportSummary({ preserveEligibilityOnError: allowed === true })
     return allowed
-  }
-
-  async function loadReportSummary({ preserveEligibilityOnError = false } = {}) {
-    setReportSummaryLoading(true)
-    try {
-      if (!publicClient) {
-        throw new Error('Public client is unavailable.')
-      }
-      const adapterAddress = getDirectResolutionAdapterAddress(market)
-      const { adapterQuestionId } = getDirectResolutionQuestionIds(market)
-      if (!adapterAddress || !adapterQuestionId) {
-        throw new Error('Reward request is unavailable.')
-      }
-      const question = normalizeQuestionData(
-        await publicClient.readContract({
-          address: adapterAddress,
-          abi: CTF_ADAPTER_QUESTION_ABI,
-          functionName: 'getQuestion',
-          args: [adapterQuestionId],
-        }),
-      )
-      if (!question?.ancillaryData || question.ancillaryData === '0x') {
-        throw new Error('Reward request is unavailable.')
-      }
-      const marketId = getResolutionRewardMarketId(adapterAddress, question.ancillaryData)
-      const searchParams = new URLSearchParams({ conditionId: market.condition_id, marketId })
-      const response = await fetch(`/api/resolution-reports?${searchParams.toString()}`, { cache: 'no-store' })
-      if (!response.ok) {
-        throw new Error(`Resolution report summary failed with ${response.status}.`)
-      }
-      const summary = (await response.json()) as ResolutionReportSummary
-      setReportSummary(summary)
-      if (summary.currentOutcome) {
-        setSelectedOutcome((current) => current ?? summary.currentOutcome)
-      }
-    } catch (error) {
-      console.error('Could not load resolution report summary:', error)
-      if (!preserveEligibilityOnError) {
-        setReportSummary((current) => ({ ...current, eligibility: 'unavailable' }))
-      }
-    } finally {
-      setReportSummaryLoading(false)
-    }
   }
 
   async function openDialog(event: MouseEvent<HTMLButtonElement>) {
@@ -700,6 +851,8 @@ export default function DirectResolutionButton({
           ...current.reporters.filter((reporter) => reporter.outcome !== selectedOutcome),
           {
             seed: user.deposit_wallet_address!,
+            wallet: user.deposit_wallet_address!,
+            username: user.username,
             image: user.image ?? '',
             outcome: selectedOutcome,
             historyCorrectCount: 0,
@@ -926,7 +1079,7 @@ export default function DirectResolutionButton({
               <LockKeyholeIcon className="size-3.5" aria-hidden />
               {t('Bond at risk: {amount}', { amount: formattedBond })}
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-xs font-medium text-primary">
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/20 bg-violet-500/5 px-2 py-1 text-xs font-medium text-violet-500">
               <GiftIcon className="size-3.5" aria-hidden />
               {t('Reward: {amount}', { amount: formattedReward })}
             </span>
@@ -947,17 +1100,12 @@ export default function DirectResolutionButton({
           const selected = selectedOutcome === option.value
           const accentColor = option.accentColor || (option.value === 'yes' ? 'var(--yes)' : 'var(--no)')
 
-          const optionReporters = reportSummary.reporters.filter((reporter) => reporter.outcome === option.value)
-
           return (
-            <div key={option.value} className="flex min-w-0 flex-col">
+            <div key={option.value} className="min-w-0">
               <button
                 type="button"
                 className={cn(
-                  `group flex w-full min-w-0 rounded-lg bg-background p-3 transition-[background-color,color,transform,filter] active:translate-y-px`,
-                  showOutcomeImages
-                    ? 'min-h-28 flex-col items-stretch gap-3 text-left'
-                    : 'min-h-14 items-center justify-center gap-2 text-center',
+                  'group flex min-h-14 w-full min-w-0 items-center justify-center rounded-lg bg-background p-3 text-center transition-[background-color,color,transform,filter] active:translate-y-px',
                   selected ? 'border border-transparent text-white hover:brightness-95' : 'border hover:bg-muted/30',
                 )}
                 style={{
@@ -969,54 +1117,54 @@ export default function DirectResolutionButton({
                   hasExistingProposal || (isProposalOnly && reportSummary.outcomeCounts[option.value] > 0 && !selected)
                 }
               >
-                {showOutcomeImages ? (
-                  <>
-                    <span className="flex min-h-10 items-center justify-between gap-3">
-                      <EventIconImage
-                        src={option.imageUrl!}
-                        alt={option.label}
-                        sizes="40px"
-                        containerClassName="size-10 shrink-0 rounded-md bg-muted"
-                        imageClassName="object-contain"
-                      />
-                      <span className="shrink-0 text-lg font-bold tabular-nums">
-                        {formatOutcomePercentage(option.price)}
-                      </span>
-                    </span>
-                    <span
-                      className={cn('text-sm leading-snug font-semibold break-words', !selected && 'text-foreground')}
-                    >
-                      {option.label}
-                    </span>
-                  </>
-                ) : (
-                  <span className="flex w-full max-w-full min-w-0 items-center justify-between gap-3 px-1">
-                    <span
-                      className={cn(
-                        'min-w-0 truncate text-sm leading-snug font-medium',
-                        !selected && 'text-foreground',
-                      )}
-                      title={option.label}
-                    >
-                      {option.label}
-                    </span>
-                    <span className="shrink-0 text-lg font-bold tabular-nums">
-                      {formatOutcomePercentage(option.price)}
-                    </span>
+                <span className="inline-flex max-w-full min-w-0 items-center justify-center gap-2">
+                  {showOutcomeImages && (
+                    <EventIconImage
+                      src={option.imageUrl!}
+                      alt={option.label}
+                      sizes="28px"
+                      containerClassName="size-7 shrink-0 rounded-md bg-muted"
+                      imageClassName="object-contain"
+                    />
+                  )}
+                  <span
+                    className={cn('min-w-0 truncate text-sm leading-snug font-medium', !selected && 'text-foreground')}
+                    title={option.label}
+                  >
+                    {option.label}
                   </span>
-                )}
+                  <span className="shrink-0 text-lg font-bold tabular-nums">
+                    {formatOutcomePercentage(option.price)}
+                  </span>
+                </span>
               </button>
-              <ResolutionReporterStack
-                reporters={optionReporters}
-                totalCount={reportSummary.outcomeCounts[option.value]}
-                showHistory={resolutionAccess === true}
-                correctLabel={t('Correct')}
-                incorrectLabel={t('Incorrect')}
-              />
             </div>
           )
         })}
       </div>
+
+      {outcomeOptions.length >= 2 &&
+        (reportSummary.outcomeCounts[outcomeOptions[0].value] > 0 ||
+          reportSummary.outcomeCounts[outcomeOptions[1].value] > 0) && (
+          <>
+            <ResolutionReporterComparison
+              firstReporter={
+                reportSummary.reporters.find((reporter) => reporter.outcome === outcomeOptions[0].value) ?? null
+              }
+              secondReporter={
+                reportSummary.reporters.find((reporter) => reporter.outcome === outcomeOptions[1].value) ?? null
+              }
+              correctLabel={t('Correct')}
+              incorrectLabel={t('Incorrect')}
+              historyLabel={(correct, incorrect) =>
+                t('Proposal history: {correct} correct and {incorrect} incorrect.', {
+                  correct: String(correct),
+                  incorrect: String(incorrect),
+                })
+              }
+            />
+          </>
+        )}
 
       {!market.neg_risk && resolutionAccess === true && (
         <div>
@@ -1244,6 +1392,7 @@ export default function DirectResolutionButton({
         disabled={disabled || isResolved}
         onClick={openDialog}
       >
+        {showResolutionBadge && <BadgeCheckIcon className="size-4 text-violet-500" aria-hidden />}
         {t('Propose resolution')}
       </Button>
 

@@ -396,7 +396,7 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
   const isContentExpanded = isExpanded || Boolean(error)
 
   return (
-    <section className="overflow-hidden rounded-xl border transition-all duration-500 ease-in-out">
+    <section className="overflow-hidden rounded-xl border bg-card transition-all duration-500 ease-in-out">
       {hasGenerated ? (
         <button
           type="button"

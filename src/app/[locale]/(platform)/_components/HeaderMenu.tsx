@@ -1,5 +1,6 @@
 'use client'
 
+import { GiftIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 
@@ -10,9 +11,11 @@ import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { Link } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
@@ -28,6 +31,7 @@ function HeaderMenuSkeleton() {
       <Skeleton className="hidden h-9 w-16 lg:block" />
       <Skeleton className="hidden h-9 w-16 lg:block" />
       <Skeleton className="hidden h-9 w-20 lg:block" />
+      <Skeleton className="size-9 rounded-md" />
       <Skeleton className="size-9 rounded-md" />
       <div className="-ml-1 hidden h-5 w-px bg-border md:block" />
       <Skeleton className="h-9 w-20 rounded-md" />
@@ -64,6 +68,22 @@ export default function HeaderMenu() {
             ) : (
               <HeaderDepositButton />
             ))}
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  nativeButton={false}
+                  render={<Link href="/settings/rewards" aria-label={t('Rewards')} />}
+                >
+                  <GiftIcon className="size-[1.35rem]" aria-hidden="true" />
+                </Button>
+              }
+            />
+            <TooltipContent>{t('Rewards')}</TooltipContent>
+          </Tooltip>
           <HeaderNotifications />
           <div className="-ml-1 hidden h-5 w-px bg-border md:block" aria-hidden="true" />
           <HeaderDropdownUserMenuAuth />

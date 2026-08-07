@@ -265,7 +265,7 @@ export default function EventOrderBook({
   const queryClient = useQueryClient()
   const tokenId = outcome?.token_id || market.outcomes[0]?.token_id
   const isSportsCardSurface = surfaceVariant === 'sportsCard'
-  const surfaceClass = isSportsCardSurface ? 'bg-card' : 'bg-background'
+  const surfaceClass = 'bg-card'
 
   const summary = tokenId ? (summaries?.[tokenId] ?? null) : null
   const setType = useOrder((state) => state.setType)
@@ -496,7 +496,7 @@ export default function EventOrderBook({
               className={cn(
                 `grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium text-muted-foreground transition-colors sm:px-3`,
                 isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
-                isSportsCardSurface ? 'bg-card hover:bg-secondary' : 'bg-background hover:bg-muted',
+                'bg-card hover:bg-muted',
               )}
               role="presentation"
             >

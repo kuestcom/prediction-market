@@ -62,6 +62,8 @@ export async function GET(request: NextRequest) {
     )
     const reporters = proposals.map((proposal) => ({
       seed: proposal.wallet.toLowerCase(),
+      wallet: proposal.wallet,
+      username: proposal.profile.username,
       image: proposal.profile.avatarUrl,
       outcome: proposal.side === 2 ? ('yes' as const) : ('no' as const),
       historyCorrectCount: parseHistoryCount(proposal.history.correct),

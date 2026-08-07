@@ -176,6 +176,6 @@ describe('AdminResolutionReportsDialog', () => {
 
     render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
 
-    expect(screen.getByRole('link', { name: 'Reporter — Profile' })).toHaveAttribute('href', '/profile/reporter')
+    expect(screen.getByRole('link', { name: 'Reporter — Profile' })).toHaveAttribute('href', '/@reporter')
   })
 })
