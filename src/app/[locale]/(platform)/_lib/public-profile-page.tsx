@@ -4,12 +4,12 @@ import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 
-import type { ProfileForCards } from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { CommunityProfile } from '@/lib/community-profile'
 import type { DataApiRewardAccount } from '@/lib/data-api/resolution-rewards'
 
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_components/PublicProfileHeroCards'
+import PublicProfileResolutionHistory from '@/app/[locale]/(platform)/profile/_components/PublicProfileResolutionHistory'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
@@ -119,16 +119,28 @@ function PublicProfileTabsFallback() {
   )
 }
 
-function PublicProfileTabsSection({
+async function PublicProfileTabsContent({
   userAddress,
-  resolutionAccount,
+  resolutionAccountPromise,
 }: {
   userAddress: string
-  resolutionAccount: DataApiRewardAccount | null
+  resolutionAccountPromise: Promise<DataApiRewardAccount | null>
+}) {
+  const resolutionAccount = await resolutionAccountPromise
+
+  return <PublicProfileTabs userAddress={userAddress} resolutionAccount={resolutionAccount} />
+}
+
+function PublicProfileTabsSection({
+  userAddress,
+  resolutionAccountPromise,
+}: {
+  userAddress: string
+  resolutionAccountPromise: Promise<DataApiRewardAccount | null>
 }) {
   return (
     <Suspense fallback={<PublicProfileTabsFallback />}>
-      <PublicProfileTabs userAddress={userAddress} resolutionAccount={resolutionAccount} />
+      <PublicProfileTabsContent userAddress={userAddress} resolutionAccountPromise={resolutionAccountPromise} />
     </Suspense>
   )
 }
@@ -142,10 +154,7 @@ async function loadPublicResolutionAccount(wallet: string) {
   })
 }
 
-function buildResolutionHistory(
-  account: DataApiRewardAccount | null,
-  profilePath: string,
-): ProfileForCards['resolutionHistory'] {
+function buildResolutionHistory(account: DataApiRewardAccount | null, profilePath: string) {
   const stats = account?.rewardAccountStats
   if (!stats) {
     return undefined
@@ -161,6 +170,23 @@ function buildResolutionHistory(
     incorrectCount,
     href: `${profilePath}?tab=resolutions` as Route,
   }
+}
+
+async function PublicProfileResolutionHistorySlot({
+  resolutionAccountPromise,
+  profilePath,
+  username,
+}: {
+  resolutionAccountPromise: Promise<DataApiRewardAccount | null>
+  profilePath: string
+  username: string
+}) {
+  const resolutionHistory = buildResolutionHistory(await resolutionAccountPromise, profilePath)
+  if (!resolutionHistory) {
+    return null
+  }
+
+  return <PublicProfileResolutionHistory username={username} {...resolutionHistory} />
 }
 
 async function fetchCommunityProfileForSlug(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
@@ -296,53 +322,71 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
       notFound()
     }
 
-    const [snapshot, fallbackChartEndDate, resolutionAccount] = await Promise.all([
+    const resolutionAccountPromise = loadPublicResolutionAccount(normalized.value)
+    const [snapshot, fallbackChartEndDate] = await Promise.all([
       fetchPortfolioSnapshot(normalized.value),
       buildFallbackChartEndDate(),
-      loadPublicResolutionAccount(normalized.value),
     ])
     const profilePath = `/${resolveProfileCanonicalSlug(slug, null)}`
+    const username = 'Anon'
 
     return (
       <>
         <PublicProfileHeroCards
           profile={{
-            username: 'Anon',
+            username,
             avatarUrl: '',
             joinedAt: undefined,
             portfolioAddress: normalized.value,
-            resolutionHistory: buildResolutionHistory(resolutionAccount, profilePath),
           }}
           snapshot={snapshot}
           fallbackChartEndDate={fallbackChartEndDate}
+          resolutionHistoryAdornment={
+            <Suspense fallback={null}>
+              <PublicProfileResolutionHistorySlot
+                resolutionAccountPromise={resolutionAccountPromise}
+                profilePath={profilePath}
+                username={username}
+              />
+            </Suspense>
+          }
         />
-        <PublicProfileTabsSection userAddress={normalized.value} resolutionAccount={resolutionAccount} />
+        <PublicProfileTabsSection userAddress={normalized.value} resolutionAccountPromise={resolutionAccountPromise} />
       </>
     )
   }
 
   const userAddress = profile.deposit_wallet_address!
-  const [snapshot, fallbackChartEndDate, resolutionAccount] = await Promise.all([
+  const resolutionAccountPromise = loadPublicResolutionAccount(userAddress)
+  const [snapshot, fallbackChartEndDate] = await Promise.all([
     fetchPortfolioSnapshot(userAddress),
     buildFallbackChartEndDate(),
-    loadPublicResolutionAccount(userAddress),
   ])
   const profilePath = `/${resolveProfileCanonicalSlug(slug, profile.username)}`
+  const username = resolvePublicProfileDisplayUsername(profile)
 
   return (
     <>
       <PublicProfileHeroCards
         profile={{
-          username: resolvePublicProfileDisplayUsername(profile),
+          username,
           avatarUrl: profile.image,
           joinedAt: profile.created_at?.toString(),
           portfolioAddress: userAddress,
-          resolutionHistory: buildResolutionHistory(resolutionAccount, profilePath),
         }}
         snapshot={snapshot}
         fallbackChartEndDate={fallbackChartEndDate}
+        resolutionHistoryAdornment={
+          <Suspense fallback={null}>
+            <PublicProfileResolutionHistorySlot
+              resolutionAccountPromise={resolutionAccountPromise}
+              profilePath={profilePath}
+              username={username}
+            />
+          </Suspense>
+        }
       />
-      <PublicProfileTabsSection userAddress={userAddress} resolutionAccount={resolutionAccount} />
+      <PublicProfileTabsSection userAddress={userAddress} resolutionAccountPromise={resolutionAccountPromise} />
     </>
   )
 }

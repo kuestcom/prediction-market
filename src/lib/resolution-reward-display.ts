@@ -4,6 +4,34 @@ import type { DataApiRewardAccount } from '@/lib/data-api/resolution-rewards'
 import { fetchResolutionRewardAccount } from '@/lib/data-api/resolution-rewards'
 import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 
+function awaitWithAbortSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) {
+    return promise
+  }
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new Error('The resolution reward request was aborted.'))
+  }
+  const activeSignal = signal
+
+  return new Promise<T>((resolve, reject) => {
+    function handleAbort() {
+      reject(activeSignal.reason ?? new Error('The resolution reward request was aborted.'))
+    }
+    activeSignal.addEventListener('abort', handleAbort, { once: true })
+
+    void promise.then(
+      (value) => {
+        activeSignal.removeEventListener('abort', handleAbort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        activeSignal.removeEventListener('abort', handleAbort)
+        reject(error)
+      },
+    )
+  })
+}
+
 export async function hydrateResolutionRewardAccount(
   account: DataApiRewardAccount | null,
 ): Promise<DataApiRewardAccount | null> {
@@ -37,6 +65,6 @@ export async function fetchDisplayResolutionRewardAccount(
   wallet: string,
   options: { signal?: AbortSignal } = {},
 ): Promise<DataApiRewardAccount | null> {
-  const account = await fetchResolutionRewardAccount(wallet, options)
-  return hydrateResolutionRewardAccount(account)
+  const accountWithLocalContext = fetchResolutionRewardAccount(wallet, options).then(hydrateResolutionRewardAccount)
+  return awaitWithAbortSignal(accountWithLocalContext, options.signal)
 }

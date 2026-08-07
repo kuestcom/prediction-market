@@ -126,4 +126,18 @@ describe('direct resolution helpers', () => {
       ),
     ).toBe('Resolution rewards are not available for this market.')
   })
+
+  it('does not classify selector-like text outside structured revert data', () => {
+    expect(
+      readDirectResolutionError(
+        'Provider diagnostic mentioned b521771a while preparing the request, but no contract revert data was returned.',
+      ),
+    ).toBe('Could not submit resolution.')
+  })
+
+  it('recognizes a top-level ResolutionRewards MarketNotActive revert', () => {
+    expect(readDirectResolutionError('Contract call reverted with data: 0xb521771a')).toBe(
+      'Resolution rewards are not available for this market.',
+    )
+  })
 })

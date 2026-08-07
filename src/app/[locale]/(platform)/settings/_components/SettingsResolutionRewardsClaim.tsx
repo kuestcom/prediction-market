@@ -17,6 +17,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS, RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
+import { resolutionRewardBaseUnitsToNumber } from '@/lib/resolution-reward-amounts'
 import { RESOLUTION_REWARDS_ABI } from '@/lib/resolution-rewards'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -25,14 +26,6 @@ import { useUser } from '@/stores/useUser'
 
 interface SettingsResolutionRewardsClaimProps {
   stats: DataApiRewardAccountStats | null
-}
-
-function fromBaseUnits(value: bigint | string): number {
-  try {
-    return Number(BigInt(value)) / 1_000_000
-  } catch {
-    return 0
-  }
 }
 
 export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolutionRewardsClaimProps) {
@@ -159,7 +152,7 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
     }
   }
 
-  const lifetimeRewards = fromBaseUnits(stats?.totalRewardCredited ?? '0')
+  const lifetimeRewards = resolutionRewardBaseUnitsToNumber(stats?.totalRewardCredited ?? '0')
   return (
     <div className="relative flex min-h-56 flex-col overflow-hidden rounded-xl border bg-background p-5">
       <div className="relative z-10 flex items-start justify-between gap-4">
@@ -173,7 +166,7 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Available to claim')}</p>
           <p className="mt-1 text-4xl font-semibold tracking-tight text-foreground">
-            {claimable === null ? '—' : formatCurrency(fromBaseUnits(claimable))}
+            {claimable === null ? '—' : formatCurrency(resolutionRewardBaseUnitsToNumber(claimable))}
           </p>
         </div>
         <Button

@@ -610,7 +610,6 @@ export default function DirectResolutionButton({
   const resolutionRewardAmountChangeRef = useRef(onResolutionRewardAmountChange)
   resolutionRewardAmountChangeRef.current = onResolutionRewardAmountChange
   const activeReportSummaryScopeKeyRef = useRef(reportSummaryScopeKey)
-  activeReportSummaryScopeKeyRef.current = reportSummaryScopeKey
   const reportSummaryRequestRef = useRef<ResolutionReportSummaryRequest | null>(null)
   const reportSummaryRequestIdRef = useRef(0)
   const reportSummaryCacheRef = useRef<ResolutionReportSummaryCache | null>(null)
@@ -623,20 +622,12 @@ export default function DirectResolutionButton({
   const [message, setMessage] = useState('')
   const [resolutionAccess, setResolutionAccess] = useState<boolean | null>(null)
   const [reportSummaryLoading, setReportSummaryLoading] = useState(false)
-  const [reportSummary, setReportSummary] = useState<ResolutionReportSummary>(createEmptyResolutionReportSummary)
+  const [reportSummaryState, setReportSummary] = useState<ResolutionReportSummary>(createEmptyResolutionReportSummary)
   const [reportSummaryStateScopeKey, setReportSummaryStateScopeKey] = useState(reportSummaryScopeKey)
+  const reportSummary =
+    reportSummaryStateScopeKey === reportSummaryScopeKey ? reportSummaryState : createEmptyResolutionReportSummary()
   const reportSummaryRef = useRef(reportSummary)
   reportSummaryRef.current = reportSummary
-
-  if (reportSummaryStateScopeKey !== reportSummaryScopeKey) {
-    const emptySummary = createEmptyResolutionReportSummary()
-    reportSummaryRef.current = emptySummary
-    reportSummaryCacheRef.current = null
-    setReportSummaryStateScopeKey(reportSummaryScopeKey)
-    setReportSummary(emptySummary)
-    setReportSummaryLoading(false)
-    setSelectedOutcome(null)
-  }
 
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
@@ -649,7 +640,7 @@ export default function DirectResolutionButton({
     Boolean(normalizedResolutionQuestion) &&
     normalizedResolutionQuestion !== normalizeLabel(event.title) &&
     normalizedResolutionQuestion !== normalizeLabel(market.title)
-  const requiresSourceConfirmation = Boolean(resolutionSourceUrl)
+  const requiresSourceConfirmation = Boolean(resolutionSource)
   const connectedAddress = address && isAddress(address) ? (getAddress(address) as Address) : null
   const authenticatedAddress = user?.address && isAddress(user.address) ? getAddress(user.address) : null
   const resolutionActorAddress = resolveResolutionActorAddress(connectedAddress, authenticatedAddress)
@@ -667,6 +658,7 @@ export default function DirectResolutionButton({
       : resolvedWinningOutcomeIndex === OUTCOME_INDEX.NO
         ? ('no' as const)
         : null
+  const isResolvedInconclusive = isResolved && resolvedWinningOutcome === null
   const scopedResolutionAccess =
     settledResolutionAccessScopeKeyRef.current === resolutionAccessScopeKey ? resolutionAccess : null
   const isProposalOnly = scopedResolutionAccess === false
@@ -752,6 +744,7 @@ export default function DirectResolutionButton({
   const resolvedReporterReward = isResolved ? formatResolutionRewardAmount(reportSummary.rewardPool) : null
   const hasAnyResolutionProposal =
     reportSummary.reporters.length > 0 || Object.values(reportSummary.outcomeCounts).some((count) => count > 0)
+  const inconclusiveReporter = reportSummary.reporters.find((reporter) => reporter.outcome === 'unknown') ?? null
   const formattedCorrectReturn = formatUsdcTotal(reportSummary.bond, reportSummary.rewardPool)
   const selectedOutcomeAccentColor = selectedOutcomeOption
     ? selectedOutcomeOption.accentColor || (selectedOutcomeOption.value === 'yes' ? 'var(--yes)' : 'var(--no)')
@@ -760,6 +753,14 @@ export default function DirectResolutionButton({
     selectedOutcome === 'unknown' ? t('Inconclusive result') : (selectedOutcomeOption?.label ?? '')
   const selectedOutcomePercentage =
     selectedOutcome === 'unknown' ? formatOutcomePercentage(0.5) : formatOutcomePercentage(selectedOutcomeOption?.price)
+
+  function resolutionReporterHistoryLabel(reporter: ResolutionReporter) {
+    return t("{username}'s proposal history: {correct} correct and {incorrect} incorrect.", {
+      username: getResolutionReporterDisplayName(reporter),
+      correct: String(reporter.historyCorrectCount),
+      incorrect: String(reporter.historyIncorrectCount),
+    })
+  }
 
   function handlePrimaryAction() {
     if (!canAttemptSubmit) {
@@ -995,14 +996,31 @@ export default function DirectResolutionButton({
     ],
   )
 
+  // Market/account scope changes invalidate async external state and its in-flight request as one lifecycle.
+  // oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
   useEffect(() => {
+    const scopeChanged = activeReportSummaryScopeKeyRef.current !== reportSummaryScopeKey
+    activeReportSummaryScopeKeyRef.current = reportSummaryScopeKey
     const activeRequest = reportSummaryRequestRef.current
-    if (activeRequest && activeRequest.scopeKey !== reportSummaryScopeKey) {
+    if (activeRequest && (scopeChanged || activeRequest.scopeKey !== reportSummaryScopeKey)) {
       activeRequest.controller.abort()
       reportSummaryRequestRef.current = null
     }
-    if (reportSummaryCacheRef.current?.scopeKey !== reportSummaryScopeKey) {
+    if (scopeChanged || reportSummaryCacheRef.current?.scopeKey !== reportSummaryScopeKey) {
       reportSummaryCacheRef.current = null
+    }
+
+    if (scopeChanged) {
+      const emptySummary = createEmptyResolutionReportSummary()
+      reportSummaryRef.current = emptySummary
+      setReportSummaryStateScopeKey(reportSummaryScopeKey)
+      setReportSummary(emptySummary)
+      setReportSummaryLoading(false)
+      setSelectedOutcome(null)
+      setRulesConfirmed(false)
+      setRulesAcceptancePrompted(false)
+      setSourceConfirmed(false)
+      setReviewOpen(false)
     }
 
     resolutionRewardAmountChangeRef.current?.(null)
@@ -1015,6 +1033,7 @@ export default function DirectResolutionButton({
       }
     }
   }, [reportSummaryScopeKey])
+  // oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
 
   useEffect(() => {
     if (!isDirect || !publicClient) {
@@ -1485,6 +1504,38 @@ export default function DirectResolutionButton({
           )}
         </div>
 
+        {isResolvedInconclusive && (
+          <div className="mt-3 grid justify-items-center gap-3">
+            <span
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary"
+              role="status"
+            >
+              <CheckIcon className="size-4 shrink-0" aria-hidden />
+              {t('Inconclusive result')}
+            </span>
+            {inconclusiveReporter ? (
+              <ResolutionReporterCapsule
+                reporter={inconclusiveReporter}
+                side="first"
+                muted={false}
+                rewardAmount={resolvedReporterReward}
+                rewardLabel={t('Resolution reward')}
+                correctLabel={t('Correct')}
+                incorrectLabel={t('Incorrect')}
+                historyLabel={resolutionReporterHistoryLabel}
+              />
+            ) : (
+              !hasAnyResolutionProposal &&
+              resolvedReporterReward && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-500">
+                  <GiftIcon className="size-3.5" aria-hidden />
+                  {t('{amount} not awarded', { amount: resolvedReporterReward })}
+                </span>
+              )
+            )}
+          </div>
+        )}
+
         {outcomeOptions.length >= 2 &&
           (reportSummary.outcomeCounts[outcomeOptions[0].value] > 0 ||
             reportSummary.outcomeCounts[outcomeOptions[1].value] > 0) && (
@@ -1497,13 +1548,7 @@ export default function DirectResolutionButton({
               }
               correctLabel={t('Correct')}
               incorrectLabel={t('Incorrect')}
-              historyLabel={(reporter) =>
-                t("{username}'s proposal history: {correct} correct and {incorrect} incorrect.", {
-                  username: getResolutionReporterDisplayName(reporter),
-                  correct: String(reporter.historyCorrectCount),
-                  incorrect: String(reporter.historyIncorrectCount),
-                })
-              }
+              historyLabel={resolutionReporterHistoryLabel}
               firstReporterMuted={Boolean(
                 isResolved && resolvedWinningOutcome && outcomeOptions[0].value !== resolvedWinningOutcome,
               )}

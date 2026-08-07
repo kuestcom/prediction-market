@@ -32,6 +32,7 @@ import { Link } from '@/i18n/navigation'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
+import { resolutionRewardBaseUnitsToNumber } from '@/lib/resolution-reward-amounts'
 import { cn } from '@/lib/utils'
 
 interface AffiliateMainCategory {
@@ -52,14 +53,6 @@ interface SettingsAffiliateContentProps {
   mainCategories: AffiliateMainCategory[]
   resolutionAccount: DataApiRewardAccount
   resolutionSeries: Array<{ date: string; value: number }>
-}
-
-function fromBaseUnits(value: string): number {
-  try {
-    return Number(BigInt(value)) / 1_000_000
-  } catch {
-    return 0
-  }
 }
 
 function formatBondAmount(value: number): string {
@@ -105,7 +98,10 @@ export default function SettingsAffiliateContent({
     }
     return !proposal.withdrawalAvailableAt || Number(proposal.withdrawalAvailableAt) > liveCurrentTimestamp
   })
-  const bondAtRisk = activeProposals.reduce((sum, proposal) => sum + fromBaseUnits(proposal.bondAmount), 0)
+  const bondAtRisk = activeProposals.reduce(
+    (sum, proposal) => sum + resolutionRewardBaseUnitsToNumber(proposal.bondAmount),
+    0,
+  )
   const recentProposals = [...rewardProposals].sort(
     (first, second) => Number(second.submittedAt) - Number(first.submittedAt),
   )
@@ -172,7 +168,7 @@ export default function SettingsAffiliateContent({
               </div>
             )}
             {recentProposals.map((proposal) => {
-              const rewardAmount = fromBaseUnits(proposal.rewardAmount)
+              const rewardAmount = resolutionRewardBaseUnitsToNumber(proposal.rewardAmount)
               const market = proposal.market
               const marketTitle = market.title || `${t('Resolution')} #${proposal.id}`
               const marketHref =

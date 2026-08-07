@@ -332,6 +332,52 @@ describe('DirectResolutionButton', () => {
     expect(screen.queryByRole('link', { name: /winner|loser/ })).not.toBeInTheDocument()
   })
 
+  it('shows an explicit final inconclusive result with its reporter and reward', async () => {
+    const resolvedMarket = {
+      ...(market as any),
+      is_active: false,
+      is_resolved: true,
+      condition: { ...(market as any).condition, resolved: true, payout_numerators: [1, 1] },
+      outcomes: [
+        { outcome_index: 0, outcome_text: 'Yes', price: 0.5, is_winning_outcome: false },
+        { outcome_index: 1, outcome_text: 'No', price: 0.5, is_winning_outcome: false },
+      ],
+    } as never
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: false,
+        outcomeCounts: { yes: 0, no: 0, unknown: 1 },
+        reporters: [
+          {
+            seed: 'inconclusive-reporter',
+            username: 'inconclusive-reporter',
+            image: '',
+            outcome: 'unknown',
+            historyCorrectCount: 3,
+            historyIncorrectCount: 1,
+          },
+        ],
+        currentOutcome: null,
+        eligibility: 'ineligible',
+      }),
+    })
+
+    render(<DirectResolutionButton market={resolvedMarket} event={{ ...(event as any), markets: [resolvedMarket] }} />)
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledOnce())
+    expect(screen.getByRole('status')).toHaveTextContent('Inconclusive result')
+    expect(screen.getByLabelText('Yes')).not.toHaveAttribute('aria-current')
+    expect(screen.getByLabelText('No')).not.toHaveAttribute('aria-current')
+    const reporterProfile = screen.getByRole('link', { name: 'inconclusive-reporter' })
+    expect(within(reporterProfile).getByLabelText('Resolution reward: $4')).toBeInTheDocument()
+  })
+
   it('hides the reward badge when the on-chain rewards market is inactive', async () => {
     const onResolutionRewardAmountChange = vi.fn()
     mocks.fetch.mockResolvedValue({
@@ -684,6 +730,47 @@ describe('DirectResolutionButton', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
     const sourceCheckbox = screen.getByRole('checkbox', { name: /I checked the final result at/ })
+    fireEvent.click(sourceCheckbox)
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Review proposal' })).toBeInTheDocument()
+  })
+
+  it('requires confirming a text-only resolution source before review', async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+    const marketWithTextSource = {
+      ...(market as any),
+      resolution_source: 'Official agency final report',
+      resolution_source_url: null,
+    } as never
+
+    render(
+      <DirectResolutionButton
+        market={marketWithTextSource}
+        event={{ ...(event as any), markets: [marketWithTextSource] }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
+    const sourceCheckbox = screen.getByRole('checkbox', { name: /Official agency final report/ })
     fireEvent.click(sourceCheckbox)
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 

@@ -24,6 +24,7 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
+import { resolutionRewardBaseUnitsToNumber } from '@/lib/resolution-reward-amounts'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildResolutionRewardReleaseCall, buildResolutionRewardWithdrawalCall } from '@/lib/wallet/transactions'
@@ -38,14 +39,6 @@ interface SettingsResolutionWithdrawalDialogProps {
   onSubmitted?: () => void
   open: boolean
   proposal: DataApiRewardProposal | null
-}
-
-function fromBaseUnits(value: string) {
-  try {
-    return Number(BigInt(value)) / 1_000_000
-  } catch {
-    return 0
-  }
 }
 
 export default function SettingsResolutionWithdrawalDialog({
@@ -65,7 +58,7 @@ export default function SettingsResolutionWithdrawalDialog({
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isRelease = action === 'release'
-  const formattedBond = formatCurrency(fromBaseUnits(proposal?.bondAmount ?? '0'), {
+  const formattedBond = formatCurrency(resolutionRewardBaseUnitsToNumber(proposal?.bondAmount ?? '0'), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })

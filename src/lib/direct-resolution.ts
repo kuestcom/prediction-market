@@ -93,6 +93,7 @@ const DIRECT_RESOLUTION_ADDRESSES = new Set(
 )
 
 const RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR = 'b521771a'
+const REVERT_DATA_PATTERN = /\breverted with data:\s*(0x[\da-f]+)/gi
 
 export type DirectResolutionErrorMessage =
   | 'Connected proposer wallet needs POL for gas before resolving this market.'
@@ -102,6 +103,20 @@ export type DirectResolutionErrorMessage =
   | 'This market is already resolved.'
   | 'Resolution rewards are not available for this market.'
   | 'Could not submit resolution.'
+
+function revertDataContainsSelector(message: string, selector: string) {
+  for (const match of message.matchAll(REVERT_DATA_PATTERN)) {
+    const revertData = match[1]?.slice(2).toLowerCase() ?? ''
+    let selectorIndex = revertData.indexOf(selector)
+    while (selectorIndex >= 0) {
+      if (selectorIndex % 2 === 0) {
+        return true
+      }
+      selectorIndex = revertData.indexOf(selector, selectorIndex + 1)
+    }
+  }
+  return false
+}
 
 function parseMarketMetadata(market: Event['markets'][number]): Record<string, unknown> {
   const metadata = market.metadata
@@ -251,7 +266,10 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
     return 'This market is already resolved.'
   }
 
-  if (lower.includes('marketnotactive') || lower.includes(RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR)) {
+  if (
+    lower.includes('marketnotactive') ||
+    revertDataContainsSelector(message, RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR)
+  ) {
     return 'Resolution rewards are not available for this market.'
   }
 
