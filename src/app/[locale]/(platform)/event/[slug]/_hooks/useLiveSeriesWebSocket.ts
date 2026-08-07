@@ -252,6 +252,7 @@ export function useLiveSeriesWebSocket({
         },
       })
 
+      // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- A WebSocket is an external system, not a store; this effect owns its lifecycle.
       connect()
       document.addEventListener('visibilitychange', handleVisibilityChange)
 

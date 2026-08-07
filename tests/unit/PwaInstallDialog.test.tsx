@@ -14,7 +14,7 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} />,
+  default: () => <span data-testid="pwa-icon" />,
 }))
 
 vi.mock('@/components/PwaInstallIosInstructions', () => ({

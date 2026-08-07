@@ -37,8 +37,8 @@ function PwaInstallDialogBody() {
           </span>
         </div>
 
-        <div className="max-w-sm text-center text-sm leading-6 text-muted-foreground">
-          <PwaInstallIosInstructions className="items-center" />
+        <div className="w-full max-w-sm text-left text-sm leading-6 text-muted-foreground">
+          <PwaInstallIosInstructions className="items-start" />
         </div>
       </div>
     </div>

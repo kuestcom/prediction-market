@@ -54,6 +54,7 @@ function parseAffiliateToastData(result: {
 
 const MENU_CLOSE_DELAY_MS = 120
 const COPY_FEEDBACK_DURATION_MS = 1600
+const SHARE_SUCCESS_FEEDBACK_DURATION_MS = 2000
 
 function useCopyFeedback() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -323,7 +324,7 @@ export default function EventShare({ event }: EventShareProps) {
     try {
       const url = buildShareUrl(eventPath)
       await navigator.clipboard.writeText(url)
-      markShareSuccess(2000)
+      markShareSuccess(SHARE_SUCCESS_FEEDBACK_DURATION_MS)
       await showAffiliateToast()
     } catch (error) {
       console.error('Error copying URL:', error)
@@ -335,7 +336,7 @@ export default function EventShare({ event }: EventShareProps) {
       const url = buildShareUrl(path)
       await navigator.clipboard.writeText(url)
       markKeyAsCopied(key)
-      markShareSuccess(COPY_FEEDBACK_DURATION_MS)
+      markShareSuccess(SHARE_SUCCESS_FEEDBACK_DURATION_MS)
       setShareMenuOpen(false)
       await showAffiliateToast()
     } catch (error) {
