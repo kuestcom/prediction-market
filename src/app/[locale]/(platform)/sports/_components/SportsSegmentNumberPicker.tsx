@@ -26,6 +26,7 @@ function SportsSegmentNumberPicker({
   })
   const optionRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const activeOptionKey = options[activeOptionIndex]?.key
+  const optionKeySignature = options.map((option) => option.key).join('|')
 
   useLayoutEffect(
     function keepActiveOptionVisible() {
@@ -35,7 +36,7 @@ function SportsSegmentNumberPicker({
 
       optionRefs.current[activeOptionKey]?.scrollIntoView({ block: 'nearest', inline: 'center' })
     },
-    [activeOptionKey],
+    [activeOptionKey, optionKeySignature],
   )
 
   function pickOptionAtIndex(index: number) {
@@ -83,7 +84,7 @@ function SportsSegmentNumberPicker({
             <ChevronLeftIcon className="size-4.5" />
           </button>
 
-          <div className="min-w-0 flex-1 scrollbar-none overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="-my-2 min-w-0 flex-1 scrollbar-none overflow-x-auto py-2 [&::-webkit-scrollbar]:hidden">
             <div className="flex w-max min-w-full items-center justify-center gap-1">
               {options.map((option, index) => {
                 const isActive = index === activeOptionIndex

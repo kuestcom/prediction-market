@@ -107,6 +107,7 @@ const HALVES_REG_TIME_TOOLTIP =
   'This market refers only to the outcome within the first 45 minutes of regular play plus stoppage time.'
 const EXACT_SCORE_REG_TIME_TOOLTIP =
   'This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.'
+const MAX_SPORTS_EVENT_START_TIMEOUT_MS = 2_147_483_647
 
 function SportsEventCountdown({ startTimestamp }: { startTimestamp: number }) {
   const currentTimestamp = useCurrentTimestamp({ initialTimestamp: Date.now(), intervalMs: 1_000 })
@@ -116,7 +117,7 @@ function SportsEventCountdown({ startTimestamp }: { startTimestamp: number }) {
       : null
 
   return (
-    <div className={cn('mb-3 flex justify-center', !countdownLabel && 'invisible')} aria-hidden={!countdownLabel}>
+    <div className="mb-3 flex justify-center">
       <span
         suppressHydrationWarning
         className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground tabular-nums"
@@ -138,16 +139,35 @@ function useSportsEventHasStarted(startTimestamp: number | null) {
         return
       }
 
-      const remainingMilliseconds = startTimestamp - Date.now()
-      if (remainingMilliseconds <= 0) {
-        setStartedTimestamp(startTimestamp)
-        return
+      const scheduledStartTimestamp = startTimestamp
+      let timeout: number | null = null
+
+      function scheduleStartUpdate() {
+        const remainingMilliseconds = scheduledStartTimestamp - Date.now()
+        if (remainingMilliseconds <= 0) {
+          setStartedTimestamp(scheduledStartTimestamp)
+          return
+        }
+
+        timeout = window.setTimeout(
+          () => {
+            if (Date.now() >= scheduledStartTimestamp) {
+              setStartedTimestamp(scheduledStartTimestamp)
+              return
+            }
+
+            scheduleStartUpdate()
+          },
+          Math.min(remainingMilliseconds, MAX_SPORTS_EVENT_START_TIMEOUT_MS),
+        )
       }
 
-      const timeout = window.setTimeout(() => setStartedTimestamp(startTimestamp), remainingMilliseconds)
+      scheduleStartUpdate()
 
       return function clearSportsEventStartTimeout() {
-        window.clearTimeout(timeout)
+        if (timeout !== null) {
+          window.clearTimeout(timeout)
+        }
       }
     },
     [startTimestamp],
@@ -995,20 +1015,20 @@ export default function SportsEventCenter({
                     : 'grid-cols-2',
               )}
             >
-              {visibleButtons.map((button) => {
-                const isActive = activeTradeButtonKey === button.key
+              {visibleButtons.map((marketButton) => {
+                const isActive = activeTradeButtonKey === marketButton.key
                 const hasTeamColor =
-                  (button.tone === 'team1' || button.tone === 'team2') &&
-                  (button.marketType === 'moneyline' || isActive)
-                const isOverButton = isActive && button.tone === 'over'
-                const isUnderButton = isActive && button.tone === 'under'
+                  (marketButton.tone === 'team1' || marketButton.tone === 'team2') &&
+                  (marketButton.marketType === 'moneyline' || isActive)
+                const isOverButton = isActive && marketButton.tone === 'over'
+                const isUnderButton = isActive && marketButton.tone === 'under'
                 const buttonOverlayStyle = hasTeamColor
-                  ? resolveButtonOverlayStyle(button.color, button.tone)
+                  ? resolveButtonOverlayStyle(marketButton.color, marketButton.tone)
                   : undefined
 
                 return (
                   <div
-                    key={`${panelKey}-${button.key}`}
+                    key={`${panelKey}-${marketButton.key}`}
                     className={cn(
                       'relative min-w-0 overflow-hidden rounded-lg pb-1.25',
                       isMoneylinePanel && 'w-full sm:w-[118px] sm:shrink-0',
@@ -1021,18 +1041,18 @@ export default function SportsEventCenter({
                         isOverButton && 'bg-yes/70',
                         isUnderButton && 'bg-no/70',
                       )}
-                      style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
+                      style={hasTeamColor ? resolveButtonDepthStyle(marketButton.color, marketButton.tone) : undefined}
                     />
                     <button
                       type="button"
                       data-sports-card-control="true"
                       onClick={(event) => {
                         event.stopPropagation()
-                        updateAuxiliarySelection(panelKey, button.key, {
+                        updateAuxiliarySelection(panelKey, marketButton.key, {
                           panelMode: isResolved ? 'preserve' : 'full',
                         })
                       }}
-                      style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
+                      style={hasTeamColor ? resolveButtonStyle(marketButton.color, marketButton.tone) : undefined}
                       className={cn(
                         `relative flex h-9 w-full translate-y-0 items-center rounded-lg text-xs font-semibold shadow-sm transition-transform duration-150 ease-out hover:translate-y-px active:translate-y-0.5`,
                         isMoneylinePanel ? 'justify-center px-2' : 'justify-between px-3',
@@ -1049,21 +1069,21 @@ export default function SportsEventCenter({
                       ) : null}
                       {isMoneylinePanel ? (
                         <>
-                          <span className="relative z-1 mr-1 uppercase opacity-80">{button.label}</span>
+                          <span className="relative z-1 mr-1 uppercase opacity-80">{marketButton.label}</span>
                           <span
                             className={cn(
                               'relative z-1 text-sm leading-none tabular-nums transition-opacity',
                               isActive ? 'opacity-100' : 'opacity-45',
                             )}
                           >
-                            {formatButtonOdds(buttonPriceCentsByKey.get(button.key) ?? button.cents)}
+                            {formatButtonOdds(buttonPriceCentsByKey.get(marketButton.key) ?? marketButton.cents)}
                           </span>
                         </>
                       ) : (
                         <>
-                          <span className="uppercase opacity-80">{button.label}</span>
+                          <span className="uppercase opacity-80">{marketButton.label}</span>
                           <span className="text-sm leading-none tabular-nums">
-                            {formatButtonOdds(buttonPriceCentsByKey.get(button.key) ?? button.cents)}
+                            {formatButtonOdds(buttonPriceCentsByKey.get(marketButton.key) ?? marketButton.cents)}
                           </span>
                         </>
                       )}
@@ -1188,6 +1208,15 @@ export default function SportsEventCenter({
             }
           }
 
+          function handleSeriesPreviewCardClick(event: React.MouseEvent<HTMLElement>) {
+            const target = event.target as HTMLElement
+            if (target.closest('[data-sports-card-control="true"]')) {
+              return
+            }
+
+            toggleOrderBook()
+          }
+
           function handlePickSeriesPreviewSegment(number: number) {
             handlePickSeriesPreviewSegmentNumber(number)
 
@@ -1210,9 +1239,13 @@ export default function SportsEventCenter({
               key={`${activeCard.id}-series-preview-${entry.key}`}
               className="overflow-hidden rounded-xl border bg-card"
             >
-              <div className="flex w-full flex-col items-stretch gap-3 px-4 py-[18px] sm:flex-row sm:items-center">
+              <div
+                className="flex w-full cursor-pointer flex-col items-stretch gap-3 px-4 py-[18px] transition-colors hover:bg-secondary/30 sm:flex-row sm:items-center"
+                onClick={handleSeriesPreviewCardClick}
+              >
                 <button
                   type="button"
+                  data-sports-card-control="true"
                   onClick={toggleOrderBook}
                   className="min-w-0 cursor-pointer text-left transition-colors hover:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                 >
@@ -1228,16 +1261,16 @@ export default function SportsEventCenter({
                     resolveMoneylineButtonGridClass(entry.buttons.length),
                   )}
                 >
-                  {entry.buttons.map((button) => {
-                    const isActive = activeTradeButtonKey === button.key || selectedButtonKey === button.key
-                    const hasTeamColor = button.tone === 'team1' || button.tone === 'team2'
+                  {entry.buttons.map((marketButton) => {
+                    const isActive = activeTradeButtonKey === marketButton.key || selectedButtonKey === marketButton.key
+                    const hasTeamColor = marketButton.tone === 'team1' || marketButton.tone === 'team2'
                     const buttonOverlayStyle = hasTeamColor
-                      ? resolveButtonOverlayStyle(button.color, button.tone)
+                      ? resolveButtonOverlayStyle(marketButton.color, marketButton.tone)
                       : undefined
 
                     return (
                       <div
-                        key={`${entry.key}-${button.key}`}
+                        key={`${entry.key}-${marketButton.key}`}
                         className="relative w-full min-w-0 overflow-hidden rounded-lg pb-1.25 sm:w-[118px] sm:shrink-0"
                       >
                         <div
@@ -1245,17 +1278,20 @@ export default function SportsEventCenter({
                             'pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-lg',
                             !hasTeamColor && 'bg-border/70',
                           )}
-                          style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
+                          style={
+                            hasTeamColor ? resolveButtonDepthStyle(marketButton.color, marketButton.tone) : undefined
+                          }
                         />
                         <button
                           type="button"
+                          data-sports-card-control="true"
                           onClick={(event) => {
                             event.stopPropagation()
-                            updateAuxiliarySelection(entry.key, button.key, {
+                            updateAuxiliarySelection(entry.key, marketButton.key, {
                               panelMode: isResolved ? 'preserve' : 'full',
                             })
                           }}
-                          style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
+                          style={hasTeamColor ? resolveButtonStyle(marketButton.color, marketButton.tone) : undefined}
                           className={cn(
                             `relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2 text-xs font-semibold shadow-sm transition-transform duration-150 ease-out hover:translate-y-px active:translate-y-0.5`,
                             !hasTeamColor && 'bg-secondary text-secondary-foreground hover:bg-accent',
@@ -1268,10 +1304,10 @@ export default function SportsEventCenter({
                             />
                           ) : null}
                           <span className={cn('relative z-1 mr-1 uppercase', isActive ? 'opacity-80' : 'opacity-70')}>
-                            {button.label}
+                            {marketButton.label}
                           </span>
                           <span className="relative z-1 text-sm leading-none tabular-nums">
-                            {formatButtonOdds(buttonPriceCentsByKey.get(button.key) ?? button.cents)}
+                            {formatButtonOdds(buttonPriceCentsByKey.get(marketButton.key) ?? marketButton.cents)}
                           </span>
                         </button>
                       </div>
@@ -1463,20 +1499,20 @@ export default function SportsEventCenter({
                             resolveMoneylineButtonGridClass(sectionButtons.length),
                           )}
                         >
-                          {sectionButtons.map((button) => {
-                            const isActive = activeTradeButtonKey === button.key
+                          {sectionButtons.map((marketButton) => {
+                            const isActive = activeTradeButtonKey === marketButton.key
                             const hasTeamColor =
-                              (button.tone === 'team1' || button.tone === 'team2') &&
-                              (button.marketType === 'moneyline' || isActive)
-                            const isOverButton = isActive && button.tone === 'over'
-                            const isUnderButton = isActive && button.tone === 'under'
+                              (marketButton.tone === 'team1' || marketButton.tone === 'team2') &&
+                              (marketButton.marketType === 'moneyline' || isActive)
+                            const isOverButton = isActive && marketButton.tone === 'over'
+                            const isUnderButton = isActive && marketButton.tone === 'under'
                             const buttonOverlayStyle = hasTeamColor
-                              ? resolveButtonOverlayStyle(button.color, button.tone)
+                              ? resolveButtonOverlayStyle(marketButton.color, marketButton.tone)
                               : undefined
 
                             return (
                               <div
-                                key={`${section.key}-${button.key}`}
+                                key={`${section.key}-${marketButton.key}`}
                                 className={cn(
                                   `relative w-full min-w-0 overflow-hidden rounded-lg pb-1.25 sm:w-[118px] sm:shrink-0`,
                                 )}
@@ -1488,16 +1524,22 @@ export default function SportsEventCenter({
                                     isOverButton && 'bg-yes/70',
                                     isUnderButton && 'bg-no/70',
                                   )}
-                                  style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
+                                  style={
+                                    hasTeamColor
+                                      ? resolveButtonDepthStyle(marketButton.color, marketButton.tone)
+                                      : undefined
+                                  }
                                 />
                                 <button
                                   type="button"
                                   data-sports-card-control="true"
                                   onClick={(event) => {
                                     event.stopPropagation()
-                                    updateSectionSelection(section.key, button.key, { panelMode: 'full' })
+                                    updateSectionSelection(section.key, marketButton.key, { panelMode: 'full' })
                                   }}
-                                  style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
+                                  style={
+                                    hasTeamColor ? resolveButtonStyle(marketButton.color, marketButton.tone) : undefined
+                                  }
                                   className={cn(
                                     `relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2 text-xs font-semibold shadow-sm transition-transform duration-150 ease-out hover:translate-y-px active:translate-y-0.5`,
                                     !hasTeamColor &&
@@ -1514,14 +1556,16 @@ export default function SportsEventCenter({
                                       style={buttonOverlayStyle}
                                     />
                                   ) : null}
-                                  <span className="relative z-1 mr-1 uppercase opacity-80">{button.label}</span>
+                                  <span className="relative z-1 mr-1 uppercase opacity-80">{marketButton.label}</span>
                                   <span
                                     className={cn(
                                       'relative z-1 text-sm leading-none tabular-nums transition-opacity',
                                       isActive ? 'opacity-100' : 'opacity-45',
                                     )}
                                   >
-                                    {formatButtonOdds(buttonPriceCentsByKey.get(button.key) ?? button.cents)}
+                                    {formatButtonOdds(
+                                      buttonPriceCentsByKey.get(marketButton.key) ?? marketButton.cents,
+                                    )}
                                   </span>
                                 </button>
                               </div>
@@ -1529,20 +1573,20 @@ export default function SportsEventCenter({
                           })}
                         </div>
                       ) : (
-                        sectionButtons.map((button) => {
-                          const isActive = activeTradeButtonKey === button.key
+                        sectionButtons.map((marketButton) => {
+                          const isActive = activeTradeButtonKey === marketButton.key
                           const hasTeamColor =
-                            (button.tone === 'team1' || button.tone === 'team2') &&
-                            (button.marketType === 'moneyline' || isActive)
-                          const isOverButton = isActive && button.tone === 'over'
-                          const isUnderButton = isActive && button.tone === 'under'
+                            (marketButton.tone === 'team1' || marketButton.tone === 'team2') &&
+                            (marketButton.marketType === 'moneyline' || isActive)
+                          const isOverButton = isActive && marketButton.tone === 'over'
+                          const isUnderButton = isActive && marketButton.tone === 'under'
                           const buttonOverlayStyle = hasTeamColor
-                            ? resolveButtonOverlayStyle(button.color, button.tone)
+                            ? resolveButtonOverlayStyle(marketButton.color, marketButton.tone)
                             : undefined
 
                           return (
                             <div
-                              key={`${section.key}-${button.key}`}
+                              key={`${section.key}-${marketButton.key}`}
                               className="relative min-w-0 overflow-hidden rounded-lg pb-1.25"
                             >
                               <div
@@ -1552,16 +1596,22 @@ export default function SportsEventCenter({
                                   isOverButton && 'bg-yes/70',
                                   isUnderButton && 'bg-no/70',
                                 )}
-                                style={hasTeamColor ? resolveButtonDepthStyle(button.color, button.tone) : undefined}
+                                style={
+                                  hasTeamColor
+                                    ? resolveButtonDepthStyle(marketButton.color, marketButton.tone)
+                                    : undefined
+                                }
                               />
                               <button
                                 type="button"
                                 data-sports-card-control="true"
                                 onClick={(event) => {
                                   event.stopPropagation()
-                                  updateSectionSelection(section.key, button.key, { panelMode: 'full' })
+                                  updateSectionSelection(section.key, marketButton.key, { panelMode: 'full' })
                                 }}
-                                style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
+                                style={
+                                  hasTeamColor ? resolveButtonStyle(marketButton.color, marketButton.tone) : undefined
+                                }
                                 className={cn(
                                   `relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg px-2 text-xs font-semibold shadow-sm transition-transform duration-150 ease-out hover:translate-y-px active:translate-y-0.5`,
                                   !hasTeamColor &&
@@ -1580,10 +1630,12 @@ export default function SportsEventCenter({
                                 ) : null}
                                 <span className="relative z-1 flex w-full items-center justify-between gap-1 px-1">
                                   <span className="min-w-0 truncate text-left uppercase opacity-80">
-                                    {button.label}
+                                    {marketButton.label}
                                   </span>
                                   <span className="shrink-0 text-sm leading-none tabular-nums">
-                                    {formatButtonOdds(buttonPriceCentsByKey.get(button.key) ?? button.cents)}
+                                    {formatButtonOdds(
+                                      buttonPriceCentsByKey.get(marketButton.key) ?? marketButton.cents,
+                                    )}
                                   </span>
                                 </span>
                               </button>
