@@ -18,5 +18,5 @@ export default async function EsportsSlugPartsLayout({
   const { locale } = await params
   setRequestLocale(locale)
 
-  return <div className="pt-5 pb-20 min-[1200px]:h-full min-[1200px]:min-h-0 md:pb-0">{children}</div>
+  return <div className="pb-20 min-[1200px]:h-full min-[1200px]:min-h-0 md:pb-0">{children}</div>
 }
