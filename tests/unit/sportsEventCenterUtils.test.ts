@@ -7,18 +7,24 @@ import {
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 
 describe('sportsEventCenterUtils', () => {
-  it('formats event countdowns with hours, minutes, and seconds', () => {
+  it('formats event countdowns with the two largest units', () => {
     const currentTimestamp = Date.parse('2026-08-06T12:00:00.000Z')
     const startTimestamp = currentTimestamp + 17 * 3_600_000 + 39 * 60_000 + 59_000
 
-    expect(formatSportsEventCountdown(startTimestamp, currentTimestamp)).toBe('17h 39m 59s')
+    expect(formatSportsEventCountdown(startTimestamp, currentTimestamp)).toBe('17h 39m')
   })
 
   it('includes days and clamps elapsed countdowns to zero', () => {
     const currentTimestamp = Date.parse('2026-08-06T12:00:00.000Z')
 
-    expect(formatSportsEventCountdown(currentTimestamp + 2 * 86_400_000 + 60_000, currentTimestamp)).toBe('2d 0h 1m 0s')
-    expect(formatSportsEventCountdown(currentTimestamp - 1_000, currentTimestamp)).toBe('0h 0m 0s')
+    expect(formatSportsEventCountdown(currentTimestamp + 2 * 86_400_000 + 60_000, currentTimestamp)).toBe('2d 0h')
+    expect(formatSportsEventCountdown(currentTimestamp - 1_000, currentTimestamp)).toBe('0m 0s')
+  })
+
+  it('uses minutes and seconds below one hour', () => {
+    const currentTimestamp = Date.parse('2026-08-06T12:00:00.000Z')
+
+    expect(formatSportsEventCountdown(currentTimestamp + 7 * 60_000 + 15_000, currentTimestamp)).toBe('7m 15s')
   })
 
   it('formats event hero start labels in ET', () => {

@@ -45,6 +45,8 @@ import {
 import { headerIconButtonClass } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 import {
   formatSportsEventCountdown,
+  formatSportsEventLocalStartLabels,
+  formatSportsEventStartLabels,
   normalizeLivestreamUrl,
   parseSportsScore,
   resolveMoneylineButtonGridClass,
@@ -82,6 +84,7 @@ import SportsMatchScoreboard from '@/components/SportsMatchScoreboard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
@@ -389,6 +392,7 @@ export default function SportsEventCenter({
 }: SportsEventCenterProps) {
   const verticalConfig = getSportsVerticalConfig(vertical)
   const locale = useLocale()
+  const hasHydrated = useHasHydrated()
   const site = useSiteIdentity()
   const isMobile = useIsMobile()
   const setOrderEvent = useOrder((state) => state.setEvent)
@@ -756,6 +760,12 @@ export default function SportsEventCenter({
         ? Date.parse(heroCard.event.start_date)
         : Number.NaN
   const startTimestamp = Number.isFinite(parsedStartTimestamp) ? parsedStartTimestamp : null
+  const startLabels = startTimestamp !== null ? formatSportsEventStartLabels(startTimestamp, locale) : null
+  const localStartLabels =
+    hasHydrated && startTimestamp !== null ? formatSportsEventLocalStartLabels(startTimestamp, locale) : null
+  const visibleStartLabels = localStartLabels ?? startLabels
+  const timeLabel = visibleStartLabels?.timeLabel ?? 'TBD'
+  const dayLabel = visibleStartLabels?.dayLabel ?? 'Date TBD'
   const hasStarted = useSportsEventHasStarted(startTimestamp)
 
   const team1 = heroCard.teams[0] ?? null
@@ -783,6 +793,7 @@ export default function SportsEventCenter({
   const team2Score = showLiveScore ? (parsedScore?.team2 ?? 0) : parsedScore?.team2
   const team1Won = team1Score != null && team2Score != null && team1Score > team2Score
   const team2Won = team1Score != null && team2Score != null && team2Score > team1Score
+  const usesEsportsHeroLayout = vertical === 'esports'
   const segmentScores = resolveSportsSegmentNumbers({
     scores: heroCard.event.sports_segment_scores,
     title: heroCard.event.title,
@@ -1875,8 +1886,20 @@ export default function SportsEventCenter({
               className="mx-auto mb-4 w-full max-w-md"
             />
           ) : (
-            <div className="mx-auto mb-4 flex w-full max-w-sm flex-col gap-3">
-              <div className="flex min-w-0 items-center gap-3">
+            <div
+              className={cn(
+                'mx-auto mb-4 w-full',
+                usesEsportsHeroLayout
+                  ? 'flex max-w-sm flex-col gap-3'
+                  : 'grid max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4',
+              )}
+            >
+              <div
+                className={cn(
+                  'flex min-w-0',
+                  usesEsportsHeroLayout ? 'items-center gap-3' : 'flex-col items-center gap-2 text-center',
+                )}
+              >
                 <div
                   className={cn(
                     'pointer-events-none flex items-center justify-center select-none',
@@ -1916,7 +1939,14 @@ export default function SportsEventCenter({
                     </div>
                   )}
                 </div>
-                <span className="min-w-0 truncate text-sm font-semibold text-foreground">{heroTeam1Label}</span>
+                <span
+                  className={cn(
+                    'min-w-0 truncate text-sm font-semibold text-foreground',
+                    !usesEsportsHeroLayout && 'w-full text-center',
+                  )}
+                >
+                  {heroTeam1Label}
+                </span>
               </div>
 
               {showFinalScore || showLiveScore ? (
@@ -1942,9 +1972,19 @@ export default function SportsEventCenter({
                     <span className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">LIVE</span>
                   )}
                 </div>
-              ) : null}
+              ) : usesEsportsHeroLayout ? null : (
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-sm font-medium text-foreground">{timeLabel}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{dayLabel}</span>
+                </div>
+              )}
 
-              <div className="flex min-w-0 items-center gap-3">
+              <div
+                className={cn(
+                  'flex min-w-0',
+                  usesEsportsHeroLayout ? 'items-center gap-3' : 'flex-col items-center gap-2 text-center',
+                )}
+              >
                 <div
                   className={cn(
                     'pointer-events-none flex items-center justify-center select-none',
@@ -1984,7 +2024,14 @@ export default function SportsEventCenter({
                     </div>
                   )}
                 </div>
-                <span className="min-w-0 truncate text-sm font-semibold text-foreground">{heroTeam2Label}</span>
+                <span
+                  className={cn(
+                    'min-w-0 truncate text-sm font-semibold text-foreground',
+                    !usesEsportsHeroLayout && 'w-full text-center',
+                  )}
+                >
+                  {heroTeam2Label}
+                </span>
               </div>
             </div>
           )}

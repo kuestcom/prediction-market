@@ -28,9 +28,15 @@ export function formatSportsEventCountdown(startTimestamp: number, currentTimest
   const minutes = Math.floor((remainingSeconds % 3_600) / 60)
   const seconds = remainingSeconds % 60
 
-  return [days > 0 ? `${days}d` : null, `${hours}h`, `${minutes}m`, `${seconds}s`]
-    .filter((part): part is string => part !== null)
-    .join(' ')
+  if (days > 0) {
+    return `${days}d ${hours}h`
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+
+  return `${minutes}m ${seconds}s`
 }
 
 function resolveInitialOddsFormat(): OddsFormat {
