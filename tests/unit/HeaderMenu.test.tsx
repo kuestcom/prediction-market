@@ -15,6 +15,14 @@ vi.mock('next/dynamic', () => ({
   default: () => () => <div data-testid="header-deposit-button" />,
 }))
 
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href, ...props }: any) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}))
+
 vi.mock('@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest', () => ({
   default: () => <div data-testid="header-guest-menu" />,
 }))

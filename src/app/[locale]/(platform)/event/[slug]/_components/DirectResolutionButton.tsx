@@ -640,6 +640,9 @@ export default function DirectResolutionButton({
 
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
+  const resolutionRules = (market.market_rules?.trim() || event.rules?.trim() || '')
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
   const resolutionQuestion = market.question?.trim() || market.title
   const normalizedResolutionQuestion = normalizeLabel(resolutionQuestion)
   const shouldShowResolutionQuestion =
@@ -1564,30 +1567,40 @@ export default function DirectResolutionButton({
 
   const rulesConfirmation =
     !isResolved && !hasExistingProposal ? (
-      <label
-        ref={rulesConfirmationRef}
-        htmlFor={rulesCheckboxId}
-        className={cn(
-          'flex cursor-pointer items-start gap-3 rounded-lg border bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/20',
-          rulesConfirmed && 'bg-primary/5',
+      <div className="grid gap-2">
+        {resolutionRules && (
+          <div className="rounded-lg border bg-background px-4 py-3">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('Rules')}</p>
+            <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {resolutionRules}
+            </p>
+          </div>
         )}
-      >
-        <Checkbox
-          id={rulesCheckboxId}
-          checked={rulesConfirmed}
-          onCheckedChange={(checked) => {
-            const confirmed = checked === true
-            setRulesConfirmed(confirmed)
-            if (confirmed) {
-              setRulesAcceptancePrompted(false)
-            }
-          }}
-          className="mt-0.5"
-        />
-        <span className="min-w-0 flex-1 leading-relaxed">
-          {t('I have read the market rules and will resolve according to them.')}
-        </span>
-      </label>
+        <label
+          ref={rulesConfirmationRef}
+          htmlFor={rulesCheckboxId}
+          className={cn(
+            'flex cursor-pointer items-start gap-3 rounded-lg border bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/20',
+            rulesConfirmed && 'bg-primary/5',
+          )}
+        >
+          <Checkbox
+            id={rulesCheckboxId}
+            checked={rulesConfirmed}
+            onCheckedChange={(checked) => {
+              const confirmed = checked === true
+              setRulesConfirmed(confirmed)
+              if (confirmed) {
+                setRulesAcceptancePrompted(false)
+              }
+            }}
+            className="mt-0.5"
+          />
+          <span className="min-w-0 flex-1 leading-relaxed">
+            {t('I have read the market rules and will resolve according to them.')}
+          </span>
+        </label>
+      </div>
     ) : null
 
   const resolutionSourceReference = resolutionSourceUrl ? (

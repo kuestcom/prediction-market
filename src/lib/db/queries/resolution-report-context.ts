@@ -35,6 +35,19 @@ function normalizeConditionIds(conditionIds: string[]) {
   return Array.from(new Set(conditionIds.map((conditionId) => conditionId.trim().toLowerCase()).filter(Boolean)))
 }
 
+function applyOutcomeLabel<T extends { noLabel: string; yesLabel: string }>(
+  context: T,
+  outcomeIndex: number | null,
+  outcomeText: string | null,
+) {
+  if (outcomeIndex === 0 && outcomeText) {
+    context.yesLabel = outcomeText
+  } else if (outcomeIndex === 1 && outcomeText) {
+    context.noLabel = outcomeText
+  }
+  return context
+}
+
 export const ResolutionReportContextRepository = {
   async getMarketConfiguration(conditionId: string): Promise<ResolutionRewardMarketConfiguration | null> {
     const normalizedConditionIds = normalizeConditionIds([conditionId])
@@ -113,12 +126,7 @@ export const ResolutionReportContextRepository = {
         noLabel: 'NO',
         yesLabel: 'YES',
       }
-      if (row.outcomeIndex === 0 && row.outcomeText) {
-        context.yesLabel = row.outcomeText
-      } else if (row.outcomeIndex === 1 && row.outcomeText) {
-        context.noLabel = row.outcomeText
-      }
-      contextsByCondition.set(conditionId, context)
+      contextsByCondition.set(conditionId, applyOutcomeLabel(context, row.outcomeIndex, row.outcomeText))
     }
 
     return [...contextsByCondition.values()]
@@ -148,12 +156,7 @@ export const ResolutionReportContextRepository = {
         noLabel: 'NO',
         yesLabel: 'YES',
       }
-      if (row.outcomeIndex === 0 && row.outcomeText) {
-        current.yesLabel = row.outcomeText
-      } else if (row.outcomeIndex === 1 && row.outcomeText) {
-        current.noLabel = row.outcomeText
-      }
-      contextByCondition.set(conditionId, current)
+      contextByCondition.set(conditionId, applyOutcomeLabel(current, row.outcomeIndex, row.outcomeText))
     }
 
     return [...contextByCondition.values()]

@@ -28,6 +28,8 @@ import { fetchDisplayResolutionRewardAccount } from '@/lib/resolution-reward-dis
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
+const PUBLIC_RESOLUTION_ACCOUNT_TIMEOUT_MS = 5_000
+
 function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
   if (locale === DEFAULT_LOCALE) {
     return path
@@ -132,7 +134,9 @@ function PublicProfileTabsSection({
 }
 
 async function loadPublicResolutionAccount(wallet: string) {
-  return fetchDisplayResolutionRewardAccount(wallet).catch((error) => {
+  return fetchDisplayResolutionRewardAccount(wallet, {
+    signal: AbortSignal.timeout(PUBLIC_RESOLUTION_ACCOUNT_TIMEOUT_MS),
+  }).catch((error) => {
     console.warn('Failed to load public resolution history', { wallet, error })
     return null
   })

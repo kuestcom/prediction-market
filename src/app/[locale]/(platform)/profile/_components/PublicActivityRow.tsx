@@ -1,6 +1,7 @@
 import type { Route } from 'next'
 
 import { BadgeCheckIcon, CircleDollarSignIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { createElement } from 'react'
 
 import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
@@ -18,6 +19,7 @@ import { formatCurrency, formatTimeAgo } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 export default function PublicActivityRow({ activity }: PublicActivityRowProps) {
+  const t = useExtracted()
   const variant = resolveVariant(activity)
   const icon = activityIcon(variant)
   const sharesText = formatActivityShares(activity)
@@ -55,6 +57,8 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const valueDisplay = hasValue ? formatCurrency(Math.abs(valueNumber)) : '—'
   const valuePrefix = hasValue ? (isNegative ? '-' : '+') : ''
   const valueContent = variant === 'loss' ? '-' : Number.isFinite(valueNumber) ? `${valuePrefix}${valueDisplay}` : '—'
+  const activityLabel =
+    variant === 'resolution_bond' ? t('Bond') : variant === 'resolution_reward' ? t('Reward') : icon.label
   const marketContent = isFundsFlow ? (
     <div className="flex min-w-0 items-center gap-2.5 pl-1">
       <div
@@ -72,8 +76,8 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
             : variant === 'withdraw'
               ? 'Withdrew funds'
               : variant === 'resolution_bond'
-                ? 'Resolution Bond'
-                : 'Resolution Reward'}
+                ? t('Resolution bond')
+                : t('Resolution reward')}
         </div>
       </div>
     </div>
@@ -124,7 +128,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
       <td className="px-2 py-3 text-sm font-semibold text-foreground sm:px-3">
         <div className="flex items-center gap-2">
           {createElement(icon.Icon, { className: cn('size-4 text-muted-foreground', icon.className) })}
-          <span>{icon.label}</span>
+          <span>{activityLabel}</span>
         </div>
       </td>
 

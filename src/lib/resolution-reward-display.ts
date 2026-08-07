@@ -33,7 +33,10 @@ export async function hydrateResolutionRewardAccount(
   }
 }
 
-export async function fetchDisplayResolutionRewardAccount(wallet: string): Promise<DataApiRewardAccount | null> {
-  const account = await fetchResolutionRewardAccount(wallet)
+export async function fetchDisplayResolutionRewardAccount(
+  wallet: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<DataApiRewardAccount | null> {
+  const account = await fetchResolutionRewardAccount(wallet, options)
   return hydrateResolutionRewardAccount(account)
 }

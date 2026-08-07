@@ -182,6 +182,7 @@ describe('DirectResolutionButton', () => {
     expect(screen.queryByRole('checkbox', { name: /I have read the market rules/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Yes/ }))
+    expect(screen.getByText('Resolve according to the official result.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -646,7 +647,7 @@ describe('DirectResolutionButton', () => {
 
     fireEvent.click(reviewButton)
 
-    expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
+    expect(screen.getByText('Resolve according to the official result.')).toBeInTheDocument()
     expect(screen.getByText('Accept the market rules to continue.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
   })

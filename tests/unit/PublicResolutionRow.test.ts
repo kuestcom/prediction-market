@@ -55,6 +55,13 @@ describe('resolution proposal value', () => {
     })
   })
 
+  it('preserves a positive sub-cent bounty instead of styling a rounded zero as positive', () => {
+    expect(resolveResolutionProposalValue(createProposal({ rewardAmount: '4000' }))).toEqual({
+      label: '+$0.004',
+      positive: true,
+    })
+  })
+
   it('shows the lost bond for an incorrect proposal', () => {
     expect(resolveResolutionProposalValue(createProposal({ correct: false }))).toEqual({
       label: '-$300',

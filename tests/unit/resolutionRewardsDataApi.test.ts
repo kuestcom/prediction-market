@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { fetchPendingResolutionRewardReports } from '@/lib/data-api/resolution-rewards'
+import { fetchPendingResolutionRewardReports, fetchResolutionRewardAccount } from '@/lib/data-api/resolution-rewards'
 
 vi.mock('@/lib/data-api/client', () => ({
   buildDataApiUrl: (path: string, params?: URLSearchParams) =>
@@ -52,5 +52,17 @@ describe('resolution rewards Data API reports', () => {
     await expect(fetchPendingResolutionRewardReports(['0x1111111111111111111111111111111111111111'])).rejects.toThrow(
       'were truncated',
     )
+  })
+
+  it('forwards an abort signal to optional public account requests', async () => {
+    const fetchMock = vi.fn(() => response({ rewardAccountStats: null, rewardProposals: [], rewardClaims: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+
+    await fetchResolutionRewardAccount('0x1111111111111111111111111111111111111111', {
+      signal: controller.signal,
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ signal: controller.signal }))
   })
 })

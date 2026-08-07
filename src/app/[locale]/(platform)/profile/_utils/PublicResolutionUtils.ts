@@ -11,7 +11,7 @@ function fromBaseUnits(value: string) {
 }
 
 function formatResolutionValue(value: number) {
-  return formatCurrency(value, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+  return formatCurrency(value, { minimumFractionDigits: 0, maximumFractionDigits: 6 })
 }
 
 export function resolveResolutionProposalValue(proposal: DataApiRewardProposal) {

@@ -16,8 +16,8 @@ export interface DataApiRewardProposal {
     eventTitle: string
     eventIcon: string
     eventSeriesSlug: string | null
-    yesLabel: string
-    noLabel: string
+    yesLabel?: string
+    noLabel?: string
   }
   creator: string
   wallet: string
@@ -159,10 +159,14 @@ export async function fetchResolutionRewardAccountProposals(wallet: string): Pro
   return account.rewardProposals
 }
 
-export async function fetchResolutionRewardAccount(wallet: string): Promise<DataApiRewardAccount> {
+export async function fetchResolutionRewardAccount(
+  wallet: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<DataApiRewardAccount> {
   const response = await fetch(buildDataApiUrl(`/v1/resolution-rewards/accounts/${wallet}`), {
     headers: { Accept: 'application/json' },
     cache: 'no-store',
+    signal: options.signal,
   })
   if (!response.ok) {
     throw new Error(`Data API reward account request failed (${response.status}).`)
