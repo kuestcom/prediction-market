@@ -320,4 +320,13 @@ describe('eventShare', () => {
 
     expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'closed')
   })
+
+  it('keeps an open multi-market menu open when its contents scroll', () => {
+    renderWithQueryClient(<EventShare event={createEvent({ total_markets_count: 2 })} />)
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Copy event link' }), { pointerType: 'mouse' })
+    fireEvent.scroll(screen.getByRole('button', { name: 'Copy link' }))
+
+    expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'open')
+  })
 })
