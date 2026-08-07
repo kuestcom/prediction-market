@@ -226,6 +226,14 @@ function useCenterPaneWheelRouting(useIndependentColumns: boolean) {
           return
         }
 
+        const maxCenterScrollTop = centerPane.scrollHeight - centerPane.clientHeight
+        const canScrollCenterPane =
+          (event.deltaY > 0 && centerPane.scrollTop < maxCenterScrollTop - 1) ||
+          (event.deltaY < 0 && centerPane.scrollTop > 1)
+        if (!canScrollCenterPane) {
+          return
+        }
+
         event.preventDefault()
         centerPane.scrollBy({
           top: event.deltaY,
