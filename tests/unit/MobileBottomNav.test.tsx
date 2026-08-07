@@ -26,8 +26,8 @@ vi.mock('@/app/[locale]/(platform)/_components/SearchDiscoveryContent', () => ({
   default: () => <div data-testid="search-discovery" />,
 }))
 
-vi.mock('@/components/PwaInstallIosInstructions', () => ({
-  default: () => <div data-testid="pwa-ios-instructions" />,
+vi.mock('@/components/PwaInstallDialog', () => ({
+  default: () => <div data-testid="pwa-install-dialog" />,
 }))
 
 vi.mock('@/components/ThemeSelector', () => ({

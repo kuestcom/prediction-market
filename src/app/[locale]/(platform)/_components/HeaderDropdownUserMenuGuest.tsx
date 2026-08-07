@@ -5,7 +5,7 @@ import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
-import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
+import PwaInstallDialog from '@/components/PwaInstallDialog'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import {
@@ -105,6 +105,7 @@ export default function HeaderDropdownUserMenuGuest() {
   const isMobile = useIsMobile()
   const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
   const enableHoverOpen = !isMobile
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false)
   const { menuOpen, wrapperRef, handleWrapperPointerEnter, handleWrapperPointerLeave, handleOpenChange, closeMenu } =
     useHoverDropdownMenu(enableHoverOpen)
 
@@ -112,10 +113,7 @@ export default function HeaderDropdownUserMenuGuest() {
     closeMenu()
 
     if (isIos) {
-      toast.info(t('Install app'), {
-        duration: 10_000,
-        description: <PwaInstallIosInstructions className="max-w-sm pt-1" />,
-      })
+      setIsInstallDialogOpen(true)
       return
     }
 
@@ -204,6 +202,7 @@ export default function HeaderDropdownUserMenuGuest() {
           <LocaleSwitcherMenuItem />
         </DropdownMenuContent>
       </DropdownMenu>
+      <PwaInstallDialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen} />
     </div>
   )
 }

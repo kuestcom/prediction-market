@@ -25,7 +25,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import LocaleFlag from '@/components/LocaleFlag'
-import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
+import PwaInstallDialog from '@/components/PwaInstallDialog'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -65,6 +65,7 @@ function useMobileBottomNavState() {
   const [searchFocusTrigger, setSearchFocusTrigger] = useState(0)
   const [isGuestMenuOpen, setIsGuestMenuOpen] = useState(false)
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false)
 
   return {
     isSearchOpen,
@@ -75,6 +76,8 @@ function useMobileBottomNavState() {
     setIsGuestMenuOpen,
     isHowItWorksOpen,
     setIsHowItWorksOpen,
+    isInstallDialogOpen,
+    setIsInstallDialogOpen,
   }
 }
 
@@ -95,6 +98,8 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     setIsGuestMenuOpen,
     isHowItWorksOpen,
     setIsHowItWorksOpen,
+    isInstallDialogOpen,
+    setIsInstallDialogOpen,
   } = useMobileBottomNavState()
 
   const isAuthenticated = hasHydrated && (Boolean(session?.user) || Boolean(user))
@@ -160,10 +165,9 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
     setIsGuestMenuOpen(false)
 
     if (isIos) {
-      toast.info(t('Install app'), {
-        duration: 10_000,
-        description: <PwaInstallIosInstructions className="max-w-sm pt-1" />,
-      })
+      window.setTimeout(() => {
+        setIsInstallDialogOpen(true)
+      }, 120)
       return
     }
 
@@ -348,6 +352,8 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
           </DrawerContent>
         </Drawer>
       )}
+
+      <PwaInstallDialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen} />
 
       <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" aria-label="Primary navigation">
         <div

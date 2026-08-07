@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
-import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
+import PwaInstallDialog from '@/components/PwaInstallDialog'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import {
@@ -129,15 +129,13 @@ export default function HeaderDropdownUserMenuAuth() {
   const avatarSeed = user?.deposit_wallet_address || user?.address || user?.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const placeholderStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
+  const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false)
 
   async function handleInstallAction() {
     handleMenuClose()
 
     if (isIos) {
-      toast.info(t('Install app'), {
-        duration: 10_000,
-        description: <PwaInstallIosInstructions className="max-w-sm pt-1" />,
-      })
+      setIsInstallDialogOpen(true)
       return
     }
 
@@ -346,6 +344,7 @@ export default function HeaderDropdownUserMenuAuth() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <PwaInstallDialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen} />
     </div>
   )
 }
