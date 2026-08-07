@@ -699,6 +699,9 @@ export default function DirectResolutionButton({
     if (message === 'Wallet signature was rejected.') {
       return t('Wallet signature was rejected.')
     }
+    if (message === 'This market is already resolved.') {
+      return t('This market is already resolved.')
+    }
     return t('Could not submit resolution proposal.')
   }
 
@@ -757,7 +760,9 @@ export default function DirectResolutionButton({
         Date.now() - cachedSummary.loadedAt < RESOLUTION_REPORT_SUMMARY_FRESHNESS_MS
       ) {
         const currentSummary = reportSummaryRef.current
-        resolutionRewardAmountChangeRef.current?.(formatResolutionRewardAmount(currentSummary.rewardPool))
+        resolutionRewardAmountChangeRef.current?.(
+          currentSummary.rewardEnabled ? formatResolutionRewardAmount(currentSummary.rewardPool) : null,
+        )
         if (currentSummary.currentOutcome) {
           setSelectedOutcome((current) => current ?? currentSummary.currentOutcome)
         }
@@ -816,7 +821,9 @@ export default function DirectResolutionButton({
           reportSummaryRef.current = summary
           reportSummaryCacheRef.current = { scopeKey: reportSummaryScopeKey, loadedAt: Date.now() }
           setReportSummary(summary)
-          resolutionRewardAmountChangeRef.current?.(formatResolutionRewardAmount(summary.rewardPool))
+          resolutionRewardAmountChangeRef.current?.(
+            summary.rewardEnabled ? formatResolutionRewardAmount(summary.rewardPool) : null,
+          )
           if (summary.currentOutcome) {
             setSelectedOutcome((current) => current ?? summary.currentOutcome)
           }
@@ -878,12 +885,15 @@ export default function DirectResolutionButton({
   }, [reportSummaryScopeKey])
 
   useEffect(() => {
-    if (!hasResolutionRewardAmountListener || !isDirect || !publicClient) {
+    if (!hasResolutionRewardAmountListener || !isDirect || !publicClient || isResolved) {
+      if (isResolved) {
+        resolutionRewardAmountChangeRef.current?.(null)
+      }
       return
     }
 
     void loadReportSummary({ preserveEligibilityOnError: true })
-  }, [hasResolutionRewardAmountListener, isDirect, loadReportSummary, publicClient])
+  }, [hasResolutionRewardAmountListener, isDirect, isResolved, loadReportSummary, publicClient])
 
   async function checkResolutionAccess() {
     const allowed = await checkWhitelist()
@@ -994,7 +1004,20 @@ export default function DirectResolutionButton({
     } catch (error) {
       console.error('Could not submit resolution report:', error)
       setState('error')
+      const resolutionError = readDirectResolutionError(error)
       const errorMessage = getUserFacingResolutionReportError(error)
+      if (resolutionError === 'This market is already resolved.') {
+        const unavailableSummary = {
+          ...reportSummaryRef.current,
+          rewardEnabled: false,
+          eligibility: 'ineligible' as const,
+        }
+        reportSummaryRef.current = unavailableSummary
+        reportSummaryCacheRef.current = { scopeKey: reportSummaryScopeKey, loadedAt: Date.now() }
+        setReportSummary(unavailableSummary)
+        setBondConfirmationOpen(false)
+        resolutionRewardAmountChangeRef.current?.(null)
+      }
       setMessage(errorMessage)
       toast.error(errorMessage)
     }

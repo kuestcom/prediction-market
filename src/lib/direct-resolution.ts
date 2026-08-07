@@ -91,6 +91,9 @@ const DIRECT_RESOLUTION_ADDRESSES = new Set(
     NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   ].map((address) => address.toLowerCase()),
 )
+
+const RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR = 'b521771a'
+
 export type DirectResolutionErrorMessage =
   | 'Connected proposer wallet needs POL for gas before resolving this market.'
   | 'Transaction could not be sent because the gas fee is below the current network minimum.'
@@ -243,7 +246,11 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
     return 'You are not allowed to propose a result for this market.'
   }
 
-  if (lower.includes('already resolved')) {
+  if (
+    lower.includes('already resolved') ||
+    lower.includes('marketnotactive') ||
+    lower.includes(RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR)
+  ) {
     return 'This market is already resolved.'
   }
 

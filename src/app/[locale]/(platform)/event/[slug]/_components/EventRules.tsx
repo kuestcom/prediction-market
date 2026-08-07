@@ -311,6 +311,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   const mirrorResolutionLabel =
     mirrorResolutionType === 'chainlink' ? 'Chainlink' : mirrorResolutionType === 'uma' ? 'UMA' : null
   const isDirectResolver = primaryMarket ? isDirectResolutionMarket(primaryMarket) : false
+  const isPrimaryMarketResolved = Boolean(primaryMarket?.is_resolved || primaryMarket?.condition?.resolved)
   const proposeTarget = isDirectResolver ? null : resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
   const resolverAddress = proposeTarget?.isMirror
     ? primaryMarket?.resolver
@@ -411,7 +412,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
     )
   })()
   const resolutionRewardAdornment =
-    isDirectResolver && resolutionRewardAmount ? (
+    isDirectResolver && !isPrimaryMarketResolved && resolutionRewardAmount ? (
       <ResolutionRewardsIcon amount={resolutionRewardAmount} label={t('Resolution reward')} />
     ) : null
 

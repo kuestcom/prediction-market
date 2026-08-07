@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton'
+import { NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS } from '@/lib/contracts'
 
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
@@ -166,6 +167,85 @@ describe('DirectResolutionButton', () => {
 
     expect(mocks.fetch).toHaveBeenCalledOnce()
     expect(mocks.readContract).toHaveBeenCalledOnce()
+  })
+
+  it('loads the reward badge for NegRisk direct-resolution markets', async () => {
+    const onResolutionRewardAmountChange = vi.fn()
+    const negRiskRequestId = `0x${'d'.repeat(64)}`
+    const negRiskMarket = {
+      ...(market as any),
+      neg_risk: true,
+      neg_risk_request_id: negRiskRequestId,
+    } as never
+
+    render(
+      <DirectResolutionButton
+        market={negRiskMarket}
+        event={{ ...(event as any), markets: [negRiskMarket] }}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$4'))
+    expect(mocks.readContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
+        args: [negRiskRequestId],
+      }),
+    )
+  })
+
+  it('does not load a reward badge after the market is resolved', async () => {
+    const onResolutionRewardAmountChange = vi.fn()
+    const resolvedMarket = {
+      ...(market as any),
+      is_active: false,
+      is_resolved: true,
+      condition: { ...(market as any).condition, resolved: true },
+    } as never
+
+    render(
+      <DirectResolutionButton
+        market={resolvedMarket}
+        event={{ ...(event as any), markets: [resolvedMarket] }}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith(null))
+    expect(mocks.fetch).not.toHaveBeenCalled()
+    expect(mocks.readContract).not.toHaveBeenCalled()
+  })
+
+  it('hides the reward badge when the on-chain rewards market is inactive', async () => {
+    const onResolutionRewardAmountChange = vi.fn()
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: false,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'ineligible',
+      }),
+    })
+
+    render(
+      <DirectResolutionButton
+        market={market}
+        event={event}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledOnce())
+    expect(onResolutionRewardAmountChange).toHaveBeenCalledWith(null)
+    expect(onResolutionRewardAmountChange).not.toHaveBeenCalledWith('$4')
   })
 
   it('ignores an obsolete report summary after the market changes', async () => {
@@ -521,6 +601,53 @@ describe('DirectResolutionButton', () => {
 
     await waitFor(() => expect(screen.getAllByText('Wallet signature was rejected.').length).toBeGreaterThan(0))
     expect(screen.queryByText(/viem@2\.55\.10/)).not.toBeInTheDocument()
+    consoleError.mockRestore()
+  })
+
+  it('explains when the rewards contract no longer accepts proposals', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const onResolutionRewardAmountChange = vi.fn()
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+    mocks.signAndSubmit.mockResolvedValue({
+      error:
+        'wallet execution error: Contract call reverted with data: 0xb09725d200000000000000000000000000000000000000000000000000000000000000010000000000000000000000001eedf578442f4c52429bb2b6449ff0872ae73be100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000004b521771a00000000000000000000000000000000000000000000000000000000',
+    })
+
+    render(
+      <DirectResolutionButton
+        market={market}
+        event={event}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Propose resolution' }))
+
+    const confirmationDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
+    fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Lock $300 and propose Yes' }))
+
+    await waitFor(() => expect(screen.getAllByText('This market is already resolved.').length).toBeGreaterThan(0))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument())
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenLastCalledWith(null))
+    expect(screen.queryByText(/b521771a/)).not.toBeInTheDocument()
     consoleError.mockRestore()
   })
 })

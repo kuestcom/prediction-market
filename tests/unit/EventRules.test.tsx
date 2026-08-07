@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Event } from '@/types'
@@ -33,6 +33,14 @@ vi.mock('@/hooks/useSiteIdentity', () => ({
 
 vi.mock('@/lib/uma', () => ({
   resolveUmaProposeTarget: () => null,
+}))
+
+vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton', () => ({
+  default: ({ onResolutionRewardAmountChange }: any) => (
+    <button type="button" onClick={() => onResolutionRewardAmountChange?.('$4')}>
+      Propose resolution
+    </button>
+  ),
 }))
 
 const { default: EventRules } = await import('@/app/[locale]/(platform)/event/[slug]/_components/EventRules')
@@ -141,5 +149,61 @@ describe('eventRules', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('shows the resolution reward badge for an active NegRisk direct-resolution market', () => {
+    render(
+      <EventRules
+        event={createEvent({
+          markets: [
+            {
+              condition_id: 'condition-1',
+              question_id: `0x${'a'.repeat(64)}`,
+              neg_risk: true,
+              neg_risk_request_id: `0x${'b'.repeat(64)}`,
+              is_active: true,
+              is_resolved: false,
+              metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
+              condition: { resolved: false },
+              outcomes: [],
+            } as any,
+          ],
+        })}
+        mode="inline"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+
+    expect(screen.getByLabelText('Resolution reward: $4')).toBeInTheDocument()
+  })
+
+  it('hides the resolution reward badge after the market is resolved', () => {
+    render(
+      <EventRules
+        event={createEvent({
+          status: 'resolved',
+          active_markets_count: 0,
+          markets: [
+            {
+              condition_id: 'condition-1',
+              question_id: `0x${'a'.repeat(64)}`,
+              neg_risk: true,
+              neg_risk_request_id: `0x${'b'.repeat(64)}`,
+              is_active: false,
+              is_resolved: true,
+              metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
+              condition: { resolved: true },
+              outcomes: [],
+            } as any,
+          ],
+        })}
+        mode="inline"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+
+    expect(screen.queryByLabelText('Resolution reward: $4')).not.toBeInTheDocument()
   })
 })
