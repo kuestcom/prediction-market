@@ -25,6 +25,19 @@ describe('Toast', () => {
     expect(screen.getByRole('img', { name: 'Market thumbnail' })).toBeVisible()
   })
 
+  it('renders block description content without nesting it in a paragraph', async () => {
+    render(<Toaster />)
+
+    act(() => {
+      toast.success('Trade complete', {
+        description: <div data-testid="trade-description">10 shares bought</div>,
+      })
+    })
+
+    const description = (await screen.findByTestId('trade-description')).closest('[data-slot="toast-description"]')
+    expect(description?.tagName).toBe('DIV')
+  })
+
   it('renders above modal overlays', () => {
     render(<Toaster />)
 
