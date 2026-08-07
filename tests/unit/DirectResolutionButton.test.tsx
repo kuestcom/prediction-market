@@ -107,6 +107,9 @@ describe('DirectResolutionButton', () => {
     mocks.runWithSignaturePrompt.mockReset()
     mocks.signAndSubmit.mockReset()
     mocks.signTypedDataAsync.mockReset()
+    mocks.user.id = 'user-1'
+    mocks.user.address = '0x1111111111111111111111111111111111111111'
+    mocks.user.deposit_wallet_address = '0x5555555555555555555555555555555555555555'
     mocks.user.deposit_wallet_status = 'deployed'
     mocks.readWhitelist.mockResolvedValue({
       whitelistAddress: '0x4444444444444444444444444444444444444444',
@@ -234,6 +237,55 @@ describe('DirectResolutionButton', () => {
       await Promise.resolve()
     })
     expect(onResolutionRewardAmountChange).not.toHaveBeenCalledWith('$4')
+  })
+
+  it('invalidates the report summary when the authenticated identity changes', async () => {
+    const onResolutionRewardAmountChange = vi.fn()
+    const { rerender } = render(
+      <DirectResolutionButton
+        market={market}
+        event={event}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$4'))
+    expect(mocks.fetch).toHaveBeenCalledOnce()
+
+    mocks.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '8000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 1, unknown: 0 },
+        reporters: [],
+        currentOutcome: 'no',
+        eligibility: 'eligible',
+      }),
+    })
+    mocks.user.id = 'user-2'
+    mocks.user.address = '0x6666666666666666666666666666666666666666'
+    mocks.user.deposit_wallet_address = '0x7777777777777777777777777777777777777777'
+
+    rerender(
+      <DirectResolutionButton
+        market={market}
+        event={event}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$8'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    const dialog = await screen.findByRole('dialog')
+    const selectedOutcome = await within(dialog).findByRole('button', { name: /No/ })
+    expect(selectedOutcome).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('keeps an existing proposal selected and removes submission controls', async () => {

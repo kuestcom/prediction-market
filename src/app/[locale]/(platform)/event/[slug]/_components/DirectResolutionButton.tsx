@@ -135,13 +135,13 @@ type ResolutionReporter = ResolutionReportSummary['reporters'][number]
 
 interface ResolutionReportSummaryRequest {
   id: number
-  marketKey: string
+  scopeKey: string
   controller: AbortController
   promise: Promise<void>
 }
 
 interface ResolutionReportSummaryCache {
-  marketKey: string
+  scopeKey: string
   loadedAt: number
 }
 
@@ -495,7 +495,13 @@ export default function DirectResolutionButton({
   const isDirect = isDirectResolutionMarket(market)
   const reportSummaryAdapterAddress = getDirectResolutionAdapterAddress(market)
   const { adapterQuestionId: reportSummaryAdapterQuestionId } = getDirectResolutionQuestionIds(market)
-  const reportSummaryMarketKey = `${market.condition_id}:${reportSummaryAdapterAddress ?? ''}:${reportSummaryAdapterQuestionId ?? ''}`
+  const reportSummaryIdentityKey = [
+    user?.id,
+    user?.address?.toLowerCase(),
+    user?.deposit_wallet_address?.toLowerCase(),
+    user?.deposit_wallet_status,
+  ].join(':')
+  const reportSummaryScopeKey = `${market.condition_id}:${reportSummaryAdapterAddress ?? ''}:${reportSummaryAdapterQuestionId ?? ''}:${reportSummaryIdentityKey}`
   const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const unknownCheckboxId = useId()
   const rulesCheckboxId = useId()
@@ -504,8 +510,8 @@ export default function DirectResolutionButton({
   const sourceConfirmationRef = useRef<HTMLDivElement>(null)
   const resolutionRewardAmountChangeRef = useRef(onResolutionRewardAmountChange)
   resolutionRewardAmountChangeRef.current = onResolutionRewardAmountChange
-  const activeReportSummaryMarketKeyRef = useRef(reportSummaryMarketKey)
-  activeReportSummaryMarketKeyRef.current = reportSummaryMarketKey
+  const activeReportSummaryScopeKeyRef = useRef(reportSummaryScopeKey)
+  activeReportSummaryScopeKeyRef.current = reportSummaryScopeKey
   const reportSummaryRequestRef = useRef<ResolutionReportSummaryRequest | null>(null)
   const reportSummaryRequestIdRef = useRef(0)
   const reportSummaryCacheRef = useRef<ResolutionReportSummaryCache | null>(null)
@@ -520,15 +526,15 @@ export default function DirectResolutionButton({
   const [resolutionAccess, setResolutionAccess] = useState<boolean | null>(null)
   const [reportSummaryLoading, setReportSummaryLoading] = useState(false)
   const [reportSummary, setReportSummary] = useState<ResolutionReportSummary>(createEmptyResolutionReportSummary)
-  const [reportSummaryStateMarketKey, setReportSummaryStateMarketKey] = useState(reportSummaryMarketKey)
+  const [reportSummaryStateScopeKey, setReportSummaryStateScopeKey] = useState(reportSummaryScopeKey)
   const reportSummaryRef = useRef(reportSummary)
   reportSummaryRef.current = reportSummary
 
-  if (reportSummaryStateMarketKey !== reportSummaryMarketKey) {
+  if (reportSummaryStateScopeKey !== reportSummaryScopeKey) {
     const emptySummary = createEmptyResolutionReportSummary()
     reportSummaryRef.current = emptySummary
     reportSummaryCacheRef.current = null
-    setReportSummaryStateMarketKey(reportSummaryMarketKey)
+    setReportSummaryStateScopeKey(reportSummaryScopeKey)
     setReportSummary(emptySummary)
     setReportSummaryLoading(false)
     setSelectedOutcome(null)
@@ -741,13 +747,13 @@ export default function DirectResolutionButton({
 
   const loadReportSummary = useCallback(
     ({ preserveEligibilityOnError = false } = {}): Promise<void> => {
-      if (activeReportSummaryMarketKeyRef.current !== reportSummaryMarketKey) {
+      if (activeReportSummaryScopeKeyRef.current !== reportSummaryScopeKey) {
         return Promise.resolve()
       }
 
       const cachedSummary = reportSummaryCacheRef.current
       if (
-        cachedSummary?.marketKey === reportSummaryMarketKey &&
+        cachedSummary?.scopeKey === reportSummaryScopeKey &&
         Date.now() - cachedSummary.loadedAt < RESOLUTION_REPORT_SUMMARY_FRESHNESS_MS
       ) {
         const currentSummary = reportSummaryRef.current
@@ -759,7 +765,7 @@ export default function DirectResolutionButton({
       }
 
       const activeRequest = reportSummaryRequestRef.current
-      if (activeRequest?.marketKey === reportSummaryMarketKey && !activeRequest.controller.signal.aborted) {
+      if (activeRequest?.scopeKey === reportSummaryScopeKey && !activeRequest.controller.signal.aborted) {
         return activeRequest.promise
       }
       activeRequest?.controller.abort()
@@ -767,7 +773,7 @@ export default function DirectResolutionButton({
       const requestId = ++reportSummaryRequestIdRef.current
       const controller = new AbortController()
       function isCurrentRequest() {
-        return !controller.signal.aborted && activeReportSummaryMarketKeyRef.current === reportSummaryMarketKey
+        return !controller.signal.aborted && activeReportSummaryScopeKeyRef.current === reportSummaryScopeKey
       }
 
       setReportSummaryLoading(true)
@@ -808,7 +814,7 @@ export default function DirectResolutionButton({
           }
 
           reportSummaryRef.current = summary
-          reportSummaryCacheRef.current = { marketKey: reportSummaryMarketKey, loadedAt: Date.now() }
+          reportSummaryCacheRef.current = { scopeKey: reportSummaryScopeKey, loadedAt: Date.now() }
           setReportSummary(summary)
           resolutionRewardAmountChangeRef.current?.(formatResolutionRewardAmount(summary.rewardPool))
           if (summary.currentOutcome) {
@@ -826,7 +832,7 @@ export default function DirectResolutionButton({
         } finally {
           if (reportSummaryRequestRef.current?.id === requestId) {
             reportSummaryRequestRef.current = null
-            if (activeReportSummaryMarketKeyRef.current === reportSummaryMarketKey) {
+            if (activeReportSummaryScopeKeyRef.current === reportSummaryScopeKey) {
               setReportSummaryLoading(false)
             }
           }
@@ -835,7 +841,7 @@ export default function DirectResolutionButton({
 
       reportSummaryRequestRef.current = {
         id: requestId,
-        marketKey: reportSummaryMarketKey,
+        scopeKey: reportSummaryScopeKey,
         controller,
         promise,
       }
@@ -846,17 +852,17 @@ export default function DirectResolutionButton({
       publicClient,
       reportSummaryAdapterAddress,
       reportSummaryAdapterQuestionId,
-      reportSummaryMarketKey,
+      reportSummaryScopeKey,
     ],
   )
 
   useEffect(() => {
     const activeRequest = reportSummaryRequestRef.current
-    if (activeRequest && activeRequest.marketKey !== reportSummaryMarketKey) {
+    if (activeRequest && activeRequest.scopeKey !== reportSummaryScopeKey) {
       activeRequest.controller.abort()
       reportSummaryRequestRef.current = null
     }
-    if (reportSummaryCacheRef.current?.marketKey !== reportSummaryMarketKey) {
+    if (reportSummaryCacheRef.current?.scopeKey !== reportSummaryScopeKey) {
       reportSummaryCacheRef.current = null
     }
 
@@ -864,12 +870,12 @@ export default function DirectResolutionButton({
 
     return () => {
       const currentRequest = reportSummaryRequestRef.current
-      if (currentRequest?.marketKey === reportSummaryMarketKey) {
+      if (currentRequest?.scopeKey === reportSummaryScopeKey) {
         currentRequest.controller.abort()
         reportSummaryRequestRef.current = null
       }
     }
-  }, [reportSummaryMarketKey])
+  }, [reportSummaryScopeKey])
 
   useEffect(() => {
     if (!hasResolutionRewardAmountListener || !isDirect || !publicClient) {
