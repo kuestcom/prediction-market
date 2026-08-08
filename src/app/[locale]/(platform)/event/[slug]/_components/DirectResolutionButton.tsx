@@ -635,6 +635,13 @@ export default function DirectResolutionButton({
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
   const resolutionQuestion = market.question?.trim() || market.title
+  const normalizedEventTitle = normalizeLabel(event.title)
+  const reviewMarketLabel = [market.short_title, market.title, market.question]
+    .map((label) => label?.trim())
+    .find((label) => label && normalizeLabel(label) !== normalizedEventTitle)
+  const shouldShowReviewMarket = Boolean(
+    (market.neg_risk || event.enable_neg_risk || event.neg_risk || event.neg_risk_augmented) && reviewMarketLabel,
+  )
   const normalizedResolutionQuestion = normalizeLabel(resolutionQuestion)
   const shouldShowResolutionQuestion =
     Boolean(normalizedResolutionQuestion) &&
@@ -1765,6 +1772,16 @@ export default function DirectResolutionButton({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 text-base leading-snug font-semibold text-foreground">{event.title}</p>
+                {shouldShowReviewMarket && (
+                  <div className="mt-1 flex min-w-0 items-baseline gap-1.5">
+                    <span className="shrink-0 font-mono text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                      {t('Market')}
+                    </span>
+                    <span className="line-clamp-2 min-w-0 text-sm leading-snug font-medium text-foreground">
+                      {reviewMarketLabel}
+                    </span>
+                  </div>
+                )}
                 {selectedOutcome && (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-semibold tracking-wide text-muted-foreground uppercase">

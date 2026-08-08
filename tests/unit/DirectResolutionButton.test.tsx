@@ -221,6 +221,52 @@ describe('DirectResolutionButton', () => {
     )
   })
 
+  it('identifies the selected NegRisk market in the review dialog', async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+    const zemaMarket = {
+      ...(market as any),
+      condition_id: 'condition-zema',
+      question_id: `0x${'d'.repeat(64)}`,
+      title: 'Romeu Zema',
+      short_title: 'Romeu Zema',
+      question: 'Will Trump endorse Romeu Zema for President of Brazil?',
+      neg_risk: true,
+      neg_risk_request_id: `0x${'e'.repeat(64)}`,
+    } as never
+    const negRiskEvent = {
+      ...(event as any),
+      title: 'Who will Trump endorse for President of Brazil?',
+      enable_neg_risk: true,
+      neg_risk: true,
+      markets: [zemaMarket],
+    } as never
+
+    render(<DirectResolutionButton market={zemaMarket} event={negRiskEvent} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
+    expect(within(reviewDialog).getByText('Who will Trump endorse for President of Brazil?')).toBeInTheDocument()
+    expect(within(reviewDialog).getByText('Market')).toBeInTheDocument()
+    expect(within(reviewDialog).getByText('Romeu Zema')).toBeInTheDocument()
+  })
+
   it('shows resolved outcome names without percentages, keeps them non-interactive, and grays out the loser', async () => {
     const onResolutionRewardAmountChange = vi.fn()
     const resolvedMarket = {

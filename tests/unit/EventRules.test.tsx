@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Event } from '@/types'
+
+import { useOrder } from '@/stores/useOrder'
 
 const mocks = vi.hoisted(() => ({
   useLocale: vi.fn(),
@@ -39,6 +41,8 @@ vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButt
   default: ({ market, resolutionSourceLabel, onResolutionRewardAmountChange }: any) => (
     <section>
       <h4>{market.is_resolved ? 'Resolution' : 'Propose resolution'}</h4>
+      <span data-testid="direct-resolution-market">{market.condition_id}</span>
+      <span data-testid="direct-resolution-question">{market.question}</span>
       {resolutionSourceLabel && <span>{resolutionSourceLabel}</span>}
       <button type="button" onClick={() => onResolutionRewardAmountChange?.('$4')}>
         Load reward
@@ -83,6 +87,7 @@ describe('eventRules', () => {
   beforeEach(() => {
     mocks.useLocale.mockReset()
     mocks.useLocale.mockReturnValue('en')
+    useOrder.getState().reset()
   })
 
   it('renders the created-at label for english with the full localized timestamp', () => {
@@ -142,6 +147,49 @@ describe('eventRules', () => {
 
     expect(screen.getByText('Resolve using the market-specific official source.')).toBeInTheDocument()
     expect(screen.queryByText('General event rules.')).not.toBeInTheDocument()
+  })
+
+  it('uses the selected NegRisk market throughout rules and resolution', () => {
+    const lulaMarket = {
+      condition_id: 'condition-lula',
+      question_id: `0x${'a'.repeat(64)}`,
+      question: 'Will Trump endorse Lula da Silva for President of Brazil?',
+      market_rules: 'Rules for Lula.',
+      metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
+      outcomes: [],
+    } as any
+    const zemaMarket = {
+      condition_id: 'condition-zema',
+      question_id: `0x${'b'.repeat(64)}`,
+      question: 'Will Trump endorse Romeu Zema for President of Brazil?',
+      market_rules: 'Rules for Zema.',
+      metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
+      outcomes: [],
+    } as any
+    const negRiskEvent = createEvent({
+      enable_neg_risk: true,
+      neg_risk: true,
+      markets: [lulaMarket, zemaMarket],
+    })
+
+    act(() => useOrder.getState().setMarket(zemaMarket))
+    render(<EventRules event={negRiskEvent} mode="inline" />)
+
+    expect(screen.getByText('Rules for Zema.')).toBeInTheDocument()
+    expect(screen.queryByText('Rules for Lula.')).not.toBeInTheDocument()
+    expect(screen.getByTestId('direct-resolution-market')).toHaveTextContent('condition-zema')
+    expect(screen.getByTestId('direct-resolution-question')).toHaveTextContent(
+      'Will Trump endorse Romeu Zema for President of Brazil?',
+    )
+
+    act(() => useOrder.getState().setMarket(lulaMarket))
+
+    expect(screen.getByText('Rules for Lula.')).toBeInTheDocument()
+    expect(screen.queryByText('Rules for Zema.')).not.toBeInTheDocument()
+    expect(screen.getByTestId('direct-resolution-market')).toHaveTextContent('condition-lula')
+    expect(screen.getByTestId('direct-resolution-question')).toHaveTextContent(
+      'Will Trump endorse Lula da Silva for President of Brazil?',
+    )
   })
 
   it('starts expanded in accordion mode when additional context exists', () => {

@@ -27,6 +27,7 @@ import { getMirrorResolutionType } from '@/lib/mirror-resolution'
 import { resolveUmaProposeTarget } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
+import { useOrder } from '@/stores/useOrder'
 
 import DirectResolutionButton from './DirectResolutionButton'
 
@@ -172,7 +173,12 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   const hasAdditionalContext =
     typeof event.additional_context === 'string' && event.additional_context.trim().length > 0
   const isInline = mode === 'inline'
-  const primaryMarket = event.markets[0]
+  const selectedMarketConditionId = useOrder((state) => state.market?.condition_id)
+  const isNegRiskEvent = Boolean(event.enable_neg_risk || event.neg_risk || event.neg_risk_augmented)
+  const selectedNegRiskMarket = isNegRiskEvent
+    ? event.markets.find((market) => market.condition_id === selectedMarketConditionId)
+    : null
+  const primaryMarket = selectedNegRiskMarket ?? event.markets[0]
   const resolutionRewardMarketKey = [
     event.id,
     primaryMarket?.condition_id,
