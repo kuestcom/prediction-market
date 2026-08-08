@@ -109,7 +109,7 @@ export default function EventProvideLiquidityDialog({
   const user = useUser()
   const { open: openAppKit } = useAppKit()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
-  const { balance, isLoadingBalance } = useBalance({ enabled: open })
+  const { balance, isLoadingBalance, isBalanceError, refetchBalance } = useBalance({ enabled: open })
   const affiliateMetadata = useAffiliateOrderMetadata()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { signTypedDataAsync } = useSignTypedData()
@@ -152,12 +152,15 @@ export default function EventProvideLiquidityDialog({
   const availableBalance = Number.isFinite(balance.raw) ? Math.max(0, balance.raw) : 0
   const hasDepositWallet = Boolean(user?.deposit_wallet_address)
   const hasInsufficientBalance = Boolean(
-    hasDepositWallet && !isLoadingBalance && requiredBalance > availableBalance + 1e-8,
+    hasDepositWallet && !isLoadingBalance && !isBalanceError && requiredBalance > availableBalance + 1e-8,
   )
 
   const validationError = (() => {
     if (!yesOutcome?.token_id || !noOutcome?.token_id) {
       return t('This market cannot be used for liquidity provisioning.')
+    }
+    if (isBalanceError) {
+      return t('Could not validate USDC balance right now.')
     }
     if (!Number.isFinite(numericSplitAmount) || numericSplitAmount <= 0 || !isWholeCentAmount(numericSplitAmount)) {
       return t('Enter a split amount in whole cents.')
@@ -562,6 +565,11 @@ export default function EventProvideLiquidityDialog({
             >
               <TriangleAlertIcon className="size-4 shrink-0" />
               <span>{validationError}</span>
+              {isBalanceError && (
+                <button type="button" className="underline underline-offset-2" onClick={() => void refetchBalance()}>
+                  {t('Retry')}
+                </button>
+              )}
             </div>
           )}
 

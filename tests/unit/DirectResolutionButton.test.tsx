@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   balanceRaw: 1000,
   balanceLoading: false,
   balanceError: false,
+  refetchBalance: vi.fn(),
   user: {
     id: 'user-1',
     address: '0x1111111111111111111111111111111111111111',
@@ -70,6 +71,7 @@ vi.mock('@/hooks/useBalance', () => ({
     balance: { raw: mocks.balanceRaw, text: mocks.balanceRaw.toFixed(2), symbol: 'USDC' },
     isLoadingBalance: mocks.balanceLoading,
     isBalanceError: mocks.balanceError,
+    refetchBalance: mocks.refetchBalance,
   }),
 }))
 
@@ -122,6 +124,7 @@ describe('DirectResolutionButton', () => {
     mocks.balanceRaw = 1000
     mocks.balanceLoading = false
     mocks.balanceError = false
+    mocks.refetchBalance.mockReset()
     mocks.user.id = 'user-1'
     mocks.user.address = '0x1111111111111111111111111111111111111111'
     mocks.user.deposit_wallet_address = '0x5555555555555555555555555555555555555555'
@@ -310,7 +313,7 @@ describe('DirectResolutionButton', () => {
     expect(mocks.signAndSubmit).not.toHaveBeenCalled()
   })
 
-  it('does not treat a failed balance read as a confirmed zero balance', async () => {
+  it('blocks submission and allows retry when the balance read fails', async () => {
     mocks.balanceRaw = 0
     mocks.balanceError = true
     mocks.fetch.mockResolvedValue({
@@ -336,8 +339,13 @@ describe('DirectResolutionButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
+    expect(within(reviewDialog).getByText('Could not validate USDC balance right now.')).toBeInTheDocument()
     expect(within(reviewDialog).queryByText('Insufficient USDC balance')).not.toBeInTheDocument()
-    expect(within(reviewDialog).getByRole('button', { name: 'Lock $300 and propose Yes' })).toBeEnabled()
+    expect(within(reviewDialog).getByRole('button', { name: 'Lock $300 and propose Yes' })).toBeDisabled()
+
+    fireEvent.click(within(reviewDialog).getByRole('button', { name: 'Retry' }))
+    expect(mocks.refetchBalance).toHaveBeenCalledOnce()
+    expect(mocks.signAndSubmit).not.toHaveBeenCalled()
   })
 
   it('shows resolved outcome names without percentages, keeps them non-interactive, and grays out the loser', async () => {

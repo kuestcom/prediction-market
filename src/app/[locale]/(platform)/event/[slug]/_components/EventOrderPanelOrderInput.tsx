@@ -30,6 +30,8 @@ interface EventOrderPanelOrderInputProps {
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
   balance: ReturnType<typeof useBalance>['balance']
   isBalanceLoading: boolean
+  isBalanceError: boolean
+  onRetryBalance: () => void
   inputRef: RefObject<HTMLInputElement | null>
   shouldShakeInput: boolean
   shouldShowEarnings: boolean
@@ -88,6 +90,8 @@ export default function EventOrderPanelOrderInput({
   outcomeIndex,
   balance,
   isBalanceLoading,
+  isBalanceError,
+  onRetryBalance,
   inputRef,
   shouldShakeInput,
   shouldShowEarnings,
@@ -246,10 +250,20 @@ export default function EventOrderPanelOrderInput({
         </div>
       )}
 
+      {isBalanceError && side === ORDER_SIDE.BUY && (
+        <div className="mt-2 mb-3 flex items-center justify-center gap-2 text-center text-sm font-semibold text-orange-500">
+          <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+          <span>{t('Could not validate USDC balance right now.')}</span>
+          <button type="button" className="underline underline-offset-2" onClick={onRetryBalance}>
+            {t('Retry')}
+          </button>
+        </div>
+      )}
+
       <EventOrderPanelSubmitButton
         type={!isInteractiveWalletReady || shouldShowDepositCta ? 'button' : 'submit'}
         isLoading={isLoading}
-        isDisabled={isLoading}
+        isDisabled={isLoading || (side === ORDER_SIDE.BUY && isBalanceError)}
         selectedAccent={selectedSubmitAccent}
         styleVariant={outcomeButtonStyleVariant}
         onClick={onSubmitButtonClick}

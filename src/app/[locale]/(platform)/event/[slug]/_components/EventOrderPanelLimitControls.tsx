@@ -127,7 +127,7 @@ export default function EventOrderPanelLimitControls({
 }: EventOrderPanelLimitControlsProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
-  const { balance } = useBalance()
+  const { balance, isLoadingBalance, isBalanceError } = useBalance()
   const areValuesHidden = usePortfolioValueVisibility((state) => state.isHidden)
   const { limitPriceNumber, limitSharesNumber, totalValue, potentialWin } = useLimitControlsDerived(
     limitPrice,
@@ -163,6 +163,7 @@ export default function EventOrderPanelLimitControls({
   const formattedBalanceText = Number.isFinite(balance?.raw)
     ? (balance?.raw ?? 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
+  const balanceLabel = isLoadingBalance || isBalanceError ? '—' : `$${formattedBalanceText}`
   const maxLabel = t('Max')
   const matchingSharesLabel = matchingShares && matchingShares > 0 ? formatSharesLabel(matchingShares) : null
   const [isExpirationMenuOpen, setIsExpirationMenuOpen] = useState(false)
@@ -325,7 +326,7 @@ export default function EventOrderPanelLimitControls({
           <span className="text-lg font-medium text-foreground">{t('Limit Price')}</span>
           {isLimitOrder && side === ORDER_SIDE.BUY && (
             <span className="text-xs text-muted-foreground">
-              {t('Balance')} {areValuesHidden ? '****' : `$${formattedBalanceText}`}
+              {t('Balance')} {areValuesHidden ? '****' : balanceLabel}
             </span>
           )}
         </div>

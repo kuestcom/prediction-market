@@ -945,7 +945,7 @@ export default function EventOrderPanelForm({
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
 
-  const { balance, isLoadingBalance } = useBalance()
+  const { balance, isLoadingBalance, isBalanceError, refetchBalance } = useBalance()
   const yesOutcome = useMemo(() => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES), [activeMarket])
   const noOutcome = useMemo(() => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.NO), [activeMarket])
   const activeLiveYesPrice = hasMatchingStoreMarket ? liveYesPrice : null
@@ -1158,6 +1158,7 @@ export default function EventOrderPanelForm({
   const isInteractiveWalletReady = hasMounted && isConnected
   const shouldShowDepositCta =
     isInteractiveWalletReady &&
+    !isBalanceError &&
     state.side === ORDER_SIDE.BUY &&
     state.type === ORDER_TYPE.MARKET &&
     Math.max(effectiveMarketBuyCost, amountNumber) > availableBalanceForOrders
@@ -1257,6 +1258,11 @@ export default function EventOrderPanelForm({
 
     if (options.confirmedSlippageWarning) {
       clearSlippageWarning()
+    }
+
+    if (state.side === ORDER_SIDE.BUY && isBalanceError) {
+      toast.error(t('Could not validate USDC balance right now.'))
+      return
     }
 
     const orderExpirationTimestamp = resolveOrderExpirationTimestamp({
@@ -2063,7 +2069,7 @@ export default function EventOrderPanelForm({
               market={activeMarket}
               isSingleMarket={isSingleMarket}
               balanceText={formattedBalanceText}
-              isBalanceLoading={isLoadingBalance}
+              isBalanceLoading={isLoadingBalance || isBalanceError}
             />
           ))}
         {isTradingDisabled ? (
@@ -2112,25 +2118,45 @@ export default function EventOrderPanelForm({
             />
 
             {resolvedPanelMode === 'arbitrage' && activeMarket ? (
-              <EventOrderPanelArbitrage
-                key={activeMarket.condition_id}
-                event={event}
-                market={activeMarket}
-                multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
-                siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
-                kuestBalance={availableBalanceForOrders}
-                kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
-                isSubmitting={isArbitrageSubmitting}
-                submissionStep={arbitrageSubmissionStep}
-                onRequireSiteWallet={() => {
-                  if (!isInteractiveWalletReady) {
-                    void openAppKit()
-                    return
-                  }
-                  openTradeRequirements({ forceTradingAuth: true })
-                }}
-                onSubmit={(quote, minimumOrderSize) => void handleArbitrageSubmit(quote, minimumOrderSize)}
-              />
+              <>
+                {isBalanceError && (
+                  <div className="mb-3 flex items-center justify-center gap-2 text-center text-sm font-semibold text-orange-500">
+                    <span>{t('Could not validate USDC balance right now.')}</span>
+                    <button
+                      type="button"
+                      className="underline underline-offset-2"
+                      onClick={() => void refetchBalance()}
+                    >
+                      {t('Retry')}
+                    </button>
+                  </div>
+                )}
+                <EventOrderPanelArbitrage
+                  key={activeMarket.condition_id}
+                  event={event}
+                  market={activeMarket}
+                  multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
+                  siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
+                  kuestBalance={availableBalanceForOrders}
+                  kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
+                  isSubmitting={isArbitrageSubmitting}
+                  submissionStep={arbitrageSubmissionStep}
+                  onRequireSiteWallet={() => {
+                    if (!isInteractiveWalletReady) {
+                      void openAppKit()
+                      return
+                    }
+                    openTradeRequirements({ forceTradingAuth: true })
+                  }}
+                  onSubmit={(quote, minimumOrderSize) => {
+                    if (isBalanceError) {
+                      toast.error(t('Could not validate USDC balance right now.'))
+                      return
+                    }
+                    void handleArbitrageSubmit(quote, minimumOrderSize)
+                  }}
+                />
+              </>
             ) : (
               <>
                 <EventOrderPanelOutcomeSelector
@@ -2167,7 +2193,9 @@ export default function EventOrderPanelForm({
                   availableNoTokenShares={availableNoTokenShares}
                   outcomeIndex={outcomeIndex}
                   balance={balance}
-                  isBalanceLoading={isLoadingBalance}
+                  isBalanceLoading={isLoadingBalance || isBalanceError}
+                  isBalanceError={isBalanceError}
+                  onRetryBalance={() => void refetchBalance()}
                   inputRef={state.inputRef}
                   shouldShakeInput={shouldShakeInput}
                   shouldShowEarnings={shouldShowEarnings}

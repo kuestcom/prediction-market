@@ -688,6 +688,7 @@ export default function DirectResolutionButton({
     balance: depositWalletBalance,
     isLoadingBalance: isLoadingDepositWalletBalance,
     isBalanceError: isDepositWalletBalanceError,
+    refetchBalance: refetchDepositWalletBalance,
   } = useBalance({ enabled: isProposalOnly && hasDeployedDepositWallet })
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
   const canAttemptSubmit = Boolean(
@@ -1102,6 +1103,10 @@ export default function DirectResolutionButton({
   // oxlint-enable react-you-might-not-need-an-effect/no-event-handler
 
   async function submitResolutionReport() {
+    if (isDepositWalletBalanceError) {
+      toast.error(t('Could not validate USDC balance right now.'))
+      return
+    }
     if (hasInsufficientBondBalance) {
       toast.error(t('Insufficient USDC balance'))
       return
@@ -1869,6 +1874,21 @@ export default function DirectResolutionButton({
                     {t('Insufficient USDC balance')}
                   </p>
                 )}
+                {isDepositWalletBalanceError && (
+                  <div className="flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
+                    <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+                    <span>{t('Could not validate USDC balance right now.')}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={isLoadingDepositWalletBalance}
+                      onClick={() => void refetchDepositWalletBalance()}
+                    >
+                      {t('Retry')}
+                    </Button>
+                  </div>
+                )}
               </>
             ) : (
               <p className="rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm leading-relaxed text-orange-500">
@@ -1886,7 +1906,10 @@ export default function DirectResolutionButton({
               disabled={
                 state === 'pending' ||
                 (isProposalOnly
-                  ? !hasDeployedDepositWallet || isLoadingDepositWalletBalance || hasInsufficientBondBalance
+                  ? !hasDeployedDepositWallet ||
+                    isLoadingDepositWalletBalance ||
+                    isDepositWalletBalanceError ||
+                    hasInsufficientBondBalance
                   : !connectedAddress)
               }
             >
