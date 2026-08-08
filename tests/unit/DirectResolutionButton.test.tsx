@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   runWithSignaturePrompt: vi.fn(),
   signAndSubmit: vi.fn(),
   signTypedDataAsync: vi.fn(),
+  balanceRaw: 1000,
+  balanceLoading: false,
   user: {
     id: 'user-1',
     address: '0x1111111111111111111111111111111111111111',
@@ -62,6 +64,13 @@ vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ polygonRpcUrl: '' }),
 }))
 
+vi.mock('@/hooks/useBalance', () => ({
+  useBalance: () => ({
+    balance: { raw: mocks.balanceRaw, text: mocks.balanceRaw.toFixed(2), symbol: 'USDC' },
+    isLoadingBalance: mocks.balanceLoading,
+  }),
+}))
+
 vi.mock('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({ runWithSignaturePrompt: mocks.runWithSignaturePrompt }),
 }))
@@ -108,6 +117,8 @@ describe('DirectResolutionButton', () => {
     mocks.runWithSignaturePrompt.mockReset()
     mocks.signAndSubmit.mockReset()
     mocks.signTypedDataAsync.mockReset()
+    mocks.balanceRaw = 1000
+    mocks.balanceLoading = false
     mocks.user.id = 'user-1'
     mocks.user.address = '0x1111111111111111111111111111111111111111'
     mocks.user.deposit_wallet_address = '0x5555555555555555555555555555555555555555'
@@ -265,6 +276,36 @@ describe('DirectResolutionButton', () => {
     expect(within(reviewDialog).getByText('Who will Trump endorse for President of Brazil?')).toBeInTheDocument()
     expect(within(reviewDialog).getByText('Market')).toBeInTheDocument()
     expect(within(reviewDialog).getByText('Romeu Zema')).toBeInTheDocument()
+  })
+
+  it('blocks a proposal in review when the Deposit Wallet cannot cover the bond', async () => {
+    mocks.balanceRaw = 299.99
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+
+    render(<DirectResolutionButton market={market} event={event} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
+    expect(within(reviewDialog).getByText('Insufficient USDC balance')).toBeInTheDocument()
+    expect(within(reviewDialog).getByRole('button', { name: 'Lock $300 and propose Yes' })).toBeDisabled()
+    expect(mocks.signAndSubmit).not.toHaveBeenCalled()
   })
 
   it('shows resolved outcome names without percentages, keeps them non-interactive, and grays out the loser', async () => {

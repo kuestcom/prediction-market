@@ -37,6 +37,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useBalance } from '@/hooks/useBalance'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { Link } from '@/i18n/navigation'
@@ -237,6 +238,15 @@ function formatUsdcAmount(value: string) {
     return `$${formatted.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
   } catch {
     return '$0'
+  }
+}
+
+function parseUsdcAmount(value: string) {
+  try {
+    const amount = Number(formatUnits(BigInt(value), 6))
+    return Number.isFinite(amount) ? amount : null
+  } catch {
+    return null
   }
 }
 
@@ -669,6 +679,9 @@ export default function DirectResolutionButton({
   const scopedResolutionAccess =
     settledResolutionAccessScopeKeyRef.current === resolutionAccessScopeKey ? resolutionAccess : null
   const isProposalOnly = scopedResolutionAccess === false
+  const { balance: depositWalletBalance, isLoadingBalance: isLoadingDepositWalletBalance } = useBalance({
+    enabled: isProposalOnly && hasDeployedDepositWallet,
+  })
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
   const canAttemptSubmit = Boolean(
     isDirect &&
@@ -746,6 +759,10 @@ export default function DirectResolutionButton({
   }, [event.sports_team_logo_urls, event.sports_teams, market, t])
   const showOutcomeImages = outcomeOptions.every((option) => Boolean(option.imageUrl))
   const selectedOutcomeOption = outcomeOptions.find((option) => option.value === selectedOutcome) ?? null
+  const bondAmount = parseUsdcAmount(reportSummary.bond)
+  const hasInsufficientBondBalance = Boolean(
+    isProposalOnly && !isLoadingDepositWalletBalance && bondAmount !== null && depositWalletBalance.raw < bondAmount,
+  )
   const formattedBond = formatUsdcAmount(reportSummary.bond)
   const formattedReward = formatUsdcAmount(reportSummary.rewardPool)
   const resolvedRewardPool = isResolved ? formatResolutionRewardAmount(reportSummary.rewardPool) : null
@@ -1074,6 +1091,13 @@ export default function DirectResolutionButton({
   // oxlint-enable react-you-might-not-need-an-effect/no-event-handler
 
   async function submitResolutionReport() {
+    if (hasInsufficientBondBalance) {
+      toast.error(t('Insufficient USDC balance'))
+      return
+    }
+    if (isLoadingDepositWalletBalance) {
+      return
+    }
     if (
       !authenticatedAddress ||
       !user?.address ||
@@ -1828,6 +1852,12 @@ export default function DirectResolutionButton({
                 <p className="text-center text-xs leading-relaxed text-muted-foreground">
                   {t('You can submit only once per market and cannot change sides')}
                 </p>
+                {hasInsufficientBondBalance && (
+                  <p className="flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
+                    <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+                    {t('Insufficient USDC balance')}
+                  </p>
+                )}
               </>
             ) : (
               <p className="rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm leading-relaxed text-orange-500">
@@ -1842,7 +1872,12 @@ export default function DirectResolutionButton({
             <Button
               type="button"
               onClick={() => void (isProposalOnly ? submitResolutionReport() : submitResolution())}
-              disabled={state === 'pending' || (isProposalOnly ? !hasDeployedDepositWallet : !connectedAddress)}
+              disabled={
+                state === 'pending' ||
+                (isProposalOnly
+                  ? !hasDeployedDepositWallet || isLoadingDepositWalletBalance || hasInsufficientBondBalance
+                  : !connectedAddress)
+              }
             >
               {state === 'pending'
                 ? t('Submitting...')
