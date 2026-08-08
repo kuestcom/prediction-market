@@ -174,7 +174,9 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
     typeof event.additional_context === 'string' && event.additional_context.trim().length > 0
   const isInline = mode === 'inline'
   const selectedMarketConditionId = useOrder((state) => state.market?.condition_id)
-  const isNegRiskEvent = Boolean(event.enable_neg_risk || event.neg_risk || event.neg_risk_augmented)
+  const isNegRiskEvent = Boolean(
+    event.enable_neg_risk || event.neg_risk || event.neg_risk_augmented || event.neg_risk_market_id,
+  )
   const selectedNegRiskMarket = isNegRiskEvent
     ? event.markets.find((market) => market.condition_id === selectedMarketConditionId)
     : null

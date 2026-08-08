@@ -80,7 +80,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
   const isOptionsEnabled = options.enabled ?? true
   const isQueryEnabled = Boolean(client && depositWalletAddress && isOptionsEnabled)
 
-  const { data, isFetching, isLoading, refetch } = useQuery({
+  const { data, isError, isFetching, isLoading, refetch } = useQuery({
     queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY, depositWalletAddress],
     enabled: isQueryEnabled,
     staleTime: 'static',
@@ -92,17 +92,13 @@ export function useBalance(options: UseBalanceOptions = {}) {
         return INITIAL_STATE
       }
 
-      try {
-        const balanceRaw = await contract.read.balanceOf([depositWalletAddress])
-        const balanceNumber = Number(balanceRaw) / 10 ** USDC_DECIMALS
+      const balanceRaw = await contract.read.balanceOf([depositWalletAddress])
+      const balanceNumber = Number(balanceRaw) / 10 ** USDC_DECIMALS
 
-        return {
-          raw: balanceNumber,
-          text: balanceNumber.toFixed(2),
-          symbol: 'USDC',
-        }
-      } catch {
-        return INITIAL_STATE
+      return {
+        raw: balanceNumber,
+        text: balanceNumber.toFixed(2),
+        symbol: 'USDC',
       }
     },
   })
@@ -112,6 +108,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
 
   return {
     balance,
+    isBalanceError: isQueryEnabled && isError,
     isLoadingBalance,
     refetchBalance: refetch,
   }

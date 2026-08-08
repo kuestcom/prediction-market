@@ -650,7 +650,12 @@ export default function DirectResolutionButton({
     .map((label) => label?.trim())
     .find((label) => label && normalizeLabel(label) !== normalizedEventTitle)
   const shouldShowReviewMarket = Boolean(
-    (market.neg_risk || event.enable_neg_risk || event.neg_risk || event.neg_risk_augmented) && reviewMarketLabel,
+    (market.neg_risk ||
+      event.enable_neg_risk ||
+      event.neg_risk ||
+      event.neg_risk_augmented ||
+      event.neg_risk_market_id) &&
+    reviewMarketLabel,
   )
   const normalizedResolutionQuestion = normalizeLabel(resolutionQuestion)
   const shouldShowResolutionQuestion =
@@ -679,9 +684,11 @@ export default function DirectResolutionButton({
   const scopedResolutionAccess =
     settledResolutionAccessScopeKeyRef.current === resolutionAccessScopeKey ? resolutionAccess : null
   const isProposalOnly = scopedResolutionAccess === false
-  const { balance: depositWalletBalance, isLoadingBalance: isLoadingDepositWalletBalance } = useBalance({
-    enabled: isProposalOnly && hasDeployedDepositWallet,
-  })
+  const {
+    balance: depositWalletBalance,
+    isLoadingBalance: isLoadingDepositWalletBalance,
+    isBalanceError: isDepositWalletBalanceError,
+  } = useBalance({ enabled: isProposalOnly && hasDeployedDepositWallet })
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
   const canAttemptSubmit = Boolean(
     isDirect &&
@@ -761,7 +768,11 @@ export default function DirectResolutionButton({
   const selectedOutcomeOption = outcomeOptions.find((option) => option.value === selectedOutcome) ?? null
   const bondAmount = parseUsdcAmount(reportSummary.bond)
   const hasInsufficientBondBalance = Boolean(
-    isProposalOnly && !isLoadingDepositWalletBalance && bondAmount !== null && depositWalletBalance.raw < bondAmount,
+    isProposalOnly &&
+    !isLoadingDepositWalletBalance &&
+    !isDepositWalletBalanceError &&
+    bondAmount !== null &&
+    depositWalletBalance.raw < bondAmount,
   )
   const formattedBond = formatUsdcAmount(reportSummary.bond)
   const formattedReward = formatUsdcAmount(reportSummary.rewardPool)

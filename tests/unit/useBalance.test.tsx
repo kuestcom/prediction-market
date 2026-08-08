@@ -104,6 +104,39 @@ describe('useBalance', () => {
     expect(balanceOf).toHaveBeenCalledWith(['0x00000000000000000000000000000000000000aa'])
     expect(result.current.balance.raw).toBe(123.45)
     expect(result.current.balance.text).toBe('123.45')
+    expect(result.current.isBalanceError).toBe(false)
+  })
+
+  it('distinguishes an RPC failure from a confirmed zero balance', async () => {
+    mocks.getContract.mockReturnValue({
+      read: {
+        balanceOf: vi.fn().mockRejectedValue(new Error('RPC unavailable')),
+      },
+    })
+
+    useUser.setState({
+      id: 'user-rpc-error',
+      address: '0x00000000000000000000000000000000000000bb',
+      email: 'user@example.com',
+      twoFactorEnabled: null,
+      username: 'trader',
+      image: '',
+      settings: {},
+      is_admin: false,
+      deposit_wallet_address: '0x00000000000000000000000000000000000000aa',
+      deposit_wallet_status: 'deployed',
+    })
+
+    const { result } = renderHook(() => useBalance(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isBalanceError).toBe(true)
+    })
+
+    expect(result.current.isLoadingBalance).toBe(false)
+    expect(result.current.balance.raw).toBe(0)
   })
 
   it('uses an explicit Deposit Wallet address instead of the global user state', async () => {

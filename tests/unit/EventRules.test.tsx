@@ -167,8 +167,7 @@ describe('eventRules', () => {
       outcomes: [],
     } as any
     const negRiskEvent = createEvent({
-      enable_neg_risk: true,
-      neg_risk: true,
+      neg_risk_market_id: `0x${'c'.repeat(64)}`,
       markets: [lulaMarket, zemaMarket],
     })
 
