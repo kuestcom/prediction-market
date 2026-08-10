@@ -68,7 +68,12 @@ describe('arbitrage quotes', () => {
         polymarketAsks: [level(0.496, 100)],
         kuestBalance: 100,
         polymarketBalance: 100,
-        kuestFeeBps: 100,
+        kuestFeeSchedule: {
+          rate: 0.04,
+          exponent: 1,
+          takerOnly: true,
+          rebateRate: 0.25,
+        },
         polymarketFeeRate: 0.02,
       },
     ])
