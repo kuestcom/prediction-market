@@ -12,6 +12,8 @@ export type ActivityVariant =
   | 'withdraw'
   | 'resolution_bond'
   | 'resolution_reward'
+  | 'liquidity_reward'
+  | 'maker_rebate'
   | 'sell'
   | 'buy'
   | 'trade'

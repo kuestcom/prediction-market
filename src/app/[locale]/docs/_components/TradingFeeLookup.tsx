@@ -53,7 +53,8 @@ export function TradingFeeLookup({ className = '' }: TradingFeeLookupProps) {
     return null
   }
 
-  const feeRate = feeRateQuery.data === undefined ? null : createTradingFeeRateExample(data.data, feeRateQuery.data)
+  const feeRate =
+    feeRateQuery.data === undefined ? null : createTradingFeeRateExample(data.data, feeRateQuery.data.rate * 10_000)
 
   return (
     <div className={className}>

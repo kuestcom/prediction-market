@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (value: string) => value,
+  useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -44,11 +44,10 @@ vi.mock('@/stores/useUser', () => ({
 function renderForm(initialWallet = '') {
   return render(
     <AdminAffiliateSettingsForm
-      builderTakerFeeBps={250}
-      builderMakerFeeBps={125}
+      builderTakerFeeBps={50}
+      builderMakerFeeBps={0}
       affiliateShareBps={1500}
       initialFeeRecipientWallet={initialWallet}
-      kuestFeeSettings={null}
     />,
   )
 }
@@ -62,7 +61,7 @@ describe('adminAffiliateSettingsForm', () => {
   it('shows the saved fee wallet and offers a shortcut to use the current deposit wallet', async () => {
     renderForm('0x2222222222222222222222222222222222222222')
 
-    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon(?: Amoy)?\)/i) as HTMLInputElement
     const button = screen.getByRole('button', { name: /Use my deposit wallet/i })
     const user = userEvent.setup()
 
@@ -78,7 +77,7 @@ describe('adminAffiliateSettingsForm', () => {
   it('shows the shortcut when the fee wallet field is empty', async () => {
     renderForm()
 
-    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon(?: Amoy)?\)/i) as HTMLInputElement
     const button = screen.getByRole('button', { name: /Use my deposit wallet/i })
     const user = userEvent.setup()
 
@@ -94,7 +93,7 @@ describe('adminAffiliateSettingsForm', () => {
   it('hides the shortcut when the fee wallet already matches the deposit wallet', () => {
     renderForm(mocks.user.deposit_wallet_address)
 
-    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon\)/i) as HTMLInputElement
+    const input = screen.getByLabelText(/Fee Wallet Address \(Polygon(?: Amoy)?\)/i) as HTMLInputElement
 
     expect(input.value).toBe(mocks.user.deposit_wallet_address)
     expect(screen.queryByRole('button', { name: /Use my deposit wallet/i })).toBeNull()

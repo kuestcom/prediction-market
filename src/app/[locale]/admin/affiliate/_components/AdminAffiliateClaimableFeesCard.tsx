@@ -295,7 +295,9 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
 
   return (
     <div className="rounded-lg bg-muted/40 p-4">
-      <p className="text-xs text-muted-foreground uppercase">{t('Your Claimable fees')}</p>
+      <p className="text-xs text-muted-foreground uppercase">
+        {t({ id: 'affiliateClaimableEarnings', message: 'Claimable Earnings' })}
+      </p>
       <div className="mt-1 flex items-center gap-2">
         <p className="text-2xl font-semibold">{claimableValue}</p>
         <Tooltip>
@@ -304,9 +306,9 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
               <span className="inline-flex">
                 <Button
                   type="button"
-                  size="icon"
+                  size="sm"
                   className={cn(
-                    `size-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100`,
+                    `h-8 gap-1.5 rounded-md bg-primary px-3 text-primary-foreground hover:bg-primary/90 disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100`,
                   )}
                   disabled={isButtonDisabled}
                   onClick={() => void handleClaim()}
@@ -317,6 +319,7 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
                   ) : (
                     <ArrowDownToLineIcon className="size-3.5" />
                   )}
+                  <span>{isClaiming ? t('Claiming...') : t('Claim')}</span>
                 </Button>
               </span>
             }

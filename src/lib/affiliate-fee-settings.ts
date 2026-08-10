@@ -5,7 +5,7 @@ export const BUILDER_TAKER_FEE_BPS_KEY = 'builder_taker_fee_bps'
 export const BUILDER_MAKER_FEE_BPS_KEY = 'builder_maker_fee_bps'
 export const AFFILIATE_SHARE_BPS_KEY = 'affiliate_share_bps'
 
-const DEFAULT_BUILDER_TAKER_FEE_BPS = 100
+const DEFAULT_BUILDER_TAKER_FEE_BPS = 50
 const DEFAULT_BUILDER_MAKER_FEE_BPS = 0
 const DEFAULT_AFFILIATE_SHARE_BPS = 5000
 
@@ -73,10 +73,4 @@ export function getAffiliateFeeSettingsUpdatedAt(settings?: SettingsGroups | nul
 
 export function bpsToPercent(bps: number) {
   return bps / 100
-}
-
-export function formatBpsPercent(bps: number) {
-  const value = bpsToPercent(bps)
-  const fixed = value.toFixed(2)
-  return fixed.replace(/\.?0+$/, '')
 }

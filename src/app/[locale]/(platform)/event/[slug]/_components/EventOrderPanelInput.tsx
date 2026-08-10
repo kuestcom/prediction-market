@@ -25,6 +25,7 @@ interface EventOrderPanelInputProps {
   amountNumber: number
   availableShares: number
   balance: BalanceSummary
+  maxBuyAmount?: number
   isBalanceLoading?: boolean
   inputRef: RefObject<HTMLInputElement | null>
   onAmountChange: (value: string) => void
@@ -40,6 +41,7 @@ export default function EventOrderPanelInput({
   amountNumber,
   availableShares,
   balance,
+  maxBuyAmount,
   isBalanceLoading = false,
   inputRef,
   onAmountChange,
@@ -103,7 +105,11 @@ export default function EventOrderPanelInput({
       return
     }
 
-    const maxBalance = Number.isFinite(balance.raw) ? balance.raw : 0
+    const maxBalance = Number.isFinite(maxBuyAmount)
+      ? (maxBuyAmount ?? 0)
+      : Number.isFinite(balance.raw)
+        ? balance.raw
+        : 0
     const limitedBalance = Math.min(maxBalance, MAX_AMOUNT_INPUT)
     onAmountChange(formatAmountInputValue(limitedBalance, { roundingMode: 'floor' }))
     focusInput()
@@ -256,7 +262,8 @@ export default function EventOrderPanelInput({
               }
               onAmountChange(formatAmountInputValue(availableShares, { roundingMode: 'floor' }))
             } else {
-              const limitedBalance = Math.min(balance.raw, MAX_AMOUNT_INPUT)
+              const availableAmount = Number.isFinite(maxBuyAmount) ? (maxBuyAmount ?? 0) : balance.raw
+              const limitedBalance = Math.min(availableAmount, MAX_AMOUNT_INPUT)
               onAmountChange(formatAmountInputValue(limitedBalance, { roundingMode: 'floor' }))
             }
             focusInput()

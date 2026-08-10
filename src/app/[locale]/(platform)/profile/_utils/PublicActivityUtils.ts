@@ -6,6 +6,7 @@ import {
   CirclePlusIcon,
   CircleXIcon,
   GiftIcon,
+  HandCoinsIcon,
   LockKeyholeIcon,
   MergeIcon,
   UnfoldHorizontalIcon,
@@ -114,6 +115,12 @@ export function resolveVariant(activity: ActivityOrder): ActivityVariant {
   if (type === 'resolution_reward') {
     return 'resolution_reward'
   }
+  if (type === 'reward') {
+    return 'liquidity_reward'
+  }
+  if (type === 'maker_rebate') {
+    return 'maker_rebate'
+  }
   if (type === 'sell') {
     return 'sell'
   }
@@ -149,6 +156,10 @@ export function activityIcon(variant: ActivityVariant) {
       return { Icon: LockKeyholeIcon, label: 'Bond', className: '' }
     case 'resolution_reward':
       return { Icon: GiftIcon, label: 'Reward', className: '' }
+    case 'liquidity_reward':
+      return { Icon: GiftIcon, label: 'Liquidity reward', className: 'text-primary' }
+    case 'maker_rebate':
+      return { Icon: HandCoinsIcon, label: 'Maker rebate', className: 'text-primary' }
     case 'sell':
       return { Icon: CircleMinusIcon, label: 'Sold', className: '' }
     case 'buy':

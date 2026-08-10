@@ -7,15 +7,26 @@ describe('fetchKuestFeeRate', () => {
     vi.unstubAllGlobals()
   })
 
-  it('loads and normalizes the Kuest base fee for the selected token', async () => {
+  it('loads the dynamic Kuest fee schedule for the selected token', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: '200' })),
+      text: vi.fn().mockResolvedValue(
+        JSON.stringify({
+          base_fee: 700,
+          fd: { r: 0.07, e: 1, to: true },
+          fee_schedule: { rate: 0.07, exponent: 1, takerOnly: true, rebateRate: 0.2 },
+        }),
+      ),
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).resolves.toBe(200)
+    await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).resolves.toEqual({
+      rate: 0.07,
+      exponent: 1,
+      takerOnly: true,
+      rebateRate: 0.2,
+    })
     expect(fetchMock).toHaveBeenCalledWith(
       'https://clob.example/fee-rate?token_id=token-1',
       expect.objectContaining({ method: 'GET' }),
@@ -28,11 +39,11 @@ describe('fetchKuestFeeRate', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: null })),
+        text: vi.fn().mockResolvedValue(JSON.stringify({ fd: { r: null, e: 1, to: true } })),
       }),
     )
 
-    await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).rejects.toThrow('Invalid fee rate')
+    await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).rejects.toThrow('Invalid dynamic fee schedule')
   })
 
   it('rejects fee strings with trailing units', async () => {
@@ -41,10 +52,10 @@ describe('fetchKuestFeeRate', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: '200bps' })),
+        text: vi.fn().mockResolvedValue(JSON.stringify({ fd: { r: '0.07%', e: 1, to: true } })),
       }),
     )
 
-    await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).rejects.toThrow('Invalid fee rate')
+    await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).rejects.toThrow('Invalid dynamic fee schedule')
   })
 })

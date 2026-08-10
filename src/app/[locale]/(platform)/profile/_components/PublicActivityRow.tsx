@@ -37,7 +37,8 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
       : `https://gateway.irys.xyz/${activity.market.icon_url}`
     : null
   const isResolutionFlow = variant === 'resolution_bond' || variant === 'resolution_reward'
-  const isFundsFlow = variant === 'deposit' || variant === 'withdraw' || isResolutionFlow
+  const isTradingReward = variant === 'liquidity_reward' || variant === 'maker_rebate'
+  const isFundsFlow = variant === 'deposit' || variant === 'withdraw' || isResolutionFlow || isTradingReward
   const valueNumber = Number(activity.total_value) / MICRO_UNIT
   const hasValue = Number.isFinite(valueNumber)
   const isCreditVariant =
@@ -45,6 +46,8 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
     variant === 'redeem' ||
     variant === 'deposit' ||
     variant === 'resolution_reward' ||
+    variant === 'liquidity_reward' ||
+    variant === 'maker_rebate' ||
     variant === 'sell'
   const isDebitVariant =
     variant === 'withdraw' ||
@@ -58,7 +61,15 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const valuePrefix = hasValue ? (isNegative ? '-' : '+') : ''
   const valueContent = variant === 'loss' ? '-' : Number.isFinite(valueNumber) ? `${valuePrefix}${valueDisplay}` : '—'
   const activityLabel =
-    variant === 'resolution_bond' ? t('Bond') : variant === 'resolution_reward' ? t('Reward') : icon.label
+    variant === 'resolution_bond'
+      ? t('Bond')
+      : variant === 'resolution_reward'
+        ? t('Reward')
+        : variant === 'liquidity_reward'
+          ? t('Liquidity reward')
+          : variant === 'maker_rebate'
+            ? t('Maker rebate')
+            : icon.label
   const marketContent = isFundsFlow ? (
     <div className="flex min-w-0 items-center gap-2.5 pl-1">
       <div
@@ -77,7 +88,11 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
               ? 'Withdrew funds'
               : variant === 'resolution_bond'
                 ? t('Resolution bond')
-                : t('Resolution reward')}
+                : variant === 'resolution_reward'
+                  ? t('Resolution reward')
+                  : variant === 'liquidity_reward'
+                    ? t('Liquidity reward')
+                    : t('Maker rebate')}
         </div>
       </div>
     </div>

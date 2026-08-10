@@ -1,6 +1,6 @@
 'use client'
 
-import { InfoIcon, WalletIcon } from 'lucide-react'
+import { AlertTriangleIcon, InfoIcon, Settings2Icon, WalletIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useRef, useState } from 'react'
@@ -10,9 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
+import { Slider } from '@/components/ui/slider'
 import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatBpsPercent } from '@/lib/affiliate-fee-settings'
+import { DEFAULT_NETWORK_KEY } from '@/lib/network'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
@@ -20,16 +22,18 @@ const initialState = {
   error: null,
 }
 
+const OPERATOR_SHARE_MIN = 20
+const OPERATOR_SHARE_MAX = 45
+const OPERATOR_SHARE_DEFAULT = 30
+const OPERATOR_SHARE_STOPS = [20, 30, 37, 45] as const
+
 interface AdminAffiliateSettingsFormProps {
   builderTakerFeeBps: number
   builderMakerFeeBps: number
   affiliateShareBps: number
   initialFeeRecipientWallet: string
-  kuestFeeSettings: {
-    takerFeeBps: number | null
-    makerFeeBps: number | null
-  } | null
   updatedAtLabel?: string
+  onOperatorShareChange?: (value: number) => void
 }
 
 interface AdminInfoTooltipProps {
@@ -87,28 +91,27 @@ export default function AdminAffiliateSettingsForm({
   builderMakerFeeBps,
   affiliateShareBps,
   initialFeeRecipientWallet,
-  kuestFeeSettings,
   updatedAtLabel,
+  onOperatorShareChange,
 }: AdminAffiliateSettingsFormProps) {
   const t = useExtracted()
   const user = useUser()
   const { state, formAction, isPending } = useAffiliateSettingsForm()
   const depositWalletAddress = user?.deposit_wallet_address ?? null
   const [feeRecipientWallet, setFeeRecipientWallet] = useState(initialFeeRecipientWallet)
-  const takerKuestFeeLabel =
-    kuestFeeSettings?.takerFeeBps === null || kuestFeeSettings?.takerFeeBps === undefined
-      ? null
-      : formatBpsPercent(kuestFeeSettings.takerFeeBps)
-  const makerKuestFeeLabel =
-    kuestFeeSettings?.makerFeeBps === null || kuestFeeSettings?.makerFeeBps === undefined
-      ? null
-      : formatBpsPercent(kuestFeeSettings.makerFeeBps)
+  const [operatorSharePercent, setOperatorSharePercent] = useState(OPERATOR_SHARE_DEFAULT)
+  const [makerFeePercent, setMakerFeePercent] = useState((builderMakerFeeBps / 100).toFixed(2))
+
   const updatedAtTooltip = updatedAtLabel ? t('Last fees updated {timestamp}', { timestamp: updatedAtLabel }) : null
   const affiliateShareTooltip = t('Commission paid to your affiliates, deducted from your operator fee.')
   const normalizedFeeRecipientWallet = feeRecipientWallet.trim().toLowerCase()
   const normalizedDepositWallet = depositWalletAddress?.trim().toLowerCase() ?? null
   const shouldShowDepositWalletButton =
     Boolean(normalizedDepositWallet) && normalizedFeeRecipientWallet !== normalizedDepositWallet
+  const feeWalletLabel =
+    DEFAULT_NETWORK_KEY === 'amoy'
+      ? t({ id: 'affiliateFeeWalletAmoy', message: 'Fee Wallet Address (Polygon Amoy)' })
+      : t('Fee Wallet Address (Polygon)')
 
   function handleUseDepositWallet() {
     if (depositWalletAddress) {
@@ -116,8 +119,32 @@ export default function AdminAffiliateSettingsForm({
     }
   }
 
+  const operatorShareLabels = [
+    t({ id: 'affiliateFeeLow', message: 'Lower fees' }),
+    t({ id: 'affiliateFeeRecommended', message: 'Recommended' }),
+    t({ id: 'affiliateFeeParity', message: 'Polymarket parity' }),
+    t({ id: 'affiliateFeeAbove', message: 'Aggressive' }),
+  ]
+  const operatorShareDescriptions = [
+    t({ id: 'affiliateFeeLowDescription', message: 'More volume, less profit per trade' }),
+    t({ id: 'affiliateFeeRecommendedDescription', message: 'Balanced volume and profit' }),
+    t({ id: 'affiliateFeeParityDescription', message: 'Less volume, more profit per trade' }),
+    t({ id: 'affiliateFeeAboveDescription', message: 'Lowest volume, highest profit per trade' }),
+  ]
+  const activeOperatorShareIndex = OPERATOR_SHARE_STOPS.reduce((nearestIndex, stop, index) => {
+    const nearestDistance = Math.abs(OPERATOR_SHARE_STOPS[nearestIndex] - operatorSharePercent)
+    return Math.abs(stop - operatorSharePercent) < nearestDistance ? index : nearestIndex
+  }, 0)
+  const operatorSharePosition =
+    ((operatorSharePercent - OPERATOR_SHARE_MIN) / (OPERATOR_SHARE_MAX - OPERATOR_SHARE_MIN)) * 100
+
+  function handleOperatorShareChange(value: number) {
+    setOperatorSharePercent(value)
+    onOperatorShareChange?.(value)
+  }
+
   return (
-    <Form action={formAction} className="grid gap-6 rounded-lg border p-6">
+    <Form action={formAction} className="grid h-full gap-6 rounded-lg border p-6">
       <div>
         <h2 className="text-xl font-semibold">{t('Trading Fees')}</h2>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -128,7 +155,7 @@ export default function AdminAffiliateSettingsForm({
 
       <div className="grid gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="fee_recipient_wallet">{t('Fee Wallet Address (Polygon)')}</Label>
+          <Label htmlFor="fee_recipient_wallet">{feeWalletLabel}</Label>
           <div className="flex w-full items-stretch">
             <Input
               id="fee_recipient_wallet"
@@ -138,7 +165,10 @@ export default function AdminAffiliateSettingsForm({
               disabled={isPending}
               readOnly
               placeholder={t('0xabc')}
-              className={shouldShowDepositWalletButton ? 'rounded-r-none border-r-0' : ''}
+              className={cn(
+                'cursor-default bg-muted/40 text-muted-foreground',
+                shouldShowDepositWalletButton && 'rounded-r-none border-r-0',
+              )}
             />
             {shouldShowDepositWalletButton && (
               <Button
@@ -155,63 +185,117 @@ export default function AdminAffiliateSettingsForm({
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="builder_taker_fee_percent">{t('Taker fee (%)')}</Label>
-            <Input
-              id="builder_taker_fee_percent"
-              name="builder_taker_fee_percent"
-              type="number"
-              step="0.01"
-              min="0"
-              max="9"
-              defaultValue={(builderTakerFeeBps / 100).toFixed(2)}
-              disabled={isPending}
-            />
-            <p className="text-sm text-muted-foreground">
-              {takerKuestFeeLabel
-                ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: takerKuestFeeLabel })
-                : t('Kuest fees unavailable.')}
-            </p>
+        <div className="grid gap-3 rounded-md border bg-muted/20 px-4 py-3">
+          <input type="hidden" name="builder_taker_fee_percent" value={(builderTakerFeeBps / 100).toFixed(2)} />
+          <input type="hidden" name="builder_maker_fee_percent" value={makerFeePercent} />
+          <div className="flex items-center justify-between gap-3">
+            <Label>{t('Taker fee')}</Label>
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs">
+                    <Settings2Icon className="size-3.5" aria-hidden />
+                    {t('Maker fee')}
+                  </Button>
+                }
+              />
+              <PopoverContent align="end" className="w-72">
+                <PopoverTitle>{t('Maker fee')}</PopoverTitle>
+                <p className="text-xs text-muted-foreground">{t('Kuest maker fee: 0%.')}</p>
+                <div className="flex items-start">
+                  <Input
+                    id="builder_maker_fee_percent"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={makerFeePercent}
+                    disabled={isPending}
+                    className="rounded-r-none"
+                    onChange={(event) => setMakerFeePercent(event.target.value)}
+                  />
+                  <span className="flex h-9 w-10 shrink-0 items-center justify-center self-start rounded-r-md border border-l-0 bg-muted text-sm leading-none text-muted-foreground">
+                    %
+                  </span>
+                </div>
+                {Number(makerFeePercent) > 0 && (
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-orange-600 dark:text-orange-400">
+                    <AlertTriangleIcon className="size-3.5 shrink-0" aria-hidden />
+                    {t({ id: 'affiliateMakerFeeRecommendation', message: '0% is recommended.' })}
+                  </p>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="builder_maker_fee_percent">{t('Maker fee (%)')}</Label>
-            <Input
-              id="builder_maker_fee_percent"
-              name="builder_maker_fee_percent"
-              type="number"
-              step="0.01"
-              min="0"
-              max="9"
-              defaultValue={(builderMakerFeeBps / 100).toFixed(2)}
-              disabled={isPending}
-            />
-            <p className="text-sm text-muted-foreground">
-              {makerKuestFeeLabel
-                ? t('Your fee plus Kuest {kuestFee}% fee.', { kuestFee: makerKuestFeeLabel })
-                : t('Kuest fees unavailable.')}
-            </p>
+
+          <div className="px-2 pt-7 pb-1">
+            <div className="relative">
+              <span
+                className="pointer-events-none absolute bottom-6 z-10 -translate-x-1/2 rounded-md border bg-background px-1.5 py-0.5 text-[11px] font-medium tabular-nums shadow-sm"
+                style={{ left: `calc(${operatorSharePosition}% + ${10 - operatorSharePosition * 0.2}px)` }}
+              >
+                {operatorSharePercent}%
+              </span>
+              <Slider
+                min={OPERATOR_SHARE_MIN}
+                max={OPERATOR_SHARE_MAX}
+                step={1}
+                value={operatorSharePercent}
+                disabled={isPending}
+                thumbAlignment="center"
+                thumbAriaLabel={t('Taker fee')}
+                className="px-[10px]"
+                controlClassName="py-2"
+                trackClassName="h-1 bg-muted-foreground/25"
+                thumbClassName="size-5 border-2 border-background bg-primary shadow-sm"
+                trackChildren={OPERATOR_SHARE_STOPS.map((stop) => {
+                  const position = ((stop - OPERATOR_SHARE_MIN) / (OPERATOR_SHARE_MAX - OPERATOR_SHARE_MIN)) * 100
+                  return (
+                    <span
+                      key={stop}
+                      aria-hidden
+                      className="pointer-events-none absolute top-1/2 block size-2 -translate-1/2 rounded-full bg-primary"
+                      style={{ left: `${position}%` }}
+                    />
+                  )
+                })}
+                onValueChange={handleOperatorShareChange}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-center text-xs">
+              <strong className="font-semibold text-foreground">{operatorShareLabels[activeOperatorShareIndex]}</strong>
+              <span aria-hidden className="text-border">
+                •
+              </span>
+              <span className="text-muted-foreground">{operatorShareDescriptions[activeOperatorShareIndex]}</span>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
           <div className="grid gap-2">
             <div className="flex items-center gap-2">
-              <Label htmlFor="affiliate_share_percent">{t('Affiliate share (%)')}</Label>
+              <Label htmlFor="affiliate_share_percent">{t('Affiliate share (%)').replace(/\s*\(%\)\s*$/u, '')}</Label>
               <AdminInfoTooltip content={affiliateShareTooltip} />
             </div>
-            <Input
-              id="affiliate_share_percent"
-              name="affiliate_share_percent"
-              type="number"
-              step="0.5"
-              min="0"
-              max="100"
-              defaultValue={(affiliateShareBps / 100).toFixed(2)}
-              disabled={isPending}
-            />
+            <div className="flex items-start">
+              <Input
+                id="affiliate_share_percent"
+                name="affiliate_share_percent"
+                type="number"
+                step="0.5"
+                min="0"
+                max="100"
+                defaultValue={(affiliateShareBps / 100).toFixed(2)}
+                disabled={isPending}
+                className="rounded-r-none"
+              />
+              <span className="flex h-9 w-10 shrink-0 items-center justify-center self-start rounded-r-md border border-l-0 bg-muted text-sm leading-none text-muted-foreground">
+                %
+              </span>
+            </div>
           </div>
-          <Button type="submit" className="w-full sm:w-40" disabled={isPending}>
+          <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? t('Saving...') : t('Save changes')}
           </Button>
         </div>

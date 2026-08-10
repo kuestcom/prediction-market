@@ -51,6 +51,7 @@ interface EventOrderPanelLimitControlsProps {
   limitExpirationTimestamp: number | null
   isLimitOrder: boolean
   matchingShares?: number | null
+  liquidityRewardMinShares?: number
   availableShares: number
   showLimitMinimumWarning: boolean
   shouldShakeShares?: boolean
@@ -115,6 +116,7 @@ export default function EventOrderPanelLimitControls({
   limitExpirationTimestamp,
   isLimitOrder,
   matchingShares,
+  liquidityRewardMinShares,
   availableShares,
   showLimitMinimumWarning,
   shouldShakeShares,
@@ -166,6 +168,14 @@ export default function EventOrderPanelLimitControls({
   const balanceLabel = isLoadingBalance || isBalanceError ? '—' : `$${formattedBalanceText}`
   const maxLabel = t('Max')
   const matchingSharesLabel = matchingShares && matchingShares > 0 ? formatSharesLabel(matchingShares) : null
+  const rewardMinimum =
+    Number.isFinite(liquidityRewardMinShares) && (liquidityRewardMinShares ?? 0) > 0
+      ? Number(liquidityRewardMinShares)
+      : null
+  const buyChips = useMemo(
+    () => [...new Set(rewardMinimum == null ? BUY_CHIPS : [...BUY_CHIPS, rewardMinimum])].sort((a, b) => a - b),
+    [rewardMinimum],
+  )
   const [isExpirationMenuOpen, setIsExpirationMenuOpen] = useState(false)
   const {
     isExpirationModalOpen,
@@ -385,20 +395,34 @@ export default function EventOrderPanelLimitControls({
             })}
           </div>
         ) : (
-          <div className="ml-auto flex h-8 w-1/2 justify-end gap-2">
-            {BUY_CHIPS.map((chip) => {
+          <div className="ml-auto flex h-8 max-w-full justify-end gap-2">
+            {buyChips.map((chip) => {
               const label = chip > 0 ? `+${chip}` : `${chip}`
-              return (
+              const isRewardMinimum = rewardMinimum === chip
+              const button = (
                 <Button
                   type="button"
                   key={chip}
                   size="sm"
                   variant="outline"
-                  className="px-2 text-xs"
+                  className={cn('px-2 text-xs', isRewardMinimum && 'text-violet-500 hover:text-violet-500')}
                   onClick={() => updateLimitShares(limitSharesNumber + chip)}
                 >
                   {label}
                 </Button>
+              )
+
+              if (!isRewardMinimum) {
+                return button
+              }
+
+              return (
+                <Tooltip key={chip}>
+                  <TooltipTrigger render={button} />
+                  <TooltipContent side="bottom">
+                    {t({ id: 'minimumLiquidityReward', message: 'Minimum liquidity reward' })}
+                  </TooltipContent>
+                </Tooltip>
               )
             })}
           </div>

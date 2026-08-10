@@ -11,8 +11,10 @@ import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_
 import EventOrderBook, {
   useOrderBookSummaries,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
+import EventRewardsBadge from '@/app/[locale]/(platform)/event/[slug]/_components/EventRewardsBadge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useMarketRewards } from '@/hooks/useMarketRewards'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -67,6 +69,7 @@ export default function EventSingleMarketOrderBook({
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isMobile = useIsMobile()
   const marketChannelStatus = useMarketChannelStatus()
+  const [showRewardHighlight, setShowRewardHighlight] = useState(false)
   const setOrderMarket = useOrder((state) => state.setMarket)
   const setOrderOutcome = useOrder((state) => state.setOutcome)
   const {
@@ -91,6 +94,8 @@ export default function EventSingleMarketOrderBook({
   const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
   const isLoadingSummaries = isExpanded && isOrderBookLoading && !orderBookSummaries
   const compactVolumeLabel = showCompactVolume ? rawCompactVolumeLabel : null
+  const rewardsQuery = useMarketRewards([market.condition_id])
+  const rewardConfig = rewardsQuery.data?.[0] ?? null
 
   function handleOutcomeSelection(outcomeIndex: OutcomeToggleIndex) {
     const outcome = market.outcomes[outcomeIndex]
@@ -189,7 +194,14 @@ export default function EventSingleMarketOrderBook({
               />
             </div>
             <div className="flex items-center gap-2">
-              <ConnectionStatusIndicator className="flex items-center justify-end py-2" status={marketChannelStatus} />
+              {rewardConfig && (
+                <EventRewardsBadge
+                  rewards={[rewardConfig]}
+                  compact
+                  active={showRewardHighlight}
+                  onHighlightChange={setShowRewardHighlight}
+                />
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -208,6 +220,7 @@ export default function EventSingleMarketOrderBook({
                   className={cn('size-3', { 'animate-spin': isOrderBookLoading || isOrderBookRefetching })}
                 />
               </button>
+              <ConnectionStatusIndicator className="flex items-center justify-end py-2" status={marketChannelStatus} />
             </div>
           </div>
           <EventOrderBook
@@ -217,6 +230,7 @@ export default function EventSingleMarketOrderBook({
             isLoadingSummaries={isLoadingSummaries}
             eventSlug={eventSlug}
             openMobileOrderPanelOnLevelSelect={isMobile}
+            rewardHighlight={showRewardHighlight}
           />
         </div>
       </div>

@@ -6,7 +6,6 @@ import { useState } from 'react'
 import type { OrderSide } from '@/types'
 
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
-import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -23,9 +22,7 @@ interface EventOrderPanelEarningsProps {
   buyProfit: number
   buyChangePct: number
   buyMultiplier: number
-  outcomeTokenId: string | null
-  operatorFeeBps: number
-  feeBaseAmount: number
+  totalFee: number | null
 }
 
 export default function EventOrderPanelEarnings({
@@ -40,13 +37,10 @@ export default function EventOrderPanelEarnings({
   buyProfit,
   buyChangePct,
   buyMultiplier,
-  outcomeTokenId,
-  operatorFeeBps,
-  feeBaseAmount,
+  totalFee,
 }: EventOrderPanelEarningsProps) {
   const t = useExtracted()
   const [isPricePopoverOpen, setIsPricePopoverOpen] = useState(false)
-  const kuestFeeRateQuery = useKuestFeeRate(outcomeTokenId, { enabled: isPricePopoverOpen })
   const buyToWinLabel = formatCurrency(Math.max(0, buyPayout))
   const buyProfitLabel = formatCurrency(buyProfit)
   const buyChangeLabel = `${buyChangePct >= 0 ? '+' : '-'}${Math.abs(buyChangePct).toFixed(0)}%`
@@ -74,8 +68,7 @@ export default function EventOrderPanelEarnings({
   const sellProfitLabel = formatCurrency(0)
   const sellChangeLabel = '+0%'
   const sellMultiplierLabel = decimalOdds != null ? `${decimalOdds.toFixed(3)}x` : '—'
-  const totalFeeBps = kuestFeeRateQuery.data == null ? null : kuestFeeRateQuery.data + operatorFeeBps
-  const totalFeeLabel = totalFeeBps == null ? '—' : formatCurrency((Math.max(0, feeBaseAmount) * totalFeeBps) / 10_000)
+  const totalFeeLabel = totalFee == null ? '—' : formatCurrency(totalFee)
   const avgPriceLabel = t('Avg. price {price}', {
     price: side === ORDER_SIDE.SELL ? avgSellPriceLabel : avgBuyPriceLabel,
   })

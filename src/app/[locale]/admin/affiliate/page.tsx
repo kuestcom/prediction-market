@@ -2,11 +2,10 @@ import { setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
-import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
-import { fetchKuestFeeSettings } from '@/lib/clob-fees'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -49,21 +48,57 @@ function formatIsoUtcFromTimestamp(timestamp: number) {
 function AdminAffiliateFallback() {
   return (
     <div className="grid gap-6" role="status" aria-label="Loading affiliate settings">
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <AdminPanelSkeleton className="min-h-96" rowCount={4} />
-        <AdminPanelSkeleton className="min-h-64" rowCount={2} />
+      <section className="grid gap-4 rounded-lg border p-6" aria-hidden="true">
+        <div className="grid gap-2">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-3 w-72 max-w-full" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="grid gap-2 rounded-lg bg-muted/40 p-4">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-7 w-28 max-w-full" />
+            </div>
+          ))}
+        </div>
       </section>
-      <AdminPanelSkeleton className="min-h-80" rowCount={3} />
+
+      <section className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div key={index} className="grid min-h-80 content-start gap-5 rounded-lg border p-6" aria-hidden="true">
+            <div className="grid gap-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-3 w-64 max-w-full" />
+            </div>
+            <Skeleton className={index === 0 ? 'h-44 w-full' : 'h-56 w-full'} />
+          </div>
+        ))}
+      </section>
+
+      <section className="overflow-hidden rounded-lg border" aria-hidden="true">
+        <div className="grid gap-2 border-b p-6">
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-3 w-60 max-w-full" />
+        </div>
+        <div className="divide-y">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="flex h-16 items-center gap-4 px-6">
+              <Skeleton className="size-8 shrink-0 rounded-full" />
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="ml-auto h-4 w-20" />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }
 
 async function AdminAffiliateContent() {
   await io()
-  const [{ data: allSettings }, { data: overviewData }, kuestFeeSettings] = await Promise.all([
+  const [{ data: allSettings }, { data: overviewData }] = await Promise.all([
     SettingsRepository.getSettings(),
     AffiliateRepository.listAffiliateOverview(),
-    fetchKuestFeeSettings(),
   ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
   const initialFeeRecipientWallet = getFeeRecipientWalletFormValue(allSettings ?? undefined)
@@ -147,11 +182,11 @@ async function AdminAffiliateContent() {
   return (
     <>
       <AdminAffiliateContentClient
+        key={`${initialFeeRecipientWallet}-${affiliateFeeSettings.builderTakerFeeBps}-${affiliateFeeSettings.builderMakerFeeBps}`}
         builderTakerFeeBps={affiliateFeeSettings.builderTakerFeeBps}
         builderMakerFeeBps={affiliateFeeSettings.builderMakerFeeBps}
         affiliateShareBps={affiliateFeeSettings.affiliateShareBps}
         initialFeeRecipientWallet={initialFeeRecipientWallet}
-        kuestFeeSettings={kuestFeeSettings}
         updatedAtLabel={updatedAtLabel}
         aggregate={aggregate}
       />

@@ -29,6 +29,7 @@ interface EventOrderPanelOrderInputProps {
   availableNoTokenShares: number
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
   balance: ReturnType<typeof useBalance>['balance']
+  maxBuyAmount?: number
   isBalanceLoading: boolean
   isBalanceError: boolean
   onRetryBalance: () => void
@@ -47,9 +48,7 @@ interface EventOrderPanelOrderInputProps {
     changePct: number
     multiplier: number
   }
-  outcomeTokenId: string | null
-  operatorFeeBps: number
-  feeBaseAmount: number
+  totalFee: number | null
   shouldShowResolvedMarketMinimumWarning: boolean
   shouldShowResolvedNoLiquidityWarning: boolean
   showInsufficientSharesWarning: boolean
@@ -60,6 +59,7 @@ interface EventOrderPanelOrderInputProps {
   limitExpirationOption: LimitExpirationOption
   limitExpirationTimestamp: number | null
   limitMatchingShares: number | null
+  liquidityRewardMinShares?: number
   shouldShowLimitMinimumWarning: boolean
   shouldShakeLimitShares: boolean
   limitSharesRef: RefObject<HTMLInputElement | null>
@@ -89,6 +89,7 @@ export default function EventOrderPanelOrderInput({
   availableNoTokenShares,
   outcomeIndex,
   balance,
+  maxBuyAmount,
   isBalanceLoading,
   isBalanceError,
   onRetryBalance,
@@ -101,9 +102,7 @@ export default function EventOrderPanelOrderInput({
   avgSellPriceCentsValue,
   avgBuyPriceCentsValue,
   buyPayoutSummary,
-  outcomeTokenId,
-  operatorFeeBps,
-  feeBaseAmount,
+  totalFee,
   shouldShowResolvedMarketMinimumWarning,
   shouldShowResolvedNoLiquidityWarning,
   showInsufficientSharesWarning,
@@ -114,6 +113,7 @@ export default function EventOrderPanelOrderInput({
   limitExpirationOption,
   limitExpirationTimestamp,
   limitMatchingShares,
+  liquidityRewardMinShares,
   shouldShowLimitMinimumWarning,
   shouldShakeLimitShares,
   limitSharesRef,
@@ -152,6 +152,7 @@ export default function EventOrderPanelOrderInput({
             limitExpirationTimestamp={limitExpirationTimestamp}
             isLimitOrder={isLimitOrder}
             matchingShares={limitMatchingShares}
+            liquidityRewardMinShares={liquidityRewardMinShares}
             availableShares={availableShares}
             showLimitMinimumWarning={shouldShowLimitMinimumWarning}
             shouldShakeShares={shouldShakeLimitShares}
@@ -181,6 +182,7 @@ export default function EventOrderPanelOrderInput({
             amountNumber={amountNumber}
             availableShares={availableShares}
             balance={balance}
+            maxBuyAmount={maxBuyAmount}
             isBalanceLoading={isBalanceLoading}
             inputRef={inputRef}
             onAmountChange={onAmountChange}
@@ -207,9 +209,7 @@ export default function EventOrderPanelOrderInput({
               buyProfit={buyPayoutSummary.profit}
               buyChangePct={buyPayoutSummary.changePct}
               buyMultiplier={buyPayoutSummary.multiplier}
-              outcomeTokenId={outcomeTokenId}
-              operatorFeeBps={operatorFeeBps}
-              feeBaseAmount={feeBaseAmount}
+              totalFee={totalFee}
             />
           </div>
           {shouldShowResolvedMarketMinimumWarning && (

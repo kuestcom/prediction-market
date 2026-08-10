@@ -33,8 +33,10 @@ import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useMarketRewards } from '@/hooks/useMarketRewards'
 import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvalidation'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { usePolymarketOrderBooks } from '@/hooks/usePolymarketOrderBooks'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
 import { canProvideMarketLiquidity } from '@/lib/liquidity-ladder'
 import { formatOddsFromCents } from '@/lib/odds-format'
@@ -46,6 +48,7 @@ import { useUser } from '@/stores/useUser'
 import EventOrderBookEmptyRow from './EventOrderBookEmptyRow'
 import EventOrderBookRow from './EventOrderBookRow'
 import EventProvideLiquidityDialog from './EventProvideLiquidityDialog'
+import EventRewardsBadge from './EventRewardsBadge'
 
 export { useOrderBookSummaries }
 
@@ -257,6 +260,7 @@ export default function EventOrderBook({
   onToggleOutcome,
   toggleOutcomeTooltip,
   openMobileOrderPanelOnLevelSelect = false,
+  rewardHighlight,
 }: EventOrderBookProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -279,6 +283,16 @@ export default function EventOrderBook({
   const isMobile = useIsMobile()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const [isLiquidityDialogOpen, setIsLiquidityDialogOpen] = useState(false)
+  const [internalRewardHighlight, setInternalRewardHighlight] = useState(false)
+  const showRewardHighlight = rewardHighlight ?? internalRewardHighlight
+  const rewardsQuery = useMarketRewards([market.condition_id])
+  const rewardConfig = rewardsQuery.data?.[0] ?? null
+  const polymarketTokenId = outcome?.polymarket_token_id ?? null
+  const usesPolymarketMidpoint = rewardConfig?.midpointSource.toLowerCase() === 'polymarket'
+  const polymarketBooks = usePolymarketOrderBooks(
+    polymarketTokenId ? [polymarketTokenId] : [],
+    Boolean(usesPolymarketMidpoint && polymarketTokenId),
+  )
 
   const { orderBookScrollRef, centerRowRef, hasCenteredRef, recenterOrderBook } = useOrderBookRecenter(summary)
   useResetCenteringOnTokenChange(tokenId, hasCenteredRef)
@@ -314,6 +328,34 @@ export default function EventOrderBook({
   )
 
   const renderedAsks = useMemo(() => [...asks].sort((a, b) => b.priceCents - a.priceCents), [asks])
+  const kuestMidpointCents =
+    asks[0] && bids[0]
+      ? (asks[0].priceCents + bids[0].priceCents) / 2
+      : typeof lastPrice === 'number'
+        ? lastPrice
+        : null
+  const polymarketSummary = polymarketTokenId ? polymarketBooks.data?.[polymarketTokenId] : null
+  const polymarketAskPrices = (polymarketSummary?.asks ?? [])
+    .map((level) => Number(level.price) * 100)
+    .filter((price) => Number.isFinite(price) && price > 0)
+  const polymarketBidPrices = (polymarketSummary?.bids ?? [])
+    .map((level) => Number(level.price) * 100)
+    .filter((price) => Number.isFinite(price) && price > 0)
+  const polymarketMidpointCents =
+    polymarketAskPrices.length && polymarketBidPrices.length
+      ? (Math.min(...polymarketAskPrices) + Math.max(...polymarketBidPrices)) / 2
+      : null
+  const midpointCents = usesPolymarketMidpoint ? (polymarketMidpointCents ?? kuestMidpointCents) : kuestMidpointCents
+  const isRewardEligible = useCallback(
+    (level: OrderBookLevel) =>
+      Boolean(
+        rewardConfig &&
+        midpointCents != null &&
+        level.shares >= rewardConfig.minSize &&
+        Math.abs(level.priceCents - midpointCents) < rewardConfig.maxSpread,
+      ),
+    [midpointCents, rewardConfig],
+  )
   const isMarketOrderBookEmpty = useMemo(
     () =>
       Boolean(summaries) &&
@@ -392,7 +434,7 @@ export default function EventOrderBook({
         <div
           className={cn(
             tableHeaderClass,
-            'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b',
+            'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b pr-4',
             'sticky top-0 z-10',
             surfaceClass,
           )}
@@ -442,8 +484,23 @@ export default function EventOrderBook({
           <div className="flex h-full items-center justify-center">
             <span className={orderBookHeaderLabelClass}>{t('Shares')}</span>
           </div>
-          <div className="flex h-full items-center justify-center">
+          <div
+            className={cn(
+              'flex h-full items-center',
+              rewardConfig && rewardHighlight === undefined
+                ? 'justify-between gap-1 pr-1'
+                : 'justify-center px-2 sm:px-3',
+            )}
+          >
             <span className={orderBookHeaderLabelClass}>{t('Total')}</span>
+            {rewardConfig && rewardHighlight === undefined && (
+              <EventRewardsBadge
+                rewards={[rewardConfig]}
+                compact
+                active={showRewardHighlight}
+                onHighlightChange={setInternalRewardHighlight}
+              />
+            )}
           </div>
         </div>
 
@@ -484,6 +541,8 @@ export default function EventOrderBook({
                     userOrder={userOrder}
                     isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
                     onCancelUserOrder={handleCancelUserOrder}
+                    rewardEligible={isRewardEligible(level)}
+                    showRewardHighlight={showRewardHighlight}
                   />
                 )
               })
@@ -528,6 +587,8 @@ export default function EventOrderBook({
                     userOrder={userOrder}
                     isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
                     onCancelUserOrder={handleCancelUserOrder}
+                    rewardEligible={isRewardEligible(level)}
+                    showRewardHighlight={showRewardHighlight}
                   />
                 )
               })

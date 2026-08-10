@@ -24,6 +24,8 @@ interface EventOrderBookRowProps {
   userOrder?: OrderBookUserOrder | null
   isCancelling?: boolean
   onCancelUserOrder?: (orderId: string) => void
+  rewardEligible?: boolean
+  showRewardHighlight?: boolean
 }
 
 export default function EventOrderBookRow({
@@ -35,6 +37,8 @@ export default function EventOrderBookRow({
   userOrder,
   isCancelling,
   onCancelUserOrder,
+  rewardEligible = false,
+  showRewardHighlight = false,
 }: EventOrderBookRowProps) {
   const t = useExtracted()
   const isAsk = level.side === 'ask'
@@ -48,6 +52,7 @@ export default function EventOrderBookRow({
     <div
       className={cn(
         `relative grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center pr-4 pl-0 transition-colors ${hoverClass}`,
+        showRewardHighlight && rewardEligible && 'bg-primary/[0.06]',
       )}
       onClick={() => onSelect?.(level)}
     >

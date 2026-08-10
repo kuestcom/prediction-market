@@ -22,6 +22,7 @@ export interface EventOrderBookProps {
   onToggleOutcome?: () => void
   toggleOutcomeTooltip?: string
   openMobileOrderPanelOnLevelSelect?: boolean
+  rewardHighlight?: boolean
 }
 
 export interface OrderbookLevelSummary {

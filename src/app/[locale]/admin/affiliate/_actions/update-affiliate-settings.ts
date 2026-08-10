@@ -50,8 +50,8 @@ function requiredPercent(max: number) {
 }
 
 const UpdateForkSettingsSchema = z.object({
-  builder_taker_fee_percent: requiredPercent(9),
-  builder_maker_fee_percent: requiredPercent(9),
+  builder_taker_fee_percent: requiredPercent(1),
+  builder_maker_fee_percent: requiredPercent(1),
   affiliate_share_percent: requiredPercent(100),
 })
 

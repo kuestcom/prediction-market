@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (value: string) => value,
+  useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
 vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm', () => ({
@@ -40,11 +40,10 @@ describe('adminAffiliateContentClient', () => {
   it('keeps the claim card bound to the saved wallet until refresh', async () => {
     const user = userEvent.setup()
     const props = {
-      builderTakerFeeBps: 250,
-      builderMakerFeeBps: 125,
+      builderTakerFeeBps: 50,
+      builderMakerFeeBps: 0,
       affiliateShareBps: 1550,
       initialFeeRecipientWallet: '0x1111111111111111111111111111111111111111',
-      kuestFeeSettings: null,
       updatedAtLabel: '2026-05-08 20:43:23 UTC',
       aggregate: {
         totalVolume: 0,

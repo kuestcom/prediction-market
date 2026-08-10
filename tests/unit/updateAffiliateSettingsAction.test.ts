@@ -72,8 +72,8 @@ describe('updateForkSettingsAction', () => {
     const { updateForkSettingsAction } =
       await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
-    formData.set('builder_taker_fee_percent', '2')
-    formData.set('builder_maker_fee_percent', '1')
+    formData.set('builder_taker_fee_percent', '0.5')
+    formData.set('builder_maker_fee_percent', '0')
     formData.set('affiliate_share_percent', '10')
     formData.set('fee_recipient_wallet', 'not-a-wallet')
 
@@ -95,8 +95,8 @@ describe('updateForkSettingsAction', () => {
     const { updateForkSettingsAction } =
       await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
-    formData.set('builder_taker_fee_percent', '2.5')
-    formData.set('builder_maker_fee_percent', '1.25')
+    formData.set('builder_taker_fee_percent', '0.75')
+    formData.set('builder_maker_fee_percent', '0.25')
     formData.set('affiliate_share_percent', '15.5')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
 
@@ -112,8 +112,8 @@ describe('updateForkSettingsAction', () => {
       },
       {
         feeRecipientWallet: '0x1111111111111111111111111111111111111111',
-        builderTakerFeeBps: 250,
-        builderMakerFeeBps: 125,
+        builderTakerFeeBps: 75,
+        builderMakerFeeBps: 25,
       },
     )
     expect(mocks.touchSettings).toHaveBeenCalledTimes(1)
@@ -129,13 +129,13 @@ describe('updateForkSettingsAction', () => {
         expect.objectContaining({
           group: 'affiliate',
           key: 'builder_taker_fee_bps',
-          value: '250',
+          value: '75',
           updated_at: expect.any(Date),
         }),
         expect.objectContaining({
           group: 'affiliate',
           key: 'builder_maker_fee_bps',
-          value: '125',
+          value: '25',
           updated_at: expect.any(Date),
         }),
         expect.objectContaining({
@@ -172,8 +172,8 @@ describe('updateForkSettingsAction', () => {
     mocks.getSettings.mockResolvedValueOnce({
       data: {
         affiliate: {
-          builder_taker_fee_bps: { value: '250', updated_at: '2026-05-01T00:00:00.000Z' },
-          builder_maker_fee_bps: { value: '125', updated_at: '2026-05-01T00:00:00.000Z' },
+          builder_taker_fee_bps: { value: '75', updated_at: '2026-05-01T00:00:00.000Z' },
+          builder_maker_fee_bps: { value: '25', updated_at: '2026-05-01T00:00:00.000Z' },
           affiliate_share_bps: { value: '1550', updated_at: '2026-05-01T00:00:00.000Z' },
         },
         general: {
@@ -189,8 +189,8 @@ describe('updateForkSettingsAction', () => {
     const { updateForkSettingsAction } =
       await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
-    formData.set('builder_taker_fee_percent', '2.5')
-    formData.set('builder_maker_fee_percent', '1.25')
+    formData.set('builder_taker_fee_percent', '0.75')
+    formData.set('builder_maker_fee_percent', '0.25')
     formData.set('affiliate_share_percent', '15.5')
     formData.set('fee_recipient_wallet', '0x2222222222222222222222222222222222222222')
 
@@ -218,8 +218,8 @@ describe('updateForkSettingsAction', () => {
       },
       {
         feeRecipientWallet: '0x2222222222222222222222222222222222222222',
-        builderTakerFeeBps: 250,
-        builderMakerFeeBps: 125,
+        builderTakerFeeBps: 75,
+        builderMakerFeeBps: 25,
       },
     )
   })

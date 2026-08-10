@@ -52,6 +52,8 @@ import { useArbitrageConfig } from '@/hooks/useArbitrageConfig'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
+import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
+import { useMarketRewards } from '@/hooks/useMarketRewards'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -92,6 +94,7 @@ import {
   refreshTradingPositionsAfterMutation,
   scheduleOrderBookRefresh,
 } from '@/lib/trading-cache'
+import { calculateKuestUnitFee, calculateMarketFillFees } from '@/lib/trading-fees'
 import { cn, triggerConfetti } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -898,6 +901,8 @@ export default function EventOrderPanelForm({
       ? event.markets.find((market) => market.condition_id === state.market?.condition_id)
       : null
   const activeMarket = matchingEventMarket ?? initialMarket
+  const marketRewardsQuery = useMarketRewards(activeMarket?.condition_id ? [activeMarket.condition_id] : [])
+  const liquidityRewardMinShares = marketRewardsQuery.data?.[0]?.minSize
   const fallbackOutcome = useMemo(() => {
     if (initialOutcome) {
       return initialOutcome
@@ -953,6 +958,7 @@ export default function EventOrderPanelForm({
   const yesPrice = activeLiveYesPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, yesOutcome)
   const noPrice = activeLiveNoPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, noOutcome)
   const outcomeTokenId = activeOutcome?.token_id ? String(activeOutcome.token_id) : null
+  const kuestFeeScheduleQuery = useKuestFeeRate(outcomeTokenId)
   const shouldLoadOrderBookSummary = Boolean(
     outcomeTokenId &&
     (state.type === ORDER_TYPE.MARKET ||
@@ -1155,13 +1161,41 @@ export default function EventOrderPanelForm({
 
   const effectiveMarketBuyCost =
     state.side === ORDER_SIDE.BUY && state.type === ORDER_TYPE.MARKET ? (marketBuyFill?.totalCost ?? amountNumber) : 0
+  const estimatedMarketBuyFees = calculateMarketFillFees(
+    marketBuyFill?.fills ?? [],
+    kuestFeeScheduleQuery.data,
+    affiliateMetadata.builderTakerFeeBps,
+  )
+  const maxBuyReferencePrice = (bestAskPriceCents ?? currentBuyPriceCents ?? 0) / 100
+  const maxBuyAmount =
+    maxBuyReferencePrice > 0
+      ? availableBalanceForOrders /
+        (1 +
+          calculateKuestUnitFee(maxBuyReferencePrice, kuestFeeScheduleQuery.data) / maxBuyReferencePrice +
+          affiliateMetadata.builderTakerFeeBps / 10_000)
+      : availableBalanceForOrders
+  const buyPayoutSummaryAfterFees = useMemo(() => {
+    const cost = buyPayoutSummary.cost + estimatedMarketBuyFees.totalFee
+    const profit = buyPayoutSummary.payout - cost
+    return {
+      ...buyPayoutSummary,
+      cost,
+      profit,
+      changePct: cost > 0 ? (profit / cost) * 100 : 0,
+      multiplier: cost > 0 ? buyPayoutSummary.payout / cost : 0,
+    }
+  }, [buyPayoutSummary, estimatedMarketBuyFees.totalFee])
+  const availableBalanceForValidation =
+    state.side === ORDER_SIDE.BUY && state.type === ORDER_TYPE.MARKET
+      ? Math.max(0, availableBalanceForOrders - estimatedMarketBuyFees.totalFee)
+      : availableBalanceForOrders
   const isInteractiveWalletReady = hasMounted && isConnected
   const shouldShowDepositCta =
     isInteractiveWalletReady &&
     !isBalanceError &&
     state.side === ORDER_SIDE.BUY &&
     state.type === ORDER_TYPE.MARKET &&
-    Math.max(effectiveMarketBuyCost, amountNumber) > availableBalanceForOrders
+    Math.max(effectiveMarketBuyCost + estimatedMarketBuyFees.totalFee, amountNumber) > availableBalanceForOrders
 
   const avgBuyPriceDollars =
     typeof currentBuyPriceCents === 'number' && Number.isFinite(currentBuyPriceCents)
@@ -1174,13 +1208,14 @@ export default function EventOrderPanelForm({
     Number.isFinite(sellOrderSnapshot.priceCents) && sellOrderSnapshot.priceCents > 0
       ? sellOrderSnapshot.priceCents
       : null
-  const sellAmountLabel = formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })
-  const feeBaseAmount =
-    state.side === ORDER_SIDE.SELL
-      ? sellAmountValue
-      : effectiveMarketBuyCost > 0
-        ? effectiveMarketBuyCost
-        : amountNumber
+  const estimatedMarketSellFees = calculateMarketFillFees(
+    marketSellFill?.fills ?? [],
+    kuestFeeScheduleQuery.data,
+    affiliateMetadata.builderTakerFeeBps,
+  )
+  const sellAmountLabel = formatDollarValueLabel(Math.max(0, sellAmountValue - estimatedMarketSellFees.totalFee), {
+    fallback: '0¢',
+  })
   const showSlippageWarning = Boolean(user?.settings?.trading?.show_slippage_warning)
 
   const filledSharesForCurrentSide =
@@ -1303,7 +1338,7 @@ export default function EventOrderPanelForm({
       isLimitOrder,
       limitPrice: state.limitPrice,
       limitShares: state.limitShares,
-      availableBalance: availableBalanceForOrders,
+      availableBalance: availableBalanceForValidation,
       availableShares: selectedShares,
       limitExpirationOption: state.limitExpirationOption,
       limitExpirationTimestamp: orderExpirationTimestamp,
@@ -2193,6 +2228,7 @@ export default function EventOrderPanelForm({
                   availableNoTokenShares={availableNoTokenShares}
                   outcomeIndex={outcomeIndex}
                   balance={balance}
+                  maxBuyAmount={maxBuyAmount}
                   isBalanceLoading={isLoadingBalance || isBalanceError}
                   isBalanceError={isBalanceError}
                   onRetryBalance={() => void refetchBalance()}
@@ -2204,10 +2240,14 @@ export default function EventOrderPanelForm({
                   avgBuyPriceLabel={avgBuyPriceLabel}
                   avgSellPriceCentsValue={avgSellPriceCentsValue}
                   avgBuyPriceCentsValue={avgBuyPriceCentsValue}
-                  buyPayoutSummary={buyPayoutSummary}
-                  outcomeTokenId={outcomeTokenId}
-                  operatorFeeBps={affiliateMetadata.builderTakerFeeBps}
-                  feeBaseAmount={feeBaseAmount}
+                  buyPayoutSummary={buyPayoutSummaryAfterFees}
+                  totalFee={
+                    kuestFeeScheduleQuery.data
+                      ? state.side === ORDER_SIDE.SELL
+                        ? estimatedMarketSellFees.totalFee
+                        : estimatedMarketBuyFees.totalFee
+                      : null
+                  }
                   shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
                   shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
                   showInsufficientSharesWarning={showInsufficientSharesWarning}
@@ -2218,6 +2258,7 @@ export default function EventOrderPanelForm({
                   limitExpirationOption={state.limitExpirationOption}
                   limitExpirationTimestamp={state.limitExpirationTimestamp}
                   limitMatchingShares={limitMatchingShares}
+                  liquidityRewardMinShares={liquidityRewardMinShares}
                   shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
                   shouldShakeLimitShares={shouldShakeLimitShares}
                   limitSharesRef={limitSharesInputRef}

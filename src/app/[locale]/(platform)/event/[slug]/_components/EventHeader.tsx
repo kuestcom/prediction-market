@@ -9,8 +9,10 @@ import type { Event } from '@/types'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventEmbed from '@/app/[locale]/(platform)/event/[slug]/_components/EventEmbed'
+import EventRewardsBadge from '@/app/[locale]/(platform)/event/[slug]/_components/EventRewardsBadge'
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 import EventIconImage from '@/components/EventIconImage'
+import { useMarketRewards } from '@/hooks/useMarketRewards'
 import { Link } from '@/i18n/navigation'
 import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
 import { isPlatformMainCategorySlug } from '@/lib/platform-routing'
@@ -136,6 +138,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
   const locale = useLocale()
   const { childParentMap, tags } = usePlatformNavigationData()
   const cryptoCadencePresentation = resolveCryptoCadenceEventPresentation(event, locale)
+  const rewardsQuery = useMarketRewards(event.markets.map((market) => market.condition_id))
   const taxonomy = useMemo(
     () =>
       resolveEventHeaderTaxonomy({
@@ -230,6 +233,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3 text-foreground">
+        <EventRewardsBadge rewards={rewardsQuery.data ?? []} />
         <EventEmbed event={event} />
         <EventShare event={event} />
         <EventBookmark event={event} />

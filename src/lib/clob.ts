@@ -1,4 +1,7 @@
+import type { DynamicFeeSchedule, FeeRatePayload } from '@/lib/trading-fees'
+
 import { defaultPublicRuntimeConfig, normalizePublicRuntimeEnvValue } from '@/lib/public-runtime-config.shared'
+import { parseDynamicFeeSchedule } from '@/lib/trading-fees'
 
 const MAX_LIMIT_PRICE = 99.9
 const PRICE_EPSILON = 1e-8
@@ -11,10 +14,6 @@ interface OrderbookLevelSummary {
 interface OrderBookSummaryResponse {
   bids?: OrderbookLevelSummary[]
   asks?: OrderbookLevelSummary[]
-}
-
-interface FeeRateResponse {
-  base_fee?: number | string
 }
 
 export function resolveClobUrl(value?: string) {
@@ -69,7 +68,7 @@ export async function fetchOrderBookSummary(
   }
 }
 
-export async function fetchKuestFeeRate(tokenId: string, clobUrl = resolveClobUrl()) {
+export async function fetchKuestFeeRate(tokenId: string, clobUrl = resolveClobUrl()): Promise<DynamicFeeSchedule> {
   const params = new URLSearchParams({ token_id: tokenId })
   const response = await fetch(`${clobUrl}/fee-rate?${params.toString()}`, {
     method: 'GET',
@@ -83,27 +82,15 @@ export async function fetchKuestFeeRate(tokenId: string, clobUrl = resolveClobUr
     throw new Error(`Failed to fetch /fee-rate: ${response.status} ${text}`)
   }
 
-  let payload: FeeRateResponse
+  let payload: FeeRatePayload
   try {
-    payload = JSON.parse(text) as FeeRateResponse
+    payload = JSON.parse(text) as FeeRatePayload
   } catch (error) {
     console.error('Failed to parse response from /fee-rate', error)
     throw new Error('Failed to parse response from /fee-rate')
   }
 
-  const normalizedStringFeeRate = typeof payload.base_fee === 'string' ? payload.base_fee.trim() : null
-  const feeRate =
-    normalizedStringFeeRate !== null
-      ? /^\d+(?:\.\d+)?$/.test(normalizedStringFeeRate)
-        ? Number(normalizedStringFeeRate)
-        : Number.NaN
-      : payload.base_fee
-
-  if (typeof feeRate !== 'number' || !Number.isFinite(feeRate) || feeRate < 0) {
-    throw new Error('Invalid fee rate returned from /fee-rate')
-  }
-
-  return Math.round(feeRate)
+  return parseDynamicFeeSchedule(payload)
 }
 
 export function getRoundedCents(rawPrice: number, side: 'ask' | 'bid') {

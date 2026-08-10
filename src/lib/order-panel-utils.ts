@@ -61,6 +61,7 @@ export function calculateMarketFill(
       limitPriceCents: null as number | null,
       filledShares: 0,
       totalCost: 0,
+      fills: [] as MarketFillSegment[],
     }
   }
 
@@ -69,6 +70,7 @@ export function calculateMarketFill(
   let filledShares = 0
   let totalCost = 0
   let limitPriceCents: number | null = null
+  const fills: MarketFillSegment[] = []
 
   for (const level of levels) {
     if (side === ORDER_SIDE.SELL && remainingShares <= 0) {
@@ -84,6 +86,7 @@ export function calculateMarketFill(
         continue
       }
       const cost = fill * level.priceDollars
+      fills.push({ shares: fill, price: level.priceDollars, notional: cost })
       filledShares = Number((filledShares + fill).toFixed(4))
       totalCost = Number((totalCost + cost).toFixed(4))
       remainingShares = Math.max(0, Number((remainingShares - fill).toFixed(4)))
@@ -95,6 +98,7 @@ export function calculateMarketFill(
         continue
       }
       const cost = fill * level.priceDollars
+      fills.push({ shares: fill, price: level.priceDollars, notional: cost })
       filledShares = Number((filledShares + fill).toFixed(4))
       totalCost = Number((totalCost + cost).toFixed(4))
       remainingBudget = Math.max(0, Number((remainingBudget - cost).toFixed(4)))
@@ -109,5 +113,12 @@ export function calculateMarketFill(
     limitPriceCents,
     filledShares: Number(filledShares.toFixed(4)),
     totalCost: Number(totalCost.toFixed(4)),
+    fills,
   }
+}
+
+interface MarketFillSegment {
+  shares: number
+  price: number
+  notional: number
 }
