@@ -139,7 +139,13 @@ export default function HeaderDropdownUserMenuGuest() {
         >
           <MenuIcon />
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-60" align="end" collisionPadding={16} portalled={false}>
+        <DropdownMenuContent
+          className="w-60"
+          align="end"
+          collisionPadding={16}
+          portalled={false}
+          positionMethod="fixed"
+        >
           <DropdownMenuLinkItem
             render={<Link href="/leaderboard" className="flex w-full items-center gap-1.5" />}
             className="py-2 text-sm font-semibold text-foreground"

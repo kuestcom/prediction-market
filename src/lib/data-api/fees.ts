@@ -4,6 +4,7 @@ export interface FeeReceiverTotal {
   exchange: string
   receiver: string
   tokenId: string
+  feeType?: FeeHistoryType
   totalAmount: string
   totalVolume: string
   updatedAt: number
@@ -30,6 +31,7 @@ export interface FeeHistoryTimeSeries {
 interface FeeReceiverTotalsParams {
   endpoint: 'referrers'
   address: string
+  feeType?: FeeHistoryType
   exchange?: string
   tokenId?: string
   limit?: number
@@ -39,6 +41,7 @@ interface FeeReceiverTotalsParams {
 export async function fetchFeeReceiverTotals({
   endpoint,
   address,
+  feeType,
   exchange,
   tokenId,
   limit = 100,
@@ -46,6 +49,9 @@ export async function fetchFeeReceiverTotals({
 }: FeeReceiverTotalsParams): Promise<FeeReceiverTotal[]> {
   const params = new URLSearchParams()
   params.set('address', normalizeDataApiAddress(address))
+  if (feeType) {
+    params.set('feeType', feeType)
+  }
   if (exchange) {
     params.set('exchange', normalizeDataApiAddress(exchange))
   }
@@ -142,24 +148,21 @@ export function combineAvailableDailyFeeSeries(
   return combineDailyFeeSeries(availableSeries, now)
 }
 
-export function sumFeeTotals(totals: FeeReceiverTotal[]): bigint {
-  return totals.reduce((acc, total) => {
-    try {
-      return acc + BigInt(total.totalAmount)
-    } catch {
-      return acc
-    }
-  }, 0n)
+function parseDecimalFeeValue(value: string): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
-export function sumFeeVolumes(totals: FeeReceiverTotal[]): bigint {
+export function sumFeeTotals(totals: FeeReceiverTotal[]): number {
   return totals.reduce((acc, total) => {
-    try {
-      return acc + BigInt(total.totalVolume)
-    } catch {
-      return acc
-    }
-  }, 0n)
+    return acc + parseDecimalFeeValue(total.totalAmount)
+  }, 0)
+}
+
+export function sumFeeVolumes(totals: FeeReceiverTotal[]): number {
+  return totals.reduce((acc, total) => {
+    return acc + parseDecimalFeeValue(total.totalVolume)
+  }, 0)
 }
 
 export function baseUnitsToNumber(amount: bigint, decimals = 6): number {

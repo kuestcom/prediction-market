@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 type DropdownMenuPositionerProps = Pick<
   DropdownMenuPrimitive.Positioner.Props,
-  'align' | 'alignOffset' | 'collisionPadding' | 'side' | 'sideOffset'
+  'align' | 'alignOffset' | 'collisionPadding' | 'positionMethod' | 'side' | 'sideOffset'
 >
 
 type DropdownMenuContentProps = DropdownMenuPrimitive.Popup.Props &
@@ -36,6 +36,7 @@ function DropdownMenuContent({
   className,
   collisionPadding,
   portalled = true,
+  positionMethod,
   side = 'bottom',
   sideOffset = 4,
   ...props
@@ -46,6 +47,7 @@ function DropdownMenuContent({
       align={align}
       alignOffset={alignOffset}
       collisionPadding={collisionPadding}
+      positionMethod={positionMethod}
       side={side}
       sideOffset={sideOffset}
       className="isolate z-50 outline-none"

@@ -17,7 +17,7 @@ describe('DropdownMenu', () => {
     render(
       <DropdownMenu>
         <DropdownMenuTrigger>Open menu</DropdownMenuTrigger>
-        <DropdownMenuContent portalled={false}>
+        <DropdownMenuContent portalled={false} positionMethod="fixed">
           <DropdownMenuItem>Menu item</DropdownMenuItem>
           <DropdownMenuItem render={<button type="button" />} nativeButton>
             Button item
@@ -40,6 +40,9 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Button item' }).tagName).toBe('BUTTON')
     expect(screen.getByRole('menuitemradio', { name: 'English' })).toBeVisible()
     expect(screen.getByRole('menuitemradio', { name: 'Portuguese' })).toBeVisible()
+    expect(
+      screen.getByRole('menuitem', { name: 'Menu item' }).closest('[data-slot="dropdown-menu-content"]')?.parentElement,
+    ).toHaveStyle({ position: 'fixed' })
   })
 
   it('closes after clicking a navigation item', async () => {

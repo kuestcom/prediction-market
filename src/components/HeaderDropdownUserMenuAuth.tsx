@@ -232,6 +232,7 @@ export default function HeaderDropdownUserMenuAuth() {
           sideOffset={0}
           collisionPadding={16}
           portalled={isMobile}
+          positionMethod="fixed"
         >
           <DropdownMenuItem render={<UserInfoSection />} />
 

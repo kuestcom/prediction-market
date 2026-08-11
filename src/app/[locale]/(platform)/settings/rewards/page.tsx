@@ -12,9 +12,9 @@ import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import {
   baseUnitsToNumber,
   combineDailyFeeSeries,
+  fetchFeeHistoryTotal,
   fetchFeeHistoryTimeSeries,
   fetchFeeReceiverTotals,
-  sumFeeTotals,
   sumFeeVolumes,
 } from '@/lib/data-api/fees'
 import { fetchResolutionRewardAccount, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
@@ -103,6 +103,7 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
     ? fetchFeeReceiverTotals({
         endpoint: 'referrers',
         address: receiverAddress,
+        feeType: 'AFFILIATE',
       }).catch((error) => {
         console.warn('Failed to load affiliate fee totals', error)
         return null
@@ -111,6 +112,12 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
   const affiliateSeriesPromise = receiverAddress
     ? fetchFeeHistoryTimeSeries(receiverAddress, 'AFFILIATE').catch((error) => {
         console.warn('Failed to load affiliate fee history', error)
+        return null
+      })
+    : Promise.resolve(null)
+  const affiliateTotalPromise = receiverAddress
+    ? fetchFeeHistoryTotal(receiverAddress, 'AFFILIATE').catch((error) => {
+        console.warn('Failed to load affiliate fee total', error)
         return null
       })
     : Promise.resolve(null)
@@ -128,6 +135,7 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
     { data: mainTags },
     feeTotals,
     affiliateFeeSeries,
+    affiliateFeeTotal,
     resolutionAccount,
   ] = await Promise.all([
     SettingsRepository.getSettings(),
@@ -136,6 +144,7 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
     TagRepository.getMainTags(resolvedLocale),
     feeTotalsPromise,
     affiliateSeriesPromise,
+    affiliateTotalPromise,
     resolutionAccountPromise,
   ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
@@ -159,11 +168,16 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
   let totalAffiliateFees = 0
   let referredVolume = 0
 
+  if (affiliateFeeTotal) {
+    try {
+      totalAffiliateFees = baseUnitsToNumber(BigInt(affiliateFeeTotal.totalAmount), 6)
+    } catch (error) {
+      console.warn('Ignoring malformed affiliate fee total.', { amount: affiliateFeeTotal.totalAmount, error })
+    }
+  }
+
   if (feeTotals) {
-    const usdcTotal = sumFeeTotals(feeTotals)
-    const volumeTotal = sumFeeVolumes(feeTotals)
-    totalAffiliateFees = baseUnitsToNumber(usdcTotal, 6)
-    referredVolume = baseUnitsToNumber(volumeTotal, 6)
+    referredVolume = sumFeeVolumes(feeTotals.filter((total) => total.feeType === 'AFFILIATE'))
   }
 
   const commissionPercent = affiliateFeeSettings.affiliateShareBps / 100

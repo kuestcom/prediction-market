@@ -10,7 +10,7 @@ import {
   getAffiliateFeeSettings,
   getAffiliateFeeSettingsUpdatedAt,
 } from '@/lib/affiliate-fee-settings'
-import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
+import { fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
@@ -138,7 +138,9 @@ async function AdminAffiliateContent() {
     )
 
     const feeTotals = await Promise.allSettled(
-      uniqueReceivers.map((address) => fetchFeeReceiverTotals({ endpoint: 'referrers', address })),
+      uniqueReceivers.map((address) =>
+        fetchFeeReceiverTotals({ endpoint: 'referrers', address, feeType: 'AFFILIATE' }),
+      ),
     )
 
     feeTotals.forEach((result, idx) => {
@@ -146,11 +148,12 @@ async function AdminAffiliateContent() {
         console.warn('Failed to load affiliate fee totals', result.reason)
         return
       }
-      const usdcTotal = sumFeeTotals(result.value)
-      const volumeTotal = sumFeeVolumes(result.value)
+      const affiliateTotals = result.value.filter((total) => total.feeType === 'AFFILIATE')
+      const usdcTotal = sumFeeTotals(affiliateTotals)
+      const volumeTotal = sumFeeVolumes(affiliateTotals)
       feeTotalsByAddress.set(uniqueReceivers[idx].toLowerCase(), {
-        fees: baseUnitsToNumber(usdcTotal, 6),
-        volume: baseUnitsToNumber(volumeTotal, 6),
+        fees: usdcTotal,
+        volume: volumeTotal,
       })
     })
   }
