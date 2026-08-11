@@ -6,9 +6,9 @@ import { useEffect } from 'react'
 
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
-import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
-import { isNextNotFoundError } from '@/lib/next-http-fallback'
-import { isSiweVerificationError } from '@/lib/siwe-errors'
+import { isNextClientStaleAssetError } from '@/lib/errors/next-client-stale-assets'
+import { isNextNotFoundError } from '@/lib/errors/next-http-fallback'
+import { isSiweVerificationError } from '@/lib/errors/siwe'
 import { cn } from '@/lib/utils'
 
 interface AppErrorFallbackProps {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { getNextHttpFallbackStatus, isNextNotFoundError } from '@/lib/next-http-fallback'
+import { getNextHttpFallbackStatus, isNextNotFoundError } from '@/lib/errors/next-http-fallback'
 
 describe('nextHttpFallback', () => {
   it('returns the status from a Next.js http fallback digest', () => {
