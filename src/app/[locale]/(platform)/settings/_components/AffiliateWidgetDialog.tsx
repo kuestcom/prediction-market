@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+import { useTheme } from 'next-themes'
 import { useMemo, useState } from 'react'
 
 import type { EmbedCodeLine } from '@/lib/embed-code'
@@ -76,6 +77,7 @@ function buildAffiliateIframeSrc(
   const params = new URLSearchParams({
     category: categorySlug,
     theme,
+    transparent: 'true',
     rotate: 'true',
     locale,
   })
@@ -104,6 +106,7 @@ function buildAffiliatePreviewSrc(
   const params = new URLSearchParams({
     category: categorySlug,
     theme,
+    transparent: 'true',
     rotate: 'true',
     locale,
   })
@@ -153,12 +156,17 @@ const IFRAME_HEIGHT_WITH_CHART = 400
 const IFRAME_HEIGHT_WITH_FILTERS = 440
 const IFRAME_HEIGHT_NO_CHART = 180
 
-function useEmbedOptions() {
-  const [theme, setTheme] = useState<EmbedTheme>('light')
+function useEmbedOptions(initialTheme: EmbedTheme) {
+  const [selectedTheme, setSelectedTheme] = useState<EmbedTheme | null>(null)
   const [embedType, setEmbedType] = useState<EmbedType>('iframe')
   const [showVolume, setShowVolume] = useState(false)
   const [showChart, setShowChart] = useState(false)
   const [showTimeRange, setShowTimeRange] = useState(false)
+  const theme = selectedTheme ?? initialTheme
+
+  function setTheme(nextTheme: EmbedTheme) {
+    setSelectedTheme(nextTheme)
+  }
 
   function handleShowChartChange(nextValue: boolean) {
     setShowChart(nextValue)
@@ -357,6 +365,7 @@ function useEmbedCode({
       lines.push(attributeLine('\t\t', 'affiliate', affiliateCode))
     }
 
+    lines.push(attributeLine('\t\t', 'transparent', ''))
     lines.push(attributeLine('\t\t', 'theme', theme))
     lines.push(tagSelfCloseLine('\t'))
     lines.push(tagCloseLine('', 'div'))
@@ -378,6 +387,7 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
   const t = useExtracted()
   const isMobile = useIsMobile()
   const locale = useLocale()
+  const { resolvedTheme } = useTheme()
   const site = useSiteIdentity()
   const { siteUrl } = usePublicRuntimeConfig()
   const user = useUser()
@@ -393,17 +403,17 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
     showTimeRange,
     setShowTimeRange,
     handleShowChartChange,
-  } = useEmbedOptions()
+  } = useEmbedOptions(resolvedTheme === 'dark' ? 'dark' : 'light')
   const { copied, setCopied } = useCopyFlashState()
   const { selectedCategory, setSelectedCategoryState } = useEmbedCategorySelection(categories)
   const siteSlug = useSiteSlug(site.name)
   const embedBaseUrl = useMemo(() => normalizeEmbedBaseUrl(siteUrl), [siteUrl])
   const { affiliateSharePercent, builderTakerSharePercent } = useAffiliateFeeSettings(affiliateCode)
-  const {
-    data: currentMarkets = [],
-    isFetching: isFetchingCategory,
-    isError: categoryLoadFailed,
-  } = useCategoryMarkets({ enabled: open, locale, selectedCategory })
+  const { data: currentMarkets = [], isError: categoryLoadFailed } = useCategoryMarkets({
+    enabled: open,
+    locale,
+    selectedCategory,
+  })
   const selectedMarket = currentMarkets[0]
   const embedElementName = `${siteSlug}-market-embed`
   const embedIframeTitle = `${siteSlug}-market-iframe`
@@ -456,8 +466,6 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
       console.error(error)
     }
   }
-
-  const isLoadingCategory = isFetchingCategory
 
   const embedBody = (
     <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -572,12 +580,10 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
       <div className="flex h-full flex-col gap-3">
         <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
         <div
-          className="relative flex flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
+          className="relative flex flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent p-0"
           style={{ minHeight: `${iframeHeight}px` }}
         >
-          {isLoadingCategory ? (
-            <p className="text-sm text-muted-foreground">{t('Searching events...')}</p>
-          ) : previewSrc ? (
+          {previewSrc ? (
             <iframe
               title={t('Embed preview')}
               src={previewSrc}

@@ -13,6 +13,33 @@ function escapeAttr(value: string) {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+function buildEmbedThemeStyle(palette: Record<string, string | undefined>, radius: string | null) {
+  function pick(...tokens: string[]) {
+    return tokens.map((token) => palette[token]).find(Boolean)
+  }
+
+  const variables = new Map<string, string | undefined>([
+    ['--kuest-card-background', pick('card', 'background')],
+    ['--kuest-card-border-color', pick('border')],
+    ['--kuest-color-black', pick('card-foreground', 'foreground')],
+    ['--kuest-color-gray-2', pick('secondary-foreground', 'muted-foreground')],
+    ['--kuest-color-gray-3', pick('muted-foreground')],
+    ['--kuest-color-gray-5', pick('muted', 'accent')],
+    ['--kuest-color-gray-6', pick('secondary', 'border')],
+    ['--kuest-color-red', pick('no', 'destructive')],
+    ['--kuest-color-green', pick('yes')],
+    ['--kuest-chart-text-color', pick('muted-foreground')],
+    ['--kuest-chart-grid-color', pick('border')],
+    ['--kuest-chart-crosshair-color', pick('ring')],
+    ['--kuest-chart-line-color', pick('chart-1', 'primary')],
+    ['--kuest-radii-md', radius ?? undefined],
+  ])
+
+  return Array.from(variables.entries())
+    .flatMap(([name, value]) => (value ? [`${name}: ${value}`] : []))
+    .join('; ')
+}
+
 async function resolveInitialCategoryMarketSlug(
   categorySlug: string,
   mainCategorySlug: string,
@@ -56,6 +83,7 @@ export async function GET(request: NextRequest) {
   const shouldRotateCategory = Boolean(categorySlug) && rotateCategory
   const affiliateCode = searchParams.get('r')?.trim() ?? ''
   const theme = searchParams.get('theme') === 'dark' ? 'dark' : 'light'
+  const transparent = searchParams.get('transparent') === 'true'
   const features = new Set(
     (searchParams.get('features') ?? '')
       .split(',')
@@ -78,8 +106,16 @@ export async function GET(request: NextRequest) {
     ? await resolveInitialCategoryMarketSlug(categorySlug, mainCategorySlug, resolvedLocale)
     : ''
   const resolvedMarketSlug = marketSlug || initialCategoryMarketSlug
+  const themePalette = theme === 'dark' ? runtimeTheme.theme.dark : runtimeTheme.theme.light
+  const embedThemeStyle = buildEmbedThemeStyle(themePalette, runtimeTheme.theme.radius)
 
   const attrs: string[] = [`theme="${theme}"`]
+  if (transparent) {
+    attrs.push('transparent')
+  }
+  if (embedThemeStyle) {
+    attrs.push(`style="${escapeAttr(embedThemeStyle)}"`)
+  }
   if (resolvedMarketSlug) {
     attrs.push(`market="${escapeAttr(resolvedMarketSlug)}"`)
   } else if (eventSlug) {
@@ -167,6 +203,8 @@ export async function GET(request: NextRequest) {
         }
 
         const initialTheme = widget.getAttribute('theme') ?? 'light';
+        const initialTransparent = widget.hasAttribute('transparent');
+        const initialStyle = widget.getAttribute('style') ?? '';
         const initialEvent = widget.getAttribute('event') ?? '';
         const initialVolume = widget.getAttribute('volume') ?? '';
         const initialChart = widget.getAttribute('chart') ?? '';
@@ -179,6 +217,12 @@ export async function GET(request: NextRequest) {
         function mountWidget(marketSlug) {
           const nextWidget = document.createElement(${JSON.stringify(elementName)});
           nextWidget.setAttribute('theme', initialTheme);
+          if (initialTransparent) {
+            nextWidget.setAttribute('transparent', '');
+          }
+          if (initialStyle) {
+            nextWidget.setAttribute('style', initialStyle);
+          }
           if (marketSlug) {
             nextWidget.setAttribute('market', marketSlug);
           }
@@ -225,7 +269,10 @@ export async function GET(request: NextRequest) {
             return
           }
           currentIndex = (index + markets.length) % markets.length;
-          mountWidget(markets[currentIndex]);
+          const nextMarket = markets[currentIndex];
+          if (widget?.getAttribute('market') !== nextMarket) {
+            mountWidget(nextMarket);
+          }
         }
 
         function rotate(step) {

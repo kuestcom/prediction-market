@@ -2,6 +2,7 @@
 
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { EmbedCodeLine } from '@/lib/embed-code'
@@ -226,6 +227,7 @@ function useEmbedCodeBuilders({
       lines.push(attributeLine('\t\t', 'affiliate', affiliateCode))
     }
 
+    lines.push(attributeLine('\t\t', 'transparent', ''))
     lines.push(attributeLine('\t\t', 'theme', theme))
     lines.push(tagSelfCloseLine('\t'))
     lines.push(tagCloseLine('', 'div'))
@@ -236,7 +238,11 @@ function useEmbedCodeBuilders({
   return { features, iframeSrc, previewSrc, iframeCode, webComponentCode, iframeLines, webComponentLines }
 }
 
-function createInitialEditorState(markets: Market[], initialMarketId?: string | null): EditorState {
+function createInitialEditorState(
+  markets: Market[],
+  initialMarketId: string | null | undefined,
+  initialTheme: EmbedTheme,
+): EditorState {
   return {
     copied: false,
     embedType: 'iframe',
@@ -244,7 +250,7 @@ function createInitialEditorState(markets: Market[], initialMarketId?: string | 
     showChart: false,
     showTimeRange: false,
     showVolume: false,
-    theme: 'light',
+    theme: initialTheme,
   }
 }
 
@@ -254,9 +260,12 @@ function EventChartEmbedDialogEditor({
 }: Pick<EventChartEmbedDialogProps, 'markets' | 'initialMarketId'>) {
   const t = useExtracted()
   const site = useSiteIdentity()
+  const { resolvedTheme } = useTheme()
   const { siteUrl } = usePublicRuntimeConfig()
   const user = useUser()
-  const [editorState, setEditorState] = useState(() => createInitialEditorState(markets, initialMarketId))
+  const [editorState, setEditorState] = useState(() =>
+    createInitialEditorState(markets, initialMarketId, resolvedTheme === 'dark' ? 'dark' : 'light'),
+  )
   const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
   const { affiliateSharePercent, builderTakerSharePercent } = useAffiliateSettings(affiliateCode)
   const { copied, embedType, selectedMarketId, showChart, showTimeRange, showVolume, theme } = editorState
@@ -478,7 +487,7 @@ function EventChartEmbedDialogEditor({
       <div className="order-1 flex h-full min-w-0 flex-col gap-3 lg:order-2">
         <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('PREVIEW')}</Label>
         <div
-          className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
+          className="flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-md bg-transparent p-0"
           style={{ minHeight: `${iframeHeight}px` }}
         >
           <iframe

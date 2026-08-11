@@ -1,4 +1,4 @@
-const EMBED_SCRIPT_URL = 'https://unpkg.com/@kuestcom/embeds/dist/index.js'
+const EMBED_SCRIPT_URL = 'https://unpkg.com/@kuestcom/embeds@1.3.12/dist/embeds/market/index.js'
 
 type EmbedTheme = 'light' | 'dark'
 const CUSTOM_ELEMENT_NAME_PATTERN = /^[a-z](?:[a-z0-9-]*[a-z0-9])?$/
@@ -49,6 +49,7 @@ export function buildIframeSrc(
   }
 
   const params = new URLSearchParams({ market: marketSlug, theme })
+  params.set('transparent', 'true')
   if (features.length > 0) {
     params.set('features', features.join(','))
   }
@@ -63,6 +64,7 @@ export function buildPreviewSrc(marketSlug: string, theme: EmbedTheme, features:
   }
 
   const params = new URLSearchParams({ market: marketSlug, theme })
+  params.set('transparent', 'true')
   if (features.length > 0) {
     params.set('features', features.join(','))
   }
@@ -124,6 +126,7 @@ export function buildWebComponentCode(
     lines.push(`\t\taffiliate="${safeAffiliateCode}"`)
   }
 
+  lines.push('\t\ttransparent')
   lines.push(`\t\ttheme="${safeTheme}"`)
   lines.push('\t/>')
   lines.push('</div>')
