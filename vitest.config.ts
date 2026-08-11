@@ -5,11 +5,12 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    silent: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['tests/unit/*.test.{ts,tsx}'],
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      'server-only': path.resolve(__dirname, './tests/empty-module.ts'),
+      '@': path.resolve(import.meta.dirname, './src'),
+      'server-only': path.resolve(import.meta.dirname, './tests/empty-module.ts'),
     },
   },
 })

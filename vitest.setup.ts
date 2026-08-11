@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 
+const jsdomWindow = window as typeof window & {
+  jsdom?: { virtualConsole: { removeAllListeners(): void } }
+}
+
+jsdomWindow.jsdom?.virtualConsole.removeAllListeners()
+
 vi.mock('next/root-params', () => ({
   locale: vi.fn(async () => 'en'),
 }))
