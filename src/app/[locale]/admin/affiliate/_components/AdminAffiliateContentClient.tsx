@@ -45,12 +45,9 @@ export default function AdminAffiliateContentClient({
     <section className="grid gap-6">
       <div className="grid gap-4 rounded-lg border p-6">
         <div>
-          <h2 className="text-xl font-semibold">{t({ id: 'affiliateEarningsTitle', message: 'Earnings' })}</h2>
+          <h2 className="text-xl font-semibold">{t('Earnings')}</h2>
           <p className="text-sm text-muted-foreground">
-            {t({
-              id: 'affiliateEarningsSubtitle',
-              message: 'Track your fees, affiliate performance, and claimable balance',
-            })}
+            {t('Track your fees, affiliate performance, and claimable balance')}
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -80,9 +77,7 @@ export default function AdminAffiliateContentClient({
             </div>
           </div>
           <div className="rounded-lg bg-muted/40 p-4">
-            <p className="text-sm text-muted-foreground uppercase">
-              {t({ id: 'affiliateVolume', message: 'Affiliate Volume' })}
-            </p>
+            <p className="text-sm text-muted-foreground uppercase">{t('Affiliate Volume')}</p>
             <p className="mt-1 text-2xl font-semibold">{usdFormatter.format(aggregate.totalVolume)}</p>
           </div>
           <div className="rounded-lg bg-muted/40 p-4">

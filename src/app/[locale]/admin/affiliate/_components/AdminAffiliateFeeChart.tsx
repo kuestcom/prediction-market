@@ -134,11 +134,8 @@ export default function AdminAffiliateFeeChart({
         <h2 className="text-xl font-semibold">{t('Taker fee for 100 shares')}</h2>
         <p className="text-sm text-muted-foreground">
           {audience === 'admin'
-            ? t({ id: 'affiliateFeeCurveSubtitle', message: 'Operator share follows the market fee curve.' })
-            : t({
-                id: 'tradingFeeCurvePublicSubtitle',
-                message: 'Estimated taker fee at each execution price.',
-              })}
+            ? t('Operator share follows the market fee curve.')
+            : t('Estimated taker fee at each execution price.')}
         </p>
       </div>
 
@@ -263,9 +260,7 @@ export default function AdminAffiliateFeeChart({
                   <span className="font-medium">{formatFeeAmount(activeOperatorFee)}</span>
                 </>
               )}
-              <span className="font-semibold">
-                {audience === 'admin' ? t('Total') : t({ id: 'tradingFeeLabel', message: 'Trading fee' })}
-              </span>
+              <span className="font-semibold">{audience === 'admin' ? t('Total') : t('Trading fee')}</span>
               <span className="font-semibold">{formatFeeAmount(activeTotal)}</span>
             </div>
           </div>

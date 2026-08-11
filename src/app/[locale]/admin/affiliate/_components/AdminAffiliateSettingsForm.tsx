@@ -124,9 +124,7 @@ export default function AdminAffiliateSettingsForm({
   const shouldShowDepositWalletButton =
     Boolean(normalizedDepositWallet) && normalizedFeeRecipientWallet !== normalizedDepositWallet
   const feeWalletLabel =
-    DEFAULT_NETWORK_KEY === 'amoy'
-      ? t({ id: 'affiliateFeeWalletAmoy', message: 'Fee Wallet Address (Polygon Amoy)' })
-      : t('Fee Wallet Address (Polygon)')
+    DEFAULT_NETWORK_KEY === 'amoy' ? t('Fee Wallet Address (Polygon Amoy)') : t('Fee Wallet Address (Polygon)')
 
   function handleUseDepositWallet() {
     if (depositWalletAddress) {
@@ -134,17 +132,12 @@ export default function AdminAffiliateSettingsForm({
     }
   }
 
-  const operatorShareLabels = [
-    t({ id: 'affiliateFeeLow', message: 'Lower fees' }),
-    t({ id: 'affiliateFeeRecommended', message: 'Recommended' }),
-    t({ id: 'affiliateFeeParity', message: 'Polymarket parity' }),
-    t({ id: 'affiliateFeeAbove', message: 'Aggressive' }),
-  ]
+  const operatorShareLabels = [t('Lower fees'), t('Recommended'), t('Polymarket parity'), t('Aggressive')]
   const operatorShareDescriptions = [
-    t({ id: 'affiliateFeeLowDescription', message: 'More volume, less profit per trade' }),
-    t({ id: 'affiliateFeeRecommendedDescription', message: 'Balanced volume and profit' }),
-    t({ id: 'affiliateFeeParityDescription', message: 'Less volume, more profit per trade' }),
-    t({ id: 'affiliateFeeAboveDescription', message: 'Lowest volume, highest profit per trade' }),
+    t('More volume, less profit per trade'),
+    t('Balanced volume and profit'),
+    t('Less volume, more profit per trade'),
+    t('Lowest volume, highest profit per trade'),
   ]
   const activeOperatorShareIndex = OPERATOR_SHARE_STOPS.reduce((nearestIndex, stop, index) => {
     const nearestDistance = Math.abs(OPERATOR_SHARE_STOPS[nearestIndex] - operatorSharePercent)
@@ -262,10 +255,7 @@ export default function AdminAffiliateSettingsForm({
                   {Number(makerFeePercent) > 0 && (
                     <p className="flex items-center gap-1.5 text-xs font-medium text-orange-600 dark:text-orange-400">
                       <AlertTriangleIcon className="size-3.5 shrink-0" aria-hidden />
-                      {t({
-                        id: 'affiliateMakerFeeRecommendation',
-                        message: 'Recommended: 0%. Maker fees may reduce liquidity.',
-                      })}
+                      {t('Recommended: 0%. Maker fees may reduce liquidity.')}
                     </p>
                   )}
                 </PopoverContent>
@@ -353,12 +343,9 @@ export default function AdminAffiliateSettingsForm({
       <Dialog open={showFeeConfirmation} onOpenChange={setShowFeeConfirmation}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t({ id: 'confirmTradingFeeChangeTitle', message: 'Change trading fees?' })}</DialogTitle>
+            <DialogTitle>{t('Change trading fees?')}</DialogTitle>
             <DialogDescription>
-              {t({
-                id: 'confirmTradingFeeChangeDescription',
-                message: 'Fee changes affect future trades and trader trust. Notify your customers before continuing.',
-              })}
+              {t('Fee changes affect future trades and trader trust. Notify your customers before continuing.')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 rounded-md border bg-muted/20 p-3 text-sm">
@@ -378,7 +365,7 @@ export default function AdminAffiliateSettingsForm({
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>{t('Cancel')}</DialogClose>
             <Button type="button" onClick={confirmFeeChange}>
-              {t({ id: 'confirmTradingFeeChangeAction', message: 'Confirm change' })}
+              {t('Confirm change')}
             </Button>
           </DialogFooter>
         </DialogContent>

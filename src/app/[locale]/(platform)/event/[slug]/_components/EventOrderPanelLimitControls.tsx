@@ -419,9 +419,7 @@ export default function EventOrderPanelLimitControls({
               return (
                 <Tooltip key={chip}>
                   <TooltipTrigger render={button} />
-                  <TooltipContent side="bottom">
-                    {t({ id: 'minimumLiquidityReward', message: 'Minimum liquidity reward' })}
-                  </TooltipContent>
+                  <TooltipContent side="bottom">{t('Minimum liquidity reward')}</TooltipContent>
                 </Tooltip>
               )
             })}

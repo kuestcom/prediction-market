@@ -295,9 +295,7 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
 
   return (
     <div className="rounded-lg bg-muted/40 p-4">
-      <p className="text-xs text-muted-foreground uppercase">
-        {t({ id: 'affiliateClaimableEarnings', message: 'Claimable Earnings' })}
-      </p>
+      <p className="text-xs text-muted-foreground uppercase">{t('Claimable Earnings')}</p>
       <div className="mt-1 flex items-center gap-2">
         <p className="text-2xl font-semibold">{claimableValue}</p>
         <Tooltip>

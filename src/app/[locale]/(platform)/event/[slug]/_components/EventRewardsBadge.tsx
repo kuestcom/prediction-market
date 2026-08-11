@@ -76,10 +76,7 @@ export default function EventRewardsBadge({
       >
         <div className="p-4">
           <p className="text-center text-sm leading-5 font-medium text-foreground">
-            {t({
-              id: 'liquidityRewardsIntro',
-              message: 'Earn rewards by placing limit orders near the midpoint.',
-            })}
+            {t('Earn rewards by placing limit orders near the midpoint.')}
           </p>
 
           <div className="mt-4 grid gap-2 text-sm">
