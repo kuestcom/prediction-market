@@ -77,7 +77,6 @@ function buildAffiliateIframeSrc(
   const params = new URLSearchParams({
     category: categorySlug,
     theme,
-    transparent: 'true',
     rotate: 'true',
     locale,
   })
@@ -106,7 +105,6 @@ function buildAffiliatePreviewSrc(
   const params = new URLSearchParams({
     category: categorySlug,
     theme,
-    transparent: 'true',
     rotate: 'true',
     locale,
   })
@@ -335,6 +333,7 @@ function useEmbedCode({
       attributeLine('\t', 'width', '400'),
       attributeLine('\t', 'height', String(iframeHeight)),
       attributeLine('\t', 'frameBorder', '0'),
+      attributeLine('\t', 'style', 'border-radius: 12px; background: transparent'),
       tagSelfCloseLine(''),
     ],
     [embedIframeTitle, iframeSrc, iframeHeight],
@@ -365,7 +364,6 @@ function useEmbedCode({
       lines.push(attributeLine('\t\t', 'affiliate', affiliateCode))
     }
 
-    lines.push(attributeLine('\t\t', 'transparent', ''))
     lines.push(attributeLine('\t\t', 'theme', theme))
     lines.push(tagSelfCloseLine('\t'))
     lines.push(tagCloseLine('', 'div'))
@@ -588,7 +586,7 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
               title={t('Embed preview')}
               src={previewSrc}
               style={{ height: `${iframeHeight}px` }}
-              className="w-100 max-w-full border-0 bg-transparent"
+              className="w-100 max-w-full overflow-hidden rounded-[12px] border-0 bg-transparent"
             />
           ) : (
             <p className="px-4 text-center text-sm text-muted-foreground">

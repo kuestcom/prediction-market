@@ -198,6 +198,7 @@ function useEmbedCodeBuilders({
       attributeLine('\t', 'width', '400'),
       attributeLine('\t', 'height', String(iframeHeight)),
       attributeLine('\t', 'frameBorder', '0'),
+      attributeLine('\t', 'style', 'border-radius: 12px; background: transparent'),
       tagSelfCloseLine(''),
     ]
   }, [embedIframeTitle, iframeSrc, iframeHeight])
@@ -227,7 +228,6 @@ function useEmbedCodeBuilders({
       lines.push(attributeLine('\t\t', 'affiliate', affiliateCode))
     }
 
-    lines.push(attributeLine('\t\t', 'transparent', ''))
     lines.push(attributeLine('\t\t', 'theme', theme))
     lines.push(tagSelfCloseLine('\t'))
     lines.push(tagCloseLine('', 'div'))
@@ -494,7 +494,7 @@ function EventChartEmbedDialogEditor({
             title={t('Embed preview')}
             src={previewSrc}
             style={{ height: `${iframeHeight}px` }}
-            className="w-full max-w-[400px] border-0 bg-transparent"
+            className="w-full max-w-[400px] overflow-hidden rounded-[12px] border-0 bg-transparent"
           />
         </div>
       </div>

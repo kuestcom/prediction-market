@@ -49,7 +49,6 @@ export function buildIframeSrc(
   }
 
   const params = new URLSearchParams({ market: marketSlug, theme })
-  params.set('transparent', 'true')
   if (features.length > 0) {
     params.set('features', features.join(','))
   }
@@ -64,7 +63,6 @@ export function buildPreviewSrc(marketSlug: string, theme: EmbedTheme, features:
   }
 
   const params = new URLSearchParams({ market: marketSlug, theme })
-  params.set('transparent', 'true')
   if (features.length > 0) {
     params.set('features', features.join(','))
   }
@@ -84,6 +82,7 @@ export function buildIframeCode(src: string, height: number, iframeTitle: string
     '\twidth="400"',
     `\theight="${height}"`,
     '\tframeBorder="0"',
+    '\tstyle="border-radius: 12px; background: transparent"',
     '/>',
   ].join('\n')
 }
@@ -126,7 +125,6 @@ export function buildWebComponentCode(
     lines.push(`\t\taffiliate="${safeAffiliateCode}"`)
   }
 
-  lines.push('\t\ttransparent')
   lines.push(`\t\ttheme="${safeTheme}"`)
   lines.push('\t/>')
   lines.push('</div>')
