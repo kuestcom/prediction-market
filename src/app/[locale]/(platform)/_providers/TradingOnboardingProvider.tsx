@@ -32,7 +32,12 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { useDepositWalletPolling } from '@/hooks/useDepositWalletPolling'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { resolveReferralSetupStatus, type ReferralSetupStatus } from '@/lib/affiliate-referral'
+import {
+  resolveReferralExchangeReads,
+  resolveReferralSetupStatus,
+  type ReferralExchangeReadResult,
+  type ReferralSetupStatus,
+} from '@/lib/affiliate-referral'
 import { authClient } from '@/lib/auth-client'
 import { clearCommunityAuth, ensureCommunityToken, parseCommunityError } from '@/lib/community-auth'
 import {
@@ -1340,15 +1345,16 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   ])
 
   const resolveReferralExchanges = useCallback(
-    async (depositWallet: `0x${string}`) => {
+    async (depositWallet: `0x${string}`): Promise<ReferralExchangeReadResult<`0x${string}`>> => {
       const exchanges = [CTF_EXCHANGE_ADDRESS as `0x${string}`, NEG_RISK_CTF_EXCHANGE_ADDRESS as `0x${string}`]
       const results = await Promise.all(
         exchanges.map((exchange) => fetchReferralLocked(exchange, depositWallet, viemRpcUrls)),
       )
-      if (results.includes(null)) {
-        throw new Error(DEFAULT_ERROR_MESSAGE)
+      const resolution = resolveReferralExchangeReads(exchanges, results)
+      if (!resolution.fullyChecked) {
+        console.warn('Failed to read referral status; skipping unknown exchanges until the next approval attempt.')
       }
-      return exchanges.filter((_, index) => results[index] === false)
+      return resolution
     },
     [viemRpcUrls],
   )
@@ -1465,15 +1471,16 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     setTokenApprovalError(null)
 
     try {
-      if (
-        user.referred_by_user_id &&
-        (affiliateMetadata.isLoading ||
-          affiliateMetadata.referrerAddress === ZERO_ADDRESS ||
-          affiliateMetadata.affiliateAddress === ZERO_ADDRESS)
-      ) {
-        throw new Error(DEFAULT_ERROR_MESSAGE)
-      }
-      const referralExchanges = await resolveReferralExchanges(user.deposit_wallet_address as `0x${string}`)
+      const needsReferralSetup = Boolean(user.referred_by_user_id)
+      const hasAffiliateMetadata =
+        !affiliateMetadata.isLoading &&
+        affiliateMetadata.referrerAddress !== ZERO_ADDRESS &&
+        affiliateMetadata.affiliateAddress !== ZERO_ADDRESS
+      const referralResolution =
+        needsReferralSetup && hasAffiliateMetadata
+          ? await resolveReferralExchanges(user.deposit_wallet_address as `0x${string}`)
+          : { exchangesToConfigure: [], fullyChecked: !needsReferralSetup }
+      const referralSetupComplete = !needsReferralSetup || (hasAffiliateMetadata && referralResolution.fullyChecked)
       const missingApprovalCalls = await resolveMissingApprovalCalls(user.deposit_wallet_address as `0x${string}`)
       const calls = [
         ...missingApprovalCalls,
@@ -1481,7 +1488,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
           referrer: affiliateMetadata.referrerAddress,
           affiliate: affiliateMetadata.affiliateAddress,
           affiliateSharePercent: affiliateMetadata.affiliateSharePercent,
-          exchanges: referralExchanges,
+          exchanges: referralResolution.exchangesToConfigure,
         }),
       ]
       const result =
@@ -1537,11 +1544,12 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
         void refreshSessionUserState()
       }
 
-      if (user.referred_by_user_id && affiliateMetadata.affiliateAddress !== ZERO_ADDRESS) {
-        setReferralSetupStatus('configured')
+      if (needsReferralSetup) {
+        setReferralSetupStatus(referralSetupComplete ? 'configured' : 'required')
       }
 
       if (
+        referralSetupComplete &&
         status.hasDeployedDepositWallet &&
         status.hasTradingAuth &&
         sumsubLoaded &&
