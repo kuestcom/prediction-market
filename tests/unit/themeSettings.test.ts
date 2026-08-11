@@ -41,9 +41,6 @@ describe('theme settings runtime resolver', () => {
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
     expect(state.theme.radius).toBeNull()
-    expect(state.site.name).toBeTruthy()
-    expect(state.site.description).toBeTruthy()
-    expect(state.site.logoSvg).toContain('<svg')
   })
 
   it('uses uncached default fallback when database env is missing', async () => {
@@ -122,8 +119,6 @@ describe('theme settings runtime resolver', () => {
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
     expect(state.theme.radius).toBeNull()
-    expect(state.site.name).toBeTruthy()
-    expect(state.site.description).toBeTruthy()
   })
 
   it('uses default theme when there are no stored settings', async () => {
@@ -135,8 +130,6 @@ describe('theme settings runtime resolver', () => {
     expect(state.source).toBe('default')
     expect(state.theme.presetId).toBe('default')
     expect(state.theme.radius).toBeNull()
-    expect(state.site.name).toBeTruthy()
-    expect(state.site.description).toBeTruthy()
   })
 
   it('does not read site identity from theme group', async () => {

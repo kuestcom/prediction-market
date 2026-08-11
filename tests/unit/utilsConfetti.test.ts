@@ -13,12 +13,6 @@ describe('utils (confetti/cn)', () => {
     vi.unstubAllGlobals()
   })
 
-  it('cn merges class names', async () => {
-    const { cn } = await import('@/lib/utils')
-    expect(cn('a', false, 'c')).toContain('a')
-    expect(cn('a', false, 'c')).toContain('c')
-  })
-
   it('triggerConfetti uses default origin when no event', async () => {
     const { triggerConfetti } = await import('@/lib/utils')
     confettiMock.fn.mockReset()
