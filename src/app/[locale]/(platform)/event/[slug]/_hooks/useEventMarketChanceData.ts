@@ -13,7 +13,7 @@ import {
   computeChanceChanges,
   resolveEventHistoryEndAt,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
-import { resolveDisplayPrice } from '@/lib/market-chance'
+import { buildChanceByMarket, resolveDisplayPrice } from '@/lib/market-chance'
 
 interface UseEventMarketChanceDataParams {
   event: Event
@@ -41,8 +41,9 @@ export function useEventMarketChanceData({
   const marketLastTradesByMarket = includePriceHistory ? yesPriceHistory.latestRawPrices : fallbackLastTradesByMarket
   const marketQuotesByMarket = useEventMarketQuotes(yesMarketTargets, { enabled })
   const displayChanceByMarket = useMemo(() => {
+    const fallbackChanceByMarket = buildChanceByMarket(event.markets)
     const marketIds = new Set([...Object.keys(marketQuotesByMarket), ...Object.keys(marketLastTradesByMarket)])
-    const entries: Array<[string, number]> = []
+    const entries: Array<[string, number]> = Object.entries(fallbackChanceByMarket)
 
     marketIds.forEach((marketId) => {
       const quote = marketQuotesByMarket[marketId]
@@ -60,7 +61,7 @@ export function useEventMarketChanceData({
     })
 
     return Object.fromEntries(entries)
-  }, [marketLastTradesByMarket, marketQuotesByMarket])
+  }, [event.markets, marketLastTradesByMarket, marketQuotesByMarket])
   const chanceChangeByMarket = useMemo(() => {
     if (!includePriceHistory) {
       return {}

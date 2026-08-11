@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 
 import { NextResponse } from 'next/server'
 
-import { fetchResolutionRewardAccountProposals, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
+import { fetchResolutionRewardAccount, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
 import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { UserRepository } from '@/lib/db/queries/user'
 import { isDirectResolutionConfiguration } from '@/lib/direct-resolution'
@@ -37,27 +37,41 @@ export async function GET(request: NextRequest) {
     }
 
     const depositWallet = currentUser?.deposit_wallet_address?.toLowerCase() ?? null
-    const accountProposals = depositWallet ? await fetchResolutionRewardAccountProposals(depositWallet) : []
+    const rewardAccount = depositWallet ? await fetchResolutionRewardAccount(depositWallet) : null
+    const accountProposals = rewardAccount?.rewardProposals ?? []
     const nowSeconds = Math.floor(Date.now() / 1_000)
     const includeResolvedProposals = rewardMarket.status === 'finalized' || Boolean(rewardMarket.resolvedAt)
-    const proposals = [rewardMarket.noProposal, rewardMarket.yesProposal].filter(
-      (proposal): proposal is NonNullable<typeof proposal> =>
-        Boolean(proposal) &&
-        proposal?.status !== 'expired' &&
-        proposal?.status !== 'released' &&
-        (includeResolvedProposals || proposal?.status !== 'resolved') &&
+    function isVisibleProposal<T extends { status: string; withdrawalAvailableAt: string | null }>(
+      proposal: T | null | undefined,
+    ): proposal is T {
+      return Boolean(
+        proposal &&
+        proposal.status !== 'expired' &&
+        proposal.status !== 'released' &&
+        (includeResolvedProposals || proposal.status !== 'resolved') &&
         !(
-          proposal?.status === 'withdrawal_pending' &&
+          proposal.status === 'withdrawal_pending' &&
           proposal.withdrawalAvailableAt &&
           Number(proposal.withdrawalAvailableAt) <= nowSeconds
         ),
-    )
+      )
+    }
+    const proposals = [rewardMarket.noProposal, rewardMarket.yesProposal].filter(isVisibleProposal)
     // One proposal is allowed per Deposit Wallet for the full market lifetime,
     // including after withdrawal or release.
     const indexedCurrentProposal = accountProposals.find(
       (proposal) => proposal.market.id.toLowerCase() === marketId && proposal.wallet.toLowerCase() === depositWallet,
     )
-    const reporters = proposals.map((proposal) => ({
+    // The account and market indexes can settle in different Data API requests. Keep the
+    // signed-in reporter visible when the account index already knows about the proposal.
+    const visibleProposals = [...proposals]
+    if (
+      isVisibleProposal(indexedCurrentProposal) &&
+      !visibleProposals.some((proposal) => proposal.id === indexedCurrentProposal.id)
+    ) {
+      visibleProposals.push(indexedCurrentProposal)
+    }
+    const reporters = visibleProposals.map((proposal) => ({
       seed: proposal.wallet.toLowerCase(),
       wallet: proposal.wallet,
       username: proposal.profile.username,
@@ -67,7 +81,18 @@ export async function GET(request: NextRequest) {
       historyCorrectCount: parseResolutionHistoryCount(proposal.history.correct) ?? 0,
       historyIncorrectCount: parseResolutionHistoryCount(proposal.history.incorrect) ?? 0,
     }))
-    const activeCurrentOutcome = proposals.find((proposal) => proposal.wallet.toLowerCase() === depositWallet)?.side
+    const activeCurrentOutcome = visibleProposals.find(
+      (proposal) => proposal.wallet.toLowerCase() === depositWallet,
+    )?.side
+    const currentHistorySource = indexedCurrentProposal ?? accountProposals[0] ?? null
+    const currentHistoryCorrect =
+      parseResolutionHistoryCount(rewardAccount?.rewardAccountStats?.correct) ??
+      parseResolutionHistoryCount(currentHistorySource?.history.correct) ??
+      0
+    const currentHistoryIncorrect =
+      parseResolutionHistoryCount(rewardAccount?.rewardAccountStats?.incorrect) ??
+      parseResolutionHistoryCount(currentHistorySource?.history.incorrect) ??
+      0
 
     return NextResponse.json({
       marketId,
@@ -77,11 +102,15 @@ export async function GET(request: NextRequest) {
       withdrawalDelay: rewardMarket.withdrawalDelay,
       rewardEnabled: rewardMarket.status === 'active' && BigInt(rewardMarket.bond) > 0n,
       outcomeCounts: {
-        yes: proposals.some((proposal) => proposal.side === 2) ? 1 : 0,
-        no: proposals.some((proposal) => proposal.side === 1) ? 1 : 0,
+        yes: visibleProposals.some((proposal) => proposal.side === 2) ? 1 : 0,
+        no: visibleProposals.some((proposal) => proposal.side === 1) ? 1 : 0,
         unknown: 0,
       },
       reporters,
+      currentReporterHistory: {
+        correctCount: currentHistoryCorrect,
+        incorrectCount: currentHistoryIncorrect,
+      },
       currentOutcome:
         indexedCurrentProposal?.side === 2
           ? 'yes'

@@ -16,13 +16,20 @@ function resolveRedirectTarget(request: Request) {
   return toParam
 }
 
+function createRelativeRedirect(location: string) {
+  return new NextResponse(null, {
+    status: 307,
+    headers: { Location: location },
+  })
+}
+
 export async function GET(request: Request, context: { params: Promise<{ code: string }> }) {
   const { code } = await context.params
   const { data: affiliate } = await AffiliateRepository.getAffiliateByReference(code)
   const redirectTarget = resolveRedirectTarget(request)
 
   if (!affiliate) {
-    return NextResponse.redirect(new URL('/', request.url))
+    return createRelativeRedirect('/')
   }
 
   const cookieValue = JSON.stringify({
@@ -30,7 +37,7 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
     timestamp: Date.now(),
   })
 
-  const response = NextResponse.redirect(new URL(redirectTarget, request.url))
+  const response = createRelativeRedirect(redirectTarget)
   response.cookies.set({
     name: AFFILIATE_COOKIE_NAME,
     value: cookieValue,

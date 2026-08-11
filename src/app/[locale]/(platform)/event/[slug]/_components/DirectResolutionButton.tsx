@@ -117,6 +117,10 @@ interface ResolutionReportSummary {
     historyIncorrectCount: number
   }>
   currentOutcome: DirectResolutionOutcome | null
+  currentReporterHistory?: {
+    correctCount: number
+    incorrectCount: number
+  }
   eligibility: ResolutionReportEligibility
 }
 
@@ -134,9 +138,17 @@ interface ResolutionReportSummaryCache {
   loadedAt: number
 }
 
+interface PendingResolutionReport {
+  savedAt: number
+  outcome: Exclude<DirectResolutionOutcome, 'unknown'>
+  reporter: ResolutionReporter
+}
+
 const WALLET_TRANSACTION_GAS_BUFFER_NUMERATOR = 3n
 const WALLET_TRANSACTION_GAS_BUFFER_DENOMINATOR = 2n
 const RESOLUTION_REPORT_SUMMARY_FRESHNESS_MS = 15_000
+const PENDING_RESOLUTION_REPORT_TTL_MS = 60 * 60 * 1000
+const PENDING_RESOLUTION_REPORT_STORAGE_PREFIX = 'kuest:pending-resolution-report:'
 
 function createEmptyResolutionReportSummary(): ResolutionReportSummary {
   return {
@@ -149,7 +161,65 @@ function createEmptyResolutionReportSummary(): ResolutionReportSummary {
     outcomeCounts: { yes: 0, no: 0, unknown: 0 },
     reporters: [],
     currentOutcome: null,
+    currentReporterHistory: { correctCount: 0, incorrectCount: 0 },
     eligibility: 'unavailable',
+  }
+}
+
+function getPendingResolutionReportStorageKey(scopeKey: string) {
+  return `${PENDING_RESOLUTION_REPORT_STORAGE_PREFIX}${scopeKey}`
+}
+
+function readPendingResolutionReport(scopeKey: string): PendingResolutionReport | null {
+  try {
+    const raw = window.localStorage.getItem(getPendingResolutionReportStorageKey(scopeKey))
+    if (!raw) {
+      return null
+    }
+    const parsed = JSON.parse(raw) as Partial<PendingResolutionReport>
+    if (
+      !Number.isFinite(parsed.savedAt) ||
+      Date.now() - Number(parsed.savedAt) > PENDING_RESOLUTION_REPORT_TTL_MS ||
+      (parsed.outcome !== 'yes' && parsed.outcome !== 'no') ||
+      !parsed.reporter ||
+      typeof parsed.reporter.seed !== 'string' ||
+      parsed.reporter.outcome !== parsed.outcome
+    ) {
+      window.localStorage.removeItem(getPendingResolutionReportStorageKey(scopeKey))
+      return null
+    }
+    return parsed as PendingResolutionReport
+  } catch {
+    return null
+  }
+}
+
+function writePendingResolutionReport(scopeKey: string, pendingReport: PendingResolutionReport) {
+  try {
+    window.localStorage.setItem(getPendingResolutionReportStorageKey(scopeKey), JSON.stringify(pendingReport))
+  } catch {
+    // Persistence is best-effort; the in-memory optimistic state still applies.
+  }
+}
+
+function clearPendingResolutionReport(scopeKey: string) {
+  try {
+    window.localStorage.removeItem(getPendingResolutionReportStorageKey(scopeKey))
+  } catch {
+    // Ignore unavailable browser storage.
+  }
+}
+
+function mergePendingResolutionReport(
+  summary: ResolutionReportSummary,
+  pendingReport: PendingResolutionReport,
+): ResolutionReportSummary {
+  const { outcome, reporter } = pendingReport
+  return {
+    ...summary,
+    currentOutcome: outcome,
+    outcomeCounts: { ...summary.outcomeCounts, [outcome]: 1 },
+    reporters: [...summary.reporters.filter((currentReporter) => currentReporter.outcome !== outcome), reporter],
   }
 }
 
@@ -985,9 +1055,25 @@ export default function DirectResolutionButton({
           if (!response.ok) {
             throw new Error(`Resolution report summary failed with ${response.status}.`)
           }
-          const summary = (await response.json()) as ResolutionReportSummary
+          let summary = (await response.json()) as ResolutionReportSummary
           if (!isCurrentRequest()) {
             return
+          }
+
+          const pendingReport = readPendingResolutionReport(reportSummaryScopeKey)
+          if (pendingReport) {
+            const pendingWallet = pendingReport.reporter.wallet?.toLowerCase()
+            const pendingReporterIndexed = summary.reporters.some((reporter) => {
+              const reporterWallet = reporter.wallet?.toLowerCase() ?? reporter.seed.toLowerCase()
+              return pendingWallet ? reporterWallet === pendingWallet : reporter.seed === pendingReport.reporter.seed
+            })
+            if (summary.currentOutcome && summary.currentOutcome !== pendingReport.outcome) {
+              clearPendingResolutionReport(reportSummaryScopeKey)
+            } else if (pendingReporterIndexed) {
+              clearPendingResolutionReport(reportSummaryScopeKey)
+            } else {
+              summary = mergePendingResolutionReport(summary, pendingReport)
+            }
           }
 
           reportSummaryRef.current = summary
@@ -1071,6 +1157,24 @@ export default function DirectResolutionButton({
         reportSummaryRequestRef.current = null
       }
     }
+  }, [reportSummaryScopeKey])
+  // oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
+
+  // A confirmed proposal may precede Data API indexing. Restore it across refreshes until
+  // the authoritative summary includes the reporter.
+  // oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
+  useEffect(() => {
+    const pendingReport = readPendingResolutionReport(reportSummaryScopeKey)
+    if (!pendingReport) {
+      return
+    }
+
+    setSelectedOutcome(pendingReport.outcome)
+    setReportSummary((current) => {
+      const nextSummary = mergePendingResolutionReport(current, pendingReport)
+      reportSummaryRef.current = nextSummary
+      return nextSummary
+    })
   }, [reportSummaryScopeKey])
   // oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
 
@@ -1175,24 +1279,35 @@ export default function DirectResolutionButton({
       setReviewOpen(false)
       setState('submitted')
       setMessage('')
-      setReportSummary((current) => ({
-        ...current,
-        currentOutcome: selectedOutcome,
-        outcomeCounts: { ...current.outcomeCounts, [selectedOutcome]: 1 },
-        reporters: [
-          ...current.reporters.filter((reporter) => reporter.outcome !== selectedOutcome),
-          {
-            seed: user.deposit_wallet_address!,
-            wallet: user.deposit_wallet_address!,
-            username: user.username,
-            image: user.image ?? '',
-            outcome: selectedOutcome,
-            rewardAmount: '0',
-            historyCorrectCount: 0,
-            historyIncorrectCount: 0,
-          },
-        ],
-      }))
+      setReportSummary((current) => {
+        const optimisticReporter = {
+          seed: user.deposit_wallet_address!,
+          wallet: user.deposit_wallet_address!,
+          username: user.username,
+          image: user.image ?? '',
+          outcome: selectedOutcome,
+          rewardAmount: '0',
+          historyCorrectCount: current.currentReporterHistory?.correctCount ?? 0,
+          historyIncorrectCount: current.currentReporterHistory?.incorrectCount ?? 0,
+        }
+        const nextSummary = {
+          ...current,
+          currentOutcome: selectedOutcome,
+          outcomeCounts: { ...current.outcomeCounts, [selectedOutcome]: 1 },
+          reporters: [
+            ...current.reporters.filter((reporter) => reporter.outcome !== selectedOutcome),
+            optimisticReporter,
+          ],
+        }
+        writePendingResolutionReport(reportSummaryScopeKey, {
+          savedAt: Date.now(),
+          outcome: selectedOutcome,
+          reporter: optimisticReporter,
+        })
+        reportSummaryRef.current = nextSummary
+        reportSummaryCacheRef.current = { scopeKey: reportSummaryScopeKey, loadedAt: Date.now() }
+        return nextSummary
+      })
       toast.success(t('Resolution proposal submitted.'))
     } catch (error) {
       console.error('Could not submit resolution report:', error)

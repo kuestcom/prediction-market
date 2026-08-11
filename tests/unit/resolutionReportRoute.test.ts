@@ -6,13 +6,13 @@ const DEPOSIT_WALLET = '0x2222222222222222222222222222222222222222'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  fetchResolutionRewardAccountProposals: vi.fn(),
+  fetchResolutionRewardAccount: vi.fn(),
   fetchResolutionRewardMarket: vi.fn(),
   getMarketConfiguration: vi.fn(),
 }))
 
 vi.mock('@/lib/data-api/resolution-rewards', () => ({
-  fetchResolutionRewardAccountProposals: mocks.fetchResolutionRewardAccountProposals,
+  fetchResolutionRewardAccount: mocks.fetchResolutionRewardAccount,
   fetchResolutionRewardMarket: mocks.fetchResolutionRewardMarket,
 }))
 
@@ -39,7 +39,11 @@ describe('resolution report route', () => {
       oracle: '0x57827d48Da09ba227aFda89C083b4E35972Aa741',
       metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
     })
-    mocks.fetchResolutionRewardAccountProposals.mockResolvedValue([])
+    mocks.fetchResolutionRewardAccount.mockResolvedValue({
+      rewardAccountStats: null,
+      rewardProposals: [],
+      rewardClaims: [],
+    })
     mocks.fetchResolutionRewardMarket.mockResolvedValue({
       id: MARKET_ID,
       conditionId: 'condition-1',
@@ -136,6 +140,58 @@ describe('resolution report route', () => {
     expect(payload.reporters).toEqual([
       expect.objectContaining({ username: 'winner', outcome: 'yes', rewardAmount: '4000000' }),
     ])
+  })
+
+  it('keeps the current proposal visible while the account and market indexes converge', async () => {
+    const accountProposal = {
+      id: '8',
+      proposalId: '8',
+      market: { id: MARKET_ID },
+      creator: '0x3333333333333333333333333333333333333333',
+      wallet: DEPOSIT_WALLET,
+      side: 1,
+      status: 'active',
+      submittedAt: '2',
+      withdrawalRequestedAt: null,
+      withdrawalAvailableAt: null,
+      correct: null,
+      rewardEligible: true,
+      bondBeneficiary: null,
+      bondAmount: '300000000',
+      rewardAmount: '0',
+      transactionHash: `0x${'2'.repeat(64)}`,
+      profile: { username: 'current-reporter', avatarUrl: 'https://example.test/current.png' },
+      history: { correct: '6', incorrect: '2' },
+    }
+    mocks.fetchResolutionRewardMarket.mockResolvedValueOnce({
+      id: MARKET_ID,
+      conditionId: 'condition-1',
+      bond: '300000000',
+      rewardPool: '4000000',
+      lockDuration: '172800',
+      withdrawalDelay: '86400',
+      status: 'active',
+      noProposal: null,
+      yesProposal: null,
+    })
+    mocks.fetchResolutionRewardAccount.mockResolvedValueOnce({
+      rewardAccountStats: { correct: '7', incorrect: '3' },
+      rewardProposals: [accountProposal],
+      rewardClaims: [],
+    })
+
+    const { GET } = await import('@/app/api/resolution-reports/route')
+    const response = await GET(
+      new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
+    )
+    const payload = await response.json()
+
+    expect(payload.currentOutcome).toBe('no')
+    expect(payload.outcomeCounts).toEqual({ yes: 0, no: 1, unknown: 0 })
+    expect(payload.reporters).toEqual([
+      expect.objectContaining({ username: 'current-reporter', outcome: 'no', historyCorrectCount: 6 }),
+    ])
+    expect(payload.currentReporterHistory).toEqual({ correctCount: 7, incorrectCount: 3 })
   })
 
   it('rejects a reward market that is not mapped to the requested condition', async () => {

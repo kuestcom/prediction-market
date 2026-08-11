@@ -25,17 +25,39 @@ describe('affiliate referral route', () => {
     })
   })
 
-  it('resolves a username while storing the canonical affiliate code', async () => {
+  it('uses a relative redirect while storing the canonical affiliate code', async () => {
     const { GET } = await import('@/app/[locale]/(platform)/r/[code]/route')
-    const response = await GET(new Request('https://kuest.com/r/alice?to=/event/market'), {
+    const response = await GET(new Request('https://0.0.0.0:3000/r/alice?to=/event/market'), {
       params: Promise.resolve({ code: 'alice' }),
     })
 
     expect(mocks.getAffiliateByReference).toHaveBeenCalledWith('alice')
-    expect(response.headers.get('location')).toBe('https://kuest.com/event/market')
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('/event/market')
     expect(JSON.parse(response.cookies.get('platform_affiliate')?.value ?? '{}')).toEqual({
       affiliateCode: 'a1b2c3d4',
       timestamp: expect.any(Number),
     })
+  })
+
+  it('redirects an unknown reference to the same public origin', async () => {
+    mocks.getAffiliateByReference.mockResolvedValueOnce({ data: null, error: null })
+    const { GET } = await import('@/app/[locale]/(platform)/r/[code]/route')
+    const response = await GET(new Request('https://0.0.0.0:3000/r/missing'), {
+      params: Promise.resolve({ code: 'missing' }),
+    })
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('/')
+    expect(response.cookies.get('platform_affiliate')).toBeUndefined()
+  })
+
+  it('does not allow an external redirect target', async () => {
+    const { GET } = await import('@/app/[locale]/(platform)/r/[code]/route')
+    const response = await GET(new Request('https://0.0.0.0:3000/r/alice?to=https://attacker.test'), {
+      params: Promise.resolve({ code: 'alice' }),
+    })
+
+    expect(response.headers.get('location')).toBe('/')
   })
 })

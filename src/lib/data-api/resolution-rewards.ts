@@ -154,11 +154,6 @@ export async function fetchResolutionRewardMarket(marketId: string): Promise<Dat
   return payload.rewardMarket ?? null
 }
 
-export async function fetchResolutionRewardAccountProposals(wallet: string): Promise<DataApiRewardProposal[]> {
-  const account = await fetchResolutionRewardAccount(wallet)
-  return account.rewardProposals
-}
-
 export async function fetchResolutionRewardAccount(
   wallet: string,
   options: { signal?: AbortSignal } = {},

@@ -115,6 +115,7 @@ const event = {
 
 describe('DirectResolutionButton', () => {
   beforeEach(() => {
+    window.localStorage.clear()
     mocks.fetch.mockReset()
     mocks.readContract.mockReset()
     mocks.readWhitelist.mockReset()
@@ -779,6 +780,7 @@ describe('DirectResolutionButton', () => {
             outcomeCounts: { yes: 0, no: 0, unknown: 0 },
             reporters: [],
             currentOutcome: null,
+            currentReporterHistory: { correctCount: 7, incorrectCount: 2 },
             eligibility: 'eligible',
           }),
         })
@@ -786,7 +788,7 @@ describe('DirectResolutionButton', () => {
       return pendingSummary
     })
 
-    render(<DirectResolutionButton market={market} event={event} />)
+    const { unmount } = render(<DirectResolutionButton market={market} event={event} />)
     expect(await screen.findByText('Bond at risk: $300')).toBeInTheDocument()
     expect(screen.getByText('Reward: $4')).toBeInTheDocument()
     expect(
@@ -807,6 +809,15 @@ describe('DirectResolutionButton', () => {
 
     await waitFor(() => expect(mocks.signAndSubmit).toHaveBeenCalledOnce())
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument())
+    expect(screen.getByLabelText('7 Correct')).toBeInTheDocument()
+    expect(screen.getByLabelText('2 Incorrect')).toBeInTheDocument()
+
+    unmount()
+    render(<DirectResolutionButton market={market} event={event} />)
+
+    expect(await screen.findByRole('button', { name: /Yes/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('7 Correct')).toBeInTheDocument()
+    expect(screen.getByLabelText('2 Incorrect')).toBeInTheDocument()
   })
 
   it('does not repeat the rules inline and prompts for acceptance before review', async () => {
