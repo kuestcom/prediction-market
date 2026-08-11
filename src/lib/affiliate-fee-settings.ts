@@ -1,12 +1,12 @@
 export const AFFILIATE_SETTINGS_GROUP = 'affiliate'
 const GENERAL_SETTINGS_GROUP = 'general'
 const FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
-export const BUILDER_TAKER_FEE_BPS_KEY = 'builder_taker_fee_bps'
-export const BUILDER_MAKER_FEE_BPS_KEY = 'builder_maker_fee_bps'
+export const BUILDER_TAKER_FEE_SHARE_BPS_KEY = 'builder_taker_share_bps'
+export const BUILDER_MAKER_FLAT_FEE_BPS_KEY = 'builder_maker_flat_fee_bps'
 export const AFFILIATE_SHARE_BPS_KEY = 'affiliate_share_bps'
 
-const DEFAULT_BUILDER_TAKER_FEE_BPS = 50
-const DEFAULT_BUILDER_MAKER_FEE_BPS = 0
+const DEFAULT_BUILDER_TAKER_SHARE_BPS = 3000
+const DEFAULT_BUILDER_MAKER_FLAT_FEE_BPS = 0
 const DEFAULT_AFFILIATE_SHARE_BPS = 5000
 
 interface SettingsValue {
@@ -17,8 +17,8 @@ interface SettingsValue {
 export type SettingsGroups = Record<string, Record<string, SettingsValue>>
 
 export interface AffiliateFeeSettings {
-  builderTakerFeeBps: number
-  builderMakerFeeBps: number
+  builderTakerFeeShareBps: number
+  builderMakerFlatFeeBps: number
   affiliateShareBps: number
 }
 
@@ -31,13 +31,13 @@ export function getAffiliateFeeSettings(settings?: SettingsGroups | null): Affil
   const affiliateSettings = settings?.[AFFILIATE_SETTINGS_GROUP]
 
   return {
-    builderTakerFeeBps: parseBpsSetting(
-      affiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.value,
-      DEFAULT_BUILDER_TAKER_FEE_BPS,
+    builderTakerFeeShareBps: parseBpsSetting(
+      affiliateSettings?.[BUILDER_TAKER_FEE_SHARE_BPS_KEY]?.value,
+      DEFAULT_BUILDER_TAKER_SHARE_BPS,
     ),
-    builderMakerFeeBps: parseBpsSetting(
-      affiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.value,
-      DEFAULT_BUILDER_MAKER_FEE_BPS,
+    builderMakerFlatFeeBps: parseBpsSetting(
+      affiliateSettings?.[BUILDER_MAKER_FLAT_FEE_BPS_KEY]?.value,
+      DEFAULT_BUILDER_MAKER_FLAT_FEE_BPS,
     ),
     affiliateShareBps: parseBpsSetting(
       affiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.value,
@@ -51,8 +51,8 @@ export function getAffiliateFeeSettingsUpdatedAt(settings?: SettingsGroups | nul
   const generalSettings = settings?.[GENERAL_SETTINGS_GROUP]
   const timestamps = [
     generalSettings?.[FEE_RECIPIENT_WALLET_KEY]?.updated_at,
-    affiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.updated_at,
-    affiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.updated_at,
+    affiliateSettings?.[BUILDER_TAKER_FEE_SHARE_BPS_KEY]?.updated_at,
+    affiliateSettings?.[BUILDER_MAKER_FLAT_FEE_BPS_KEY]?.updated_at,
   ].filter((value): value is string => Boolean(value))
 
   return timestamps.reduce<string | undefined>((latest, timestamp) => {

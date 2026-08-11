@@ -1,19 +1,19 @@
 import { formatPercent } from '@/lib/formatters'
 
 interface AffiliateSettingsResponse {
-  builderTakerFeePercent: number
-  builderMakerFeePercent: number
+  builderTakerSharePercent: number
+  builderMakerFlatFeePercent: number
   affiliateSharePercent: number
   lastUpdated?: string
 }
 
-export interface FormattedAffiliateSettings {
-  builderTakerFeePercent: string
-  builderMakerFeePercent: string
+interface FormattedAffiliateSettings {
+  builderTakerSharePercent: string
+  builderMakerFlatFeePercent: string
   affiliateSharePercent: string
   operatorSharePercent: string
-  builderTakerFeeDecimal: number
-  builderMakerFeeDecimal: number
+  builderTakerShareDecimal: number
+  builderMakerFlatFeeDecimal: number
   affiliateShareDecimal: number
   operatorShareDecimal: number
 }
@@ -47,12 +47,12 @@ export async function fetchAffiliateSettingsFromAPI(): Promise<AffiliateDataResu
     const operatorSharePercent = 100 - apiData.affiliateSharePercent
 
     const formattedData: FormattedAffiliateSettings = {
-      builderTakerFeePercent: formatPercent(apiData.builderTakerFeePercent, { includeSymbol: false }),
-      builderMakerFeePercent: formatPercent(apiData.builderMakerFeePercent, { includeSymbol: false }),
+      builderTakerSharePercent: formatPercent(apiData.builderTakerSharePercent, { includeSymbol: false }),
+      builderMakerFlatFeePercent: formatPercent(apiData.builderMakerFlatFeePercent, { includeSymbol: false }),
       affiliateSharePercent: formatPercent(apiData.affiliateSharePercent, { includeSymbol: false }),
       operatorSharePercent: formatPercent(operatorSharePercent, { includeSymbol: false }),
-      builderTakerFeeDecimal: apiData.builderTakerFeePercent / 100,
-      builderMakerFeeDecimal: apiData.builderMakerFeePercent / 100,
+      builderTakerShareDecimal: apiData.builderTakerSharePercent / 100,
+      builderMakerFlatFeeDecimal: apiData.builderMakerFlatFeePercent / 100,
       affiliateShareDecimal: apiData.affiliateSharePercent / 100,
       operatorShareDecimal: operatorSharePercent / 100,
     }
@@ -78,14 +78,4 @@ export function calculateAffiliateCommission(feeAmount: number, affiliateShareDe
 
 export function calculateOperatorShare(feeAmount: number, operatorShareDecimal: number): number {
   return feeAmount * operatorShareDecimal
-}
-
-export function createTradingFeeRateExample(affiliateSettings: FormattedAffiliateSettings, clobFeeBps: number) {
-  const configuredFeeBps = Math.round(affiliateSettings.builderTakerFeeDecimal * 10_000)
-  const tradingFeeBps = Math.max(0, clobFeeBps) + Math.max(0, configuredFeeBps)
-
-  return {
-    tradingFeeBps,
-    tradingFeePercent: formatPercent(tradingFeeBps / 100, { includeSymbol: false }),
-  }
 }

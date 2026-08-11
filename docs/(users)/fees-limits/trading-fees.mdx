@@ -1,33 +1,87 @@
 ---
 title: Trading Fees
-description: See when fees apply and where to verify the amount
+description: Understand when fees apply and how execution price affects the amount you pay
 ---
 
-Trading fees vary by market and are applied automatically when an order fills. The order
-preview shows the estimated amount before you sign.
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs'
 
-## Current fee rate
+Trading fees depend on the market category, execution price, and filled quantity. The order preview shows the estimated amount before you sign.
 
-Enter an outcome token ID to load the complete rate currently used for that market:
+## Fee structure
 
-<TradingFeeLookup />
+Taker fees follow a curve instead of charging one flat percentage of order value:
 
-The displayed percentage is a rate parameter, not a flat percentage of the order
-notional. The final fee depends on the execution price and filled quantity.
+```text
+estimated taker fee = shares × effective rate × [price × (1 - price)]
+```
 
-## Market and limit orders
+The fee is highest at `50¢` and decreases symmetrically toward `0¢` and `100¢`. Each fill is calculated and rounded separately.
 
-- **Market orders** execute as taker orders and use the market's live fee schedule.
-- **Limit orders** incur the applicable maker or taker fee when each fill occurs.
-- A partially filled order can produce several fee entries, one for each fill.
-- A maker rebate applies only when the site has explicitly configured one.
+## Fee curve
 
-## Affiliate attribution
+This chart uses `100` shares and the fee setting currently active on this site. Hover a line to see the estimated taker fee at each share price.
 
-A valid referral does not change the fee paid by the trader. Eligible commission is
-tracked separately using the site's current affiliate rate.
+<TradingFeeChart />
 
-## Verify a fee
+## Fee tables for 100 shares
 
-Check the order preview before signing and **Portfolio → History** after execution. The
-live values shown by the site take precedence over examples in this guide.
+These examples use the standard site fee setting. The chart above and the order preview reflect the current setting.
+
+<Tabs items={['Crypto', 'Sports / General', 'Finance / Politics']}>
+  <Tab>
+    | Share price | Trade value | Taker fee |
+    | ---: | ---: | ---: |
+    | `1¢` | `$1.00` | `$0.06238` |
+    | `10¢` | `$10.00` | `$0.56700` |
+    | `25¢` | `$25.00` | `$1.18126` |
+    | `50¢` | `$50.00` | `$1.57500` |
+    | `75¢` | `$75.00` | `$1.18126` |
+    | `90¢` | `$90.00` | `$0.56700` |
+    | `99¢` | `$99.00` | `$0.06238` |
+  </Tab>
+
+  <Tab>
+    Sports, Economics, Culture, Weather, and General markets.
+
+    | Share price | Trade value | Taker fee |
+    | ---: | ---: | ---: |
+    | `1¢` | `$1.00` | `$0.04456` |
+    | `10¢` | `$10.00` | `$0.40500` |
+    | `25¢` | `$25.00` | `$0.84375` |
+    | `50¢` | `$50.00` | `$1.12500` |
+    | `75¢` | `$75.00` | `$0.84375` |
+    | `90¢` | `$90.00` | `$0.40500` |
+    | `99¢` | `$99.00` | `$0.04456` |
+
+  </Tab>
+
+  <Tab>
+    Finance, Politics, Mentions, Tech, and Geopolitics markets.
+
+    | Share price | Trade value | Taker fee |
+    | ---: | ---: | ---: |
+    | `1¢` | `$1.00` | `$0.03565` |
+    | `10¢` | `$10.00` | `$0.32400` |
+    | `25¢` | `$25.00` | `$0.67500` |
+    | `50¢` | `$50.00` | `$0.90000` |
+    | `75¢` | `$75.00` | `$0.67500` |
+    | `90¢` | `$90.00` | `$0.32400` |
+    | `99¢` | `$99.00` | `$0.03565` |
+
+  </Tab>
+</Tabs>
+
+## When fees apply
+
+- **Market orders** remove liquidity and pay the taker fee.
+- **Limit orders** pay the taker fee when they execute immediately against existing liquidity.
+- A resting limit order that adds liquidity is treated as a maker order.
+- If an order fills in several trades, its final fee is the sum of the individual fill fees. Unfilled quantity is not charged.
+
+Maker fees are flat rather than curved. The recommended maker fee is `0%`, but this site may enable one. Any applicable maker fee is shown in the order preview.
+
+<Callout type="warning">Maker fees may reduce the return from providing liquidity.</Callout>
+
+## Precision and verification
+
+Fees are rounded to five decimal places. Amounts below `0.00001 USDC` round to zero. Check the order preview before signing and **Portfolio → History** after execution for the final amount.

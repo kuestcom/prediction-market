@@ -23,15 +23,15 @@ export async function GET() {
     ])
     const referrerAddress = getFeeRecipientAddress(settings ?? undefined)
     const affiliateSettings = settings?.affiliate
-    const { builderTakerFeeBps, builderMakerFeeBps } = getAffiliateFeeSettings(settings)
+    const { builderTakerFeeShareBps, builderMakerFlatFeeBps } = getAffiliateFeeSettings(settings)
 
     if (!user) {
       return NextResponse.json({
         referrerAddress,
         affiliateAddress: ZERO_ADDRESS,
         affiliateSharePercent: 0,
-        builderTakerFeeBps,
-        builderMakerFeeBps,
+        builderTakerFeeShareBps,
+        builderMakerFlatFeeBps,
       })
     }
 
@@ -60,8 +60,8 @@ export async function GET() {
       referrerAddress,
       affiliateAddress,
       affiliateSharePercent,
-      builderTakerFeeBps,
-      builderMakerFeeBps,
+      builderTakerFeeShareBps,
+      builderMakerFlatFeeBps,
     })
   } catch (error) {
     unstable_rethrow(error)

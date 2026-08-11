@@ -161,7 +161,7 @@ describe('adminHeaderBalances', () => {
       throw new Error('Expected the claimable fee query to be configured.')
     }
     await expect(claimableQuery.queryFn()).rejects.toThrow('Could not read claimable fees from every exchange.')
-    expect(readContract).toHaveBeenCalledTimes(4)
+    expect(readContract).toHaveBeenCalledTimes(2)
   })
 
   it('keeps the last confirmed claimable balance visible after a refetch error', () => {

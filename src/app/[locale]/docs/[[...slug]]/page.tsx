@@ -19,7 +19,7 @@ import {
 } from '@/app/[locale]/docs/_components/PublicRuntimeServiceUrl'
 import { SecurityReserveBalance } from '@/app/[locale]/docs/_components/SecurityReserveBalance'
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
-import { TradingFeeLookup } from '@/app/[locale]/docs/_components/TradingFeeLookup'
+import { TradingFeeChart } from '@/app/[locale]/docs/_components/TradingFeeChart'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
 import { getEnglishDocsStaticParams } from '@/lib/docs-static-params'
 import { withLocalePrefix } from '@/lib/locale-path'
@@ -35,7 +35,7 @@ function getMDXComponents(components?: MDXComponents): MDXComponents {
     APIPage,
     GammaAPIPage,
     AffiliateShareDisplay,
-    TradingFeeLookup,
+    TradingFeeChart,
     WebSocketPlayground,
     PublicRuntimeServiceUrl,
     PublicRuntimeWebSocketPlayground,

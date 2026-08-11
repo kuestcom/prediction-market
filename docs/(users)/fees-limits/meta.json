@@ -2,5 +2,5 @@
   "title": "Fees & Limits",
   "description": "Understand trading fees, order minimums, and operational limits.",
   "icon": "Coins",
-  "pages": ["trading-fees", "fee-examples", "trading-limits"]
+  "pages": ["trading-fees", "trading-limits"]
 }

@@ -1,14 +1,14 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "CLOB API",
+    "title": "Kuest CLOB API",
     "version": "1.0.0",
-    "description": "Specification for the central limit order book service. Import this file into Paw (RapidAPI Client) to explore and test the available endpoints."
+    "description": "Specification for the Kuest central limit order book service. Import this file into Paw (RapidAPI Client) to explore and test the available endpoints."
   },
   "servers": [
     {
-      "url": "https://clob.kuest.com",
-      "description": "Production"
+      "url": "http://localhost:3000",
+      "description": "Local development"
     }
   ],
   "tags": [
@@ -46,10 +46,98 @@
       "name": "Heartbeats"
     },
     {
+      "name": "Rewards"
+    },
+    {
       "name": "Admin"
     }
   ],
   "paths": {
+    "/": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "operationId": "getHealthCheck",
+        "responses": {
+          "200": {
+            "description": "Service is reachable",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/system/pause": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Pause order intake globally and cancel every open order",
+        "operationId": "adminPauseSystem",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemPauseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "System paused and all live or delayed orders canceled"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/system/resume": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Resume order intake globally",
+        "operationId": "adminResumeSystem",
+        "responses": {
+          "204": {
+            "description": "System unpaused"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/system/status": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Fetch global circuit breaker status",
+        "operationId": "adminSystemStatus",
+        "responses": {
+          "200": {
+            "description": "Current system pause state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/order": {
       "post": {
         "tags": ["Orders"],
@@ -106,13 +194,11 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        },
-        "description": "Creates an order. Markets with seconds_delay greater than 0 or itode enabled delay marketable taker orders before matching. Resting and post-only orders are not delayed."
+        }
       },
       "delete": {
         "tags": ["Orders"],
         "summary": "Cancel an order",
-        "description": "Cancels the unfilled quantity of one authenticated order by order ID.",
         "operationId": "cancelOrder",
         "parameters": [
           {
@@ -162,7 +248,6 @@
       "delete": {
         "tags": ["Orders"],
         "summary": "Cancel all open orders",
-        "description": "Cancels every open order owned by the authenticated account.",
         "operationId": "cancelAllOrders",
         "parameters": [
           {
@@ -202,7 +287,6 @@
       "delete": {
         "tags": ["Orders"],
         "summary": "Cancel open orders for a market or asset",
-        "description": "Cancels authenticated open orders filtered by condition ID, token ID, or both.",
         "operationId": "cancelMarketOrders",
         "parameters": [
           {
@@ -252,7 +336,6 @@
       "post": {
         "tags": ["Orders"],
         "summary": "Create multiple orders",
-        "description": "Validates and submits a batch of signed orders in one request.",
         "operationId": "createOrdersBatch",
         "parameters": [
           {
@@ -331,7 +414,6 @@
       "get": {
         "tags": ["Orders"],
         "summary": "Fetch an order",
-        "description": "Returns one order visible to the authenticated account.",
         "operationId": "getOrder",
         "responses": {
           "200": {
@@ -354,7 +436,6 @@
       "get": {
         "tags": ["Orders"],
         "summary": "List live orders for the authenticated account",
-        "description": "Returns open orders for the authenticated account with optional market and asset filters.",
         "operationId": "listOpenOrders",
         "parameters": [
           {
@@ -430,13 +511,85 @@
             "$ref": "#/components/responses/ErrorResponse"
           }
         }
+      },
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Fetch multiple orders by ID",
+        "operationId": "getOrdersBatch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 500,
+                "items": {
+                  "$ref": "#/components/schemas/OrderLookupRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "207": {
+            "description": "Per-order multi-status results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrderLookupResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/data/volumes": {
+      "post": {
+        "tags": ["Data"],
+        "summary": "Aggregate volume per condition",
+        "operationId": "getConditionVolumes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VolumeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "207": {
+            "description": "Per-condition volume summary (multi-status)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VolumeResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
       }
     },
     "/book": {
       "get": {
         "tags": ["Order Books"],
         "summary": "Get a token order book snapshot",
-        "description": "Returns bids, asks, market identifiers, tick size, and the latest trade for one outcome token.",
         "operationId": "getBook",
         "parameters": [
           {
@@ -470,7 +623,6 @@
       "post": {
         "tags": ["Order Books"],
         "summary": "Fetch multiple order books",
-        "description": "Returns order book snapshots for the token IDs supplied in the request body.",
         "operationId": "fetchOrderBooks",
         "requestBody": {
           "required": true,
@@ -503,46 +655,12 @@
             "$ref": "#/components/responses/ErrorResponse"
           }
         }
-      },
-      "get": {
-        "summary": "Get multiple order books by query",
-        "description": "Returns order book snapshots for token IDs supplied as query parameters.",
-        "tags": ["Market Data"],
-        "parameters": [
-          {
-            "name": "token_ids",
-            "in": "query",
-            "required": true,
-            "description": "Comma-separated token ids",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "additionalProperties": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "operationId": "getOrderBooksByQuery"
       }
     },
     "/price": {
       "get": {
         "tags": ["Pricing"],
         "summary": "Get the best price for a side",
-        "description": "Returns the best executable bid or ask for one outcome token and side.",
         "operationId": "getPrice",
         "parameters": [
           {
@@ -586,7 +704,6 @@
       "get": {
         "tags": ["Pricing"],
         "summary": "Get the bid/ask midpoint",
-        "description": "Returns the average of the best bid and best ask for one outcome token.",
         "operationId": "getMidpoint",
         "parameters": [
           {
@@ -616,11 +733,45 @@
         }
       }
     },
+    "/midpoints": {
+      "post": {
+        "tags": ["Pricing"],
+        "summary": "Get midpoints for many tokens",
+        "operationId": "postMidpoints",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MidpointRequest"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Midpoint prices per token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MidpointsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/prices": {
       "post": {
         "tags": ["Pricing"],
         "summary": "Get best prices for many tokens",
-        "description": "Returns the best executable price for each token and side supplied in the request body.",
         "operationId": "postPrices",
         "requestBody": {
           "required": true,
@@ -652,11 +803,46 @@
         }
       }
     },
+    "/last-trade-price": {
+      "get": {
+        "tags": ["Pricing"],
+        "summary": "Get last trade price",
+        "operationId": "getLastTradePrice",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "description": "Token identifier to inspect.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Most recent trade price for the token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LastTradePriceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/last-trades-prices": {
       "post": {
         "tags": ["Pricing"],
         "summary": "Get last trade prices",
-        "description": "Returns the most recent matched price and side for each requested outcome token.",
         "operationId": "postLastTradesPrices",
         "requestBody": {
           "required": true,
@@ -695,7 +881,6 @@
       "get": {
         "tags": ["Pricing"],
         "summary": "Get historical midpoint prices",
-        "description": "Returns timestamped midpoint history for one market using the requested interval or time range.",
         "operationId": "getPriceHistory",
         "parameters": [
           {
@@ -731,17 +916,17 @@
             "name": "interval",
             "in": "query",
             "required": false,
-            "description": "Preset time window to query. Cannot be used with startTs/endTs.",
+            "description": "Preset time window to query. Cannot be used with startTs/endTs. `all` is accepted as an alias for `max` and uses 12h buckets aligned to 00:00/12:00 UTC.",
             "schema": {
               "type": "string",
-              "enum": ["1m", "5m", "15m", "1h", "6h", "1d", "1w", "max"]
+              "enum": ["1m", "5m", "15m", "1h", "6h", "1d", "1w", "max", "all"]
             }
           },
           {
             "name": "fidelity",
             "in": "query",
             "required": false,
-            "description": "Bucket size in minutes when using explicit timestamps. Auto-calculated when omitted.",
+            "description": "Bucket size in minutes when using explicit timestamps. Auto-calculated when omitted and rounded up to the nearest supported step (1m, 5m, 30m, 3h, 12h).",
             "schema": {
               "type": "integer",
               "format": "int32",
@@ -770,7 +955,6 @@
       "post": {
         "tags": ["Pricing"],
         "summary": "Get historical midpoint prices for many markets",
-        "description": "Returns timestamped midpoint histories for multiple market queries in one request.",
         "operationId": "postBatchPriceHistory",
         "requestBody": {
           "required": true,
@@ -803,7 +987,6 @@
       "post": {
         "tags": ["Pricing"],
         "summary": "Calculate bid/ask spreads",
-        "description": "Returns the best-ask minus best-bid spread for each requested outcome token.",
         "operationId": "calculateSpreads",
         "requestBody": {
           "required": true,
@@ -835,11 +1018,933 @@
         }
       }
     },
+    "/spread": {
+      "get": {
+        "tags": ["Pricing"],
+        "summary": "Get the bid/ask spread",
+        "operationId": "getSpread",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "description": "Token identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spread between best ask and best bid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpreadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Query conditions with aggregated metrics",
+        "operationId": "adminListConditions",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminConditionQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Matching conditions and their metrics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConditionListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions/{condition_id}/pause": {
+      "parameters": [
+        {
+          "name": "condition_id",
+          "in": "path",
+          "required": true,
+          "description": "Condition identifier",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Pause a condition",
+        "operationId": "adminPauseCondition",
+        "responses": {
+          "204": {
+            "description": "Condition paused"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions/{condition_id}/resume": {
+      "parameters": [
+        {
+          "name": "condition_id",
+          "in": "path",
+          "required": true,
+          "description": "Condition identifier",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Resume a condition",
+        "operationId": "adminResumeCondition",
+        "responses": {
+          "204": {
+            "description": "Condition resumed"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/conditions/{condition_id}/clear": {
+      "parameters": [
+        {
+          "name": "condition_id",
+          "in": "path",
+          "required": true,
+          "description": "Condition identifier",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Cancel outstanding orders for a paused condition",
+        "operationId": "adminClearCondition",
+        "responses": {
+          "204": {
+            "description": "Condition cleared"
+          },
+          "409": {
+            "description": "Condition must be paused before it can be cleared.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "List users with wallet and API key metadata",
+        "operationId": "adminListUsers",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "query",
+            "required": false,
+            "description": "Filter by wallet address (case-insensitive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": false,
+            "description": "Filter to the user owning the supplied API key UUID.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "description": "Filter by user role (`fork`, `client`, or `admin`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Filter by user status (`active`, `inactive`, or `banned`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Zero-based page index. Each page returns up to 1,000 users.",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of users per page (1-1000, defaults to 1000).",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 1000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching users and their API keys.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUserSummary"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/users/{user_id}/ban": {
+      "parameters": [
+        {
+          "name": "user_id",
+          "in": "path",
+          "required": true,
+          "description": "User identifier",
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "cascade",
+          "in": "query",
+          "required": false,
+          "description": "Also ban users referred by this user",
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ],
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Ban a user and revoke their API keys",
+        "operationId": "adminBanUser",
+        "responses": {
+          "204": {
+            "description": "User banned"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/rewards/markets/{condition_id}/fee-schedule": {
+      "parameters": [
+        {
+          "name": "condition_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": ["Admin", "Rewards"],
+        "summary": "Read the latest versioned market fee schedule",
+        "operationId": "adminGetMarketFeeSchedule",
+        "responses": {
+          "200": {
+            "description": "Latest configured schedule, including a next-epoch version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMarketFeeSchedule"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Admin", "Rewards"],
+        "summary": "Schedule a market fee configuration for the next UTC epoch",
+        "operationId": "adminSetMarketFeeSchedule",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMarketFeeScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Newly versioned schedule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMarketFeeSchedule"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/rewards/markets/{condition_id}/config": {
+      "parameters": [
+        {
+          "name": "condition_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": ["Admin", "Rewards"],
+        "summary": "Read the latest Liquidity Rewards market configuration",
+        "operationId": "adminGetRewardMarketConfig",
+        "responses": {
+          "200": {
+            "description": "Latest configured reward version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRewardMarketConfig"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Admin", "Rewards"],
+        "summary": "Schedule a Liquidity Rewards configuration for the next UTC epoch",
+        "operationId": "adminSetRewardMarketConfig",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRewardMarketConfigRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Newly versioned reward configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRewardMarketConfig"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/rewards/epochs": {
+      "get": {
+        "tags": ["Admin", "Rewards"],
+        "summary": "List recent reward epochs and payment state",
+        "operationId": "adminListRewardEpochs",
+        "responses": {
+          "200": {
+            "description": "Recent UTC epochs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminRewardEpoch"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/admin/rewards/payout-export": {
+      "get": {
+        "tags": ["Admin", "Rewards"],
+        "summary": "Export per-market reward allocations with a stable cursor",
+        "operationId": "adminExportRewardPayouts",
+        "parameters": [
+          {
+            "name": "epoch_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 500
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed ledger allocations for reconciliation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayoutExportResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/api-key": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Derive or create an API key (L1)",
+        "operationId": "createApiKey",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL1"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestNonce"
+          },
+          {
+            "$ref": "#/components/parameters/XChainId"
+          },
+          {
+            "$ref": "#/components/parameters/KuestReferral"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministic API key trio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Revoke the calling or specified API key (L2)",
+        "operationId": "revokeApiKey",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "apiKey",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "API key to revoke. Defaults to the calling API key."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revocation acknowledgement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthRevokeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/derive-api-key": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Derive an existing API key (L1)",
+        "operationId": "deriveApiKey",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL1"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestNonce"
+          },
+          {
+            "$ref": "#/components/parameters/XChainId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministic API key trio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthApiKeyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "description": "API key not found for the provided address/nonce",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/api-keys": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "List API keys for the wallet (L2)",
+        "operationId": "listApiKeys",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Return key metadata objects instead of bare API key IDs."
+          },
+          {
+            "name": "includeRevoked",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "description": "Include revoked keys when metadata is requested."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API keys for the authenticated address and chain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AuthApiKeyMetadataResponse"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/ban-status/closed-only": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Check closed-only status (L2)",
+        "operationId": "getClosedOnlyStatus",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Closed-only status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosedOnlyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/readonly-api-key": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create a readonly API key (L2)",
+        "operationId": "createReadonlyApiKey",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newly created readonly API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadonlyApiKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Revoke a readonly API key (L2)",
+        "operationId": "deleteReadonlyApiKey",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadonlyDeleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Revocation status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadonlyDeleteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/readonly-api-keys": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "List readonly API keys (L2)",
+        "operationId": "listReadonlyApiKeys",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Readonly API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/auth/validate-readonly-api-key": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Validate a readonly API key",
+        "operationId": "validateReadonlyApiKey",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Wallet address associated with the readonly key."
+          },
+          {
+            "name": "key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Readonly API key to validate."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadonlyValidateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/time": {
       "get": {
         "tags": ["Auth"],
         "summary": "Get server time",
-        "description": "Returns the server Unix timestamp for client clock synchronization.",
         "operationId": "getServerTime",
         "responses": {
           "200": {
@@ -851,6 +1956,263 @@
                 }
               }
             }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/balance-allowance": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get balance and allowance (L2)",
+        "operationId": "getBalanceAllowance",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "asset_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["COLLATERAL", "CONDITIONAL"]
+            },
+            "description": "Asset type to inspect."
+          },
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token identifier when `asset_type=CONDITIONAL`."
+          },
+          {
+            "name": "signature_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Signature type used for conditional asset approvals."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance and allowance payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceAllowanceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/balance-allowance/update": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Refresh balance and allowance (L2)",
+        "operationId": "updateBalanceAllowance",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "asset_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["COLLATERAL", "CONDITIONAL"]
+            },
+            "description": "Asset type to inspect."
+          },
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token identifier when `asset_type=CONDITIONAL`."
+          },
+          {
+            "name": "signature_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Signature type used for conditional asset approvals."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance and allowance payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceAllowanceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/order-scoring": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "Check if an order is scoring (L2)",
+        "operationId": "isOrderScoring",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "order_id",
+            "in": "query",
+            "required": true,
+            "description": "Order identifier to check.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the order is scoring.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderScoringResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/orders-scoring": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "Check if orders are scoring (L2)",
+        "operationId": "areOrdersScoring",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scoring status for each order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrdersScoringResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         }
       }
@@ -859,7 +2221,6 @@
       "get": {
         "tags": ["Markets"],
         "summary": "Get minimum tick size",
-        "description": "Returns the smallest allowed price increment for an outcome token.",
         "operationId": "getTickSize",
         "parameters": [
           {
@@ -895,11 +2256,600 @@
         }
       }
     },
+    "/neg-risk": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get neg risk flag",
+        "operationId": "getNegRisk",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Token identifier to inspect."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Neg risk flag.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegRiskResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/fee-rate": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get fee rate",
+        "operationId": "getFeeRate",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional token identifier to inspect. Omit to fetch the default Kuest fee rate."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fee rate payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeRateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/fee-rate/{token_id}": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get the versioned dynamic fee schedule for a token",
+        "operationId": "getFeeRateByToken",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dynamic fee descriptor and expanded schedule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeRateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/fees/builder-fees/{builder_code}": {
+      "get": {
+        "tags": ["Builder"],
+        "summary": "Get the effective builder taker share and maker flat fee",
+        "operationId": "getBuilderFeePolicy",
+        "parameters": [
+          {
+            "name": "builder_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Effective builder policy. Unregistered builders use the current default taker share.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BuilderFeePolicy"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/markets/current": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "List currently incentivized markets",
+        "operationId": "getCurrentRewardMarkets",
+        "parameters": [
+          {
+            "name": "next_cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sponsored",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active reward configurations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRewardMarkets"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/markets/{condition_id}": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get a market reward configuration",
+        "operationId": "getRewardMarket",
+        "parameters": [
+          {
+            "name": "condition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "next_cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sponsored",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active reward configuration.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRewardMarkets"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/markets/multi": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get several market reward configurations",
+        "operationId": "getMultipleRewardMarkets",
+        "parameters": [
+          {
+            "name": "condition_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated condition identifiers (maximum 500)."
+          },
+          {
+            "name": "next_cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active reward configurations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRewardMarkets"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/user": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get wallet Liquidity Rewards by date (L2)",
+        "operationId": "getUserRewards",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "epoch_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Kuest extension; date takes precedence only when epoch_id is omitted."
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "maker_address",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "next_cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sponsored",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-market reward allocations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedUserRewards"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/user/total": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get the wallet total after independent program thresholds (L2)",
+        "operationId": "getUserRewardTotal",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "epoch_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "maker_address",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sponsored",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated Liquidity Reward by collateral asset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserRewardTotal"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/user/percentages": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get latest normalized wallet percentages (L2)",
+        "operationId": "getUserRewardPercentages",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "maker_address",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest percentage by condition.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rewards/user/markets": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get wallet reward totals by market (L2)",
+        "operationId": "getUserRewardMarkets",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "epoch_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "maker_address",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "next_cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sponsored",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reward totals by condition.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedUserRewardMarkets"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rebates/current": {
+      "get": {
+        "tags": ["Rewards"],
+        "summary": "Get public maker rebates for one UTC date",
+        "operationId": "getCurrentMakerRebate",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "maker_address",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daily maker rebate and payment state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MakerRebate"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/markets": {
       "get": {
         "tags": ["Markets"],
         "summary": "List markets",
-        "description": "Returns CLOB markets using cursor-based pagination.",
         "operationId": "listMarkets",
         "parameters": [
           {
@@ -918,7 +2868,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SamplingMarketListResponse"
+                  "$ref": "#/components/schemas/MarketListResponse"
                 }
               }
             }
@@ -933,7 +2883,6 @@
       "get": {
         "tags": ["Markets"],
         "summary": "Get market details",
-        "description": "Returns the CLOB market identified by its condition ID.",
         "operationId": "getMarket",
         "parameters": [
           {
@@ -969,11 +2918,46 @@
         }
       }
     },
+    "/markets-by-token/{token_id}": {
+      "get": {
+        "tags": ["Markets"],
+        "summary": "Get market by token id",
+        "operationId": "getMarketByTokenId",
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "description": "Token identifier.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Parent market identifiers for the token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketByTokenResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/sampling-markets": {
       "get": {
         "tags": ["Markets"],
         "summary": "List sampling markets",
-        "description": "Returns paginated sampling-market records with their token and trading configuration.",
         "operationId": "listSamplingMarkets",
         "parameters": [
           {
@@ -992,7 +2976,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarketListResponse"
+                  "$ref": "#/components/schemas/SamplingMarketListResponse"
                 }
               }
             }
@@ -1007,7 +2991,6 @@
       "get": {
         "tags": ["Markets"],
         "summary": "List simplified markets",
-        "description": "Returns a compact paginated representation of CLOB markets.",
         "operationId": "listSimplifiedMarkets",
         "parameters": [
           {
@@ -1041,7 +3024,6 @@
       "get": {
         "tags": ["Markets"],
         "summary": "List sampling simplified markets",
-        "description": "Returns compact sampling-market records using cursor-based pagination.",
         "operationId": "listSamplingSimplifiedMarkets",
         "parameters": [
           {
@@ -1075,7 +3057,6 @@
       "get": {
         "tags": ["Trades"],
         "summary": "List trades for the authenticated account",
-        "description": "Returns authenticated trade records with optional market, asset, and pagination filters.",
         "operationId": "listTrades",
         "parameters": [
           {
@@ -1179,10 +3160,107 @@
         }
       }
     },
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "List notifications",
+        "operationId": "listNotifications",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "signature_type",
+            "in": "query",
+            "required": false,
+            "description": "Signature type used by the caller.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Notifications"],
+        "summary": "Drop notifications",
+        "operationId": "dropNotifications",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated notification identifiers.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Drop result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DropNotificationsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
     "/v1/heartbeats": {
       "post": {
         "tags": ["Heartbeats"],
-        "summary": "Send heartbeat",
+        "summary": "Post a heartbeat",
         "operationId": "postHeartbeat",
         "parameters": [
           {
@@ -1225,47 +3303,6 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        },
-        "description": "Keeps your L2 API key heartbeat alive. Send at least every 10 seconds and leave room for retries. If it expires, open orders for that key may be canceled automatically."
-      }
-    },
-    "/heartbeats": {
-      "post": {
-        "tags": ["Heartbeats"],
-        "summary": "Send heartbeat",
-        "description": "Records a heartbeat and returns an ok status. Send at least every 10 seconds and leave room for retries.",
-        "operationId": "postHeartbeatStatus",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/KuestAddress"
-          },
-          {
-            "$ref": "#/components/parameters/KuestApiKey"
-          },
-          {
-            "$ref": "#/components/parameters/KuestPassphrase"
-          },
-          {
-            "$ref": "#/components/parameters/KuestTimestamp"
-          },
-          {
-            "$ref": "#/components/parameters/KuestSignatureL2"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Heartbeat accepted.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HeartbeatStatusResponse"
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
         }
       }
     },
@@ -1273,7 +3310,6 @@
       "get": {
         "tags": ["Builder"],
         "summary": "List builder trades",
-        "description": "Returns trades attributed to the authenticated builder with optional filters and pagination.",
         "operationId": "listBuilderTrades",
         "parameters": [
           {
@@ -1346,29 +3382,27 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "oneOf": [
-                    {
+                  "type": "object",
+                  "required": ["data", "next_cursor", "limit", "count"],
+                  "properties": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Trade"
                       }
                     },
-                    {
-                      "type": "object",
-                      "required": ["data", "next_cursor"],
-                      "properties": {
-                        "data": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/Trade"
-                          }
-                        },
-                        "next_cursor": {
-                          "type": "string"
-                        }
-                      }
+                    "next_cursor": {
+                      "type": "string"
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Page size used for the query."
+                    },
+                    "count": {
+                      "type": "integer",
+                      "description": "Number of items returned in this page."
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -1379,69 +3413,45 @@
         }
       }
     },
-    "/last-trade-price": {
-      "get": {
-        "tags": ["Pricing"],
-        "summary": "Get last trade price",
-        "description": "Returns the most recent matched price and side for one outcome token.",
-        "operationId": "getLastTradePrice",
+    "/rfq/request": {
+      "post": {
+        "tags": ["RFQ"],
+        "summary": "Create an RFQ request",
+        "operationId": "createRfqRequest",
         "parameters": [
           {
-            "name": "token_id",
-            "in": "query",
-            "required": true,
-            "description": "Token identifier to inspect.",
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Most recent trade price for the token.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LastTradePriceResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "$ref": "#/components/responses/ErrorResponse"
-          },
-          "default": {
-            "$ref": "#/components/responses/ErrorResponse"
-          }
-        }
-      }
-    },
-    "/midpoints": {
-      "post": {
-        "tags": ["Pricing"],
-        "summary": "Get midpoints for many tokens",
-        "description": "Returns the bid/ask midpoint for each outcome token supplied in the request body.",
-        "operationId": "postMidpoints",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/MidpointRequest"
-                }
+                "$ref": "#/components/schemas/RfqCreateRequestInput"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Midpoint prices per token.",
+            "description": "Request created.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MidpointsResponse"
+                  "$ref": "#/components/schemas/RfqIdResponse"
                 }
               }
             }
@@ -1450,32 +3460,45 @@
             "$ref": "#/components/responses/ErrorResponse"
           }
         }
-      }
-    },
-    "/spread": {
-      "get": {
-        "tags": ["Pricing"],
-        "summary": "Get the bid/ask spread",
-        "description": "Returns the difference between the best ask and best bid for one outcome token.",
-        "operationId": "getSpread",
+      },
+      "delete": {
+        "tags": ["RFQ"],
+        "summary": "Cancel an RFQ request",
+        "operationId": "cancelRfqRequest",
         "parameters": [
           {
-            "name": "token_id",
-            "in": "query",
-            "required": true,
-            "description": "Token identifier.",
-            "schema": {
-              "type": "string"
-            }
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqCancelRequestInput"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Spread between best ask and best bid.",
+            "description": "Cancellation result.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SpreadResponse"
+                  "$ref": "#/components/schemas/OkResponse"
                 }
               }
             }
@@ -1486,12 +3509,11 @@
         }
       }
     },
-    "/order-scoring": {
+    "/rfq/data/requests": {
       "get": {
-        "tags": ["Orders"],
-        "summary": "Check if an order is scoring (L2)",
-        "description": "Returns whether an authenticated order currently qualifies for scoring.",
-        "operationId": "isOrderScoring",
+        "tags": ["RFQ"],
+        "summary": "List RFQ requests",
+        "operationId": "listRfqRequests",
         "parameters": [
           {
             "$ref": "#/components/parameters/KuestAddress"
@@ -1509,10 +3531,122 @@
             "$ref": "#/components/parameters/KuestSignatureL2"
           },
           {
-            "name": "order_id",
+            "name": "requestIds",
             "in": "query",
-            "required": true,
-            "description": "Order identifier to check.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userAddress",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "states",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeUsdcMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeUsdcMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priceMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priceMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -1520,17 +3654,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Whether the order is scoring.",
+            "description": "RFQ requests.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrderScoringResponse"
+                  "$ref": "#/components/schemas/RfqRequestPage"
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/ErrorResponse"
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
@@ -1538,194 +3669,452 @@
         }
       }
     },
-    "/neg-risk": {
-      "get": {
-        "summary": "Get negative risk flag",
-        "description": "Returns whether the requested outcome token belongs to a negative-risk market.",
-        "tags": ["Market Data"],
+    "/rfq/quote": {
+      "post": {
+        "tags": ["RFQ"],
+        "summary": "Create an RFQ quote",
+        "operationId": "createRfqQuote",
         "parameters": [
           {
-            "name": "token_id",
-            "in": "query",
-            "required": true,
-            "description": "Token id / asset id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NegRisk"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/neg-risk/{token_id}": {
-      "get": {
-        "summary": "Get negative risk flag by token id",
-        "description": "Returns the negative-risk flag using the outcome token ID from the path.",
-        "tags": ["Market Data"],
-        "parameters": [
-          {
-            "name": "token_id",
-            "in": "path",
-            "required": true,
-            "description": "Token id / asset id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NegRisk"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/fee-rate": {
-      "get": {
-        "summary": "Get fee rate",
-        "description": "Returns the base CLOB fee rate for the requested outcome token.",
-        "tags": ["Market Data"],
-        "parameters": [
-          {
-            "name": "token_id",
-            "in": "query",
-            "required": true,
-            "description": "Token id / asset id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeeRate"
-                }
-              }
-            }
-          }
-        },
-        "operationId": "getFeeRate"
-      }
-    },
-    "/fee-rate/{token_id}": {
-      "get": {
-        "summary": "Get fee rate by token id",
-        "description": "Returns the base CLOB fee rate using the outcome token ID from the path.",
-        "tags": ["Market Data"],
-        "parameters": [
-          {
-            "name": "token_id",
-            "in": "path",
-            "required": true,
-            "description": "Token id / asset id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeeRate"
-                }
-              }
-            }
-          }
-        },
-        "operationId": "getFeeRateByTokenId"
-      }
-    },
-    "/clob-markets/{condition_id}": {
-      "get": {
-        "summary": "Get CLOB market info",
-        "tags": ["Markets"],
-        "parameters": [
-          {
-            "name": "condition_id",
-            "in": "path",
-            "required": true,
-            "description": "Condition id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClobMarketInfo"
-                }
-              }
-            }
-          }
-        },
-        "operationId": "getClobMarketInfo",
-        "description": "Returns compact CLOB market settings used by trading clients before placing orders."
-      }
-    },
-    "/markets-by-token/{token_id}": {
-      "get": {
-        "summary": "Get CLOB market by token id",
-        "description": "Resolves an outcome token ID to its parent CLOB market identifiers.",
-        "tags": ["Markets"],
-        "parameters": [
-          {
-            "name": "token_id",
-            "in": "path",
-            "required": true,
-            "description": "Token id / asset id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Parent market identifiers for the token.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MarketByTokenResponse"
-                }
-              }
-            }
+            "$ref": "#/components/parameters/KuestAddress"
           },
-          "404": {
-            "$ref": "#/components/responses/ErrorResponse"
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqCreateQuoteInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quote created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqIdResponse"
+                }
+              }
+            }
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
+        }
+      },
+      "delete": {
+        "tags": ["RFQ"],
+        "summary": "Cancel an RFQ quote",
+        "operationId": "cancelRfqQuote",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqCancelQuoteInput"
+              }
+            }
+          }
         },
-        "operationId": "getMarketByTokenId"
+        "responses": {
+          "200": {
+            "description": "Cancellation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rfq/data/quotes": {
+      "get": {
+        "tags": ["RFQ"],
+        "summary": "List RFQ quotes",
+        "operationId": "listRfqQuotes",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "quoteIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requestIds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userAddress",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "states",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeUsdcMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sizeUsdcMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priceMin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priceMax",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RFQ quotes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqQuotePage"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rfq/data/best-quote": {
+      "get": {
+        "tags": ["RFQ"],
+        "summary": "Get best RFQ quote for a request",
+        "operationId": "getRfqBestQuote",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          },
+          {
+            "name": "requestId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Best matching quote.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqQuote"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rfq/request/accept": {
+      "post": {
+        "tags": ["RFQ"],
+        "summary": "Accept an RFQ quote",
+        "operationId": "acceptRfqQuote",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqOrderPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accept result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rfq/quote/approve": {
+      "post": {
+        "tags": ["RFQ"],
+        "summary": "Approve an RFQ order",
+        "operationId": "approveRfqOrder",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RfqOrderPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approve result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/rfq/config": {
+      "get": {
+        "tags": ["RFQ"],
+        "summary": "Get RFQ configuration",
+        "operationId": "getRfqConfig",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "RFQ configuration payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RfqConfig"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
       }
     }
   },
@@ -1756,7 +4145,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Hex-encoded HMAC-SHA256 signature built from the L2 signing string."
+        "description": "Base64url-encoded HMAC-SHA256 signature built from `timestamp + method + path (+ body)`, where `path` excludes any query string."
       },
       "KuestTimestamp": {
         "name": "KUEST_TIMESTAMP",
@@ -1765,7 +4154,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Unix timestamp in seconds (string) used for freshness checks."
+        "description": "Millisecond epoch timestamp (string) used for freshness checks."
       },
       "KuestNonce": {
         "name": "KUEST_NONCE",
@@ -1775,6 +4164,16 @@
           "type": "string"
         },
         "description": "Unsigned 256-bit nonce value represented as a decimal string."
+      },
+      "XChainId": {
+        "name": "X-Chain-Id",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "description": "EVM chain ID used for the signature domain."
       },
       "KuestApiKey": {
         "name": "KUEST_API_KEY",
@@ -1829,7 +4228,7 @@
           },
           "secret": {
             "type": "string",
-            "description": "Base64 encoded secret used for HMAC L2 signatures."
+            "description": "Base64url-encoded secret used for HMAC L2 signatures."
           },
           "passphrase": {
             "type": "string",
@@ -1844,6 +4243,36 @@
           "revoked": {
             "type": "boolean",
             "description": "Whether the key is now marked as revoked (always true)."
+          }
+        }
+      },
+      "AuthApiKeyMetadataResponse": {
+        "type": "object",
+        "required": ["apiKey", "nonce", "status", "createdAt"],
+        "properties": {
+          "apiKey": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Deterministic UUID v4 identifier for the API key."
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Deterministic nonce used to derive the key."
+          },
+          "status": {
+            "type": "string",
+            "description": "Current key status (`active` or `revoked`)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the key was created or last reactivated."
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp when the key was revoked, if applicable."
           }
         }
       },
@@ -1940,6 +4369,418 @@
           }
         }
       },
+      "FeeRateResponse": {
+        "type": "object",
+        "required": ["base_fee", "fd", "fee_schedule"],
+        "properties": {
+          "base_fee": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Curve rate coefficient in basis points (441 for rate 0.0441)."
+          },
+          "fd": {
+            "$ref": "#/components/schemas/FeeDescriptor"
+          },
+          "fee_schedule": {
+            "$ref": "#/components/schemas/FeeSchedule"
+          }
+        }
+      },
+      "FeeDescriptor": {
+        "type": "object",
+        "required": ["r", "e", "to"],
+        "properties": {
+          "r": {
+            "type": "number",
+            "format": "double"
+          },
+          "e": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "to": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FeeSchedule": {
+        "type": "object",
+        "required": ["rate", "exponent", "takerOnly", "rebateRate", "category", "version", "source"],
+        "properties": {
+          "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "exponent": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "takerOnly": {
+            "type": "boolean"
+          },
+          "rebateRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "category": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "polymarket"]
+          }
+        }
+      },
+      "BuilderFeePolicy": {
+        "type": "object",
+        "required": ["builder_maker_flat_fee_bps", "builder_taker_fee_share_bps"],
+        "properties": {
+          "builder_maker_flat_fee_bps": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Flat maker fee in basis points, initially capped at 100."
+          },
+          "builder_taker_fee_share_bps": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Builder share of the final taker fee. Unregistered builders receive the configured default, initially 3000."
+          }
+        }
+      },
+      "RewardMarket": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "rewards_max_spread",
+          "rewards_min_size",
+          "rewards_config",
+          "sponsored_daily_rate",
+          "sponsors_count",
+          "native_daily_rate",
+          "total_daily_rate",
+          "minimum_order_age",
+          "midpoint_source",
+          "source",
+          "version"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string"
+          },
+          "rewards_max_spread": {
+            "type": "number",
+            "format": "double",
+            "description": "Maximum midpoint distance in cents."
+          },
+          "rewards_min_size": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum shares in human units."
+          },
+          "rewards_config": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewardConfig"
+            }
+          },
+          "sponsored_daily_rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "sponsors_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "native_daily_rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_daily_rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "minimum_order_age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "midpoint_source": {
+            "type": "string",
+            "enum": ["kuest", "polymarket", "kuest_fallback"]
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "polymarket"]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "RewardConfig": {
+        "type": "object",
+        "required": ["id", "asset_address", "start_date", "end_date", "rate_per_day", "total_rewards"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "asset_address": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "rate_per_day": {
+            "type": "number",
+            "format": "double"
+          },
+          "total_rewards": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "PaginatedRewardMarkets": {
+        "type": "object",
+        "required": ["limit", "count", "next_cursor", "data"],
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "next_cursor": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewardMarket"
+            }
+          }
+        }
+      },
+      "UserReward": {
+        "type": "object",
+        "required": ["date", "condition_id", "asset_address", "maker_address", "earnings", "asset_rate", "status"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "condition_id": {
+            "type": "string"
+          },
+          "asset_address": {
+            "type": "string"
+          },
+          "maker_address": {
+            "type": "string"
+          },
+          "earnings": {
+            "type": "number",
+            "format": "double"
+          },
+          "asset_rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["estimated", "closed", "below_minimum", "paid"]
+          },
+          "transaction_hash": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaginatedUserRewards": {
+        "type": "object",
+        "required": ["limit", "count", "next_cursor", "data"],
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "next_cursor": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserReward"
+            }
+          }
+        }
+      },
+      "UserRewardTotal": {
+        "type": "object",
+        "required": ["date", "asset_address", "maker_address", "earnings", "asset_rate", "status"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "asset_address": {
+            "type": "string"
+          },
+          "maker_address": {
+            "type": "string"
+          },
+          "earnings": {
+            "type": "number",
+            "format": "double"
+          },
+          "asset_rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["estimated", "closed", "below_minimum", "paid"]
+          },
+          "transaction_hash": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "UserRewardMarket": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "rewards_max_spread",
+          "rewards_min_size",
+          "rewards_config",
+          "maker_address",
+          "earning_percentage",
+          "earnings"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string"
+          },
+          "rewards_max_spread": {
+            "type": "number",
+            "format": "double"
+          },
+          "rewards_min_size": {
+            "type": "number",
+            "format": "double"
+          },
+          "rewards_config": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewardConfig"
+            }
+          },
+          "maker_address": {
+            "type": "string"
+          },
+          "earning_percentage": {
+            "type": "number",
+            "format": "double"
+          },
+          "earnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserMarketEarning"
+            }
+          }
+        }
+      },
+      "UserMarketEarning": {
+        "type": "object",
+        "required": ["asset_address", "earnings", "asset_rate"],
+        "properties": {
+          "asset_address": {
+            "type": "string"
+          },
+          "earnings": {
+            "type": "number",
+            "format": "double"
+          },
+          "asset_rate": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "PaginatedUserRewardMarkets": {
+        "type": "object",
+        "required": ["limit", "count", "next_cursor", "data"],
+        "properties": {
+          "limit": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "next_cursor": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserRewardMarket"
+            }
+          }
+        }
+      },
+      "MakerRebate": {
+        "type": "object",
+        "required": ["date", "condition_id", "asset_address", "maker_address", "rebated_fees_usdc", "status"],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "condition_id": {
+            "type": "string"
+          },
+          "asset_address": {
+            "type": "string"
+          },
+          "maker_address": {
+            "type": "string"
+          },
+          "rebated_fees_usdc": {
+            "type": "string",
+            "example": "1.250000"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["estimated", "closed", "below_minimum", "paid"]
+          },
+          "transaction_hash": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "Notification": {
         "type": "object",
         "description": "Notification payload (structure varies by type).",
@@ -1964,10 +4805,9 @@
           "heartbeat_id": {
             "type": "string",
             "nullable": true,
-            "description": "Previous heartbeat id returned by this endpoint. Omit it to start a new session."
+            "description": "Heartbeat identifier to continue an existing session."
           }
-        },
-        "description": "Heartbeat session payload."
+        }
       },
       "HeartbeatResponse": {
         "type": "object",
@@ -1975,7 +4815,7 @@
         "properties": {
           "heartbeat_id": {
             "type": "string",
-            "description": "Heartbeat id to reuse on the next call."
+            "description": "Current heartbeat identifier."
           }
         }
       },
@@ -2100,11 +4940,11 @@
           "makerAmount",
           "takerAmount",
           "side",
-          "signatureType",
-          "signature",
           "timestamp",
           "metadata",
-          "builder"
+          "builder",
+          "signatureType",
+          "signature"
         ],
         "properties": {
           "requestId": {
@@ -2135,6 +4975,23 @@
           "takerAmount": {
             "type": "string"
           },
+          "expiration": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Optional offchain GTD expiry; not included in the signed V2 order."
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Millisecond timestamp included in the signed V2 order."
+          },
+          "metadata": {
+            "type": "string",
+            "description": "V2 metadata bytes32."
+          },
+          "builder": {
+            "type": "string",
+            "description": "V2 builder bytes32. Kuest encodes the builder wallet as bytes32."
+          },
           "side": {
             "type": "string",
             "enum": ["BUY", "SELL"]
@@ -2145,23 +5002,12 @@
           },
           "signature": {
             "type": "string"
-          },
-          "timestamp": {
-            "type": "string",
-            "description": "Millisecond timestamp included in the signed order."
-          },
-          "metadata": {
-            "type": "string",
-            "description": "Metadata bytes32."
-          },
-          "builder": {
-            "type": "string",
-            "description": "Builder bytes32. Encodes the builder wallet as bytes32."
           }
         }
       },
       "RfqIdResponse": {
         "type": "object",
+        "minProperties": 1,
         "properties": {
           "requestId": {
             "type": "string",
@@ -2232,6 +5078,10 @@
           "state": {
             "type": "string"
           },
+          "expiry": {
+            "type": "string",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -2297,6 +5147,10 @@
           },
           "state": {
             "type": "string"
+          },
+          "expiry": {
+            "type": "string",
+            "nullable": true
           },
           "createdAt": {
             "type": "string",
@@ -2426,11 +5280,7 @@
           "tags",
           "assets_ids",
           "outcomes",
-          "event",
-          "itode",
-          "taker_order_delay_ms",
-          "order_age_seconds",
-          "blockaid_check_enabled"
+          "event"
         ],
         "properties": {
           "enable_order_book": {
@@ -2504,19 +5354,16 @@
             "nullable": true
           },
           "seconds_delay": {
-            "type": "integer",
-            "description": "Extra market delay in seconds. When greater than 0, marketable orders wait this amount before matching."
+            "type": "integer"
           },
           "fpmm": {
             "type": "string"
           },
           "maker_base_fee": {
-            "type": "integer",
-            "description": "Maker base fee in basis points."
+            "type": "integer"
           },
           "taker_base_fee": {
-            "type": "integer",
-            "description": "Taker base fee in basis points."
+            "type": "integer"
           },
           "notifications_enabled": {
             "type": "boolean"
@@ -2573,22 +5420,6 @@
             "nullable": true,
             "additionalProperties": true,
             "description": "Raw metadata payload when available."
-          },
-          "itode": {
-            "type": "boolean",
-            "description": "Whether the short taker delay is enabled for marketable orders."
-          },
-          "taker_order_delay_ms": {
-            "type": "integer",
-            "description": "Configured taker delay in milliseconds, usually 250 when itode is true and seconds_delay is 0."
-          },
-          "order_age_seconds": {
-            "type": "integer",
-            "description": "Order age setting in seconds exposed to trading clients."
-          },
-          "blockaid_check_enabled": {
-            "type": "boolean",
-            "description": "Whether additional order risk checks are enabled for the market."
           }
         }
       },
@@ -2655,7 +5486,8 @@
             }
           },
           "min_size": {
-            "type": "integer"
+            "type": "number",
+            "format": "double"
           },
           "max_spread": {
             "type": "number"
@@ -2690,11 +5522,7 @@
           "rewards",
           "is_50_50_outcome",
           "tokens",
-          "tags",
-          "itode",
-          "taker_order_delay_ms",
-          "order_age_seconds",
-          "blockaid_check_enabled"
+          "tags"
         ],
         "properties": {
           "enable_order_book": {
@@ -2747,19 +5575,16 @@
             "nullable": true
           },
           "seconds_delay": {
-            "type": "integer",
-            "description": "Extra market delay in seconds. When greater than 0, marketable orders wait this amount before matching."
+            "type": "integer"
           },
           "fpmm": {
             "type": "string"
           },
           "maker_base_fee": {
-            "type": "integer",
-            "description": "Maker base fee in basis points."
+            "type": "integer"
           },
           "taker_base_fee": {
-            "type": "integer",
-            "description": "Taker base fee in basis points."
+            "type": "integer"
           },
           "notifications_enabled": {
             "type": "boolean"
@@ -2796,22 +5621,6 @@
             "items": {
               "type": "string"
             }
-          },
-          "itode": {
-            "type": "boolean",
-            "description": "Whether the short taker delay is enabled for marketable orders."
-          },
-          "taker_order_delay_ms": {
-            "type": "integer",
-            "description": "Configured taker delay in milliseconds, usually 250 when itode is true and seconds_delay is 0."
-          },
-          "order_age_seconds": {
-            "type": "integer",
-            "description": "Order age setting in seconds exposed to trading clients."
-          },
-          "blockaid_check_enabled": {
-            "type": "boolean",
-            "description": "Whether additional order risk checks are enabled for the market."
           }
         }
       },
@@ -2940,6 +5749,24 @@
           }
         }
       },
+      "MarketByTokenResponse": {
+        "type": "object",
+        "required": ["condition_id", "primary_token_id", "secondary_token_id"],
+        "properties": {
+          "condition_id": {
+            "type": "string",
+            "description": "Condition identifier for the parent market."
+          },
+          "primary_token_id": {
+            "type": "string",
+            "description": "First token identifier for the market."
+          },
+          "secondary_token_id": {
+            "type": "string",
+            "description": "Second token identifier for the market."
+          }
+        }
+      },
       "Error": {
         "type": "object",
         "required": ["error"],
@@ -2964,7 +5791,7 @@
           },
           "postOnly": {
             "type": "boolean",
-            "description": "When true, the order must rest on the book.",
+            "description": "When true, the order must rest on the book (GTC/GTD only).",
             "default": false
           },
           "owner": {
@@ -2983,12 +5810,12 @@
           "makerAmount",
           "takerAmount",
           "side",
-          "salt",
-          "signatureType",
-          "signature",
           "timestamp",
           "metadata",
-          "builder"
+          "builder",
+          "salt",
+          "signatureType",
+          "signature"
         ],
         "properties": {
           "tokenId": {
@@ -2998,6 +5825,11 @@
           "conditionId": {
             "type": "string",
             "description": "Condition identifier."
+          },
+          "expiration": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional offchain GTD expiry; not included in the signed V2 order."
           },
           "maker": {
             "type": "string",
@@ -3022,7 +5854,15 @@
           },
           "metadata": {
             "type": "string",
-            "description": "Metadata bytes32."
+            "description": "V2 metadata bytes32."
+          },
+          "builder": {
+            "type": "string",
+            "description": "V2 builder bytes32. Kuest encodes the builder wallet as bytes32."
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "Millisecond timestamp included in the signed V2 order."
           },
           "salt": {
             "type": "string",
@@ -3037,14 +5877,6 @@
           "signature": {
             "type": "string",
             "description": "Signature payload."
-          },
-          "timestamp": {
-            "type": "string",
-            "description": "Millisecond timestamp included in the signed order."
-          },
-          "builder": {
-            "type": "string",
-            "description": "Builder bytes32. Encodes the builder wallet as bytes32."
           }
         }
       },
@@ -3074,9 +5906,32 @@
           },
           "status": {
             "type": "string",
-            "description": "Final placement status, such as matched, live, unmatched, or error. On delayed taker orders, the status is returned after the delay completes."
+            "enum": ["live", "matched", "unmatched", "pending_settlement", "error"],
+            "description": "Placement status. `pending_settlement` means the order matched off-chain and awaits on-chain confirmation."
+          },
+          "orderHash": {
+            "type": "string",
+            "nullable": true,
+            "description": "Canonical EIP-712 order hash. `orderID` remains the internal engine order identifier."
           }
         }
+      },
+      "OrderScoringResponse": {
+        "type": "object",
+        "required": ["scoring"],
+        "properties": {
+          "scoring": {
+            "type": "boolean",
+            "description": "Whether the order is currently scoring."
+          }
+        }
+      },
+      "OrdersScoringResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "description": "Map of order IDs to scoring status."
       },
       "CancelOrderResponse": {
         "type": "object",
@@ -3246,7 +6101,8 @@
           "side",
           "sizeMatched",
           "assetId",
-          "type",
+          "expiration",
+          "order_type",
           "createdAt"
         ],
         "properties": {
@@ -3263,7 +6119,7 @@
           },
           "status": {
             "type": "string",
-            "description": "Current order status (`live`, `matched`, `delayed`, `unmatched`)."
+            "description": "Current order status (`live`, `matched`, `pending_settlement`, `delayed`, `unmatched`)."
           },
           "market": {
             "type": "string",
@@ -3284,7 +6140,7 @@
           "owner": {
             "type": "string",
             "nullable": true,
-            "description": "API key owner when recorded."
+            "description": "API key owner associated with the order when available."
           },
           "price": {
             "type": "string",
@@ -3304,7 +6160,11 @@
             "type": "string",
             "description": "Token identifier."
           },
-          "type": {
+          "expiration": {
+            "type": "string",
+            "description": "Expiration timestamp in seconds (`\"0\"` when not set)."
+          },
+          "order_type": {
             "type": "string",
             "enum": ["FOK", "FAK", "GTC", "GTD"],
             "description": "Time-in-force policy recorded for the order."
@@ -3389,7 +6249,9 @@
             "description": "Executed price between 0 and 1."
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": ["MATCHED", "SUBMITTED", "MINED", "CONFIRMED", "RETRYING", "FAILED"],
+            "description": "Settlement lifecycle status. `CONFIRMED` is returned only after on-chain confirmation."
           },
           "match_time": {
             "type": "string",
@@ -3579,6 +6441,15 @@
           }
         }
       },
+      "MidpointRequest": {
+        "type": "object",
+        "required": ["token_id"],
+        "properties": {
+          "token_id": {
+            "type": "string"
+          }
+        }
+      },
       "PriceHistoryResponse": {
         "type": "object",
         "required": ["history"],
@@ -3714,11 +6585,35 @@
           }
         }
       },
+      "LastTradePriceResponse": {
+        "type": "object",
+        "required": ["price", "side"],
+        "properties": {
+          "price": {
+            "type": "string",
+            "description": "Last traded price formatted as a string."
+          },
+          "side": {
+            "type": "string",
+            "enum": ["BUY", "SELL"],
+            "description": "Side of the most recent aggressor."
+          }
+        }
+      },
       "SpreadRequest": {
         "type": "object",
         "required": ["token_id"],
         "properties": {
           "token_id": {
+            "type": "string"
+          }
+        }
+      },
+      "SpreadResponse": {
+        "type": "object",
+        "required": ["spread"],
+        "properties": {
+          "spread": {
             "type": "string"
           }
         }
@@ -3740,6 +6635,13 @@
           }
         },
         "description": "Best prices per token."
+      },
+      "MidpointsResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Midpoint price per token."
       },
       "SpreadsResponse": {
         "type": "object",
@@ -3809,6 +6711,12 @@
             "type": "string",
             "description": "Condition status (`active`, `paused`, etc.)."
           },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "Optional expiration timestamp (unix seconds)."
+          },
           "token_ids": {
             "type": "array",
             "items": {
@@ -3868,6 +6776,300 @@
             "items": {
               "$ref": "#/components/schemas/AdminConditionSummary"
             }
+          }
+        }
+      },
+      "SetMarketFeeScheduleRequest": {
+        "type": "object",
+        "required": ["category", "rateMillionths", "exponent", "rebateRateBps"],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "rateMillionths": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "exponent": {
+            "type": "integer",
+            "enum": [1]
+          },
+          "takerOnly": {
+            "type": "boolean",
+            "default": true
+          },
+          "rebateRateBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "polymarket"],
+            "default": "local"
+          },
+          "sourcePayload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "AdminMarketFeeSchedule": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "version",
+          "category",
+          "rate_millionths",
+          "exponent",
+          "taker_only",
+          "rebate_rate_bps",
+          "source",
+          "effective_epoch"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "category": {
+            "type": "string"
+          },
+          "rate_millionths": {
+            "type": "integer"
+          },
+          "exponent": {
+            "type": "integer"
+          },
+          "taker_only": {
+            "type": "boolean"
+          },
+          "rebate_rate_bps": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "polymarket"]
+          },
+          "effective_epoch": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expires_epoch": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "SetRewardMarketConfigRequest": {
+        "type": "object",
+        "required": ["rewardsMinSize", "rewardsMaxSpread", "ratePerDay", "midpointSource"],
+        "properties": {
+          "rewardsMinSize": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Micro-shares."
+          },
+          "rewardsMaxSpread": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000,
+            "description": "Distance on the 1e6 price scale."
+          },
+          "minimumOrderAgeSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0
+          },
+          "ratePerDay": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "description": "Six-decimal USDC units."
+          },
+          "midpointSource": {
+            "type": "string",
+            "enum": ["kuest", "polymarket"]
+          },
+          "polymarketTokenMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "polymarket"],
+            "default": "local"
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "AdminRewardMarketConfig": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "version",
+          "rewards_min_size",
+          "rewards_max_spread",
+          "minimum_order_age_seconds",
+          "rate_per_day",
+          "midpoint_source",
+          "source",
+          "active",
+          "effective_epoch"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "rewards_min_size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rewards_max_spread": {
+            "type": "integer"
+          },
+          "minimum_order_age_seconds": {
+            "type": "integer"
+          },
+          "rate_per_day": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "midpoint_source": {
+            "type": "string",
+            "enum": ["kuest", "polymarket"]
+          },
+          "polymarket_token_map": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "enum": ["local", "polymarket"]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "effective_epoch": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expires_epoch": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          }
+        }
+      },
+      "AdminRewardEpoch": {
+        "type": "object",
+        "required": ["epoch_id", "status", "kuest_fees", "maker_rebate_reserved", "liquidity_budget"],
+        "properties": {
+          "epoch_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["calculating", "closed", "paying", "paid", "failed"]
+          },
+          "manifest_hash": {
+            "type": "string",
+            "nullable": true
+          },
+          "kuest_fees": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "maker_rebate_reserved": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "liquidity_budget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "closed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PayoutExportRow": {
+        "type": "object",
+        "required": ["epoch_id", "wallet", "condition_id", "program", "amount", "status"],
+        "properties": {
+          "epoch_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "wallet": {
+            "type": "string"
+          },
+          "condition_id": {
+            "type": "string"
+          },
+          "program": {
+            "type": "string",
+            "enum": ["liquidity_reward", "maker_rebate"]
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["estimated", "closed", "below_minimum", "paid"]
+          },
+          "batch_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "transaction_hash": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PayoutExportResponse": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PayoutExportRow"
+            }
+          },
+          "next_cursor": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -3956,208 +7158,6 @@
             "items": {
               "$ref": "#/components/schemas/AdminKeySummary"
             }
-          }
-        }
-      },
-      "LastTradePriceResponse": {
-        "type": "object",
-        "required": ["price", "side"],
-        "properties": {
-          "price": {
-            "type": "string",
-            "description": "Last traded price formatted as a string."
-          },
-          "side": {
-            "type": "string",
-            "enum": ["BUY", "SELL"],
-            "description": "Side of the most recent aggressor."
-          }
-        }
-      },
-      "MidpointRequest": {
-        "type": "object",
-        "required": ["token_id"],
-        "properties": {
-          "token_id": {
-            "type": "string"
-          }
-        }
-      },
-      "MidpointsResponse": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "string"
-        },
-        "description": "Midpoint price per token."
-      },
-      "SpreadResponse": {
-        "type": "object",
-        "required": ["spread"],
-        "properties": {
-          "spread": {
-            "type": "string"
-          }
-        }
-      },
-      "OrderScoringResponse": {
-        "type": "object",
-        "required": ["scoring"],
-        "properties": {
-          "scoring": {
-            "type": "boolean",
-            "description": "Whether the order is currently scoring."
-          }
-        }
-      },
-      "OrdersScoringResponse": {
-        "type": "object",
-        "additionalProperties": {
-          "type": "boolean"
-        },
-        "description": "Map of order IDs to scoring status."
-      },
-      "NegRisk": {
-        "type": "object",
-        "properties": {
-          "neg_risk": {
-            "type": "boolean"
-          }
-        },
-        "required": ["neg_risk"],
-        "additionalProperties": false
-      },
-      "FeeRate": {
-        "type": "object",
-        "properties": {
-          "base_fee": {
-            "type": "number"
-          }
-        },
-        "required": ["base_fee"],
-        "additionalProperties": false
-      },
-      "ClobMarketToken": {
-        "type": "object",
-        "required": ["t", "o"],
-        "properties": {
-          "t": {
-            "type": "string",
-            "description": "Token id for this outcome."
-          },
-          "o": {
-            "type": "string",
-            "description": "Outcome label."
-          }
-        }
-      },
-      "ClobMarketFeeDetails": {
-        "type": "object",
-        "required": ["r", "e", "to"],
-        "properties": {
-          "r": {
-            "type": "number",
-            "description": "Fee rate as a decimal fraction."
-          },
-          "e": {
-            "type": "integer",
-            "description": "Fee exponent."
-          },
-          "to": {
-            "type": "boolean",
-            "description": "Whether the fee applies to taker orders."
-          }
-        }
-      },
-      "MarketByTokenResponse": {
-        "type": "object",
-        "required": ["condition_id", "primary_token_id", "secondary_token_id"],
-        "properties": {
-          "condition_id": {
-            "type": "string",
-            "description": "Condition id for the parent market."
-          },
-          "primary_token_id": {
-            "type": "string",
-            "description": "First token id for the market."
-          },
-          "secondary_token_id": {
-            "type": "string",
-            "description": "Second token id for the market."
-          }
-        }
-      },
-      "ClobMarketInfo": {
-        "type": "object",
-        "required": ["c", "nr", "t", "mts", "mos", "fd", "mbf", "tbf", "rfqe", "ibce", "oas", "r"],
-        "properties": {
-          "gst": {
-            "type": "string",
-            "nullable": true,
-            "description": "Scheduled start time when available."
-          },
-          "r": {
-            "$ref": "#/components/schemas/SamplingMarketRewards"
-          },
-          "c": {
-            "type": "string",
-            "description": "Condition id."
-          },
-          "nr": {
-            "type": "boolean",
-            "description": "Whether the market is negative risk."
-          },
-          "t": {
-            "type": "array",
-            "description": "Outcome tokens for the market.",
-            "items": {
-              "$ref": "#/components/schemas/ClobMarketToken"
-            }
-          },
-          "mts": {
-            "type": "number",
-            "description": "Minimum tick size."
-          },
-          "mos": {
-            "type": "integer",
-            "description": "Minimum order size."
-          },
-          "fd": {
-            "$ref": "#/components/schemas/ClobMarketFeeDetails"
-          },
-          "mbf": {
-            "type": "integer",
-            "description": "Maker base fee in basis points."
-          },
-          "tbf": {
-            "type": "integer",
-            "description": "Taker base fee in basis points."
-          },
-          "rfqe": {
-            "type": "boolean",
-            "description": "Whether RFQ is enabled."
-          },
-          "itode": {
-            "type": "boolean",
-            "description": "When present and true, marketable taker orders wait briefly, usually around 250 ms, before matching."
-          },
-          "ibce": {
-            "type": "boolean",
-            "description": "Whether additional order risk checks are enabled for the market."
-          },
-          "oas": {
-            "type": "integer",
-            "description": "Order age setting in seconds."
-          }
-        }
-      },
-      "HeartbeatStatusResponse": {
-        "type": "object",
-        "required": ["status"],
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["ok"],
-            "description": "Heartbeat accepted."
           }
         }
       }

@@ -10,8 +10,8 @@ const SYNC_BUILDER_FEES_TIMEOUT_MS = 330_000
 
 export interface SyncBuilderFeesPayload {
   feeRecipientWallet: string
-  builderTakerFeeBps: number
-  builderMakerFeeBps: number
+  builderTakerFeeShareBps: number
+  builderMakerFlatFeeBps: number
 }
 
 function getErrorMessage(payload: unknown) {

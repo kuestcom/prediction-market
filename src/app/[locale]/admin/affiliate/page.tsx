@@ -5,7 +5,11 @@ import { Suspense } from 'react'
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
+import {
+  BUILDER_TAKER_FEE_SHARE_BPS_KEY,
+  getAffiliateFeeSettings,
+  getAffiliateFeeSettingsUpdatedAt,
+} from '@/lib/affiliate-fee-settings'
 import { baseUnitsToNumber, fetchFeeReceiverTotals, sumFeeTotals, sumFeeVolumes } from '@/lib/data-api/fees'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -101,6 +105,7 @@ async function AdminAffiliateContent() {
     AffiliateRepository.listAffiliateOverview(),
   ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
+  const hasSavedBuilderTakerShare = Boolean(allSettings?.affiliate?.[BUILDER_TAKER_FEE_SHARE_BPS_KEY])
   const initialFeeRecipientWallet = getFeeRecipientWalletFormValue(allSettings ?? undefined)
 
   const overview = (overviewData ?? []) as AffiliateOverviewRow[]
@@ -182,10 +187,11 @@ async function AdminAffiliateContent() {
   return (
     <>
       <AdminAffiliateContentClient
-        key={`${initialFeeRecipientWallet}-${affiliateFeeSettings.builderTakerFeeBps}-${affiliateFeeSettings.builderMakerFeeBps}`}
-        builderTakerFeeBps={affiliateFeeSettings.builderTakerFeeBps}
-        builderMakerFeeBps={affiliateFeeSettings.builderMakerFeeBps}
+        key={`${initialFeeRecipientWallet}-${affiliateFeeSettings.builderTakerFeeShareBps}-${affiliateFeeSettings.builderMakerFlatFeeBps}`}
+        builderTakerFeeShareBps={affiliateFeeSettings.builderTakerFeeShareBps}
+        builderMakerFlatFeeBps={affiliateFeeSettings.builderMakerFlatFeeBps}
         affiliateShareBps={affiliateFeeSettings.affiliateShareBps}
+        hasSavedBuilderTakerShare={hasSavedBuilderTakerShare}
         initialFeeRecipientWallet={initialFeeRecipientWallet}
         updatedAtLabel={updatedAtLabel}
         aggregate={aggregate}

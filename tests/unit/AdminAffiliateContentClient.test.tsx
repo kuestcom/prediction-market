@@ -40,9 +40,10 @@ describe('adminAffiliateContentClient', () => {
   it('keeps the claim card bound to the saved wallet until refresh', async () => {
     const user = userEvent.setup()
     const props = {
-      builderTakerFeeBps: 50,
-      builderMakerFeeBps: 0,
+      builderTakerFeeShareBps: 3000,
+      builderMakerFlatFeeBps: 0,
       affiliateShareBps: 1550,
+      hasSavedBuilderTakerShare: true,
       initialFeeRecipientWallet: '0x1111111111111111111111111111111111111111',
       updatedAtLabel: '2026-05-08 20:43:23 UTC',
       aggregate: {

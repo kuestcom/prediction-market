@@ -218,27 +218,27 @@ function useAffiliateFeeSettings(affiliateCode: string) {
       try {
         const result = await fetchAffiliateSettingsFromAPI()
         if (!result.success) {
-          return { affiliateSharePercent: null, builderTakerFeePercent: null }
+          return { affiliateSharePercent: null, builderTakerSharePercent: null }
         }
 
         const shareParsed = Number.parseFloat(result.data.affiliateSharePercent)
-        const feeParsed = Number.parseFloat(result.data.builderTakerFeePercent)
+        const feeParsed = Number.parseFloat(result.data.builderTakerSharePercent)
 
         return {
           affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
-          builderTakerFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
+          builderTakerSharePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
         }
       } catch {
-        return { affiliateSharePercent: null, builderTakerFeePercent: null }
+        return { affiliateSharePercent: null, builderTakerSharePercent: null }
       }
     },
   })
 
   if (!affiliateCode) {
-    return { affiliateSharePercent: null, builderTakerFeePercent: null }
+    return { affiliateSharePercent: null, builderTakerSharePercent: null }
   }
 
-  return feeSettingsQuery.data ?? { affiliateSharePercent: null, builderTakerFeePercent: null }
+  return feeSettingsQuery.data ?? { affiliateSharePercent: null, builderTakerSharePercent: null }
 }
 
 function useCategoryMarkets({
@@ -398,7 +398,7 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
   const { selectedCategory, setSelectedCategoryState } = useEmbedCategorySelection(categories)
   const siteSlug = useSiteSlug(site.name)
   const embedBaseUrl = useMemo(() => normalizeEmbedBaseUrl(siteUrl), [siteUrl])
-  const { affiliateSharePercent, builderTakerFeePercent } = useAffiliateFeeSettings(affiliateCode)
+  const { affiliateSharePercent, builderTakerSharePercent } = useAffiliateFeeSettings(affiliateCode)
   const {
     data: currentMarkets = [],
     isFetching: isFetchingCategory,
@@ -448,7 +448,7 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
       maybeShowAffiliateToast({
         affiliateCode,
         affiliateSharePercent,
-        builderTakerFeePercent,
+        builderTakerSharePercent,
         siteName: site.name,
         context: 'embed',
       })

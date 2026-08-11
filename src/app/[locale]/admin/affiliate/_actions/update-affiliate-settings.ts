@@ -6,8 +6,8 @@ import { z } from 'zod'
 import {
   AFFILIATE_SETTINGS_GROUP,
   AFFILIATE_SHARE_BPS_KEY,
-  BUILDER_MAKER_FEE_BPS_KEY,
-  BUILDER_TAKER_FEE_BPS_KEY,
+  BUILDER_MAKER_FLAT_FEE_BPS_KEY,
+  BUILDER_TAKER_FEE_SHARE_BPS_KEY,
   getAffiliateFeeSettingsUpdatedAt,
 } from '@/lib/affiliate-fee-settings'
 import { syncBuilderFeesForAdmin } from '@/lib/affiliate-fee-sync'
@@ -50,8 +50,11 @@ function requiredPercent(max: number) {
 }
 
 const UpdateForkSettingsSchema = z.object({
-  builder_taker_fee_percent: requiredPercent(1),
-  builder_maker_fee_percent: requiredPercent(1),
+  builder_taker_share_percent: z.preprocess(
+    parseRequiredPercentInput,
+    z.number({ error: 'Invalid input.' }).min(20).max(45),
+  ),
+  builder_maker_flat_fee_percent: requiredPercent(1),
   affiliate_share_percent: requiredPercent(100),
 })
 
@@ -129,8 +132,8 @@ export async function updateForkSettingsAction(
   }
 
   const parsed = UpdateForkSettingsSchema.safeParse({
-    builder_taker_fee_percent: formData.get('builder_taker_fee_percent'),
-    builder_maker_fee_percent: formData.get('builder_maker_fee_percent'),
+    builder_taker_share_percent: formData.get('builder_taker_share_percent'),
+    builder_maker_flat_fee_percent: formData.get('builder_maker_flat_fee_percent'),
     affiliate_share_percent: formData.get('affiliate_share_percent'),
   })
 
@@ -155,8 +158,8 @@ export async function updateForkSettingsAction(
     return { error: 'Fee wallet must match your Deposit Wallet.' }
   }
 
-  const builderTakerFeeBps = Math.round(parsed.data.builder_taker_fee_percent * 100)
-  const builderMakerFeeBps = Math.round(parsed.data.builder_maker_fee_percent * 100)
+  const builderTakerFeeShareBps = Math.round(parsed.data.builder_taker_share_percent * 100)
+  const builderMakerFlatFeeBps = Math.round(parsed.data.builder_maker_flat_fee_percent * 100)
   const affiliateShareBps = Math.round(parsed.data.affiliate_share_percent * 100)
   const currentSettings = await SettingsRepository.getSettings()
   if (currentSettings.error) {
@@ -169,26 +172,32 @@ export async function updateForkSettingsAction(
   const pendingChanges: PendingSettingChange[] = []
 
   if (
-    shouldUpdateAffiliateBpsSetting(currentAffiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.value, builderTakerFeeBps)
+    shouldUpdateAffiliateBpsSetting(
+      currentAffiliateSettings?.[BUILDER_TAKER_FEE_SHARE_BPS_KEY]?.value,
+      builderTakerFeeShareBps,
+    )
   ) {
     pendingChanges.push({
       group: AFFILIATE_SETTINGS_GROUP,
-      key: BUILDER_TAKER_FEE_BPS_KEY,
-      nextValue: builderTakerFeeBps.toString(),
-      previousValue: currentAffiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.value ?? null,
-      previousUpdatedAt: currentAffiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.updated_at ?? null,
+      key: BUILDER_TAKER_FEE_SHARE_BPS_KEY,
+      nextValue: builderTakerFeeShareBps.toString(),
+      previousValue: currentAffiliateSettings?.[BUILDER_TAKER_FEE_SHARE_BPS_KEY]?.value ?? null,
+      previousUpdatedAt: currentAffiliateSettings?.[BUILDER_TAKER_FEE_SHARE_BPS_KEY]?.updated_at ?? null,
     })
   }
 
   if (
-    shouldUpdateAffiliateBpsSetting(currentAffiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.value, builderMakerFeeBps)
+    shouldUpdateAffiliateBpsSetting(
+      currentAffiliateSettings?.[BUILDER_MAKER_FLAT_FEE_BPS_KEY]?.value,
+      builderMakerFlatFeeBps,
+    )
   ) {
     pendingChanges.push({
       group: AFFILIATE_SETTINGS_GROUP,
-      key: BUILDER_MAKER_FEE_BPS_KEY,
-      nextValue: builderMakerFeeBps.toString(),
-      previousValue: currentAffiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.value ?? null,
-      previousUpdatedAt: currentAffiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.updated_at ?? null,
+      key: BUILDER_MAKER_FLAT_FEE_BPS_KEY,
+      nextValue: builderMakerFlatFeeBps.toString(),
+      previousValue: currentAffiliateSettings?.[BUILDER_MAKER_FLAT_FEE_BPS_KEY]?.value ?? null,
+      previousUpdatedAt: currentAffiliateSettings?.[BUILDER_MAKER_FLAT_FEE_BPS_KEY]?.updated_at ?? null,
     })
   }
 
@@ -220,7 +229,7 @@ export async function updateForkSettingsAction(
     (change) =>
       (change.group === GENERAL_SETTINGS_GROUP && change.key === FEE_RECIPIENT_WALLET_KEY) ||
       (change.group === AFFILIATE_SETTINGS_GROUP &&
-        (change.key === BUILDER_TAKER_FEE_BPS_KEY || change.key === BUILDER_MAKER_FEE_BPS_KEY)),
+        (change.key === BUILDER_TAKER_FEE_SHARE_BPS_KEY || change.key === BUILDER_MAKER_FLAT_FEE_BPS_KEY)),
   )
 
   if (!requiresSync) {
@@ -261,8 +270,8 @@ export async function updateForkSettingsAction(
       },
       {
         feeRecipientWallet: depositWallet.value,
-        builderTakerFeeBps,
-        builderMakerFeeBps,
+        builderTakerFeeShareBps,
+        builderMakerFlatFeeBps,
       },
     )
   } catch (error) {

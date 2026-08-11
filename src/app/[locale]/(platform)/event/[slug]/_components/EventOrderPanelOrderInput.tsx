@@ -49,6 +49,8 @@ interface EventOrderPanelOrderInputProps {
     multiplier: number
   }
   totalFee: number | null
+  kuestFee: number | null
+  operatorFee: number | null
   shouldShowResolvedMarketMinimumWarning: boolean
   shouldShowResolvedNoLiquidityWarning: boolean
   showInsufficientSharesWarning: boolean
@@ -103,6 +105,8 @@ export default function EventOrderPanelOrderInput({
   avgBuyPriceCentsValue,
   buyPayoutSummary,
   totalFee,
+  kuestFee,
+  operatorFee,
   shouldShowResolvedMarketMinimumWarning,
   shouldShowResolvedNoLiquidityWarning,
   showInsufficientSharesWarning,
@@ -210,6 +214,8 @@ export default function EventOrderPanelOrderInput({
               buyChangePct={buyPayoutSummary.changePct}
               buyMultiplier={buyPayoutSummary.multiplier}
               totalFee={totalFee}
+              kuestFee={kuestFee}
+              operatorFee={operatorFee}
             />
           </div>
           {shouldShowResolvedMarketMinimumWarning && (

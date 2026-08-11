@@ -94,7 +94,7 @@ import {
   refreshTradingPositionsAfterMutation,
   scheduleOrderBookRefresh,
 } from '@/lib/trading-cache'
-import { calculateKuestUnitFee, calculateMarketFillFees } from '@/lib/trading-fees'
+import { calculateGrossedKuestUnitFee, calculateMarketFillFees } from '@/lib/trading-fees'
 import { cn, triggerConfetti } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -1164,15 +1164,19 @@ export default function EventOrderPanelForm({
   const estimatedMarketBuyFees = calculateMarketFillFees(
     marketBuyFill?.fills ?? [],
     kuestFeeScheduleQuery.data,
-    affiliateMetadata.builderTakerFeeBps,
+    affiliateMetadata.builderTakerFeeShareBps,
   )
   const maxBuyReferencePrice = (bestAskPriceCents ?? currentBuyPriceCents ?? 0) / 100
   const maxBuyAmount =
     maxBuyReferencePrice > 0
       ? availableBalanceForOrders /
         (1 +
-          calculateKuestUnitFee(maxBuyReferencePrice, kuestFeeScheduleQuery.data) / maxBuyReferencePrice +
-          affiliateMetadata.builderTakerFeeBps / 10_000)
+          calculateGrossedKuestUnitFee(
+            maxBuyReferencePrice,
+            kuestFeeScheduleQuery.data,
+            affiliateMetadata.builderTakerFeeShareBps,
+          ) /
+            maxBuyReferencePrice)
       : availableBalanceForOrders
   const buyPayoutSummaryAfterFees = useMemo(() => {
     const cost = buyPayoutSummary.cost + estimatedMarketBuyFees.totalFee
@@ -1211,7 +1215,7 @@ export default function EventOrderPanelForm({
   const estimatedMarketSellFees = calculateMarketFillFees(
     marketSellFill?.fills ?? [],
     kuestFeeScheduleQuery.data,
-    affiliateMetadata.builderTakerFeeBps,
+    affiliateMetadata.builderTakerFeeShareBps,
   )
   const sellAmountLabel = formatDollarValueLabel(Math.max(0, sellAmountValue - estimatedMarketSellFees.totalFee), {
     fallback: '0¢',
@@ -2173,7 +2177,7 @@ export default function EventOrderPanelForm({
                   multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
                   siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
                   kuestBalance={availableBalanceForOrders}
-                  kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
+                  operatorShareBps={affiliateMetadata.builderTakerFeeShareBps}
                   isSubmitting={isArbitrageSubmitting}
                   submissionStep={arbitrageSubmissionStep}
                   onRequireSiteWallet={() => {
@@ -2246,6 +2250,20 @@ export default function EventOrderPanelForm({
                       ? state.side === ORDER_SIDE.SELL
                         ? estimatedMarketSellFees.totalFee
                         : estimatedMarketBuyFees.totalFee
+                      : null
+                  }
+                  kuestFee={
+                    kuestFeeScheduleQuery.data
+                      ? state.side === ORDER_SIDE.SELL
+                        ? estimatedMarketSellFees.kuestFee
+                        : estimatedMarketBuyFees.kuestFee
+                      : null
+                  }
+                  operatorFee={
+                    kuestFeeScheduleQuery.data
+                      ? state.side === ORDER_SIDE.SELL
+                        ? estimatedMarketSellFees.operatorFee
+                        : estimatedMarketBuyFees.operatorFee
                       : null
                   }
                   shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}

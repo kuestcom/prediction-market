@@ -2,7 +2,7 @@ import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { PolymarketTickSize } from '@/lib/polymarket-market'
 import type { DynamicFeeSchedule } from '@/lib/trading-fees'
 
-import { calculateKuestUnitFee } from '@/lib/trading-fees'
+import { calculateGrossedKuestUnitFee } from '@/lib/trading-fees'
 
 interface ArbitrageSegment {
   shares: number
@@ -153,7 +153,7 @@ function buildDirectionQuote({
   kuestBalance,
   polymarketBalance,
   kuestFeeSchedule,
-  operatorFeeBps = 0,
+  operatorShareBps = 0,
   polymarketFeeRate = 0,
   polymarketFeeExponent = 0,
 }: {
@@ -166,7 +166,7 @@ function buildDirectionQuote({
   kuestBalance: number
   polymarketBalance: number
   kuestFeeSchedule?: DynamicFeeSchedule | null
-  operatorFeeBps?: number
+  operatorShareBps?: number
   polymarketFeeRate?: number
   polymarketFeeExponent?: number
 }): ArbitrageQuote | null {
@@ -183,8 +183,7 @@ function buildDirectionQuote({
     const polymarketLevel = polymarketAsks[polymarketIndex]
     const kuestUnitCost = kuestLevel
       ? kuestLevel.priceDollars +
-        calculateKuestUnitFee(kuestLevel.priceDollars, kuestFeeSchedule) +
-        (kuestLevel.priceDollars * Math.max(0, operatorFeeBps)) / 10_000
+        calculateGrossedKuestUnitFee(kuestLevel.priceDollars, kuestFeeSchedule, operatorShareBps)
       : 0
     const polymarketUnitCost = polymarketLevel
       ? calculatePolymarketUnitCost(polymarketLevel.priceDollars, polymarketFeeRate, polymarketFeeExponent)

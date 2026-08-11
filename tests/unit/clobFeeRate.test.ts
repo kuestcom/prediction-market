@@ -13,16 +13,16 @@ describe('fetchKuestFeeRate', () => {
       status: 200,
       text: vi.fn().mockResolvedValue(
         JSON.stringify({
-          base_fee: 700,
-          fd: { r: 0.07, e: 1, to: true },
-          fee_schedule: { rate: 0.07, exponent: 1, takerOnly: true, rebateRate: 0.2 },
+          base_fee: 441,
+          fd: { r: 0.0441, e: 1, to: true },
+          fee_schedule: { rate: 0.0441, exponent: 1, takerOnly: true, rebateRate: 0.2 },
         }),
       ),
     })
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).resolves.toEqual({
-      rate: 0.07,
+      rate: 0.0441,
       exponent: 1,
       takerOnly: true,
       rebateRate: 0.2,

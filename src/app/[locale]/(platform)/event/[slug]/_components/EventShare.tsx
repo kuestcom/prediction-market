@@ -29,26 +29,26 @@ interface EventShareProps {
 
 interface AffiliateToastData {
   affiliateSharePercent: number | null
-  builderTakerFeePercent: number | null
+  builderTakerSharePercent: number | null
 }
 
 function getEmptyAffiliateToastData(): AffiliateToastData {
   return {
     affiliateSharePercent: null,
-    builderTakerFeePercent: null,
+    builderTakerSharePercent: null,
   }
 }
 
 function parseAffiliateToastData(result: {
   affiliateSharePercent: string
-  builderTakerFeePercent: string
+  builderTakerSharePercent: string
 }): AffiliateToastData {
   const shareParsed = Number.parseFloat(result.affiliateSharePercent)
-  const feeParsed = Number.parseFloat(result.builderTakerFeePercent)
+  const feeParsed = Number.parseFloat(result.builderTakerSharePercent)
 
   return {
     affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
-    builderTakerFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
+    builderTakerSharePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
   }
 }
 
@@ -180,7 +180,7 @@ function useAffiliateToastData({ affiliateCode, siteName }: { affiliateCode: str
     maybeShowAffiliateToast({
       affiliateCode,
       affiliateSharePercent: toastData.affiliateSharePercent,
-      builderTakerFeePercent: toastData.builderTakerFeePercent,
+      builderTakerSharePercent: toastData.builderTakerSharePercent,
       siteName,
       context: 'link',
     })

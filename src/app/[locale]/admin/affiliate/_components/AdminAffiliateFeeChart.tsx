@@ -6,14 +6,13 @@ import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 
 import { formatCurrency } from '@/lib/formatters'
+import { calculateFeeBreakdown } from '@/lib/trading-fees'
 import { cn } from '@/lib/utils'
 
 const CHART_WIDTH = 640
 const CHART_HEIGHT = 292
 const PLOT = { top: 22, right: 16, bottom: 36, left: 48 }
 const SHARE_COUNT = 100
-const KUEST_REFERENCE_SHARE = 0.63
-const MAX_OPERATOR_SHARE = 0.45
 
 interface FeeCategory {
   id: string
@@ -25,42 +24,45 @@ interface FeeCategory {
 interface AdminAffiliateFeeChartProps {
   operatorSharePercent: number
   siteName: string
-}
-
-function referenceFee(price: number, rate: number) {
-  return SHARE_COUNT * rate * price * (1 - price)
+  audience?: 'admin' | 'trader'
 }
 
 function feeBreakdown(price: number, rate: number, operatorSharePercent: number) {
-  const kuest = referenceFee(price, rate) * KUEST_REFERENCE_SHARE
-  const operatorShare = Math.min(MAX_OPERATOR_SHARE, Math.max(0, operatorSharePercent / 100))
-  const total = kuest / (1 - operatorShare)
-
-  return { kuest, operator: total - kuest, total }
+  const fee = calculateFeeBreakdown({
+    shares: SHARE_COUNT,
+    price,
+    notional: SHARE_COUNT * price,
+    schedule: { rate, exponent: 1, takerOnly: true, rebateRate: 0 },
+    operatorShareBps: Math.round(operatorSharePercent * 100),
+  })
+  return { kuest: fee.kuestFee, operator: fee.operatorFee, total: fee.totalFee }
 }
 
 function formatFeeAmount(value: number) {
   return formatCurrency(value, { minimumFractionDigits: 2, maximumFractionDigits: 3 })
 }
 
-export default function AdminAffiliateFeeChart({ operatorSharePercent, siteName }: AdminAffiliateFeeChartProps) {
+export default function AdminAffiliateFeeChart({
+  operatorSharePercent,
+  siteName,
+  audience = 'admin',
+}: AdminAffiliateFeeChartProps) {
   const t = useExtracted()
   const categories = useMemo<FeeCategory[]>(
     () => [
-      { id: 'crypto', label: t('Crypto'), rate: 0.07, color: '#0ea5e9' },
+      { id: 'crypto', label: t('Crypto'), rate: 0.0441, color: '#0ea5e9' },
       {
         id: 'general',
-        label: t('Economics / Culture / Weather / General / Sports'),
-        rate: 0.05,
-        color: '#eab308',
+        label: t('Sports / Economics / Culture / Weather / General'),
+        rate: 0.0315,
+        color: '#a855f7',
       },
       {
         id: 'finance',
-        label: t('Finance / Politics / Mentions / Tech'),
-        rate: 0.04,
+        label: t('Finance / Politics / Mentions / Tech / Geopolitics'),
+        rate: 0.0252,
         color: '#f97316',
       },
-      { id: 'geopolitics', label: t('Geopolitics'), rate: 0, color: '#94a3b8' },
     ],
     [t],
   )
@@ -127,11 +129,16 @@ export default function AdminAffiliateFeeChart({ operatorSharePercent, siteName 
   }
 
   return (
-    <div className="grid h-full gap-4 rounded-lg border p-5">
+    <div className={cn('grid gap-4 rounded-lg border p-5', audience === 'admin' ? 'h-full' : 'not-prose')}>
       <div>
         <h2 className="text-xl font-semibold">{t('Taker fee for 100 shares')}</h2>
         <p className="text-sm text-muted-foreground">
-          {t({ id: 'affiliateFeeCurveSubtitle', message: 'Operator share follows the market fee curve.' })}
+          {audience === 'admin'
+            ? t({ id: 'affiliateFeeCurveSubtitle', message: 'Operator share follows the market fee curve.' })
+            : t({
+                id: 'tradingFeeCurvePublicSubtitle',
+                message: 'Estimated taker fee at each execution price.',
+              })}
         </p>
       </div>
 
@@ -159,10 +166,13 @@ export default function AdminAffiliateFeeChart({ operatorSharePercent, siteName 
         })}
       </div>
 
-      <div className="relative min-h-64">
+      <div className={cn('relative', audience === 'admin' ? 'min-h-64' : 'aspect-[640/292] w-full')}>
         <svg
           viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-          className="h-auto w-full touch-none overflow-visible"
+          className={cn(
+            'w-full touch-none overflow-visible',
+            audience === 'admin' ? 'h-auto' : 'absolute inset-0 h-full',
+          )}
           role="img"
           aria-label={t('Taker fee by share price')}
           onPointerMove={handleChartPointerMove}
@@ -232,26 +242,30 @@ export default function AdminAffiliateFeeChart({ operatorSharePercent, siteName 
 
         {showTooltip && (
           <div
-            className={cn(
-              'pointer-events-none absolute z-10 w-44 rounded-md border bg-popover p-2.5 text-xs text-popover-foreground shadow-md',
-              activePrice > 0.72 ? '-translate-x-full' : '-translate-x-1/2',
-            )}
+            className="pointer-events-none absolute z-10 w-44 rounded-md border bg-popover p-2.5 text-xs text-popover-foreground shadow-md"
             style={{
               left: `${(xScale(activePrice) / CHART_WIDTH) * 100}%`,
-              top: `${Math.max(2, (yScale(activeTotal) / CHART_HEIGHT) * 100 - 8)}%`,
+              top: `${Math.min(82, Math.max(18, (yScale(activeTotal) / CHART_HEIGHT) * 100))}%`,
+              transform: activePrice > 0.65 ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)',
             }}
           >
-            <div className="mb-1.5 truncate font-semibold" style={{ color: activeCategory.color }}>
+            <div className="mb-1.5 line-clamp-2 leading-4 font-semibold" style={{ color: activeCategory.color }}>
               {activeCategory.label}
             </div>
             <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
               <span className="text-muted-foreground">{t('Share price')}</span>
               <span className="font-medium">{Math.round(activePrice * 100)}¢</span>
-              <span className="text-muted-foreground">{t('Kuest fee')}</span>
-              <span className="font-medium">{formatFeeAmount(activeKuestFee)}</span>
-              <span className="text-muted-foreground">{t('{siteName} fee', { siteName })}</span>
-              <span className="font-medium">{formatFeeAmount(activeOperatorFee)}</span>
-              <span className="font-semibold">{t('Total')}</span>
+              {audience === 'admin' && (
+                <>
+                  <span className="text-muted-foreground">{t('Kuest fee')}</span>
+                  <span className="font-medium">{formatFeeAmount(activeKuestFee)}</span>
+                  <span className="text-muted-foreground">{t('{siteName} fee', { siteName })}</span>
+                  <span className="font-medium">{formatFeeAmount(activeOperatorFee)}</span>
+                </>
+              )}
+              <span className="font-semibold">
+                {audience === 'admin' ? t('Total') : t({ id: 'tradingFeeLabel', message: 'Trading fee' })}
+              </span>
               <span className="font-semibold">{formatFeeAmount(activeTotal)}</span>
             </div>
           </div>

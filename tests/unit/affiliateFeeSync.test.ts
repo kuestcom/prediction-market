@@ -19,8 +19,8 @@ vi.mock('@/lib/trading-auth/server', () => ({
 describe('syncBuilderFeesForAdmin', () => {
   const payload = {
     feeRecipientWallet: '0x1111111111111111111111111111111111111111',
-    builderTakerFeeBps: 250,
-    builderMakerFeeBps: 125,
+    builderTakerFeeShareBps: 3000,
+    builderMakerFlatFeeBps: 25,
   }
 
   beforeEach(() => {

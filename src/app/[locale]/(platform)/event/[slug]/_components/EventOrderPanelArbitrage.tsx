@@ -46,7 +46,7 @@ import { MIN_LIMIT_ORDER_SHARES, MIN_MARKET_BUY_AMOUNT } from '@/lib/orders/vali
 import { POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT } from '@/lib/polymarket-orders-client'
 import { PolymarketWalletUnavailableError, syncPolymarketWallet } from '@/lib/polymarket-wallet-client'
 import { resolveSportsOutcomeTeamLabel } from '@/lib/sports-team-label'
-import { calculateKuestUnitFee } from '@/lib/trading-fees'
+import { calculateGrossedKuestUnitFee } from '@/lib/trading-fees'
 import { cn } from '@/lib/utils'
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 import { useUser } from '@/stores/useUser'
@@ -62,7 +62,7 @@ interface EventOrderPanelArbitrageProps {
   multiWalletEnabled: boolean
   siteWalletReady: boolean
   kuestBalance: number
-  kuestFeeBps: number
+  operatorShareBps: number
   isSubmitting: boolean
   submissionStep: 0 | 1 | 2 | 3
   onRequireSiteWallet: () => void
@@ -163,7 +163,7 @@ type EventOrderPanelPolymarketArbitrageProps = Pick<
   | 'multiWalletEnabled'
   | 'siteWalletReady'
   | 'kuestBalance'
-  | 'kuestFeeBps'
+  | 'operatorShareBps'
   | 'isSubmitting'
   | 'submissionStep'
   | 'onRequireSiteWallet'
@@ -176,7 +176,7 @@ function EventOrderPanelPolymarketArbitrage({
   multiWalletEnabled,
   siteWalletReady,
   kuestBalance,
-  kuestFeeBps,
+  operatorShareBps,
   isSubmitting,
   submissionStep,
   onRequireSiteWallet,
@@ -280,9 +280,7 @@ function EventOrderPanelPolymarketArbitrage({
           const kuestPrice = direction.kuestLevel.priceDollars
           const polymarketPrice = direction.polymarketLevel.priceDollars
           const kuestUnitCost =
-            kuestPrice +
-            calculateKuestUnitFee(kuestPrice, direction.kuestFeeSchedule) +
-            (kuestPrice * Math.max(0, kuestFeeBps)) / 10_000
+            kuestPrice + calculateGrossedKuestUnitFee(kuestPrice, direction.kuestFeeSchedule, operatorShareBps)
           const polymarketUnitCost = calculatePolymarketUnitCost(
             polymarketPrice,
             polymarketFeeRate,
@@ -314,7 +312,7 @@ function EventOrderPanelPolymarketArbitrage({
           kuestBalance: availableKuestCash,
           polymarketBalance: availablePolymarketCash,
           kuestFeeSchedule: kuestYesFeeRate.data,
-          operatorFeeBps: kuestFeeBps,
+          operatorShareBps,
           polymarketFeeRate,
           polymarketFeeExponent,
         },
@@ -328,7 +326,7 @@ function EventOrderPanelPolymarketArbitrage({
           kuestBalance: availableKuestCash,
           polymarketBalance: availablePolymarketCash,
           kuestFeeSchedule: kuestNoFeeRate.data,
-          operatorFeeBps: kuestFeeBps,
+          operatorShareBps,
           polymarketFeeRate,
           polymarketFeeExponent,
         },
@@ -344,7 +342,7 @@ function EventOrderPanelPolymarketArbitrage({
     canQuote,
     kuestBalance,
     kuestBooks.data,
-    kuestFeeBps,
+    operatorShareBps,
     kuestNoFeeRate.data,
     kuestYesFeeRate.data,
     noOutcome,

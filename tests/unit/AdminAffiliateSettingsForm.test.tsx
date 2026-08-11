@@ -44,9 +44,10 @@ vi.mock('@/stores/useUser', () => ({
 function renderForm(initialWallet = '') {
   return render(
     <AdminAffiliateSettingsForm
-      builderTakerFeeBps={50}
-      builderMakerFeeBps={0}
+      builderTakerFeeShareBps={3000}
+      builderMakerFlatFeeBps={0}
       affiliateShareBps={1500}
+      hasSavedBuilderTakerShare={false}
       initialFeeRecipientWallet={initialWallet}
     />,
   )

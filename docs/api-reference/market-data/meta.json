@@ -15,6 +15,7 @@
     "get-spreads",
     "get-fee-rate",
     "get-fee-rate-by-path",
+    "get-builder-fee-rate",
     "get-neg-risk",
     "get-neg-risk-by-path",
     "get-tick-size"

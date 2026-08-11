@@ -8,8 +8,8 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 interface AffiliateSettingsResponse {
-  builderTakerFeePercent: number
-  builderMakerFeePercent: number
+  builderTakerSharePercent: number
+  builderMakerFlatFeePercent: number
   affiliateSharePercent: number
   lastUpdated?: string
 }
@@ -25,13 +25,13 @@ export async function GET() {
     }
 
     const affiliateFeeSettings = getAffiliateFeeSettings(settings)
-    const builderTakerFeePercent = bpsToPercent(affiliateFeeSettings.builderTakerFeeBps)
-    const builderMakerFeePercent = bpsToPercent(affiliateFeeSettings.builderMakerFeeBps)
+    const builderTakerSharePercent = bpsToPercent(affiliateFeeSettings.builderTakerFeeShareBps)
+    const builderMakerFlatFeePercent = bpsToPercent(affiliateFeeSettings.builderMakerFlatFeeBps)
     const affiliateSharePercent = bpsToPercent(affiliateFeeSettings.affiliateShareBps)
 
     if (
-      Number.isNaN(builderTakerFeePercent) ||
-      Number.isNaN(builderMakerFeePercent) ||
+      Number.isNaN(builderTakerSharePercent) ||
+      Number.isNaN(builderMakerFlatFeePercent) ||
       Number.isNaN(affiliateSharePercent)
     ) {
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
@@ -40,8 +40,8 @@ export async function GET() {
     const latestUpdatedAt = getAffiliateFeeSettingsUpdatedAt(settings)
 
     const response: AffiliateSettingsResponse = {
-      builderTakerFeePercent,
-      builderMakerFeePercent,
+      builderTakerSharePercent,
+      builderMakerFlatFeePercent,
       affiliateSharePercent,
       lastUpdated: latestUpdatedAt,
     }

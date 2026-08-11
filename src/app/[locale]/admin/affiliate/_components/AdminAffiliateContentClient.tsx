@@ -13,9 +13,10 @@ import { usdFormatter } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 interface AdminAffiliateContentClientProps {
-  builderTakerFeeBps: number
-  builderMakerFeeBps: number
+  builderTakerFeeShareBps: number
+  builderMakerFlatFeeBps: number
   affiliateShareBps: number
+  hasSavedBuilderTakerShare: boolean
   initialFeeRecipientWallet: string
   updatedAtLabel?: string
   aggregate: {
@@ -26,16 +27,19 @@ interface AdminAffiliateContentClientProps {
 }
 
 export default function AdminAffiliateContentClient({
-  builderTakerFeeBps,
-  builderMakerFeeBps,
+  builderTakerFeeShareBps,
+  builderMakerFlatFeeBps,
   affiliateShareBps,
+  hasSavedBuilderTakerShare,
   initialFeeRecipientWallet,
   updatedAtLabel,
   aggregate,
 }: AdminAffiliateContentClientProps) {
   const t = useExtracted()
   const site = useSiteIdentity()
-  const [operatorSharePercent, setOperatorSharePercent] = useState(30)
+  const [operatorSharePercent, setOperatorSharePercent] = useState(() =>
+    Math.min(45, Math.max(20, builderTakerFeeShareBps / 100 || 30)),
+  )
 
   return (
     <section className="grid gap-6">
@@ -89,10 +93,11 @@ export default function AdminAffiliateContentClient({
       </div>
       <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <AdminAffiliateSettingsForm
-          key={`${initialFeeRecipientWallet}-${builderTakerFeeBps}`}
-          builderTakerFeeBps={builderTakerFeeBps}
-          builderMakerFeeBps={builderMakerFeeBps}
+          key={`${initialFeeRecipientWallet}-${builderTakerFeeShareBps}`}
+          builderTakerFeeShareBps={builderTakerFeeShareBps}
+          builderMakerFlatFeeBps={builderMakerFlatFeeBps}
           affiliateShareBps={affiliateShareBps}
+          hasSavedBuilderTakerShare={hasSavedBuilderTakerShare}
           initialFeeRecipientWallet={initialFeeRecipientWallet}
           updatedAtLabel={updatedAtLabel}
           onOperatorShareChange={setOperatorSharePercent}

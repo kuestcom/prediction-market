@@ -15,7 +15,7 @@ function formatSharePercent(value: number) {
 interface AffiliateToastOptions {
   affiliateCode: string
   affiliateSharePercent: number | null
-  builderTakerFeePercent: number | null
+  builderTakerSharePercent: number | null
   siteName: string
   context?: AffiliateToastContext
 }
@@ -23,11 +23,11 @@ interface AffiliateToastOptions {
 export function maybeShowAffiliateToast({
   affiliateCode,
   affiliateSharePercent,
-  builderTakerFeePercent,
+  builderTakerSharePercent,
   siteName,
   context = 'link',
 }: AffiliateToastOptions) {
-  if (!affiliateCode || !affiliateSharePercent || !builderTakerFeePercent) {
+  if (!affiliateCode || !affiliateSharePercent || !builderTakerSharePercent) {
     return
   }
 
