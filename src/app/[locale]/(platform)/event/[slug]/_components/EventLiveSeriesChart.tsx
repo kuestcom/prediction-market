@@ -35,7 +35,7 @@ import {
   LIVE_PLOT_CLIP_RIGHT_PADDING,
   LIVE_TARGET_MAX_BOTTOM_OFFSET,
   LIVE_WINDOW_MS,
-  LIVE_X_AXIS_LEFT_LABEL_GUARD_MS,
+  LIVE_X_AXIS_RIGHT_INSET,
   LIVE_X_AXIS_STEP_MS,
   MAX_POINTS,
   normalizeLiveChartPrice,
@@ -72,14 +72,13 @@ const LIVE_AXIS_RESPONSE_MS = 1_250
 const LIVE_AXIS_EXTRA_PADDING_RATIO = 0.16
 const LIVE_AXIS_PRICE_FOLLOW_RATIO = 0.18
 const LIVE_AXIS_SETTLE_RATIO = 0.000_05
-const LIVE_AXIS_TARGET_TICK_INTERVALS = 3
-const LIVE_AXIS_MIN_TICK_INTERVALS = 1.6
-const LIVE_AXIS_MAX_TICK_INTERVALS = 5.5
+const LIVE_AXIS_MINIMUM_PRICE_SPAN_RATIO = 0.000_15
+const LIVE_AXIS_TARGET_TICK_INTERVALS = 6
 
 function resolveNiceLiveAxisStep(rawStep: number, minimumStep: number) {
   const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawStep, minimumStep)))
   const normalized = rawStep / magnitude
-  const multiplier = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10
+  const multiplier = normalized <= 1.5 ? 1 : normalized <= 3.5 ? 2 : normalized <= 7.5 ? 5 : 10
   return Math.max(minimumStep, multiplier * magnitude)
 }
 
@@ -104,7 +103,7 @@ function buildContinuousLiveAxis(values: number[], currentPrice: number | null, 
   const visibleMin = Math.min(...finiteValues)
   const visibleMax = Math.max(...finiteValues)
   const visibleMidpoint = (visibleMin + visibleMax) / 2
-  const minimumSpan = Math.max(Math.abs(visibleMidpoint) * 0.000_02, minimumStep * 2)
+  const minimumSpan = Math.max(Math.abs(visibleMidpoint) * LIVE_AXIS_MINIMUM_PRICE_SPAN_RATIO, minimumStep * 6)
   const visibleSpan = Math.max(minimumSpan, visibleMax - visibleMin)
   const resolvedCurrentPrice = currentPrice != null && Number.isFinite(currentPrice) ? currentPrice : visibleMidpoint
   const followedCenter = visibleMidpoint + (resolvedCurrentPrice - visibleMidpoint) * LIVE_AXIS_PRICE_FOLLOW_RATIO
@@ -126,7 +125,7 @@ function buildContinuousLiveAxis(values: number[], currentPrice: number | null, 
   }
 }
 
-function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string, fractionDigits: number) {
+function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string) {
   const [state, setState] = useState<{ scopeKey: string; axis: LiveChartAxis }>(() => ({
     scopeKey,
     axis: candidate,
@@ -154,10 +153,9 @@ function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string, frac
         const nextAxis = {
           min: current.min + (target.min - current.min) * progress,
           max: current.max + (target.max - current.max) * progress,
-          ticks: [] as number[],
+          ticks: target.ticks,
           step: target.step,
         }
-        nextAxis.ticks = buildLiveAxisTicks(nextAxis.min, nextAxis.max, nextAxis.step, fractionDigits)
         const targetSpan = Math.max(Number.EPSILON, target.max - target.min)
         const remainingDistance = Math.max(Math.abs(nextAxis.min - target.min), Math.abs(nextAxis.max - target.max))
 
@@ -176,35 +174,27 @@ function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string, frac
 
       animationFrameRef.current = requestAnimationFrame(animate)
     },
-    [fractionDigits, scopeKey],
+    [scopeKey],
   )
 
   useEffect(() => {
     if (currentRef.current.scopeKey !== scopeKey) {
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+      lastFrameTimestampRef.current = null
       currentRef.current = { scopeKey, axis: candidate }
       targetRef.current = { scopeKey, axis: candidate }
       const timer = setTimeout(() => setState({ scopeKey, axis: candidate }), 0)
       return () => clearTimeout(timer)
     }
 
-    const previousStep = targetRef.current.axis.step
-    const candidateSpan = Math.max(Number.EPSILON, candidate.max - candidate.min)
-    const intervalsAtPreviousStep = candidateSpan / previousStep
-    const step =
-      intervalsAtPreviousStep < LIVE_AXIS_MIN_TICK_INTERVALS || intervalsAtPreviousStep > LIVE_AXIS_MAX_TICK_INTERVALS
-        ? candidate.step
-        : previousStep
-    const stabilizedCandidate = {
-      ...candidate,
-      step,
-      ticks: buildLiveAxisTicks(candidate.min, candidate.max, step, fractionDigits),
-    }
-
-    targetRef.current = { scopeKey, axis: stabilizedCandidate }
+    targetRef.current = { scopeKey, axis: candidate }
     // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- Starts a local SVG-axis animation; it does not subscribe to an external store.
     startAxisAnimation()
     return undefined
-  }, [candidate, candidateKey, fractionDigits, scopeKey, startAxisAnimation])
+  }, [candidate, candidateKey, scopeKey, startAxisAnimation])
 
   useEffect(() => {
     return () => {
@@ -394,7 +384,7 @@ function EventLiveSeriesChartContent({
     [config.active_window_minutes, realtimeTopic],
   )
 
-  const { data, status } = useLiveSeriesWebSocket({
+  const { data, status, snapshotRevision } = useLiveSeriesWebSocket({
     topic: realtimeTopic,
     eventType: config.event_type,
     eventEndTimestamp: explicitEndTimestamp,
@@ -696,8 +686,7 @@ function EventLiveSeriesChartContent({
     dataSource.length > 1 ? 'history-ready' : dataSource.length === 1 ? 'first-point' : 'fallback'
   const axisValues = useStableLiveChartAxis(
     candidateAxisValues,
-    `${event.id}:${realtimeTopic}:${subscriptionSymbol}:${axisInitializationPhase}`,
-    axisPriceDisplayDigits,
+    `${event.id}:${realtimeTopic}:${subscriptionSymbol}:${axisInitializationPhase}:${snapshotRevision}`,
   )
 
   const currentLineTop = (() => {
@@ -746,21 +735,18 @@ function EventLiveSeriesChartContent({
 
   const xAxisTickValues = useMemo(() => {
     const startMs = chartNowMs - LIVE_WINDOW_MS
-    const visibleStartMs = startMs + LIVE_X_AXIS_LEFT_LABEL_GUARD_MS
     const firstTickMs = Math.ceil(startMs / LIVE_X_AXIS_STEP_MS) * LIVE_X_AXIS_STEP_MS
     const ticks: Date[] = []
 
     for (let tickMs = firstTickMs; tickMs <= chartNowMs; tickMs += LIVE_X_AXIS_STEP_MS) {
-      if (tickMs >= visibleStartMs) {
-        ticks.push(new Date(tickMs))
-      }
+      ticks.push(new Date(tickMs))
     }
 
     if (ticks.length >= 2) {
       return ticks
     }
 
-    return [new Date(visibleStartMs), new Date(chartNowMs)]
+    return [new Date(startMs), new Date(chartNowMs)]
   }, [chartNowMs])
 
   const liveXAxisDomain = useMemo(
@@ -869,6 +855,8 @@ function EventLiveSeriesChartContent({
                 showLegend={false}
                 xAxisTickFontSize={11}
                 yAxisTickFontSize={11}
+                centerXAxisTickLabels
+                xAxisLabelsRightInset={LIVE_X_AXIS_RIGHT_INSET}
                 alignYAxisLabelsToChartEdge
                 fadeYAxisEdges
                 neutralAxisColors

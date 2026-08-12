@@ -79,6 +79,8 @@ export default function PredictionChart({
   xDomain,
   xAxisTickFontSize = 11,
   yAxisTickFontSize = 11,
+  centerXAxisTickLabels = false,
+  xAxisLabelsRightInset = 0,
   alignYAxisLabelsToChartEdge = false,
   fadeYAxisEdges = false,
   neutralAxisColors = false,
@@ -191,6 +193,7 @@ export default function PredictionChart({
   const clipId = useId().replace(/:/g, '')
   const plotAreaClipId = `${clipId}-plot`
   const gridAreaClipId = `${clipId}-grid`
+  const xAxisAreaClipId = `${clipId}-x-axis`
   const yAxisFadeMaskId = `${clipId}-y-axis-fade`
   const yAxisFadeGradientId = `${clipId}-y-axis-fade-gradient`
   const leftClipId = `${clipId}-left`
@@ -647,12 +650,20 @@ export default function PredictionChart({
     range: [0, innerWidth],
     domain: [domainBounds.start, domainBounds.end],
   })
+  const resolvedXAxisLabelsRightInset = Number.isFinite(xAxisLabelsRightInset) ? Math.max(0, xAxisLabelsRightInset) : 0
+  const xAxisLabelsWidth = Math.max(
+    1,
+    (showXAxisTopRuleFullWidth ? width - resolvedMargin.left : innerWidth) - resolvedXAxisLabelsRightInset,
+  )
   const xAxisScale = showXAxisTopRuleFullWidth
     ? scaleTime<number>({
-        range: [0, width - resolvedMargin.left],
+        range: [0, xAxisLabelsWidth],
         domain: [domainBounds.start, domainBounds.end],
       })
-    : xScale
+    : scaleTime<number>({
+        range: [0, xAxisLabelsWidth],
+        domain: [domainBounds.start, domainBounds.end],
+      })
 
   const yScale = scaleLinear<number>({
     range: [innerHeight, 0],
@@ -907,6 +918,9 @@ export default function PredictionChart({
             <clipPath id={gridAreaClipId} clipPathUnits="userSpaceOnUse">
               <rect x={0} y={0} width={innerWidth} height={innerHeight} />
             </clipPath>
+            <clipPath id={xAxisAreaClipId} clipPathUnits="userSpaceOnUse">
+              <rect x={0} y={innerHeight} width={xAxisLabelsWidth} height={resolvedMargin.bottom} />
+            </clipPath>
             <clipPath id={leftClipId} clipPathUnits="userSpaceOnUse">
               <rect x={0} y={-clipPadding} width={leftClipWidth} height={innerHeight + clipPadding * 2} />
             </clipPath>
@@ -1047,40 +1061,43 @@ export default function PredictionChart({
                     vectorEffect="non-scaling-stroke"
                   />
                 )}
-                <AxisBottom
-                  top={innerHeight}
-                  scale={xAxisScale}
-                  tickFormat={formatAxisTick}
-                  tickValues={resolvedXAxisTickValues ?? undefined}
-                  stroke="transparent"
-                  tickStroke="transparent"
-                  tickLabelProps={(_value, index, values) => {
-                    const lastIndex = Array.isArray(values) ? values.length - 1 : -1
-                    const shouldCenterAllLabels = Boolean(resolvedXAxisTickValues) && !showXAxisTopRuleFullWidth
-                    const textAnchor = shouldCenterAllLabels
-                      ? 'middle'
-                      : index === 0
-                        ? 'start'
-                        : index === lastIndex
-                          ? 'end'
-                          : 'middle'
+                <g clipPath={`url(#${xAxisAreaClipId})`}>
+                  <AxisBottom
+                    top={innerHeight}
+                    scale={xAxisScale}
+                    tickFormat={formatAxisTick}
+                    tickValues={resolvedXAxisTickValues ?? undefined}
+                    stroke="transparent"
+                    tickStroke="transparent"
+                    tickLabelProps={(_value, index, values) => {
+                      const lastIndex = Array.isArray(values) ? values.length - 1 : -1
+                      const shouldCenterAllLabels =
+                        centerXAxisTickLabels || (Boolean(resolvedXAxisTickValues) && !showXAxisTopRuleFullWidth)
+                      const textAnchor = shouldCenterAllLabels
+                        ? 'middle'
+                        : index === 0
+                          ? 'start'
+                          : index === lastIndex
+                            ? 'end'
+                            : 'middle'
 
-                    const hideFirstMonthLabel = isMonthOnlyLabels && index === 0
-                    return {
-                      fill: axisLabelColor,
-                      fontSize: xAxisTickFontSize,
-                      fontFamily: 'Arial, sans-serif',
-                      textAnchor,
-                      dy: showXAxisTopRuleFullWidth ? '0.72em' : showXAxisTopRule ? '1.05em' : '0.6em',
-                      opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
-                      style: {
-                        fontVariantNumeric: 'tabular-nums',
-                      },
-                    }
-                  }}
-                  numTicks={xAxisTickCount}
-                  tickLength={0}
-                />
+                      const hideFirstMonthLabel = isMonthOnlyLabels && index === 0
+                      return {
+                        fill: axisLabelColor,
+                        fontSize: xAxisTickFontSize,
+                        fontFamily: 'Arial, sans-serif',
+                        textAnchor,
+                        dy: showXAxisTopRuleFullWidth ? '0.72em' : showXAxisTopRule ? '1.05em' : '0.6em',
+                        opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
+                        style: {
+                          fontVariantNumeric: 'tabular-nums',
+                        },
+                      }
+                    }}
+                    numTicks={xAxisTickCount}
+                    tickLength={0}
+                  />
+                </g>
               </>
             )}
 
