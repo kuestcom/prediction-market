@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
 import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
@@ -14,7 +14,6 @@ import { useLiveSeriesClock } from '../_hooks/useLiveSeriesClock'
 import { useLiveSeriesPriceSnapshot } from '../_hooks/useLiveSeriesPriceSnapshot'
 import { useLiveSeriesWebSocket } from '../_hooks/useLiveSeriesWebSocket'
 import {
-  buildAxis,
   classifyLiveSeriesReference,
   findLiveSeriesEvent,
   formatDateAtTimezone,
@@ -52,6 +51,7 @@ import {
   toCountdownLeftLabel,
 } from '../_utils/eventLiveSeriesChartUtils'
 import {
+  resolveLiveSeriesAxisPriceDigits,
   resolveLiveSeriesDeltaDisplayDigits,
   resolveLiveSeriesPriceDisplayDigits,
 } from '../_utils/liveSeriesPricePrecision'
@@ -60,6 +60,162 @@ import EventLiveSeriesChartHeader from './EventLiveSeriesChartHeader'
 import EventLiveSeriesChartOverlay from './EventLiveSeriesChartOverlay'
 import EventLiveSeriesViewSwitch from './EventLiveSeriesViewSwitch'
 import EventSeriesPills from './EventSeriesPills'
+
+interface LiveChartAxis {
+  min: number
+  max: number
+  ticks: number[]
+  step: number
+}
+
+const LIVE_AXIS_RESPONSE_MS = 1_250
+const LIVE_AXIS_EXTRA_PADDING_RATIO = 0.16
+const LIVE_AXIS_PRICE_FOLLOW_RATIO = 0.18
+const LIVE_AXIS_SETTLE_RATIO = 0.000_05
+const LIVE_AXIS_TARGET_TICK_INTERVALS = 3
+const LIVE_AXIS_MIN_TICK_INTERVALS = 1.6
+const LIVE_AXIS_MAX_TICK_INTERVALS = 5.5
+
+function resolveNiceLiveAxisStep(rawStep: number, minimumStep: number) {
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawStep, minimumStep)))
+  const normalized = rawStep / magnitude
+  const multiplier = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10
+  return Math.max(minimumStep, multiplier * magnitude)
+}
+
+function buildLiveAxisTicks(min: number, max: number, step: number, fractionDigits: number) {
+  const firstTick = Math.ceil(min / step) * step
+  const ticks: number[] = []
+
+  for (let value = firstTick; value <= max + step * 1e-6; value += step) {
+    ticks.push(Number(value.toFixed(Math.max(0, fractionDigits))))
+  }
+
+  return ticks
+}
+
+function buildContinuousLiveAxis(values: number[], currentPrice: number | null, fractionDigits: number): LiveChartAxis {
+  const minimumStep = 1 / 10 ** Math.max(0, Math.min(6, Math.floor(fractionDigits)))
+  const finiteValues = values.filter((value) => Number.isFinite(value))
+  if (!finiteValues.length) {
+    return { min: 0, max: 1, ticks: [0, 1], step: 1 }
+  }
+
+  const visibleMin = Math.min(...finiteValues)
+  const visibleMax = Math.max(...finiteValues)
+  const visibleMidpoint = (visibleMin + visibleMax) / 2
+  const minimumSpan = Math.max(Math.abs(visibleMidpoint) * 0.000_02, minimumStep * 2)
+  const visibleSpan = Math.max(minimumSpan, visibleMax - visibleMin)
+  const resolvedCurrentPrice = currentPrice != null && Number.isFinite(currentPrice) ? currentPrice : visibleMidpoint
+  const followedCenter = visibleMidpoint + (resolvedCurrentPrice - visibleMidpoint) * LIVE_AXIS_PRICE_FOLLOW_RATIO
+  const minimumHalfSpan = visibleSpan * (0.5 + LIVE_AXIS_EXTRA_PADDING_RATIO)
+  const halfSpan = Math.max(
+    minimumHalfSpan,
+    Math.abs(visibleMin - followedCenter) * 1.12,
+    Math.abs(visibleMax - followedCenter) * 1.12,
+  )
+  const min = followedCenter - halfSpan
+  const max = followedCenter + halfSpan
+  const tickStep = resolveNiceLiveAxisStep((max - min) / LIVE_AXIS_TARGET_TICK_INTERVALS, minimumStep)
+
+  return {
+    min,
+    max,
+    ticks: buildLiveAxisTicks(min, max, tickStep, fractionDigits),
+    step: tickStep,
+  }
+}
+
+function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string, fractionDigits: number) {
+  const [state, setState] = useState<{ scopeKey: string; axis: LiveChartAxis }>(() => ({
+    scopeKey,
+    axis: candidate,
+  }))
+  const currentRef = useRef({ scopeKey, axis: candidate })
+  const targetRef = useRef({ scopeKey, axis: candidate })
+  const animationFrameRef = useRef<number | null>(null)
+  const lastFrameTimestampRef = useRef<number | null>(null)
+  const displayedAxis = state.scopeKey === scopeKey ? state.axis : candidate
+  const candidateKey = `${candidate.min}:${candidate.max}:${candidate.step}`
+
+  const startAxisAnimation = useCallback(
+    function startAxisAnimation() {
+      if (animationFrameRef.current != null) {
+        return
+      }
+
+      function animate(timestamp: number) {
+        const current = currentRef.current.axis
+        const target = targetRef.current.axis
+        const previousTimestamp = lastFrameTimestampRef.current ?? timestamp
+        const elapsedMs = Math.min(64, Math.max(0, timestamp - previousTimestamp))
+        lastFrameTimestampRef.current = timestamp
+        const progress = 1 - Math.exp(-elapsedMs / LIVE_AXIS_RESPONSE_MS)
+        const nextAxis = {
+          min: current.min + (target.min - current.min) * progress,
+          max: current.max + (target.max - current.max) * progress,
+          ticks: [] as number[],
+          step: target.step,
+        }
+        nextAxis.ticks = buildLiveAxisTicks(nextAxis.min, nextAxis.max, nextAxis.step, fractionDigits)
+        const targetSpan = Math.max(Number.EPSILON, target.max - target.min)
+        const remainingDistance = Math.max(Math.abs(nextAxis.min - target.min), Math.abs(nextAxis.max - target.max))
+
+        if (remainingDistance <= targetSpan * LIVE_AXIS_SETTLE_RATIO) {
+          currentRef.current = { scopeKey, axis: target }
+          setState({ scopeKey, axis: target })
+          animationFrameRef.current = null
+          lastFrameTimestampRef.current = null
+          return
+        }
+
+        currentRef.current = { scopeKey, axis: nextAxis }
+        setState({ scopeKey, axis: nextAxis })
+        animationFrameRef.current = requestAnimationFrame(animate)
+      }
+
+      animationFrameRef.current = requestAnimationFrame(animate)
+    },
+    [fractionDigits, scopeKey],
+  )
+
+  useEffect(() => {
+    if (currentRef.current.scopeKey !== scopeKey) {
+      currentRef.current = { scopeKey, axis: candidate }
+      targetRef.current = { scopeKey, axis: candidate }
+      const timer = setTimeout(() => setState({ scopeKey, axis: candidate }), 0)
+      return () => clearTimeout(timer)
+    }
+
+    const previousStep = targetRef.current.axis.step
+    const candidateSpan = Math.max(Number.EPSILON, candidate.max - candidate.min)
+    const intervalsAtPreviousStep = candidateSpan / previousStep
+    const step =
+      intervalsAtPreviousStep < LIVE_AXIS_MIN_TICK_INTERVALS || intervalsAtPreviousStep > LIVE_AXIS_MAX_TICK_INTERVALS
+        ? candidate.step
+        : previousStep
+    const stabilizedCandidate = {
+      ...candidate,
+      step,
+      ticks: buildLiveAxisTicks(candidate.min, candidate.max, step, fractionDigits),
+    }
+
+    targetRef.current = { scopeKey, axis: stabilizedCandidate }
+    // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- Starts a local SVG-axis animation; it does not subscribe to an external store.
+    startAxisAnimation()
+    return undefined
+  }, [candidate, candidateKey, fractionDigits, scopeKey, startAxisAnimation])
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+    }
+  }, [])
+
+  return displayedAxis
+}
 
 const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components/PredictionChart'), {
   ssr: false,
@@ -499,7 +655,6 @@ function EventLiveSeriesChartContent({
     fallbackCurrentPrice,
     requiresCanonicalClose: requiresCanonicalBinanceClose,
   })
-  const axisSourceData = renderData
   const resolvedBaselinePrice = referenceOpeningPrice
   const displayedBaselinePrice = resolveDisplayedLiveSeriesBaselinePrice({
     baselinePrice: resolvedBaselinePrice,
@@ -521,24 +676,29 @@ function EventLiveSeriesChartContent({
     config.show_price_decimals,
     precisionReferencePrice,
   )
+  const axisPriceDisplayDigits = resolveLiveSeriesAxisPriceDigits(priceDisplayDigits, subscriptionSymbol)
   const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
   const delta = currentPrice != null && displayedBaselinePrice != null ? currentPrice - displayedBaselinePrice : null
   const deltaDisplayDigits = resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits, delta)
-  const axisValues = (() => {
-    const values = axisSourceData
+  const axisFallbackPrice = renderData.length === 0 ? currentPrice : null
+  const candidateAxisValues = useMemo(() => {
+    const values = renderData
       .map((point) => point[SERIES_KEY])
       .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
 
-    if (!values.length && typeof currentPrice === 'number' && Number.isFinite(currentPrice)) {
-      values.push(currentPrice)
+    if (!values.length && typeof axisFallbackPrice === 'number' && Number.isFinite(axisFallbackPrice)) {
+      values.push(axisFallbackPrice)
     }
 
-    if (typeof resolvedBaselinePrice === 'number' && Number.isFinite(resolvedBaselinePrice)) {
-      values.push(resolvedBaselinePrice)
-    }
-
-    return buildAxis(values, priceDisplayDigits)
-  })()
+    return buildContinuousLiveAxis(values, currentPrice, axisPriceDisplayDigits)
+  }, [axisFallbackPrice, axisPriceDisplayDigits, currentPrice, renderData])
+  const axisInitializationPhase =
+    dataSource.length > 1 ? 'history-ready' : dataSource.length === 1 ? 'first-point' : 'fallback'
+  const axisValues = useStableLiveChartAxis(
+    candidateAxisValues,
+    `${event.id}:${realtimeTopic}:${subscriptionSymbol}:${axisInitializationPhase}`,
+    axisPriceDisplayDigits,
+  )
 
   const currentLineTop = (() => {
     if (currentPrice == null) {
@@ -576,8 +736,8 @@ function EventLiveSeriesChartContent({
     }
   })()
 
-  const targetLineGuideColor = hexToRgba('#94a3b8', 0.62)
-  const targetBadgeColor = '#94a3b8'
+  const targetLineGuideColor = '#5D6878'
+  const targetBadgeColor = '#5D6878'
   const currentPriceGuideColor = hexToRgba(liveColor, 0.62)
 
   const countdown = useMemo(() => resolveLiveSeriesCountdown(endTimestamp, nowMs), [endTimestamp, nowMs])
@@ -707,12 +867,16 @@ function EventLiveSeriesChartContent({
                 gridLineStyle="solid"
                 gridLineOpacity={0.42}
                 showLegend={false}
-                xAxisTickFontSize={10}
-                yAxisTickFontSize={10}
+                xAxisTickFontSize={11}
+                yAxisTickFontSize={11}
+                alignYAxisLabelsToChartEdge
+                fadeYAxisEdges
+                neutralAxisColors
                 showXAxisTopRule
                 showXAxisTopRuleFullWidth
                 hideYAxisMinimumLabel
                 cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
+                cursorGuideColor="#5D6878"
                 disableCursorSplit
                 disableResetAnimation
                 markerOuterRadius={10}
@@ -722,7 +886,9 @@ function EventLiveSeriesChartContent({
                 lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
                 lineStrokeWidth={2.15}
                 plotClipPadding={{
+                  top: 0,
                   right: LIVE_PLOT_CLIP_RIGHT_PADDING,
+                  bottom: 0,
                   left: 0,
                 }}
                 showAreaFill
@@ -733,7 +899,7 @@ function EventLiveSeriesChartContent({
                   min: axisValues.min,
                   max: axisValues.max,
                   ticks: axisValues.ticks,
-                  tickFormat: (value) => formatUsd(value, priceDisplayDigits),
+                  tickFormat: (value) => formatUsd(value, axisPriceDisplayDigits),
                 }}
                 tooltipValueFormatter={(value) => formatUsd(value, priceDisplayDigits)}
                 tooltipHeaderFontSize={11}

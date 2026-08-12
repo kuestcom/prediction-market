@@ -139,7 +139,7 @@ export default function EventLiveSeriesChartHeader({
   return (
     <div
       className={cn(
-        'flex items-end pr-3 pl-0 sm:pr-6 sm:pl-0',
+        'flex items-end pr-0 pl-0',
         liveMarketHref
           ? 'flex-nowrap gap-1 sm:flex-wrap sm:gap-4'
           : shouldShowCountdown
@@ -209,10 +209,7 @@ export default function EventLiveSeriesChartHeader({
         <Tooltip>
           <TooltipTrigger
             render={
-              <button
-                type="button"
-                className="mr-[-4px] ml-auto grid shrink-0 justify-items-end gap-1 text-left sm:mr-[-6px]"
-              >
+              <button type="button" className="ml-auto grid shrink-0 justify-items-end gap-1 text-left">
                 <div className="flex items-end gap-0.5 min-[360px]:gap-1 sm:gap-3">
                   {visibleCountdownUnits.map(({ unit, value }) => (
                     <div key={unit} className="min-w-6 text-right min-[360px]:min-w-8 sm:min-w-11">

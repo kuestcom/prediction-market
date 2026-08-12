@@ -12,7 +12,6 @@ export const LIVE_DATA_RETENTION_MS = LIVE_WINDOW_MS + LIVE_HISTORY_BUFFER_MS
 export const LIVE_CLOCK_FRAME_MS = 1000 / 30
 export const LIVE_X_AXIS_STEP_MS = 10 * 1000
 export const LIVE_X_AXIS_LEFT_LABEL_GUARD_MS = 3600
-const LIVE_MAX_Y_AXIS_TICKS = 6
 export const MAX_POINTS = 4000
 export const LIVE_PRICE_TRANSITION_MS = 650
 const LIVE_PRICE_TRANSITION_MIN_MS = 120
@@ -299,98 +298,6 @@ export function isSnapshotMessage(payload: any) {
   }
 
   return Array.isArray(payload?.payload?.data) || Array.isArray(payload?.data)
-}
-
-export function buildAxis(values: number[], fractionDigits = 2) {
-  const resolvedFractionDigits = Math.max(0, Math.min(6, Math.floor(fractionDigits)))
-  const visibleStep = 1 / 10 ** resolvedFractionDigits
-  function roundAxisValue(value: number) {
-    return Number(value.toFixed(resolvedFractionDigits))
-  }
-
-  if (!values.length) {
-    return { min: 0, max: 1, ticks: [0, 1] }
-  }
-
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
-  const midpoint = (minValue + maxValue) / 2
-
-  if (maxValue - minValue < visibleStep / 2 && Math.abs(midpoint) >= 50) {
-    const center = roundAxisValue(midpoint)
-    const axisMin = roundAxisValue(center - visibleStep)
-    const axisMax = roundAxisValue(center + visibleStep)
-    return { min: axisMin, max: axisMax, ticks: [axisMin, center, axisMax] }
-  }
-
-  const minSpan = Math.max(Math.abs(midpoint) * 0.00002, Math.abs(midpoint) >= 1 ? 0.002 : 0.0002)
-  const span = Math.max(minSpan, maxValue - minValue)
-  const padding = Math.max(span * 0.08, minSpan * 0.08)
-  const rawMin = minValue - padding
-  const rawMax = maxValue + padding
-
-  const targetTicks = 4
-  const rawStep = (rawMax - rawMin) / Math.max(1, targetTicks - 1)
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep))
-  const stepRatio = rawStep / magnitude
-  const stepMultiplier = stepRatio >= 5 ? 5 : stepRatio >= 2 ? 2 : 1
-  const initialStep = Math.max(stepMultiplier * magnitude, visibleStep)
-
-  function nextNiceStep(currentStep: number) {
-    const currentMagnitude = 10 ** Math.floor(Math.log10(currentStep))
-    const normalized = currentStep / currentMagnitude
-
-    if (normalized < 2) {
-      return 2 * currentMagnitude
-    }
-
-    if (normalized < 5) {
-      return 5 * currentMagnitude
-    }
-
-    return 10 * currentMagnitude
-  }
-
-  function buildTicksForStep(step: number) {
-    const axisMin = Math.floor(rawMin / step) * step
-    const axisMax = Math.ceil(rawMax / step) * step
-    const ticks: number[] = []
-
-    for (let value = axisMin; value <= axisMax + step * 1e-6; value += step) {
-      ticks.push(value)
-    }
-
-    return { axisMin, axisMax, ticks }
-  }
-
-  let step = initialStep
-  let axis = buildTicksForStep(step)
-  let attempts = 0
-
-  while (axis.ticks.length > LIVE_MAX_Y_AXIS_TICKS && attempts < 8) {
-    step = nextNiceStep(step)
-    axis = buildTicksForStep(step)
-    attempts += 1
-  }
-
-  const ticks: number[] = []
-  const seenTicks = new Set<number>()
-
-  for (const value of axis.ticks) {
-    const roundedValue = roundAxisValue(value)
-    if (seenTicks.has(roundedValue)) {
-      continue
-    }
-
-    seenTicks.add(roundedValue)
-    ticks.push(roundedValue)
-  }
-
-  return {
-    min: roundAxisValue(axis.axisMin),
-    max: roundAxisValue(axis.axisMax),
-    ticks,
-  }
 }
 
 export function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {

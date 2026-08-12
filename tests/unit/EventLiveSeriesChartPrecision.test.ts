@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  resolveLiveSeriesAxisPriceDigits,
   resolveLiveSeriesDeltaDisplayDigits,
   resolveLiveSeriesPriceDisplayDigits,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/liveSeriesPricePrecision'
@@ -33,6 +34,13 @@ describe('resolveLiveSeriesPriceDisplayDigits', () => {
 
   it('normalizes topic casing and spacing', () => {
     expect(resolveLiveSeriesPriceDisplayDigits('  CRYPTO_PRICES_CHAINLINK  ', true, 1.2)).toBe(4)
+  })
+})
+
+describe('resolveLiveSeriesAxisPriceDigits', () => {
+  it('hides decimals only on Bitcoin axis labels', () => {
+    expect(resolveLiveSeriesAxisPriceDigits(2, 'btc/usd')).toBe(0)
+    expect(resolveLiveSeriesAxisPriceDigits(4, 'xrp/usd')).toBe(4)
   })
 })
 

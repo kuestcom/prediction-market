@@ -46,10 +46,14 @@ export interface PredictionChartProps {
   }
   xAxisTickFontSize?: number
   yAxisTickFontSize?: number
+  alignYAxisLabelsToChartEdge?: boolean
+  fadeYAxisEdges?: boolean
+  neutralAxisColors?: boolean
   showXAxisTopRule?: boolean
   showXAxisTopRuleFullWidth?: boolean
   hideYAxisMinimumLabel?: boolean
   cursorGuideTop?: number
+  cursorGuideColor?: string
   autoscale?: boolean
   showXAxis?: boolean
   showYAxis?: boolean

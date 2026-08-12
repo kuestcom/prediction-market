@@ -92,42 +92,50 @@ export default function EventOrderPanelMobile({
           style={{ bottom: MOBILE_BOTTOM_NAV_OFFSET }}
         >
           <div className="flex gap-2">
-            <Button
-              variant="yes"
-              size="outcomeLg"
-              onClick={() => {
-                if (!activeMarket || !buyYesOutcome) {
-                  return
-                }
+            <div className="relative min-w-0 flex-1 pb-1.25">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-sm bg-yes-foreground/75 dark:bg-yes/75" />
+              <Button
+                variant="yes"
+                size="outcomeLg"
+                className="relative w-full translate-y-0 bg-yes-foreground text-white transition-transform duration-150 ease-out hover:translate-y-px hover:bg-yes-foreground active:translate-y-0.5 dark:bg-yes dark:hover:bg-yes"
+                onClick={() => {
+                  if (!activeMarket || !buyYesOutcome) {
+                    return
+                  }
 
-                state.setMarket(activeMarket)
-                state.setOutcome(buyYesOutcome)
-                state.setIsMobileOrderPanelOpen(true)
-              }}
-            >
-              <span className="truncate opacity-70">
-                {t('Buy')} {buyYesOutcomeLabel}
-              </span>
-              <span className="shrink-0 font-bold">{yesPriceLabel}</span>
-            </Button>
-            <Button
-              variant="no"
-              size="outcomeLg"
-              onClick={() => {
-                if (!activeMarket || !buyNoOutcome) {
-                  return
-                }
+                  state.setMarket(activeMarket)
+                  state.setOutcome(buyYesOutcome)
+                  state.setIsMobileOrderPanelOpen(true)
+                }}
+              >
+                <span className="truncate opacity-70">
+                  {t('Buy')} {buyYesOutcomeLabel}
+                </span>
+                <span className="shrink-0 font-bold">{yesPriceLabel}</span>
+              </Button>
+            </div>
+            <div className="relative min-w-0 flex-1 pb-1.25">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 rounded-b-sm bg-no-foreground/75 dark:bg-no/75" />
+              <Button
+                variant="no"
+                size="outcomeLg"
+                className="relative w-full translate-y-0 bg-no-foreground text-white transition-transform duration-150 ease-out hover:translate-y-px hover:bg-no-foreground active:translate-y-0.5 dark:bg-no dark:hover:bg-no"
+                onClick={() => {
+                  if (!activeMarket || !buyNoOutcome) {
+                    return
+                  }
 
-                state.setMarket(activeMarket)
-                state.setOutcome(buyNoOutcome)
-                state.setIsMobileOrderPanelOpen(true)
-              }}
-            >
-              <span className="truncate opacity-70">
-                {t('Buy')} {buyNoOutcomeLabel}
-              </span>
-              <span className="shrink-0 font-bold">{noPriceLabel}</span>
-            </Button>
+                  state.setMarket(activeMarket)
+                  state.setOutcome(buyNoOutcome)
+                  state.setIsMobileOrderPanelOpen(true)
+                }}
+              >
+                <span className="truncate opacity-70">
+                  {t('Buy')} {buyNoOutcomeLabel}
+                </span>
+                <span className="shrink-0 font-bold">{noPriceLabel}</span>
+              </Button>
+            </div>
           </div>
         </div>
       )}

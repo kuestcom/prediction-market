@@ -79,10 +79,14 @@ export default function PredictionChart({
   xDomain,
   xAxisTickFontSize = 11,
   yAxisTickFontSize = 11,
+  alignYAxisLabelsToChartEdge = false,
+  fadeYAxisEdges = false,
+  neutralAxisColors = false,
   showXAxisTopRule = false,
   showXAxisTopRuleFullWidth = false,
   hideYAxisMinimumLabel = false,
   cursorGuideTop,
+  cursorGuideColor = '#2C3F4F',
   autoscale = true,
   showXAxis = true,
   showYAxis = true,
@@ -186,6 +190,9 @@ export default function PredictionChart({
 
   const clipId = useId().replace(/:/g, '')
   const plotAreaClipId = `${clipId}-plot`
+  const gridAreaClipId = `${clipId}-grid`
+  const yAxisFadeMaskId = `${clipId}-y-axis-fade`
+  const yAxisFadeGradientId = `${clipId}-y-axis-fade-gradient`
   const leftClipId = `${clipId}-left`
   const rightClipId = `${clipId}-right`
   const shouldRenderLegend = showLegend && Boolean(legendContent)
@@ -846,21 +853,27 @@ export default function PredictionChart({
 
   const futureLineColor = isDarkMode ? FUTURE_LINE_COLOR_DARK : FUTURE_LINE_COLOR_LIGHT
   const futureLineOpacity = isDarkMode ? FUTURE_LINE_OPACITY_DARK : FUTURE_LINE_OPACITY_LIGHT
-  const gridLineColor = isDarkMode ? GRID_LINE_COLOR_DARK : GRID_LINE_COLOR_LIGHT
+  const gridLineColor = neutralAxisColors
+    ? isDarkMode
+      ? '#4a4a4a'
+      : '#d4d4d4'
+    : isDarkMode
+      ? GRID_LINE_COLOR_DARK
+      : GRID_LINE_COLOR_LIGHT
   const defaultGridLineOpacity = isDarkMode ? GRID_LINE_OPACITY_DARK : GRID_LINE_OPACITY_LIGHT
   const resolvedGridLineOpacity =
     typeof gridLineOpacityOverride === 'number' && Number.isFinite(gridLineOpacityOverride)
       ? clamp01(gridLineOpacityOverride)
       : defaultGridLineOpacity
-  const axisLabelColor = gridLineColor
-  const axisLabelOpacity = Math.min(1, defaultGridLineOpacity + 0.25)
+  const axisLabelColor = neutralAxisColors ? '#7A8595' : gridLineColor
+  const axisLabelOpacity = neutralAxisColors ? 1 : Math.min(1, defaultGridLineOpacity + 0.25)
   const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
   const clipPadding = Math.ceil(Math.max(resolvedLineStrokeWidth, resolvedSurgeStrokeWidth) + 2)
   const resolvedPlotClipPadding = {
-    top: Math.max(clipPadding, Number(plotClipPadding?.top ?? 0)),
+    top: plotClipPadding?.top === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.top ?? 0)),
     right: Math.max(clipPadding, Number(plotClipPadding?.right ?? 0)),
-    bottom: Math.max(clipPadding, Number(plotClipPadding?.bottom ?? 0)),
+    bottom: plotClipPadding?.bottom === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.bottom ?? 0)),
     left: plotClipPadding?.left === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.left ?? 0)),
   }
   const resolvedCursorGuideTop = typeof cursorGuideTop === 'number' ? cursorGuideTop : -resolvedMargin.top
@@ -891,12 +904,34 @@ export default function PredictionChart({
                 height={innerHeight + resolvedPlotClipPadding.top + resolvedPlotClipPadding.bottom}
               />
             </clipPath>
+            <clipPath id={gridAreaClipId} clipPathUnits="userSpaceOnUse">
+              <rect x={0} y={0} width={innerWidth} height={innerHeight} />
+            </clipPath>
             <clipPath id={leftClipId} clipPathUnits="userSpaceOnUse">
               <rect x={0} y={-clipPadding} width={leftClipWidth} height={innerHeight + clipPadding * 2} />
             </clipPath>
             <clipPath id={rightClipId} clipPathUnits="userSpaceOnUse">
               <rect x={leftClipWidth} y={-clipPadding} width={rightClipWidth} height={innerHeight + clipPadding * 2} />
             </clipPath>
+            {fadeYAxisEdges && (
+              <>
+                <linearGradient id={yAxisFadeGradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="white" stopOpacity={0} />
+                  <stop offset="3%" stopColor="white" stopOpacity={1} />
+                  <stop offset="97%" stopColor="white" stopOpacity={1} />
+                  <stop offset="100%" stopColor="white" stopOpacity={0} />
+                </linearGradient>
+                <mask id={yAxisFadeMaskId} maskUnits="userSpaceOnUse">
+                  <rect
+                    x={innerWidth}
+                    y={0}
+                    width={resolvedMargin.right}
+                    height={innerHeight}
+                    fill={`url(#${yAxisFadeGradientId})`}
+                  />
+                </mask>
+              </>
+            )}
             {showAreaFill &&
               series.map((seriesItem) => {
                 const areaGradientId = `${clipId}-area-${sanitizeSvgId(seriesItem.key)}`
@@ -909,19 +944,21 @@ export default function PredictionChart({
               })}
           </defs>
           <Group left={resolvedMargin.left} top={resolvedMargin.top}>
-            <PredictionChartGrid
-              showVerticalGrid={showVerticalGrid}
-              showHorizontalGrid={showHorizontalGrid}
-              verticalGridTicks={verticalGridTicks}
-              horizontalGridTicks={resolvedYAxisTicks}
-              xScale={xScale}
-              yScale={yScale}
-              innerWidth={innerWidth}
-              innerHeight={innerHeight}
-              gridLineColor={gridLineColor}
-              gridLineDasharray={gridLineDasharray}
-              gridLineOpacity={resolvedGridLineOpacity}
-            />
+            <g clipPath={`url(#${gridAreaClipId})`}>
+              <PredictionChartGrid
+                showVerticalGrid={showVerticalGrid}
+                showHorizontalGrid={showHorizontalGrid}
+                verticalGridTicks={verticalGridTicks}
+                horizontalGridTicks={resolvedYAxisTicks}
+                xScale={xScale}
+                yScale={yScale}
+                innerWidth={innerWidth}
+                innerHeight={innerHeight}
+                gridLineColor={gridLineColor}
+                gridLineDasharray={gridLineDasharray}
+                gridLineOpacity={resolvedGridLineOpacity}
+              />
+            </g>
 
             <g clipPath={`url(#${plotAreaClipId})`}>
               <PredictionChartSeriesLines
@@ -966,32 +1003,34 @@ export default function PredictionChart({
             </g>
 
             {showYAxis && (
-              <AxisRight
-                left={innerWidth}
-                scale={yScale}
-                tickFormat={(value) => {
-                  const numericValue = typeof value === 'number' ? value : value.valueOf()
-                  const formatter = yAxis?.tickFormat ?? ((v) => `${v}%`)
-                  return formatter(numericValue)
-                }}
-                tickValues={
-                  hideYAxisMinimumLabel
-                    ? resolvedYAxisTicks.filter((value) => Math.abs(value - yAxisMin) > Number.EPSILON)
-                    : resolvedYAxisTicks
-                }
-                stroke="transparent"
-                tickStroke="transparent"
-                tickLabelProps={{
-                  fill: axisLabelColor,
-                  fontSize: yAxisTickFontSize,
-                  fontFamily: 'Arial, sans-serif',
-                  textAnchor: 'start',
-                  dy: '0.33em',
-                  dx: '0.5em',
-                  opacity: axisLabelOpacity,
-                }}
-                tickLength={0}
-              />
+              <g mask={fadeYAxisEdges ? `url(#${yAxisFadeMaskId})` : undefined}>
+                <AxisRight
+                  left={innerWidth}
+                  scale={yScale}
+                  tickFormat={(value) => {
+                    const numericValue = typeof value === 'number' ? value : value.valueOf()
+                    const formatter = yAxis?.tickFormat ?? ((v) => `${v}%`)
+                    return formatter(numericValue)
+                  }}
+                  tickValues={
+                    hideYAxisMinimumLabel
+                      ? resolvedYAxisTicks.filter((value) => Math.abs(value - yAxisMin) > Number.EPSILON)
+                      : resolvedYAxisTicks
+                  }
+                  stroke="transparent"
+                  tickStroke="transparent"
+                  tickLabelProps={{
+                    fill: axisLabelColor,
+                    fontSize: yAxisTickFontSize,
+                    fontFamily: 'Arial, sans-serif',
+                    textAnchor: alignYAxisLabelsToChartEdge ? 'end' : 'start',
+                    dy: '0.33em',
+                    dx: alignYAxisLabelsToChartEdge ? `${Math.max(0, resolvedMargin.right - 2)}px` : '0.5em',
+                    opacity: axisLabelOpacity,
+                  }}
+                  tickLength={0}
+                />
+              </g>
             )}
 
             {showXAxis && (
@@ -999,12 +1038,13 @@ export default function PredictionChart({
                 {showXAxisTopRule && (
                   <line
                     x1={0}
-                    x2={showXAxisTopRuleFullWidth ? width - resolvedMargin.left : innerWidth}
+                    x2={showXAxisTopRuleFullWidth ? width - resolvedMargin.left - 0.5 : innerWidth}
                     y1={innerHeight}
                     y2={innerHeight}
                     stroke={gridLineColor}
                     strokeWidth={1}
                     opacity={Math.min(1, resolvedGridLineOpacity + 0.2)}
+                    vectorEffect="non-scaling-stroke"
                   />
                 )}
                 <AxisBottom
@@ -1045,21 +1085,23 @@ export default function PredictionChart({
             )}
 
             {canShowMarkers && lastDataPoint && (
-              <PredictionChartMarkers
-                series={series}
-                lastDataPoint={lastDataPoint}
-                revealSeriesSet={revealSeriesSet}
-                mutedPoints={mutedPoints}
-                shouldSplitByCursor={shouldSplitByCursor}
-                surgeActive={surgeActive}
-                preserveMarkersDuringSurge={disableResetAnimation}
-                markerOuterRadius={markerOuterRadius}
-                markerInnerRadius={markerInnerRadius}
-                markerPulseStyle={markerPulseStyle}
-                markerOffsetX={markerOffsetX}
-                xScale={xScale}
-                yScale={yScale}
-              />
+              <g clipPath={`url(#${gridAreaClipId})`}>
+                <PredictionChartMarkers
+                  series={series}
+                  lastDataPoint={lastDataPoint}
+                  revealSeriesSet={revealSeriesSet}
+                  mutedPoints={mutedPoints}
+                  shouldSplitByCursor={shouldSplitByCursor}
+                  surgeActive={surgeActive}
+                  preserveMarkersDuringSurge={disableResetAnimation}
+                  markerOuterRadius={markerOuterRadius}
+                  markerInnerRadius={markerInnerRadius}
+                  markerPulseStyle={markerPulseStyle}
+                  markerOffsetX={markerOffsetX}
+                  xScale={xScale}
+                  yScale={yScale}
+                />
+              </g>
             )}
 
             <rect
@@ -1088,7 +1130,7 @@ export default function PredictionChart({
                 x2={clampedTooltipX}
                 y1={resolvedCursorGuideTop}
                 y2={innerHeight}
-                stroke="#2C3F4F"
+                stroke={cursorGuideColor}
                 strokeWidth={1.5}
                 opacity={0.9}
                 pointerEvents="none"

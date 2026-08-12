@@ -28,6 +28,20 @@ export function resolveLiveSeriesPriceDisplayDigits(
   return resolveAdaptiveCryptoPriceDigits(referencePrice)
 }
 
+export function resolveLiveSeriesAxisPriceDigits(priceDisplayDigits: number, symbol?: string | null) {
+  if (
+    symbol
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z]/g, '')
+      .startsWith('btc')
+  ) {
+    return 0
+  }
+
+  return priceDisplayDigits
+}
+
 export function resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits: number, delta?: number | null) {
   const normalizedDigits = Number.isFinite(priceDisplayDigits) ? Math.max(0, Math.floor(priceDisplayDigits)) : 2
 

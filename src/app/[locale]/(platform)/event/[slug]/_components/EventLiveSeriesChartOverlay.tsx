@@ -30,7 +30,7 @@ export default function EventLiveSeriesChartOverlay({
       {targetLine && (
         <>
           <div
-            className="pointer-events-none absolute right-4 left-0 z-1 h-px sm:right-6"
+            className="pointer-events-none absolute right-0 left-0 z-1 h-px"
             style={{
               top: `${targetLine.badgeTop}px`,
               backgroundImage: `repeating-linear-gradient(
@@ -53,20 +53,18 @@ export default function EventLiveSeriesChartOverlay({
               />
             </svg>
             <span
-              className={cn(
-                `relative z-1 inline-flex items-center gap-0.5 pl-1.5 text-[10px] leading-none font-semibold text-white`,
-              )}
+              className={cn(`relative z-1 inline-flex items-center gap-0.5 pl-1.5 text-xs leading-none text-white`)}
             >
               <span>Target</span>
-              {targetLine.isAbove && <ChevronsUpIcon className="size-3 animate-pulse" />}
-              {targetLine.isBelow && <ChevronsDownIcon className="size-3 animate-pulse" />}
+              {targetLine.isAbove && <ChevronsUpIcon className="-mr-2 h-4 w-5 scale-x-[1.2] animate-pulse" />}
+              {targetLine.isBelow && <ChevronsDownIcon className="-mr-2 h-4 w-5 scale-x-[1.2] animate-pulse" />}
             </span>
           </span>
         </>
       )}
       {currentLineTop != null && (
         <div
-          className="pointer-events-none absolute right-4 left-0 z-2 mr-2 h-px sm:right-6"
+          className="pointer-events-none absolute right-0 left-0 z-2 h-px"
           style={{
             top: `${currentLineTop}px`,
             backgroundImage: `repeating-linear-gradient(
