@@ -47,12 +47,14 @@ describe('resolveLiveSeriesPillLabel', () => {
     ).toBe('2 PM Jul 24')
   })
 
-  it('keeps only two short-cadence pills visible and moves the rest into More', () => {
+  it('keeps LIVE and the next three short-cadence pills visible and moves the rest into More', () => {
     const events = [
       { id: 'event-1', slug: 'event-1' },
       { id: 'event-2', slug: 'event-2' },
       { id: 'event-3', slug: 'event-3' },
       { id: 'event-4', slug: 'event-4' },
+      { id: 'event-5', slug: 'event-5' },
+      { id: 'event-6', slug: 'event-6' },
     ]
 
     expect(
@@ -63,8 +65,8 @@ describe('resolveLiveSeriesPillLabel', () => {
         shouldStack: true,
       }),
     ).toEqual({
-      visibleEvents: events.slice(0, 2),
-      overflowEvents: events.slice(2),
+      visibleEvents: events.slice(0, 4),
+      overflowEvents: events.slice(4),
     })
   })
 
@@ -74,17 +76,19 @@ describe('resolveLiveSeriesPillLabel', () => {
       { id: 'event-2', slug: 'event-2' },
       { id: 'event-3', slug: 'event-3' },
       { id: 'event-4', slug: 'event-4' },
+      { id: 'event-5', slug: 'event-5' },
+      { id: 'event-6', slug: 'event-6' },
     ]
 
     const result = resolveLiveSeriesPillVisibility({
-      currentEventSlug: 'event-4',
+      currentEventSlug: 'event-6',
       currentTradingEventId: 'event-1',
       events,
       shouldStack: true,
     })
 
-    expect(result.visibleEvents).toEqual(events.slice(2))
-    expect(result.overflowEvents).toEqual(events.slice(0, 2))
+    expect(result.visibleEvents).toEqual([...events.slice(0, 4), events[5]])
+    expect(result.overflowEvents).toEqual([events[4]])
   })
 
   it('keeps two future pills visible without More', () => {
