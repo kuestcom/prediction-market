@@ -24,7 +24,7 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import {
   CRYPTO_CADENCE_ROUTES,
   isCryptoEvent,
-  resolveCryptoCadenceRelatedEventTitle,
+  resolveCryptoCadenceEventTitle,
   resolveCryptoCadenceRoute,
   resolveCryptoCadenceRouteSlug,
   resolveCryptoEventAsset,
@@ -3990,7 +3990,7 @@ export const EventRepository = {
         const chance = displayPrice != null ? displayPrice * 100 : null
         const normalizedSeriesSlug = row.series_slug?.trim().toLowerCase() ?? null
         const localizedTitle = localizedEventTitlesById.get(row.id) ?? String(row.title)
-        const compactCadenceTitle = resolveCryptoCadenceRelatedEventTitle(
+        const compactCadenceTitle = resolveCryptoCadenceEventTitle(
           {
             title: localizedTitle,
             end_date: row.end_date,

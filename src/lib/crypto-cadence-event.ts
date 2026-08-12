@@ -372,24 +372,6 @@ export function resolveCryptoCadenceEventTitle(event: CryptoEventCandidate, loca
     : null
 }
 
-export function resolveCryptoCadenceRelatedEventTitle(event: CryptoEventCandidate, localeValue?: string | null) {
-  if (!isCryptoEvent(event)) {
-    return null
-  }
-
-  const cadence = resolveCryptoEventCadence(event)
-  if (cadence?.cadence !== '5m' && cadence?.cadence !== '15m') {
-    return null
-  }
-
-  const asset = resolveCryptoEventAsset(event)
-  if (!asset) {
-    return null
-  }
-
-  return formatCadenceUpOrDownTitle(resolveSupportedLocale(localeValue), asset.symbol, `- ${cadence.titleSuffix}`)
-}
-
 export function resolveCryptoCadenceEventPresentation(event: CryptoEventCandidate, localeValue?: string | null) {
   const locale = resolveSupportedLocale(localeValue)
   const cadence = resolveCryptoEventCadence(event)

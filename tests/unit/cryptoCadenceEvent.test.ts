@@ -6,7 +6,6 @@ import {
   matchesCryptoCadenceRoute,
   resolveCryptoCadenceEventPresentation,
   resolveCryptoCadenceEventTitle,
-  resolveCryptoCadenceRelatedEventTitle,
   resolveCryptoCadenceRelatedLabel,
   resolveCryptoCadenceRouteSlug,
   resolveCryptoCadenceSidebarLabel,
@@ -133,33 +132,15 @@ describe('crypto cadence event presentation', () => {
     })
   })
 
-  it('uses compact localized titles for 5 and 15-minute related rows', () => {
+  it('uses the same compact header title for 4-hour related rows', () => {
     expect(
-      resolveCryptoCadenceRelatedEventTitle({
+      resolveCryptoCadenceEventTitle({
         ...BASE_BTC_EVENT,
-        end_date: '2026-07-28T12:15:00.000Z',
-        series_slug: 'btc-up-or-down-15m',
+        title: 'Solana Up or Down - August 12, 12:00AM-4:00AM ET',
+        end_date: '2026-08-12T08:00:00.000Z',
+        series_slug: 'solana-up-or-down-4h',
       }),
-    ).toBe('BTC Up or Down - 15m')
-
-    expect(
-      resolveCryptoCadenceRelatedEventTitle(
-        {
-          ...BASE_BTC_EVENT,
-          end_date: '2026-07-28T12:05:00.000Z',
-          series_slug: 'btc-up-or-down-5m',
-        },
-        'pt',
-      ),
-    ).toBe('BTC sobe ou desce - 5m')
-
-    expect(
-      resolveCryptoCadenceRelatedEventTitle({
-        ...BASE_BTC_EVENT,
-        end_date: '2026-07-28T13:00:00.000Z',
-        series_slug: 'btc-up-or-down-hourly',
-      }),
-    ).toBeNull()
+    ).toBe('SOL Up or Down 4h')
   })
 
   it('localizes generated cadence navigation labels', () => {
