@@ -121,8 +121,8 @@ export default function SettingsAffiliateContent({
         <SettingsResolutionRewardsClaim stats={rewardStats} />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        <section className="order-2 min-h-64 overflow-hidden rounded-xl border bg-background">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        <section className="order-2 flex min-h-64 flex-col overflow-hidden rounded-xl border bg-background lg:h-112">
           <div className="flex items-start justify-between gap-4 border-b p-4 sm:p-5">
             <div className="min-w-0">
               <h2 className="font-semibold">{t('Resolution activity')}</h2>
@@ -157,7 +157,7 @@ export default function SettingsAffiliateContent({
             </div>
           </div>
 
-          <div className="max-h-72 divide-y overflow-y-auto">
+          <div className="min-h-0 flex-1 divide-y overflow-y-auto">
             {recentProposals.length === 0 && (
               <div className="px-5 py-4 text-center">
                 <BadgeCheckIcon className="mx-auto size-5 text-violet-500/50" aria-hidden />
@@ -288,7 +288,7 @@ export default function SettingsAffiliateContent({
           </div>
         </section>
 
-        <section className="order-1 min-h-64 overflow-hidden rounded-xl border bg-background">
+        <section className="order-1 flex min-h-64 flex-col overflow-hidden rounded-xl border bg-background lg:h-112">
           <div className="flex items-start justify-between gap-4 border-b p-4 sm:p-5">
             <div className="min-w-0">
               <h2 className="font-semibold">{t('Affiliate link')}</h2>
@@ -358,38 +358,33 @@ export default function SettingsAffiliateContent({
           )}
 
           {recentReferrals.length > 0 && (
-            <>
-              <div className="border-t px-4 py-3 sm:px-5">
-                <p className="text-xs font-medium text-muted-foreground uppercase">{t('Recent referrals')}</p>
-              </div>
-              <div className="max-h-72 divide-y overflow-y-auto">
-                {recentReferrals.map((referral) => {
-                  const profileSlug = referral.address || referral.username
-                  return (
-                    <div key={referral.user_id} className="px-4 py-3 sm:px-5">
-                      <ProfileLink
-                        user={{
-                          image: referral.image ?? '',
-                          username: referral.username,
-                          address: referral.address,
-                          deposit_wallet_address: referral.deposit_wallet_address ?? null,
-                        }}
-                        profileHref={profileSlug ? (buildPublicProfilePath(profileSlug) ?? undefined) : undefined}
-                        layout="stacked"
-                        avatarSize={30}
-                        containerClassName="gap-3"
-                        usernameClassName="text-sm font-medium text-foreground"
-                        usernameMaxWidthClassName="max-w-48 sm:max-w-64"
-                      >
-                        <p className="text-xs text-muted-foreground">
-                          {t('Joined')} {new Date(referral.created_at).toLocaleDateString(locale)}
-                        </p>
-                      </ProfileLink>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
+            <div className="min-h-0 flex-1 divide-y overflow-y-auto border-t">
+              {recentReferrals.map((referral) => {
+                const profileSlug = referral.address || referral.username
+                return (
+                  <div key={referral.user_id} className="px-4 py-3 sm:px-5">
+                    <ProfileLink
+                      user={{
+                        image: referral.image ?? '',
+                        username: referral.username,
+                        address: referral.address,
+                        deposit_wallet_address: referral.deposit_wallet_address ?? null,
+                      }}
+                      profileHref={profileSlug ? (buildPublicProfilePath(profileSlug) ?? undefined) : undefined}
+                      layout="stacked"
+                      avatarSize={30}
+                      containerClassName="gap-3"
+                      usernameClassName="text-sm font-medium text-foreground"
+                      usernameMaxWidthClassName="max-w-48 sm:max-w-64"
+                    >
+                      <p className="text-xs text-muted-foreground">
+                        {t('Joined')} {new Date(referral.created_at).toLocaleDateString(locale)}
+                      </p>
+                    </ProfileLink>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </section>
       </div>

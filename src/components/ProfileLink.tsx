@@ -2,12 +2,14 @@
 
 import type { CSSProperties, ReactNode } from 'react'
 
+import { useQuery } from '@tanstack/react-query'
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import ProfileActivityTooltipCard from '@/components/ProfileActivityTooltipCard'
 import { Badge } from '@/components/ui/badge'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
@@ -51,57 +53,43 @@ function useAvatarFallbackStyle(showPlaceholder: boolean, avatarSeed: string) {
 }
 
 function useProfileTooltipStats(user: ProfileLinkProps['user']) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [stats, setStats] = useState<Awaited<ReturnType<typeof fetchProfileLinkStats>>>(null)
-  const [loadedStatsAddress, setLoadedStatsAddress] = useState<string | null>(null)
+  const { dataUrl, userPnlUrl } = usePublicRuntimeConfig()
+  const [shouldLoad, setShouldLoad] = useState(false)
   const statsAddress = useMemo(
     () => user.deposit_wallet_address ?? user.address,
     [user.address, user.deposit_wallet_address],
   )
-  const normalizedStatsAddress = statsAddress ?? null
-  const hasLoaded = normalizedStatsAddress === null || loadedStatsAddress === normalizedStatsAddress
-  const tooltipStats = loadedStatsAddress === normalizedStatsAddress ? stats : null
+  const normalizedStatsAddress = statsAddress?.trim().toLowerCase() ?? ''
+  const statsQuery = useQuery({
+    queryKey: ['profile-link-stats', dataUrl, userPnlUrl, normalizedStatsAddress],
+    queryFn: ({ signal }) =>
+      fetchProfileLinkStats(normalizedStatsAddress, {
+        dataApiUrl: dataUrl,
+        userPnlUrl,
+        signal,
+      }),
+    enabled: shouldLoad && Boolean(normalizedStatsAddress && dataUrl && userPnlUrl),
+    staleTime: 5 * 60 * 1_000,
+    gcTime: 15 * 60 * 1_000,
+    retry: 1,
+  })
 
-  useEffect(
-    function fetchStatsOnTooltipOpen() {
-      if (!isOpen || hasLoaded) {
-        return
-      }
+  function startLoading() {
+    setShouldLoad(true)
+  }
 
-      if (!normalizedStatsAddress) {
-        return
-      }
+  function handleOpenChange(isOpen: boolean) {
+    if (isOpen) {
+      startLoading()
+    }
+  }
 
-      const controller = new AbortController()
-      let isActive = true
-
-      fetchProfileLinkStats(normalizedStatsAddress, controller.signal)
-        .then((result) => {
-          if (!isActive || controller.signal.aborted) {
-            return
-          }
-          setStats(result)
-          setLoadedStatsAddress(normalizedStatsAddress)
-        })
-        .catch((error) => {
-          if (!isActive || controller.signal.aborted || error?.name === 'AbortError') {
-            return
-          }
-          setStats(null)
-          setLoadedStatsAddress(normalizedStatsAddress)
-        })
-
-      return function cleanupStatsFetch() {
-        isActive = false
-        controller.abort()
-      }
-    },
-    [hasLoaded, isOpen, normalizedStatsAddress],
-  )
-
-  const isTooltipLoading = isOpen && !hasLoaded
-
-  return { isOpen, setIsOpen, tooltipStats, isTooltipLoading }
+  return {
+    handleOpenChange,
+    startLoading,
+    tooltipStats: statsQuery.data ?? null,
+    isTooltipLoading: shouldLoad && statsQuery.isPending,
+  }
 }
 
 export default function ProfileLink({
@@ -123,7 +111,7 @@ export default function ProfileLink({
   avatarBadge,
   tooltipTrigger = 'all',
 }: ProfileLinkProps) {
-  const { setIsOpen, tooltipStats, isTooltipLoading } = useProfileTooltipStats(user)
+  const { handleOpenChange, startLoading, tooltipStats, isTooltipLoading } = useProfileTooltipStats(user)
   const isInline = layout === 'inline'
   const isStacked = layout === 'stacked'
   const inlineBody = inlineContent ?? children
@@ -224,8 +212,10 @@ export default function ProfileLink({
   )
 
   return (
-    <HoverCard onOpenChange={setIsOpen}>
+    <HoverCard onOpenChange={handleOpenChange}>
       <div
+        onPointerEnter={startLoading}
+        onFocusCapture={startLoading}
         className={cn(
           'flex gap-3',
           isInline

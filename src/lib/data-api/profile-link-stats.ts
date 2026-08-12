@@ -1,4 +1,4 @@
-import { buildDataApiUrl, getDataApiUrl, normalizeDataApiAddress } from '@/lib/data-api/client'
+import { normalizeDataApiAddress } from '@/lib/data-api/client'
 import { normalizeAddress } from '@/lib/wallet'
 
 export interface ProfileLinkStats {
@@ -9,6 +9,12 @@ export interface ProfileLinkStats {
 
 const CACHE_TTL_MS = 5 * 60 * 1000
 const CACHE_MAX_ENTRIES = 200
+
+interface ProfileLinkStatsRequestOptions {
+  dataApiUrl: string
+  signal?: AbortSignal
+  userPnlUrl: string
+}
 
 interface CacheEntry {
   value?: ProfileLinkStats | null
@@ -95,34 +101,104 @@ function parseVolumeValue(value: unknown): string | null {
   return null
 }
 
-function parseLeaderboardPnl(body: unknown): number | null {
-  if (!body) {
+function parseUserPnl(body: unknown): number | null {
+  if (!Array.isArray(body)) {
     return null
   }
 
-  function resolveEntry(entry: unknown): number | null {
-    if (!entry || typeof entry !== 'object') {
-      return null
-    }
-    return toNumber((entry as { pnl?: unknown }).pnl)
+  const points = body
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') {
+        return null
+      }
+
+      const point = entry as { p?: unknown; t?: unknown }
+      const value = toNumber(point.p)
+      if (value == null) {
+        return null
+      }
+
+      return {
+        index,
+        timestamp: toNumber(point.t),
+        value,
+      }
+    })
+    .filter((point): point is { index: number; timestamp: number | null; value: number } => point !== null)
+
+  if (points.length === 0) {
+    return null
   }
 
-  if (Array.isArray(body)) {
-    return resolveEntry(body[0]) ?? null
+  if (points.every((point) => point.timestamp !== null)) {
+    points.sort((first, second) => (first.timestamp ?? 0) - (second.timestamp ?? 0) || first.index - second.index)
   }
 
-  if (typeof body === 'object') {
-    const data = (body as { data?: unknown }).data
-    if (Array.isArray(data)) {
-      return resolveEntry(data[0]) ?? null
-    }
-    const leaderboard = (body as { leaderboard?: unknown }).leaderboard
-    if (Array.isArray(leaderboard)) {
-      return resolveEntry(leaderboard[0]) ?? null
-    }
-  }
+  return points.at(-1)?.value ?? null
+}
 
-  return null
+function buildApiUrl(baseUrl: string, pathname: string, searchParams: URLSearchParams) {
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '')
+  const normalizedPathname = pathname.startsWith('/') ? pathname : `/${pathname}`
+  return `${normalizedBaseUrl}${normalizedPathname}?${searchParams.toString()}`
+}
+
+function buildUserPnlUrl(baseUrl: string, address: string) {
+  const endpoint = new URL('/user-pnl', baseUrl)
+  endpoint.search = new URLSearchParams({
+    user_address: address,
+    interval: 'all',
+    fidelity: '12h',
+  }).toString()
+  return endpoint.toString()
+}
+
+function resolveCacheKey(dataApiUrl: string, userPnlUrl: string, address: string) {
+  return `${dataApiUrl.replace(/\/+$/, '')}:${userPnlUrl.replace(/\/+$/, '')}:${address}`
+}
+
+function hasConfiguredStatsServices(options: ProfileLinkStatsRequestOptions) {
+  return Boolean(options.dataApiUrl.trim() && options.userPnlUrl.trim())
+}
+
+function buildStatsUrls(dataApiUrl: string, userPnlUrl: string, normalizedAddress: string) {
+  const userParams = new URLSearchParams({ user: normalizedAddress })
+
+  return {
+    valueUrl: buildApiUrl(dataApiUrl, '/value', userParams),
+    volumeUrl: buildApiUrl(dataApiUrl, '/volume', userParams),
+    pnlUrl: buildUserPnlUrl(userPnlUrl, normalizedAddress),
+  }
+}
+
+async function loadProfileLinkStats(
+  normalizedAddress: string,
+  options: ProfileLinkStatsRequestOptions,
+): Promise<ProfileLinkStats | null> {
+  const { valueUrl, volumeUrl, pnlUrl } = buildStatsUrls(options.dataApiUrl, options.userPnlUrl, normalizedAddress)
+
+  try {
+    const [valueResult, volumeResult, pnlResult] = await Promise.allSettled([
+      fetchJson(valueUrl, options.signal),
+      fetchJson(volumeUrl, options.signal),
+      fetchJson(pnlUrl, options.signal),
+    ])
+
+    const volume = volumeResult.status === 'fulfilled' ? parseVolume(volumeResult.value) : null
+    const positionsValue = valueResult.status === 'fulfilled' ? parsePortfolioValue(valueResult.value) : 0
+    const profitLoss = pnlResult.status === 'fulfilled' ? parseUserPnl(pnlResult.value) : null
+
+    return {
+      profitLoss: profitLoss ?? 0,
+      volume,
+      positionsValue,
+    }
+  } catch (error) {
+    if ((error as { name?: string })?.name !== 'AbortError') {
+      console.error('Failed to fetch profile link stats', error)
+    }
+    return null
+  }
 }
 
 async function fetchJson(url: string, signal?: AbortSignal) {
@@ -135,29 +211,17 @@ async function fetchJson(url: string, signal?: AbortSignal) {
   return await response.json()
 }
 
-function getLeaderboardApiUrl() {
-  const dataApiUrl = getDataApiUrl()
-  return dataApiUrl.endsWith('/v1') ? dataApiUrl : `${dataApiUrl}/v1`
-}
-
 export async function fetchProfileLinkStats(
   userAddress?: string | null,
-  signal?: AbortSignal,
+  options?: ProfileLinkStatsRequestOptions,
 ): Promise<ProfileLinkStats | null> {
   const address = normalizeAddress(userAddress)
-  if (!address) {
-    return null
-  }
-
-  let leaderboardApiUrl: string
-  try {
-    leaderboardApiUrl = getLeaderboardApiUrl()
-  } catch {
+  if (!address || !options || !hasConfiguredStatsServices(options)) {
     return null
   }
 
   const normalizedAddress = normalizeDataApiAddress(address)
-  const cacheKey = normalizedAddress
+  const cacheKey = resolveCacheKey(options.dataApiUrl, options.userPnlUrl, normalizedAddress)
   const now = Date.now()
   pruneCache(now)
   const cached = statsCache.get(cacheKey)
@@ -171,47 +235,11 @@ export async function fetchProfileLinkStats(
     }
   }
 
-  const request = (async () => {
-    try {
-      const valueUrl = buildDataApiUrl('/value', new URLSearchParams({ user: normalizedAddress }))
-      const volumeUrl = buildDataApiUrl('/volume', new URLSearchParams({ user: normalizedAddress }))
-      const leaderboardParams = new URLSearchParams({
-        user: normalizedAddress,
-        timePeriod: 'all',
-        orderBy: 'PNL',
-        category: 'overall',
-        limit: '1',
-        offset: '0',
-      })
-      const leaderboardUrl = `${leaderboardApiUrl}/leaderboard?${leaderboardParams.toString()}`
-
-      const [valueResult, volumeResult, leaderboardResult] = await Promise.allSettled([
-        fetchJson(valueUrl, signal),
-        fetchJson(volumeUrl, signal),
-        fetchJson(leaderboardUrl, signal),
-      ])
-
-      const volume = volumeResult.status === 'fulfilled' ? parseVolume(volumeResult.value) : null
-
-      const positionsValue = valueResult.status === 'fulfilled' ? parsePortfolioValue(valueResult.value) : 0
-
-      const leaderboardPnl =
-        leaderboardResult.status === 'fulfilled' ? parseLeaderboardPnl(leaderboardResult.value) : null
-
-      return {
-        profitLoss: leaderboardPnl ?? 0,
-        volume,
-        positionsValue,
-      }
-    } catch (error) {
-      console.error('Failed to fetch profile link stats', error)
-      return null
-    }
-  })()
+  const request = loadProfileLinkStats(normalizedAddress, options)
 
   statsCache.set(cacheKey, { promise: request, expiresAt: now + CACHE_TTL_MS })
   const result = await request
-  if (signal?.aborted) {
+  if (options.signal?.aborted) {
     statsCache.delete(cacheKey)
     return null
   }

@@ -633,6 +633,51 @@ describe('eventsGrid', () => {
     })
 
     expect(mocks.refetch).not.toHaveBeenCalled()
+    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].refetchOnMount).toBe('always')
+    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].staleTime).toBe(60_000)
+  })
+
+  it('refreshes active series with the current client timestamp instead of the cached shell timestamp', async () => {
+    const cachedTimestamp = Date.parse('2026-03-16T12:00:00.000Z')
+    const liveTimestamp = Date.parse('2026-03-16T12:05:01.000Z')
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ events: [], hasMore: false }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.setSystemTime(liveTimestamp)
+
+    try {
+      render(
+        <EventsGrid
+          filters={{
+            tag: 'trending',
+            mainTag: 'trending',
+            search: '',
+            bookmarked: false,
+            frequency: 'all',
+            sortBy: 'volume_24h',
+            status: 'active',
+            hideSports: false,
+            hideCrypto: false,
+            hideEarnings: false,
+          }}
+          initialEvents={[{ id: 'cached-series-event' } as any]}
+          initialCurrentTimestamp={cachedTimestamp}
+          routeMainTag="trending"
+          routeTag="trending"
+        />,
+      )
+
+      const queryOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
+      await queryOptions.queryFn({ pageParam: 0 })
+
+      const requestUrl = fetchMock.mock.calls[0]?.[0] as string
+      expect(requestUrl).toContain(`currentTimestamp=${liveTimestamp}`)
+      expect(requestUrl).not.toContain(`currentTimestamp=${cachedTimestamp}`)
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('starts a fresh active feed query when the client timestamp hydrates from null', async () => {

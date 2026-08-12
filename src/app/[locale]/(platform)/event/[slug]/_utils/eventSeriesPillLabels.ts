@@ -39,9 +39,8 @@ export function resolveLiveSeriesPillVisibility<T extends SeriesPillEvent>({
   shouldStack: boolean
 }) {
   const currentTradingEventIndex = events.findIndex((event) => event.id === currentTradingEventId)
-  const futureEventCount = currentTradingEventIndex >= 0 ? events.length - currentTradingEventIndex - 1 : 0
 
-  if (!shouldStack || futureEventCount < 3) {
+  if (!shouldStack || currentTradingEventIndex < 0) {
     return {
       visibleEvents: events,
       overflowEvents: [] as T[],
@@ -49,13 +48,20 @@ export function resolveLiveSeriesPillVisibility<T extends SeriesPillEvent>({
   }
 
   const currentEventIndex = events.findIndex((event) => event.slug === currentEventSlug)
-  const anchorIndex = currentEventIndex >= 0 ? currentEventIndex : Math.max(0, currentTradingEventIndex)
-  const visibleStartIndex = Math.max(0, Math.min(anchorIndex - 1, events.length - 2))
-  const visibleEvents = events.slice(visibleStartIndex, visibleStartIndex + 2)
-  const visibleEventIds = new Set(visibleEvents.map((event) => event.id))
+  const liveAndNextEvents = events.slice(currentTradingEventIndex, currentTradingEventIndex + 4)
+  const selectedEvent = currentEventIndex >= 0 ? events[currentEventIndex] : null
+  const visibleEventIds = new Set(liveAndNextEvents.map((event) => event.id))
+  if (selectedEvent) {
+    visibleEventIds.add(selectedEvent.id)
+  }
+
+  const visibleEvents = events.filter((event) => visibleEventIds.has(event.id))
+  const overflowEvents = events.filter(
+    (event, index) => index > currentTradingEventIndex && !visibleEventIds.has(event.id),
+  )
 
   return {
     visibleEvents,
-    overflowEvents: events.filter((event) => !visibleEventIds.has(event.id)),
+    overflowEvents,
   }
 }

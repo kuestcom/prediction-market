@@ -79,11 +79,24 @@ function formatSignedStatValue(value?: number | null) {
     return '-'
   }
 
+  const absoluteValue = Math.abs(value)
+  const formattedValue =
+    absoluteValue >= 1_000
+      ? formatStatValue(absoluteValue)
+      : `$${absoluteValue
+          .toFixed(2)
+          .replace(/\.00$/, '')
+          .replace(/(\.\d)0$/, '$1')}`
+
   if (value < 0) {
-    return `-${formatStatValue(value)}`
+    return `-${formattedValue}`
   }
 
-  return formatStatValue(value)
+  if (value > 0) {
+    return `+${formattedValue}`
+  }
+
+  return formattedValue
 }
 
 export default function ProfileActivityTooltipCard({
@@ -97,14 +110,13 @@ export default function ProfileActivityTooltipCard({
   const volumeValue = formatStatValue(stats?.volume)
   const profitLossNumber =
     typeof stats?.profitLoss === 'number' && Number.isFinite(stats.profitLoss) ? stats.profitLoss : null
-  const profitLossRounded = profitLossNumber == null ? null : Math.round(profitLossNumber)
-  const profitLossValue = formatSignedStatValue(profitLossRounded)
+  const profitLossValue = formatSignedStatValue(profitLossNumber)
   const profitLossClassName =
     profitLossNumber == null
       ? 'text-foreground'
-      : (profitLossRounded ?? 0) > 0
+      : profitLossNumber > 0
         ? 'text-yes'
-        : (profitLossRounded ?? 0) < 0
+        : profitLossNumber < 0
           ? 'text-no'
           : 'text-foreground'
   const avatarUrl = profile.avatarUrl?.trim() ?? ''

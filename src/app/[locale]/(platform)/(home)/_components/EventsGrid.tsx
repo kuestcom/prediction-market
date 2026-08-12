@@ -631,7 +631,7 @@ export default function EventsGrid({
     queryFn: ({ pageParam }) =>
       fetchEvents({
         pageParam,
-        currentTimestamp: resolvedCurrentTimestamp,
+        currentTimestamp: shouldAutoRefreshEvents ? Date.now() : resolvedCurrentTimestamp,
         filters,
         locale,
       }),
@@ -642,9 +642,9 @@ export default function EventsGrid({
       ? { pages: [{ events: initialEvents, hasMore: initialHasMore }], pageParams: [0] }
       : undefined,
     enabled: shouldEnableEventsQuery,
-    refetchOnMount: false,
+    refetchOnMount: shouldAutoRefreshEvents ? 'always' : false,
     refetchOnWindowFocus: false,
-    staleTime: 'static',
+    staleTime: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : 'static',
     refetchInterval: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : false,
     refetchIntervalInBackground: true,
     initialDataUpdatedAt: 0,
