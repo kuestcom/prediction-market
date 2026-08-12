@@ -19,12 +19,12 @@ const LIVE_PRICE_TRANSITION_MIN_MS = 120
 const LIVE_PRICE_TRANSITION_CADENCE_RATIO = 0.8
 export const LIVE_CHART_HEIGHT = 332
 export const LIVE_CHART_MARGIN_TOP = 22
-export const LIVE_CHART_MARGIN_BOTTOM = 52
-export const LIVE_CHART_MARGIN_RIGHT = 40
+export const LIVE_CHART_MARGIN_BOTTOM = 42
+export const LIVE_CHART_MARGIN_RIGHT = 52
 export const LIVE_CHART_MARGIN_LEFT = 0
 export const LIVE_CURSOR_GUIDE_TOP = 10
 export const LIVE_TARGET_MAX_BOTTOM_OFFSET = 10
-export const LIVE_CURRENT_MARKER_OFFSET_X = 0
+export const LIVE_CURRENT_MARKER_OFFSET_X = -34
 export const LIVE_PLOT_CLIP_RIGHT_PADDING = 22
 export const POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS = Date.parse('2026-08-07T00:00:00Z')
 const LIVE_PRICE_STORAGE_PREFIX = 'kuest-live-last-price'
@@ -884,6 +884,13 @@ export function getVisibleCountdownUnits(
       { unit: 'day' as const, value: days },
       { unit: 'hr' as const, value: hours },
       { unit: 'min' as const, value: minutes },
+    ]
+  }
+
+  if (hours === 0) {
+    return [
+      { unit: 'min' as const, value: minutes },
+      { unit: 'sec' as const, value: seconds },
     ]
   }
 

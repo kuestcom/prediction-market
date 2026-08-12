@@ -40,10 +40,10 @@ export default function EventLiveSeriesViewSwitch({
       }
 
   return (
-    <div className="relative z-0 flex items-center rounded-lg border border-border bg-background/70 p-0.5">
+    <div className="relative z-0 flex h-[42px] items-center rounded-md border border-border bg-background/70 p-1">
       <span
         className={cn(
-          'pointer-events-none absolute top-0.5 left-0.5 z-0 size-8 rounded-md transition-all duration-300 ease-out',
+          'pointer-events-none absolute top-1 left-1 z-0 size-8 rounded-sm transition-all duration-300 ease-out',
           !isLiveChartView && 'bg-primary/30',
         )}
         style={switchThumbStyle}
@@ -52,7 +52,7 @@ export default function EventLiveSeriesViewSwitch({
         type="button"
         onClick={() => setActiveView('market')}
         className={cn(
-          'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
+          'relative z-1 flex size-8 items-center justify-center rounded-sm transition-colors',
           isMarketView ? 'text-primary' : 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         aria-label="Show market chart"
@@ -63,7 +63,7 @@ export default function EventLiveSeriesViewSwitch({
         type="button"
         onClick={() => setActiveView('live')}
         className={cn(
-          'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
+          'relative z-1 flex size-8 items-center justify-center rounded-sm transition-colors',
           !isLiveChartView && 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         style={liveSwitchIconStyle}

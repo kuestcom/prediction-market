@@ -9,7 +9,6 @@ import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/Pred
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { cn } from '@/lib/utils'
 
 import { useLiveSeriesClock } from '../_hooks/useLiveSeriesClock'
 import { useLiveSeriesPriceSnapshot } from '../_hooks/useLiveSeriesPriceSnapshot'
@@ -452,6 +451,19 @@ function EventLiveSeriesChartContent({
         pointsWithinDomain.length > 0
           ? [lastPointBeforeDomainStart, ...pointsWithinDomain]
           : [lastPointBeforeDomainStart]
+    } else if (pointsWithinDomain.length > 0) {
+      const firstPoint = pointsWithinDomain[0]
+      const firstPrice = firstPoint?.[SERIES_KEY]
+
+      if (typeof firstPrice === 'number' && Number.isFinite(firstPrice)) {
+        next = [
+          {
+            date: new Date(domainStart),
+            [SERIES_KEY]: firstPrice,
+          },
+          ...pointsWithinDomain,
+        ]
+      }
     }
 
     const lastPoint = next.at(-1)
@@ -633,121 +645,129 @@ function EventLiveSeriesChartContent({
 
   return (
     <div className="grid gap-4">
-      {isLiveView ? (
-        <div className="grid gap-1">
-          <EventLiveSeriesChartHeader
-            resolvedBaselinePrice={displayedBaselinePrice}
-            headerPriceDisplayDigits={headerPriceDisplayDigits}
-            currentPrice={currentPrice}
-            delta={delta}
-            deltaDisplayDigits={deltaDisplayDigits}
-            liveColor={liveColor}
-            shouldShowCountdown={shouldShowCountdown}
-            isEventClosed={isEventClosed}
-            liveMarketHref={liveMarketHref}
-            isMobile={isMobile}
-            isTradingWindowActive={isTradingWindowActive}
-            visibleCountdownUnits={visibleCountdownUnits}
-            countdownLeftLabel={countdownLeftLabel}
-            etDateLabel={etDateLabel}
-            etTimeLabel={etTimeLabel}
-            utcDateLabel={utcDateLabel}
-            utcTimeLabel={utcTimeLabel}
-            status={status}
-            watermark={watermark}
-          />
+      <div className="min-h-96">
+        {isLiveView ? (
+          <div className="grid gap-1">
+            <EventLiveSeriesChartHeader
+              resolvedBaselinePrice={displayedBaselinePrice}
+              headerPriceDisplayDigits={headerPriceDisplayDigits}
+              currentPrice={currentPrice}
+              delta={delta}
+              deltaDisplayDigits={deltaDisplayDigits}
+              liveColor={liveColor}
+              shouldShowCountdown={shouldShowCountdown}
+              isEventClosed={isEventClosed}
+              liveMarketHref={liveMarketHref}
+              isMobile={isMobile}
+              isTradingWindowActive={isTradingWindowActive}
+              visibleCountdownUnits={visibleCountdownUnits}
+              countdownLeftLabel={countdownLeftLabel}
+              etDateLabel={etDateLabel}
+              etTimeLabel={etTimeLabel}
+              utcDateLabel={utcDateLabel}
+              utcTimeLabel={utcTimeLabel}
+              status={status}
+              watermark={watermark}
+            />
 
-          <div className={cn('relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0')}>
-            <EventLiveSeriesChartOverlay
-              targetLine={targetLine}
-              targetLineGuideColor={targetLineGuideColor}
-              targetBadgeColor={targetBadgeColor}
-              currentLineTop={currentLineTop}
-              currentPriceGuideColor={currentPriceGuideColor}
-            />
-            <PredictionChart
-              data={renderData}
-              series={series}
-              dataSyncMode="replace"
-              width={chartWidth}
-              height={chartHeight}
-              margin={{
-                top: LIVE_CHART_MARGIN_TOP,
-                right: LIVE_CHART_MARGIN_RIGHT,
-                bottom: LIVE_CHART_MARGIN_BOTTOM,
-                left: LIVE_CHART_MARGIN_LEFT,
-              }}
-              dataSignature={`${event.id}:${realtimeTopic}:${subscriptionSymbol}`}
-              xAxisTickCount={isMobile ? 2 : 4}
-              xDomain={liveXAxisDomain}
-              xAxisTickValues={xAxisTickValues}
-              xAxisTickFormatter={(date) =>
-                date.toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false,
-                })
-              }
-              showVerticalGrid={false}
-              showHorizontalGrid
-              gridLineStyle="solid"
-              gridLineOpacity={0.42}
-              showLegend={false}
-              xAxisTickFontSize={13}
-              yAxisTickFontSize={12}
-              showXAxisTopRule
-              cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
-              disableCursorSplit
-              disableResetAnimation
-              markerOuterRadius={10}
-              markerInnerRadius={4.2}
-              markerPulseStyle="ring"
-              markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
-              lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
-              lineStrokeWidth={2.15}
-              plotClipPadding={{
-                right: LIVE_PLOT_CLIP_RIGHT_PADDING,
-              }}
-              showAreaFill
-              areaFillTopOpacity={0.08}
-              areaFillBottomOpacity={0}
-              yAxis={{
-                min: axisValues.min,
-                max: axisValues.max,
-                ticks: axisValues.ticks,
-                tickFormat: (value) => formatUsd(value, priceDisplayDigits),
-              }}
-              tooltipValueFormatter={(value) => formatUsd(value, priceDisplayDigits)}
-              tooltipDateFormatter={(date) =>
-                date.toLocaleString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  second: '2-digit',
-                }) + (isMarketClosed ? ' (market closed)' : '')
-              }
-              showTooltipSeriesLabels={false}
-              tooltipHeader={{
-                iconPath: config.icon_path,
-                color: liveColor,
-              }}
-              lineCurve="catmullRom"
-            />
+            <div className="relative z-0">
+              <EventLiveSeriesChartOverlay
+                targetLine={targetLine}
+                targetLineGuideColor={targetLineGuideColor}
+                targetBadgeColor={targetBadgeColor}
+                currentLineTop={currentLineTop}
+                currentPriceGuideColor={currentPriceGuideColor}
+              />
+              <PredictionChart
+                data={renderData}
+                series={series}
+                dataSyncMode="replace"
+                width={chartWidth}
+                height={chartHeight}
+                margin={{
+                  top: LIVE_CHART_MARGIN_TOP,
+                  right: LIVE_CHART_MARGIN_RIGHT,
+                  bottom: LIVE_CHART_MARGIN_BOTTOM,
+                  left: LIVE_CHART_MARGIN_LEFT,
+                }}
+                dataSignature={`${event.id}:${realtimeTopic}:${subscriptionSymbol}`}
+                xAxisTickCount={isMobile ? 2 : 4}
+                xDomain={liveXAxisDomain}
+                xAxisTickValues={xAxisTickValues}
+                xAxisTickFormatter={(date) =>
+                  date.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                  })
+                }
+                showVerticalGrid={false}
+                showHorizontalGrid
+                gridLineStyle="solid"
+                gridLineOpacity={0.42}
+                showLegend={false}
+                xAxisTickFontSize={10}
+                yAxisTickFontSize={10}
+                showXAxisTopRule
+                showXAxisTopRuleFullWidth
+                hideYAxisMinimumLabel
+                cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
+                disableCursorSplit
+                disableResetAnimation
+                markerOuterRadius={10}
+                markerInnerRadius={3.4}
+                markerPulseStyle="ring"
+                markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+                lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+                lineStrokeWidth={2.15}
+                plotClipPadding={{
+                  right: LIVE_PLOT_CLIP_RIGHT_PADDING,
+                  left: 0,
+                }}
+                showAreaFill
+                areaFillTopOpacity={0.045}
+                areaFillBottomOpacity={0}
+                areaFillBottomOffset={5}
+                yAxis={{
+                  min: axisValues.min,
+                  max: axisValues.max,
+                  ticks: axisValues.ticks,
+                  tickFormat: (value) => formatUsd(value, priceDisplayDigits),
+                }}
+                tooltipValueFormatter={(value) => formatUsd(value, priceDisplayDigits)}
+                tooltipHeaderFontSize={11}
+                tooltipDateFontSize={10}
+                tooltipDateFormatter={(date) =>
+                  date.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  }) + (isMarketClosed ? ' (market closed)' : '')
+                }
+                showTooltipSeriesLabels={false}
+                tooltipHeader={{
+                  iconPath: config.icon_path,
+                  color: liveColor,
+                }}
+                lineCurve="catmullRom"
+              />
+            </div>
           </div>
-        </div>
-      ) : (
-        <EventChart
-          event={event}
-          isMobile={isMobile}
-          seriesEvents={seriesEvents}
-          chartWidth={providedChartWidth}
-          showControls={false}
-          showSeriesNavigation={false}
-        />
-      )}
+        ) : (
+          <EventChart
+            event={event}
+            isMobile={isMobile}
+            seriesEvents={seriesEvents}
+            chartWidth={providedChartWidth}
+            showControls={false}
+            showSeriesNavigation={false}
+          />
+        )}
+      </div>
 
       {showSeriesControls && (
         <EventSeriesPills

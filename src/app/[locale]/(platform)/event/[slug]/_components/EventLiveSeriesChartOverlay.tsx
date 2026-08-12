@@ -43,23 +43,23 @@ export default function EventLiveSeriesChartOverlay({
             }}
           />
           <span
-            className="pointer-events-none absolute right-4 z-1 inline-flex -translate-y-1/2 items-center sm:right-6"
+            className="pointer-events-none absolute right-0 z-1 inline-flex h-[18px] w-[84px] -translate-y-1/2 items-center justify-center"
             style={{ top: `${targetLine.badgeTop}px` }}
           >
-            <span
-              aria-hidden
-              className="relative z-0 -mr-px inline-block h-3.5 w-2 [clip-path:polygon(0_50%,100%_0,100%_100%)]"
-              style={{ backgroundColor: targetBadgeColor }}
-            />
+            <svg aria-hidden className="absolute inset-0 size-full" viewBox="0 0 84 18" preserveAspectRatio="none">
+              <path
+                d="M0 9L9 2.2C10.8 0.8 13 0 15.3 0H79C81.8 0 84 2.2 84 5V13C84 15.8 81.8 18 79 18H15.3C13 18 10.8 17.2 9 15.8L0 9Z"
+                fill={targetBadgeColor}
+              />
+            </svg>
             <span
               className={cn(
-                `relative z-1 inline-flex items-center gap-0.5 rounded-[4px] px-2 py-1 pl-2 text-xs font-semibold text-white`,
+                `relative z-1 inline-flex items-center gap-0.5 pl-1.5 text-[10px] leading-none font-semibold text-white`,
               )}
-              style={{ backgroundColor: targetBadgeColor }}
             >
               <span>Target</span>
-              {targetLine.isAbove && <ChevronsUpIcon className="size-3.5 animate-pulse" />}
-              {targetLine.isBelow && <ChevronsDownIcon className="size-3.5 animate-pulse" />}
+              {targetLine.isAbove && <ChevronsUpIcon className="size-3 animate-pulse" />}
+              {targetLine.isBelow && <ChevronsDownIcon className="size-3 animate-pulse" />}
             </span>
           </span>
         </>

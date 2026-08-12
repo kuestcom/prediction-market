@@ -80,6 +80,8 @@ export default function PredictionChart({
   xAxisTickFontSize = 11,
   yAxisTickFontSize = 11,
   showXAxisTopRule = false,
+  showXAxisTopRuleFullWidth = false,
+  hideYAxisMinimumLabel = false,
   cursorGuideTop,
   autoscale = true,
   showXAxis = true,
@@ -107,8 +109,11 @@ export default function PredictionChart({
   showAreaFill = false,
   areaFillTopOpacity = 0.16,
   areaFillBottomOpacity = 0,
+  areaFillBottomOffset = 0,
   tooltipValueFormatter,
   tooltipDateFormatter,
+  tooltipHeaderFontSize,
+  tooltipDateFontSize,
   showTooltipSeriesLabels = true,
   tooltipLabelVariant = 'filled',
   clampCursorToDataExtent = false,
@@ -400,11 +405,13 @@ export default function PredictionChart({
       const { x } = localPoint(event) || { x: 0 }
       const innerWidth = width - resolvedMargin.left - resolvedMargin.right
       const innerHeight = height - resolvedMargin.top - resolvedMargin.bottom
+      const resolvedLineEndOffsetX = Number.isFinite(lineEndOffsetX) ? Math.min(0, lineEndOffsetX) : 0
+      const cursorRangeEnd = Math.max(1, innerWidth + resolvedLineEndOffsetX)
       const domainStart = domainBounds.start
       const domainEnd = domainBounds.end
 
       const xScale = scaleTime<number>({
-        range: [0, innerWidth],
+        range: [0, cursorRangeEnd],
         domain: [domainStart, domainEnd],
       })
 
@@ -418,7 +425,7 @@ export default function PredictionChart({
       const clampedTime = Math.max(domainStart, Math.min(domainEnd, rawDate.getTime()))
       const localX = x - resolvedMargin.left
       let targetTime = clampedTime
-      if (localX >= innerWidth - 1) {
+      if (localX >= cursorRangeEnd - 1) {
         targetTime = domainEnd
       } else if (localX <= 1) {
         targetTime = domainStart
@@ -497,6 +504,7 @@ export default function PredictionChart({
       disableCursorSplit,
       hasPointerInteractionRef,
       lastCursorProgressRef,
+      lineEndOffsetX,
     ],
   )
 
@@ -625,11 +633,19 @@ export default function PredictionChart({
 
   const innerWidth = width - resolvedMargin.left - resolvedMargin.right
   const innerHeight = height - resolvedMargin.top - resolvedMargin.bottom
+  const resolvedAreaFillBottomOffset =
+    Number.isFinite(areaFillBottomOffset) && areaFillBottomOffset > 0 ? Math.min(areaFillBottomOffset, innerHeight) : 0
 
   const xScale = scaleTime<number>({
     range: [0, innerWidth],
     domain: [domainBounds.start, domainBounds.end],
   })
+  const xAxisScale = showXAxisTopRuleFullWidth
+    ? scaleTime<number>({
+        range: [0, width - resolvedMargin.left],
+        domain: [domainBounds.start, domainBounds.end],
+      })
+    : xScale
 
   const yScale = scaleLinear<number>({
     range: [innerHeight, 0],
@@ -810,17 +826,8 @@ export default function PredictionChart({
   function getX(d: DataPoint) {
     const baseX = xScale(getDate(d))
     const resolvedLineEndOffsetX = Number.isFinite(lineEndOffsetX) ? lineEndOffsetX : 0
-
-    if (resolvedLineEndOffsetX === 0 || data.length === 0) {
-      return baseX
-    }
-
-    const lastTimestamp = data.at(-1)?.date.getTime()
-    if (!Number.isFinite(lastTimestamp) || d.date.getTime() !== lastTimestamp) {
-      return baseX
-    }
-
-    return baseX + resolvedLineEndOffsetX
+    const offsetProgress = innerWidth > 0 ? clamp01(baseX / innerWidth) : 1
+    return baseX + resolvedLineEndOffsetX * offsetProgress
   }
 
   function getSeriesValue(point: DataPoint, seriesKey: string) {
@@ -854,7 +861,7 @@ export default function PredictionChart({
     top: Math.max(clipPadding, Number(plotClipPadding?.top ?? 0)),
     right: Math.max(clipPadding, Number(plotClipPadding?.right ?? 0)),
     bottom: Math.max(clipPadding, Number(plotClipPadding?.bottom ?? 0)),
-    left: Math.max(clipPadding, Number(plotClipPadding?.left ?? 0)),
+    left: plotClipPadding?.left === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.left ?? 0)),
   }
   const resolvedCursorGuideTop = typeof cursorGuideTop === 'number' ? cursorGuideTop : -resolvedMargin.top
 
@@ -945,6 +952,7 @@ export default function PredictionChart({
                 showAreaFill={showAreaFill}
                 resolvedAreaFillTopOpacity={resolvedAreaFillTopOpacity}
                 resolvedAreaFillBottomOpacity={resolvedAreaFillBottomOpacity}
+                areaFillBottomOffset={resolvedAreaFillBottomOffset}
                 clipId={clipId}
                 leftClipId={leftClipId}
                 rightClipId={rightClipId}
@@ -966,7 +974,11 @@ export default function PredictionChart({
                   const formatter = yAxis?.tickFormat ?? ((v) => `${v}%`)
                   return formatter(numericValue)
                 }}
-                tickValues={resolvedYAxisTicks}
+                tickValues={
+                  hideYAxisMinimumLabel
+                    ? resolvedYAxisTicks.filter((value) => Math.abs(value - yAxisMin) > Number.EPSILON)
+                    : resolvedYAxisTicks
+                }
                 stroke="transparent"
                 tickStroke="transparent"
                 tickLabelProps={{
@@ -987,7 +999,7 @@ export default function PredictionChart({
                 {showXAxisTopRule && (
                   <line
                     x1={0}
-                    x2={innerWidth}
+                    x2={showXAxisTopRuleFullWidth ? width - resolvedMargin.left : innerWidth}
                     y1={innerHeight}
                     y2={innerHeight}
                     stroke={gridLineColor}
@@ -997,14 +1009,14 @@ export default function PredictionChart({
                 )}
                 <AxisBottom
                   top={innerHeight}
-                  scale={xScale}
+                  scale={xAxisScale}
                   tickFormat={formatAxisTick}
                   tickValues={resolvedXAxisTickValues ?? undefined}
                   stroke="transparent"
                   tickStroke="transparent"
                   tickLabelProps={(_value, index, values) => {
                     const lastIndex = Array.isArray(values) ? values.length - 1 : -1
-                    const shouldCenterAllLabels = Boolean(resolvedXAxisTickValues)
+                    const shouldCenterAllLabels = Boolean(resolvedXAxisTickValues) && !showXAxisTopRuleFullWidth
                     const textAnchor = shouldCenterAllLabels
                       ? 'middle'
                       : index === 0
@@ -1019,7 +1031,7 @@ export default function PredictionChart({
                       fontSize: xAxisTickFontSize,
                       fontFamily: 'Arial, sans-serif',
                       textAnchor,
-                      dy: showXAxisTopRule ? '1.05em' : '0.6em',
+                      dy: showXAxisTopRuleFullWidth ? '0.72em' : showXAxisTopRule ? '1.05em' : '0.6em',
                       opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
                       style: {
                         fontVariantNumeric: 'tabular-nums',
@@ -1109,6 +1121,8 @@ export default function PredictionChart({
           clampedTooltipX={clampedTooltipX}
           valueFormatter={tooltipValueFormatter}
           dateFormatter={tooltipDateFormatter}
+          headerFontSize={tooltipHeaderFontSize}
+          dateFontSize={tooltipDateFontSize}
           showSeriesLabels={showTooltipSeriesLabels}
           labelVariant={tooltipLabelVariant}
           header={tooltipHeader}

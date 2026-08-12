@@ -345,18 +345,13 @@ export default function EventSeriesPills({
       .reverse()
 
     return (
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-2 pr-4 pl-0 sm:pr-6 sm:pl-0',
-          hasRightSlot && 'justify-between gap-3',
-        )}
-      >
+      <div className={cn('flex flex-wrap items-center gap-2', hasRightSlot && 'justify-between gap-3')}>
         <div className="flex flex-wrap items-center gap-2">
           {hasSeriesNavigation && shouldShowPastDropdown && (
             <DropdownMenu open={isPastMenuOpen} onOpenChange={setIsPastMenuOpen} modal={false}>
               <div
                 className={cn(
-                  'inline-flex h-8 items-center rounded-full bg-muted px-1 text-xs font-semibold',
+                  'inline-flex h-[34px] items-center rounded-full bg-muted px-1 text-xs font-semibold',
                   'text-foreground',
                 )}
               >
@@ -365,7 +360,7 @@ export default function EventSeriesPills({
                     <button
                       type="button"
                       className={cn(
-                        'inline-flex h-8 items-center gap-1.5 rounded-full pr-1 pl-2.5 transition-colors',
+                        'inline-flex h-[34px] items-center gap-1.5 rounded-full pr-1 pl-2.5 transition-colors',
                         'hover:bg-muted/85',
                       )}
                     />
@@ -469,7 +464,7 @@ export default function EventSeriesPills({
           {hasSeriesNavigation && currentResolvedEvent && (
             <span
               className={cn(
-                'inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold',
+                'inline-flex h-[34px] items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold',
                 'text-background',
               )}
             >
@@ -498,7 +493,7 @@ export default function EventSeriesPills({
                       <Link
                         href={resolveEventPagePath(event)}
                         className={cn(
-                          `inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
+                          `inline-flex h-[34px] cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
                           isCurrentEvent
                             ? 'bg-foreground text-background hover:bg-foreground/90'
                             : 'bg-muted text-foreground hover:bg-muted/80',
@@ -536,7 +531,7 @@ export default function EventSeriesPills({
                   <button
                     type="button"
                     className={cn(
-                      `inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold text-foreground transition-colors hover:bg-muted/80`,
+                      `inline-flex h-[34px] items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold text-foreground transition-colors hover:bg-muted/80`,
                     )}
                   />
                 }
