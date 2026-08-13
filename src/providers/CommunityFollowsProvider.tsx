@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
+import { BellRingIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useSignMessage } from 'wagmi'
@@ -12,7 +13,10 @@ import type { CommunityFollowStatus } from '@/lib/community-follows'
 import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { useTradeAlerts } from '@/hooks/useTradeAlerts'
+import { useRouter } from '@/i18n/navigation'
 import { clearCommunityAuth, ensureCommunityToken, loadCommunityAuth } from '@/lib/community-auth'
 import {
   COMMUNITY_FOLLOW_STATUS_BATCH_LIMIT,
@@ -21,9 +25,11 @@ import {
   fetchCommunityFollowStatuses,
   setCommunityFollow,
 } from '@/lib/community-follows'
+import { useTradeAlertsStore } from '@/stores/useTradeAlerts'
 import { useUser } from '@/stores/useUser'
 
 const WALLET_PATTERN = /^0x[0-9a-f]{40}$/i
+const TRADE_ALERT_PROMPT_TOAST_ID = 'community-follow-push-prompt'
 
 interface CommunityFollowContextValue {
   getStatus: (wallet: string) => CommunityFollowStatus
@@ -47,13 +53,17 @@ const CommunityFollowContext = createContext<CommunityFollowContextValue | null>
 export function CommunityFollowsProvider({ children }: { children: ReactNode }) {
   const t = useExtracted()
   const { open } = useAppKit()
+  const router = useRouter()
   const user = useUser()
+  const tradeAlerts = useTradeAlerts()
+  const { isIos, isStandalone } = usePwaInstall()
   const { communityUrl } = usePublicRuntimeConfig()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const queryClient = useQueryClient()
   const registrations = useRef(new Map<string, number>())
   const pendingRef = useRef(new Set<string>())
+  const pushPromptShownRef = useRef(false)
   const [registeredWallets, setRegisteredWallets] = useState<string[]>([])
   const [pendingWallets, setPendingWallets] = useState<ReadonlySet<string>>(new Set())
   const [overrides, setOverrides] = useState<ReadonlyMap<string, CommunityFollowStatus>>(new Map())
@@ -70,6 +80,7 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
   useEffect(() => {
     setOverrides(new Map())
     pendingRef.current.clear()
+    pushPromptShownRef.current = false
     setPendingWallets(new Set())
     void queryClient.invalidateQueries({ queryKey: communityFollowQueryKeys.all })
   }, [queryClient, viewerAddress, viewerDepositWallet])
@@ -116,6 +127,57 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
     },
     [communityUrl, queryClient],
   )
+
+  const offerTradeAlerts = useCallback(async () => {
+    if (pushPromptShownRef.current) {
+      return
+    }
+    pushPromptShownRef.current = true
+    try {
+      await tradeAlerts.refreshState()
+    } catch {
+      return
+    }
+    const state = useTradeAlertsStore.getState()
+    const needsIosSetup = isIos && !isStandalone
+    if (state.enabled || (state.permission === 'unsupported' && !needsIosSetup)) {
+      return
+    }
+
+    const needsSettings = state.permission === 'denied' || needsIosSetup
+    function openSettings() {
+      router.push('/settings/notifications')
+    }
+    async function enableFromPrompt() {
+      toast.dismiss(TRADE_ALERT_PROMPT_TOAST_ID)
+      try {
+        const enabled = await tradeAlerts.enable()
+        if (enabled) {
+          toast.success(t('Trade alerts enabled.'))
+          return
+        }
+        toast.warning(t('Notifications are blocked. Enable them in your browser or system settings.'), {
+          action: { label: t('Settings'), onClick: openSettings },
+        })
+      } catch {
+        toast.error(t('Could not update trade alerts. Please try again.'))
+      }
+    }
+
+    toast.message(t('Enable push notifications'), {
+      id: TRADE_ALERT_PROMPT_TOAST_ID,
+      icon: <BellRingIcon aria-hidden className="size-5 text-primary" />,
+      description: needsIosSetup
+        ? t('Add this site to your Home Screen to enable notifications.')
+        : needsSettings
+          ? t('Notifications are blocked. Enable them in your browser or system settings.')
+          : t('Get trade alerts from people you follow on this device.'),
+      duration: 12_000,
+      action: needsSettings
+        ? { label: t('Settings'), onClick: openSettings }
+        : { label: t('Enable'), onClick: () => void enableFromPrompt() },
+    })
+  }, [isIos, isStandalone, router, t, tradeAlerts])
 
   const mutation = useMutation({
     mutationKey: [...communityFollowQueryKeys.all, 'toggle'],
@@ -177,6 +239,9 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
         setOverrides((current) => new Map(current).set(normalized, result))
         updateStatusCaches(result)
         setAuthRevision((current) => current + 1)
+        if (following && result.isFollowing) {
+          void offerTradeAlerts()
+        }
       } catch (error) {
         setOverrides((current) => new Map(current).set(normalized, previous))
         updateStatusCaches(previous)
@@ -186,7 +251,7 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
         setPendingWallets(new Set(pendingRef.current))
       }
     },
-    [getStatus, mutation, open, t, updateStatusCaches, viewerAddress, viewerWallets],
+    [getStatus, mutation, offerTradeAlerts, open, t, updateStatusCaches, viewerAddress, viewerWallets],
   )
 
   const registerWallet = useCallback((wallet: string) => {

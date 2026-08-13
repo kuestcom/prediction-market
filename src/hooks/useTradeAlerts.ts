@@ -98,13 +98,15 @@ export function useTradeAlerts() {
     }
     useTradeAlertsStore.setState({ loading: true })
     try {
-      const registration = await navigator.serviceWorker.ready
-      const publicKey = await getCommunityVapidPublicKey(communityUrl)
       const result = await Notification.requestPermission()
       useTradeAlertsStore.setState({ permission: result })
       if (result !== 'granted') {
         return false
       }
+      const [registration, publicKey] = await Promise.all([
+        navigator.serviceWorker.ready,
+        getCommunityVapidPublicKey(communityUrl),
+      ])
       const existing = await registration.pushManager.getSubscription()
       const subscription =
         existing ??

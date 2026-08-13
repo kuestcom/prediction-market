@@ -48,6 +48,11 @@ export function resolveTradeAlertOutcomeColorClass(outcome?: string | null) {
   return normalized.includes('yes') || normalized.includes('up') || normalized.includes('true') ? 'text-yes' : 'text-no'
 }
 
+export function formatTradeAlertTraderLabel(trader: string) {
+  const normalized = trader.trim()
+  return !normalized || /^(?:@|0x)/i.test(normalized) ? normalized : `@${normalized}`
+}
+
 export function FollowedTradeSummary({
   trader,
   side,
@@ -58,6 +63,7 @@ export function FollowedTradeSummary({
 }: FollowedTradeSummaryProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const traderLabel = formatTradeAlertTraderLabel(trader)
   const normalizedOutcome = normalizeOutcomeLabel(outcome) || outcome
   const priceLabel =
     typeof averagePrice === 'number' && Number.isFinite(averagePrice)
@@ -70,7 +76,7 @@ export function FollowedTradeSummary({
 
   return (
     <span className={cn('min-w-0 text-sm/tight', className)}>
-      <span className="font-semibold text-foreground">{trader}</span>{' '}
+      <span className="font-semibold text-foreground">{traderLabel}</span>{' '}
       <span className="text-muted-foreground">{side.toUpperCase() === 'SELL' ? t('sold') : t('bought')}</span>{' '}
       <span className={cn('font-semibold', resolveTradeAlertOutcomeColorClass(outcome))}>{normalizedOutcome}</span>
       {priceLabel && (

@@ -1,5 +1,6 @@
 'use client'
 
+import { BellRingIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useOptimistic, useRef, useState } from 'react'
@@ -106,6 +107,43 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
     <div className="grid gap-8">
       {status?.error && <InputError message={status.error} />}
 
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-6 shadow-sm">
+        <div className="grid gap-4">
+          <div className="flex items-center gap-2">
+            <BellRingIcon aria-hidden className="size-5 text-primary" />
+            <h3 className="text-lg font-semibold">{t('Trade alerts')}</h3>
+          </div>
+          <div className="flex items-center justify-between gap-6">
+            <div className="grid gap-1">
+              <Label htmlFor="trade-alerts" className="text-sm font-medium">
+                {t('Followed trader activity')}
+              </Label>
+              <p className="text-sm text-muted-foreground">{tradeAlertDescription}</p>
+            </div>
+            <Switch
+              id="trade-alerts"
+              className="shrink-0 scale-110"
+              checked={tradeAlerts.enabled}
+              onCheckedChange={(checked) => void handleTradeAlertsChange(checked)}
+              disabled={
+                tradeAlerts.loading ||
+                !tradeAlerts.supported ||
+                tradeAlerts.permission === 'denied' ||
+                (isIos && !isStandalone)
+              }
+            />
+          </div>
+          {isIos && !isStandalone && (
+            <div className="rounded-md bg-muted/40 p-4">
+              <p className="mb-3 text-sm font-medium">
+                {t('Add this site to your Home Screen to enable notifications.')}
+              </p>
+              <PwaInstallIosInstructions />
+            </div>
+          )}
+        </div>
+      </div>
+
       <Form ref={formRef} action={() => {}} className="grid gap-6">
         <input type="hidden" name="email_resolutions" value={optimisticSettings?.email_resolutions ? 'on' : 'off'} />
         <input type="hidden" name="inapp_order_fills" value={optimisticSettings?.inapp_order_fills ? 'on' : 'off'} />
@@ -189,39 +227,6 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
           </div>
         </div>
       </Form>
-
-      <div className="rounded-lg border p-6">
-        <div className="grid gap-4">
-          <h3 className="text-lg font-semibold">{t('Trade alerts')}</h3>
-          <div className="flex items-center justify-between gap-6">
-            <div className="grid gap-1">
-              <Label htmlFor="trade-alerts" className="text-sm font-medium">
-                {t('Followed trader activity')}
-              </Label>
-              <p className="text-sm text-muted-foreground">{tradeAlertDescription}</p>
-            </div>
-            <Switch
-              id="trade-alerts"
-              checked={tradeAlerts.enabled}
-              onCheckedChange={(checked) => void handleTradeAlertsChange(checked)}
-              disabled={
-                tradeAlerts.loading ||
-                !tradeAlerts.supported ||
-                tradeAlerts.permission === 'denied' ||
-                (isIos && !isStandalone)
-              }
-            />
-          </div>
-          {isIos && !isStandalone && (
-            <div className="rounded-md bg-muted/40 p-4">
-              <p className="mb-3 text-sm font-medium">
-                {t('Add this site to your Home Screen to enable notifications.')}
-              </p>
-              <PwaInstallIosInstructions />
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   )
 }

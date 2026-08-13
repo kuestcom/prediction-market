@@ -9,9 +9,15 @@ const WALLET_B = '0x2222222222222222222222222222222222222222'
 const mocks = vi.hoisted(() => ({
   ensureCommunityToken: vi.fn(),
   fetchCommunityFollowStatuses: vi.fn(),
+  enableTradeAlerts: vi.fn(),
   open: vi.fn(),
+  push: vi.fn(),
+  refreshTradeAlerts: vi.fn(),
   setCommunityFollow: vi.fn(),
   toastError: vi.fn(),
+  toastMessage: vi.fn(),
+  toastSuccess: vi.fn(),
+  tradeAlertState: { enabled: false, permission: 'default' },
 }))
 
 vi.mock('next-intl', () => ({
@@ -23,15 +29,32 @@ vi.mock('wagmi', () => ({
 }))
 
 vi.mock('@/components/ui/toast', () => ({
-  toast: { error: (...args: unknown[]) => mocks.toastError(...args) },
+  toast: {
+    dismiss: vi.fn(),
+    error: (...args: unknown[]) => mocks.toastError(...args),
+    message: (...args: unknown[]) => mocks.toastMessage(...args),
+    success: (...args: unknown[]) => mocks.toastSuccess(...args),
+    warning: vi.fn(),
+  },
 }))
 
 vi.mock('@/hooks/useAppKit', () => ({ useAppKit: () => ({ open: mocks.open }) }))
+vi.mock('@/hooks/usePwaInstall', () => ({ usePwaInstall: () => ({ isIos: false, isStandalone: false }) }))
 vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ communityUrl: 'https://community.example' }),
 }))
 vi.mock('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({ runWithSignaturePrompt: (action: () => unknown) => action() }),
+}))
+vi.mock('@/hooks/useTradeAlerts', () => ({
+  useTradeAlerts: () => ({
+    enable: mocks.enableTradeAlerts,
+    refreshState: mocks.refreshTradeAlerts,
+  }),
+}))
+vi.mock('@/i18n/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }))
+vi.mock('@/stores/useTradeAlerts', () => ({
+  useTradeAlertsStore: { getState: () => mocks.tradeAlertState },
 }))
 vi.mock('@/stores/useUser', () => ({
   useUser: () => ({
@@ -82,8 +105,14 @@ describe('CommunityFollowsProvider', () => {
       { wallet: WALLET_B, isFollowing: true, followersCount: 5, followingCount: 0, profile: null },
     ])
     mocks.open.mockReset()
+    mocks.push.mockReset()
+    mocks.refreshTradeAlerts.mockReset().mockResolvedValue(undefined)
+    mocks.enableTradeAlerts.mockReset().mockResolvedValue(true)
     mocks.setCommunityFollow.mockReset()
     mocks.toastError.mockReset()
+    mocks.toastMessage.mockReset()
+    mocks.toastSuccess.mockReset()
+    mocks.tradeAlertState = { enabled: false, permission: 'default' }
   })
 
   it('batches registered profile wallets into one authenticated status query', async () => {
@@ -107,5 +136,47 @@ describe('CommunityFollowsProvider', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'A:not-following:2' })).toBeEnabled())
     expect(mocks.setCommunityFollow).toHaveBeenCalledTimes(1)
     expect(mocks.toastError).toHaveBeenCalledWith('Follow failed')
+  })
+
+  it('offers one-click push activation after a successful follow on this device', async () => {
+    mocks.setCommunityFollow.mockResolvedValueOnce({
+      wallet: WALLET_A,
+      isFollowing: true,
+      followersCount: 3,
+      followingCount: 0,
+      profile: null,
+    })
+    renderProvider()
+    fireEvent.click(await screen.findByRole('button', { name: 'A:not-following:2' }))
+
+    await waitFor(() => expect(mocks.toastMessage).toHaveBeenCalledTimes(1))
+    expect(mocks.toastMessage).toHaveBeenCalledWith(
+      'Enable push notifications',
+      expect.objectContaining({
+        description: 'Get trade alerts from people you follow on this device.',
+        action: expect.objectContaining({ label: 'Enable' }),
+      }),
+    )
+
+    const options = mocks.toastMessage.mock.calls[0]?.[1] as { action: { onClick: () => void } }
+    options.action.onClick()
+    await waitFor(() => expect(mocks.enableTradeAlerts).toHaveBeenCalledTimes(1))
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Trade alerts enabled.')
+  })
+
+  it('does not prompt when push is already enabled in the current browser', async () => {
+    mocks.tradeAlertState = { enabled: true, permission: 'granted' }
+    mocks.setCommunityFollow.mockResolvedValueOnce({
+      wallet: WALLET_A,
+      isFollowing: true,
+      followersCount: 3,
+      followingCount: 0,
+      profile: null,
+    })
+    renderProvider()
+    fireEvent.click(await screen.findByRole('button', { name: 'A:not-following:2' }))
+
+    await waitFor(() => expect(mocks.refreshTradeAlerts).toHaveBeenCalledTimes(1))
+    expect(mocks.toastMessage).not.toHaveBeenCalled()
   })
 })
