@@ -930,6 +930,7 @@ function EventLiveSeriesChartContent({
                 hideYAxisMinimumLabel
                 cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
                 cursorGuideColor="#5D6878"
+                clampCursorToDataExtent
                 disableCursorSplit
                 disableResetAnimation
                 markerOuterRadius={10}
