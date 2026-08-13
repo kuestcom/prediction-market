@@ -176,7 +176,7 @@ globalThis.addEventListener('push', (event) => {
       }
       await globalThis.registration.showNotification(alert.message, {
         body: alert.market_title,
-        icon: alert.icon || '/images/pwa/default-icon-192.png',
+        icon: alert.trader_avatar || alert.icon || '/images/pwa/default-icon-192.png',
         badge: alert.badge || alert.icon || '/images/pwa/default-icon-192.png',
         image: alert.market_icon || undefined,
         tag: alert.notification_id,

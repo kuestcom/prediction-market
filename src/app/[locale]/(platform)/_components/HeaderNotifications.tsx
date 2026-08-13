@@ -12,6 +12,11 @@ import { useEffect, useRef } from 'react'
 import type { Notification } from '@/types'
 
 import EventIconImage, { isEventMarketIconUrl } from '@/components/EventIconImage'
+import {
+  FollowedTradeAvatar,
+  FollowedTradeMarketContext,
+  FollowedTradeSummary,
+} from '@/components/FollowedTradeNotification'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -106,6 +111,32 @@ function isLocalMergeNotification(notification: Notification) {
 
 function isFollowedTradeNotification(notification: Notification) {
   return notification.metadata?.source === 'followed_trade'
+}
+
+function followedTradeDetails(notification: Notification) {
+  if (!isFollowedTradeNotification(notification)) {
+    return null
+  }
+  const metadata = notification.metadata ?? {}
+  const trader = typeof metadata.trader === 'string' ? metadata.trader : ''
+  const side = typeof metadata.side === 'string' ? metadata.side : ''
+  const outcome = typeof metadata.outcome === 'string' ? metadata.outcome : ''
+  if (!trader || !side || !outcome) {
+    return null
+  }
+  return {
+    trader,
+    side,
+    outcome,
+    followedWallet: typeof metadata.followedWallet === 'string' ? metadata.followedWallet : trader,
+    averagePrice: typeof metadata.averagePrice === 'number' ? metadata.averagePrice : null,
+    totalValue: typeof metadata.totalValue === 'number' ? metadata.totalValue : null,
+    eventTitle:
+      typeof metadata.eventTitle === 'string' && metadata.eventTitle.trim()
+        ? metadata.eventTitle
+        : notification.description,
+    eventIcon: typeof metadata.eventIcon === 'string' ? metadata.eventIcon : null,
+  }
 }
 
 function getWheelLineHeight(element: HTMLElement) {
@@ -299,6 +330,7 @@ export default function HeaderNotifications() {
                 const timeLabel = getNotificationTimeLabel(notification, currentTimestamp)
                 const hasLink = Boolean(notification.link_url)
                 const isFollowedTrade = isFollowedTradeNotification(notification)
+                const followedTrade = followedTradeDetails(notification)
                 const isLocalOrderFill = isLocalOrderFillNotification(notification) || isFollowedTrade
                 const isLocalMerge = isLocalMergeNotification(notification)
                 const linkIsExternal =
@@ -309,7 +341,23 @@ export default function HeaderNotifications() {
                   <ExternalLinkIcon className={cn('size-3 text-muted-foreground', { 'opacity-0': !hasLink })} />
                 )
                 const avatarUrl = notification.user_avatar?.trim() ?? ''
-                const avatarContent = isLocalMerge ? (
+                const avatarContent = followedTrade ? (
+                  <FollowedTradeAvatar
+                    trader={followedTrade.trader}
+                    wallet={followedTrade.followedWallet}
+                    src={avatarUrl}
+                  />
+                ) : isFollowedTrade ? (
+                  <FollowedTradeAvatar
+                    trader={notification.title}
+                    wallet={
+                      typeof notification.metadata?.followedWallet === 'string'
+                        ? notification.metadata.followedWallet
+                        : notification.id
+                    }
+                    src={avatarUrl}
+                  />
+                ) : isLocalMerge ? (
                   <div
                     aria-hidden="true"
                     className={cn(
@@ -368,10 +416,30 @@ export default function HeaderNotifications() {
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm/tight font-semibold text-foreground">{notification.title}</h4>
-                          <p className="mt-1 line-clamp-2 text-xs/tight text-muted-foreground">
-                            {notification.description}
-                          </p>
+                          {followedTrade ? (
+                            <>
+                              <FollowedTradeSummary
+                                trader={followedTrade.trader}
+                                side={followedTrade.side}
+                                outcome={followedTrade.outcome}
+                                averagePrice={followedTrade.averagePrice}
+                                totalValue={followedTrade.totalValue}
+                                className="block pr-1"
+                              />
+                              <FollowedTradeMarketContext
+                                eventTitle={followedTrade.eventTitle}
+                                eventIcon={followedTrade.eventIcon}
+                                className="mt-1"
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="text-sm/tight font-semibold text-foreground">{notification.title}</h4>
+                              <p className="mt-1 line-clamp-2 text-xs/tight text-muted-foreground">
+                                {notification.description}
+                              </p>
+                            </>
+                          )}
                         </div>
 
                         <div className="flex shrink-0 items-center gap-1">

@@ -59,4 +59,28 @@ describe('Toast', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     expect(onAction).toHaveBeenCalledOnce()
   })
+
+  it('supports an entirely clickable toast without making its close button navigate', async () => {
+    const onClick = vi.fn()
+    render(<Toaster />)
+
+    act(() => {
+      toast.message('Bruno bought 3.33 Up', {
+        description: 'Bitcoin Up or Down',
+        onClick,
+      })
+    })
+
+    const clickableToast = await screen.findByRole('link', { name: 'Bruno bought 3.33 Up' })
+    fireEvent.click(clickableToast)
+    expect(onClick).toHaveBeenCalledOnce()
+
+    fireEvent.keyDown(clickableToast, { key: 'Enter' })
+    expect(onClick).toHaveBeenCalledTimes(2)
+
+    const closeButton = document.querySelector<HTMLButtonElement>('[data-slot="toast-close"]')
+    expect(closeButton).not.toBeNull()
+    fireEvent.click(closeButton!)
+    expect(onClick).toHaveBeenCalledTimes(2)
+  })
 })

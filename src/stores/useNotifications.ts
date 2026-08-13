@@ -185,7 +185,7 @@ function tradeAlertNotifications(alerts: ReturnType<typeof useTradeAlertsStore.g
     title: alert.message,
     description: alert.market_title,
     created_at: alert.created_at,
-    user_avatar: alert.market_icon,
+    user_avatar: alert.trader_avatar,
     link_type: 'market',
     link_target: new URL(alert.url).pathname + new URL(alert.url).search,
     link_url: alert.url,
@@ -195,6 +195,13 @@ function tradeAlertNotifications(alerts: ReturnType<typeof useTradeAlertsStore.g
       read: alert.read,
       followedWallet: alert.followed_wallet,
       conditionId: alert.condition_id,
+      trader: alert.trader,
+      side: alert.side,
+      outcome: alert.outcome,
+      averagePrice: alert.average_price,
+      totalValue: alert.total_value,
+      eventTitle: alert.event_title || alert.market_title,
+      eventIcon: alert.event_icon || alert.market_icon,
     },
   }))
 }

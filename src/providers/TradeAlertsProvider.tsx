@@ -5,6 +5,11 @@ import type { ReactNode } from 'react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
+import {
+  FollowedTradeAvatar,
+  FollowedTradeMarketContext,
+  FollowedTradeSummary,
+} from '@/components/FollowedTradeNotification'
 import { toast } from '@/components/ui/toast'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { detachTradeAlertsBeforeLogout } from '@/hooks/useTradeAlerts'
@@ -180,13 +185,38 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
           return
         }
         useTradeAlertsStore.getState().prependAlert(result.alert)
-        toast.info(payload.message, {
-          id: payload.notification_id,
-          action: {
-            label: payload.market_title,
+        const hasStructuredSummary = Boolean(payload.trader && payload.side && payload.outcome)
+        toast.message(
+          hasStructuredSummary ? (
+            <FollowedTradeSummary
+              trader={payload.trader!}
+              side={payload.side!}
+              outcome={payload.outcome!}
+              averagePrice={payload.average_price}
+              totalValue={payload.total_value}
+            />
+          ) : (
+            payload.message
+          ),
+          {
+            id: payload.notification_id,
+            description: (
+              <FollowedTradeMarketContext
+                eventTitle={payload.event_title || payload.market_title}
+                eventIcon={payload.event_icon || payload.market_icon}
+              />
+            ),
+            image: (
+              <FollowedTradeAvatar
+                trader={payload.trader || payload.followed_wallet}
+                wallet={payload.followed_wallet}
+                src={payload.trader_avatar}
+                size={40}
+              />
+            ),
             onClick: () => window.location.assign(payload.url),
           },
-        })
+        )
       }
 
       function handleServiceWorkerMessage(event: MessageEvent) {

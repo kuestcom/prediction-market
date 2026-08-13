@@ -16,6 +16,7 @@ interface ToastData {
   content?: ReactNode
   icon?: ReactNode
   image?: ReactNode
+  onClick?: () => void
 }
 
 interface ToastActionOptions {
@@ -31,6 +32,7 @@ interface ToastOptions {
   icon?: ReactNode
   id?: number | string
   image?: ReactNode
+  onClick?: () => void
 }
 
 interface ToastFunction {
@@ -48,7 +50,7 @@ interface ToastFunction {
 const toastManager = ToastPrimitive.createToastManager<ToastData>()
 
 function showToast(type: ToastType, title: ReactNode, options: ToastOptions = {}) {
-  const { action, content, description, duration, icon, id, image } = options
+  const { action, content, description, duration, icon, id, image, onClick } = options
 
   return toastManager.add({
     actionProps: action
@@ -57,7 +59,7 @@ function showToast(type: ToastType, title: ReactNode, options: ToastOptions = {}
           onClick: action.onClick,
         }
       : undefined,
-    data: { content, icon, image },
+    data: { content, icon, image, onClick },
     description,
     id: id === undefined ? undefined : String(id),
     priority: type === 'error' || type === 'warning' ? 'high' : 'low',
@@ -133,7 +135,13 @@ function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
 }
 
 function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
-  return <ToastPrimitive.Title data-slot="toast-title" className={cn('text-base font-medium', className)} {...props} />
+  return (
+    <ToastPrimitive.Title
+      data-slot="toast-title"
+      className={cn('line-clamp-2 min-w-0 text-base font-medium break-words', className)}
+      {...props}
+    />
+  )
 }
 
 function ToastDescription({ className, ...props }: ToastPrimitive.Description.Props) {
@@ -141,7 +149,7 @@ function ToastDescription({ className, ...props }: ToastPrimitive.Description.Pr
     <ToastPrimitive.Description
       data-slot="toast-description"
       render={<div />}
-      className={cn('text-sm text-muted-foreground', className)}
+      className={cn('min-w-0 text-sm break-words text-muted-foreground', className)}
       {...props}
     />
   )
@@ -175,7 +183,7 @@ function ToastClose({ className, children, ...props }: ToastPrimitive.Close.Prop
   )
 }
 
-function DefaultToastIcon({ type }: { type: string | undefined }) {
+function defaultToastIcon(type: string | undefined) {
   if (type === 'success') {
     return <CircleCheckIcon className="size-5 text-yes" />
   }
@@ -199,10 +207,42 @@ function ToastList() {
 
   return toasts.map((toastItem) => {
     const customContent = toastItem.data?.content
-    const icon = toastItem.data?.icon ?? <DefaultToastIcon type={toastItem.type} />
+    const icon = toastItem.data?.icon ?? defaultToastIcon(toastItem.type)
+    const onClick = toastItem.data?.onClick
 
     return (
-      <Toast key={toastItem.id} toast={toastItem}>
+      <Toast
+        key={toastItem.id}
+        toast={toastItem}
+        className={cn(onClick && 'cursor-pointer transition-colors hover:bg-accent/50')}
+        role={onClick ? 'link' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={
+          onClick
+            ? (event) => {
+                const interactiveTarget =
+                  event.target instanceof Element
+                    ? event.target.closest('a,button,[role="button"],[role="link"]')
+                    : null
+                if (event.defaultPrevented || (interactiveTarget && interactiveTarget !== event.currentTarget)) {
+                  return
+                }
+                onClick()
+              }
+            : undefined
+        }
+        onKeyDown={
+          onClick
+            ? (event) => {
+                if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
+                  return
+                }
+                event.preventDefault()
+                onClick()
+              }
+            : undefined
+        }
+      >
         <ToastContent>
           {toastItem.data?.image}
           {icon && (

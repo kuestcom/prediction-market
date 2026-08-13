@@ -9,14 +9,19 @@ export interface TradeAlertPayload {
   message: string
   market_title: string
   market_icon?: string | null
+  event_title?: string | null
+  event_icon?: string | null
   icon?: string | null
   badge?: string | null
   url: string
   created_at: string
   expires_at: string
   trader?: string
+  trader_avatar?: string | null
   side?: 'BUY' | 'SELL' | 'buy' | 'sell'
   shares?: number
+  average_price?: number
+  total_value?: number
   outcome?: string | null
 }
 
@@ -104,17 +109,24 @@ export function parseTradeAlertPayload(value: unknown, options: { origin: string
     message,
     market_title: marketTitle,
     market_icon: typeof value.market_icon === 'string' ? value.market_icon : null,
+    event_title: typeof value.event_title === 'string' ? value.event_title : null,
+    event_icon: typeof value.event_icon === 'string' ? value.event_icon : null,
     icon: typeof value.icon === 'string' ? value.icon : null,
     badge: typeof value.badge === 'string' ? value.badge : null,
     url: resolveTradeAlertUrl(rawUrl, options.origin),
     created_at: createdAt,
     expires_at: expiresAt,
     trader: typeof value.trader === 'string' ? value.trader : undefined,
+    trader_avatar: typeof value.trader_avatar === 'string' ? value.trader_avatar : null,
     side:
       value.side === 'BUY' || value.side === 'SELL' || value.side === 'buy' || value.side === 'sell'
         ? value.side
         : undefined,
     shares: typeof value.shares === 'number' && Number.isFinite(value.shares) ? value.shares : undefined,
+    average_price:
+      typeof value.average_price === 'number' && Number.isFinite(value.average_price) ? value.average_price : undefined,
+    total_value:
+      typeof value.total_value === 'number' && Number.isFinite(value.total_value) ? value.total_value : undefined,
     outcome: typeof value.outcome === 'string' ? value.outcome : null,
   }
 
