@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 import { NextResponse } from 'next/server'
 
 import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-server'
@@ -56,6 +57,7 @@ export async function GET(request: Request) {
 
     return new NextResponse(body, { status: 200, headers })
   } catch (error) {
+    unstable_rethrow(error)
     console.error('Failed to load allowed market creators:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
