@@ -38,6 +38,7 @@ interface PredictionChartSeriesLinesProps {
   showAreaFill: boolean
   resolvedAreaFillTopOpacity: number
   resolvedAreaFillBottomOpacity: number
+  areaFillBottomOffset: number
   clipId: string
   leftClipId: string
   rightClipId: string
@@ -77,6 +78,7 @@ function PredictionChartSeriesLines({
   showAreaFill,
   resolvedAreaFillTopOpacity: _resolvedAreaFillTopOpacity,
   resolvedAreaFillBottomOpacity: _resolvedAreaFillBottomOpacity,
+  areaFillBottomOffset,
   clipId,
   leftClipId,
   rightClipId,
@@ -269,7 +271,7 @@ function PredictionChartSeriesLines({
                     finiteColoredPoints.length === seriesColoredPoints.length
                   const areaPathDefinition =
                     canRenderAreaFill && firstColoredPoint && lastColoredPoint
-                      ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight} L ${getX(firstColoredPoint)} ${innerHeight} Z`
+                      ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight - areaFillBottomOffset} L ${getX(firstColoredPoint)} ${innerHeight - areaFillBottomOffset} Z`
                       : null
 
                   return (

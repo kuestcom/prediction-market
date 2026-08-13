@@ -7,6 +7,7 @@ import {
   appendLivePriceTransition,
   classifyLiveSeriesReference,
   findLiveSeriesEvent,
+  getVisibleCountdownUnits,
   isCanonicalBinanceDailySnapshot,
   LIVE_PRICE_TRANSITION_MS,
   MAX_POINTS,
@@ -20,6 +21,23 @@ import {
   resolveLiveSeriesRealtimeTopic,
   SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
+
+describe('getVisibleCountdownUnits', () => {
+  it('hides zero hours when less than one hour remains', () => {
+    expect(getVisibleCountdownUnits(false, 0, 0, 42, 15)).toEqual([
+      { unit: 'min', value: 42 },
+      { unit: 'sec', value: 15 },
+    ])
+  })
+
+  it('keeps hours when at least one hour remains', () => {
+    expect(getVisibleCountdownUnits(false, 0, 1, 0, 0)).toEqual([
+      { unit: 'hr', value: 1 },
+      { unit: 'min', value: 0 },
+      { unit: 'sec', value: 0 },
+    ])
+  })
+})
 
 function createLivePoint(timestamp: number, price: number): DataPoint {
   return {

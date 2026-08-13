@@ -20,6 +20,8 @@ interface PredictionChartTooltipOverlayProps {
   clampedTooltipX: number
   valueFormatter?: (value: number) => string
   dateFormatter?: (value: Date) => string
+  headerFontSize?: number
+  dateFontSize?: number
   showSeriesLabels?: boolean
   labelVariant?: PredictionChartTooltipLabelVariant
   header?: {
@@ -37,6 +39,8 @@ export default function PredictionChartTooltipOverlay({
   clampedTooltipX,
   valueFormatter,
   dateFormatter,
+  headerFontSize,
+  dateFontSize,
   showSeriesLabels = true,
   labelVariant = 'filled',
   header,
@@ -133,6 +137,7 @@ export default function PredictionChartTooltipOverlay({
             left: dateLabelStyle.left,
             transform: dateLabelStyle.transform,
             color: headerColor,
+            fontSize: headerFontSize,
           }}
         >
           {header?.iconPath ? (
@@ -165,6 +170,7 @@ export default function PredictionChartTooltipOverlay({
           maxWidth: '180px',
           whiteSpace: 'nowrap',
           transform: dateLabelStyle.transform,
+          fontSize: dateFontSize,
         }}
       >
         {dateLabel}

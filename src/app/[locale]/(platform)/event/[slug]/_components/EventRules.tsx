@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { BadgeInfoIcon, GiftIcon, LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import type { Event } from '@/types'
 
@@ -96,6 +96,21 @@ function AccordionRulesPanel({
   titleAdornment?: ReactNode
 }) {
   const { isExpanded, setIsExpanded } = useExpandedState(initialExpanded)
+
+  useEffect(() => {
+    function openResolutionProposal(event: globalThis.Event) {
+      const targetId = (event as CustomEvent<{ targetId?: string }>).detail?.targetId
+      setIsExpanded(true)
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          document.getElementById(targetId ?? '')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+      })
+    }
+
+    window.addEventListener('open-resolution-proposal', openResolutionProposal)
+    return () => window.removeEventListener('open-resolution-proposal', openResolutionProposal)
+  }, [setIsExpanded])
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card transition-all duration-500 ease-in-out">
@@ -416,9 +431,12 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
     isDirectResolver && !isPrimaryMarketResolved && resolutionRewardAmount ? (
       <ResolutionRewardsIcon amount={resolutionRewardAmount} label={t('Resolution reward')} />
     ) : null
+  const resolutionProposalTargetId = primaryMarket
+    ? `propose-resolution-${primaryMarket.condition_id}`
+    : 'propose-resolution'
 
   const resolverBlock = (
-    <div className="rounded-lg border p-3">
+    <div id={!isDirectResolver ? resolutionProposalTargetId : undefined} className="rounded-lg border p-3">
       <div className={cn('flex items-center', resolverAction && 'justify-between gap-3')}>
         {resolverDetails}
         {resolverAction}
@@ -514,12 +532,14 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       )}
 
       {isDirectResolver && primaryMarket && (
-        <DirectResolutionButton
-          market={primaryMarket}
-          event={event}
-          resolutionSourceLabel={mirrorResolutionLabel}
-          onResolutionRewardAmountChange={handleResolutionRewardAmountChange}
-        />
+        <div id={resolutionProposalTargetId}>
+          <DirectResolutionButton
+            market={primaryMarket}
+            event={event}
+            resolutionSourceLabel={mirrorResolutionLabel}
+            onResolutionRewardAmountChange={handleResolutionRewardAmountChange}
+          />
+        </div>
       )}
     </div>
   )

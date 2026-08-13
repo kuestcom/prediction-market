@@ -180,7 +180,7 @@ export default function EventSingleMarketOrderBook({
         aria-hidden={!isExpanded}
       >
         <div className={cn('overflow-hidden', { 'border-t border-border/30': isExpanded })}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 pb-0 text-sm font-semibold">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 pb-0 text-sm font-semibold">
             <div className="flex flex-wrap gap-4">
               <OutcomeToggle
                 label={t('Trade {outcome}', { outcome: yesOutcomeLabel })}
@@ -250,8 +250,8 @@ function OutcomeToggle({ label, selected, onClick }: OutcomeToggleProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        `-mb-0.5 border-b-3 border-transparent pt-1 pb-2 text-sm font-semibold transition-colors`,
-        selected ? 'border-primary text-foreground' : 'text-muted-foreground hover:text-foreground',
+        `pt-1 pb-2 text-sm font-semibold transition-colors`,
+        selected ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
       )}
     >
       {label}

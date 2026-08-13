@@ -39,6 +39,7 @@ export function useLiveSeriesWebSocket({
   const wsUrl = wsLiveDataUrl
   const [data, setData] = useState<DataPoint[]>([])
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(() => (wsUrl ? 'connecting' : 'offline'))
+  const [snapshotRevision, setSnapshotRevision] = useState(0)
 
   useEffect(
     function connectLiveSeriesWebSocket() {
@@ -95,8 +96,8 @@ export function useLiveSeriesWebSocket({
         }, LIVE_DATA_HEARTBEAT_INTERVAL_MS)
       }
 
-      function handleMessage(eventMessage: MessageEvent<string>) {
-        if (!isActive) {
+      function handleMessage(socket: WebSocket, eventMessage: MessageEvent<string>) {
+        if (!isActive || ws !== socket) {
           return
         }
 
@@ -144,6 +145,9 @@ export function useLiveSeriesWebSocket({
         previousPriceMessageTimestamp = arrivalTimestamp
 
         setStatus('live')
+        if (messageIsSnapshot) {
+          setSnapshotRevision((revision) => revision + 1)
+        }
         const latest = wsUpdatesForRender.at(-1)
         if (latest) {
           writePersistedLivePrice(topic, subscriptionSymbol, latest.price, latest.timestamp)
@@ -210,6 +214,12 @@ export function useLiveSeriesWebSocket({
       }
 
       function handleVisibilityChange() {
+        if (!document.hidden) {
+          previousPriceMessageTimestamp = null
+          setStatus('connecting')
+          setData([])
+          setSnapshotRevision((revision) => revision + 1)
+        }
         reconnectController?.handleVisibilityChange()
       }
 
@@ -235,7 +245,7 @@ export function useLiveSeriesWebSocket({
         }
         const socket = new WebSocket(resolvedWsUrl)
         socket.onopen = () => handleOpen(socket)
-        socket.onmessage = handleMessage
+        socket.onmessage = (eventMessage) => handleMessage(socket, eventMessage)
         socket.onerror = handleError
         socket.onclose = () => handleClose(socket)
         ws = socket
@@ -278,5 +288,5 @@ export function useLiveSeriesWebSocket({
     [eventEndTimestamp, eventType, topic, isLiveView, wsUrl, subscriptionSymbol],
   )
 
-  return { data, status }
+  return { data, status, snapshotRevision }
 }

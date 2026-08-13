@@ -8,7 +8,6 @@ import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slu
 import EventRelatedSlot from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSlot'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { cn } from '@/lib/utils'
 
 const EventOrderPanelDesktop = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'),
@@ -29,12 +28,8 @@ export default function EventDesktopSidebar({ event, initialMarket, initialOutco
   }
 
   return (
-    <aside
-      className={cn(
-        `hidden gap-4 lg:sticky lg:top-38 lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto`,
-      )}
-    >
-      <div className="grid gap-6">
+    <aside className="hidden lg:block lg:pt-5">
+      <div className="grid gap-6 lg:sticky lg:top-29 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         <EventOrderPanelDesktop
           event={event}
           isMobile={false}
