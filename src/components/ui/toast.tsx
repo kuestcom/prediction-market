@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { Toast as ToastPrimitive } from '@base-ui/react/toast'
 import { CircleCheckIcon, InfoIcon, OctagonXIcon, TriangleAlertIcon, XIcon } from 'lucide-react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -170,6 +171,26 @@ function ToastAction({ className, ...props }: ToastPrimitive.Action.Props) {
   )
 }
 
+function ToastSwitchAction({ label, onActivate }: { label?: string; onActivate?: () => void }) {
+  const [activating, setActivating] = useState(false)
+
+  return (
+    <Switch
+      aria-busy={activating}
+      aria-label={label}
+      checked={activating}
+      disabled={activating}
+      onClick={() => {
+        if (activating) {
+          return
+        }
+        setActivating(true)
+        onActivate?.()
+      }}
+    />
+  )
+}
+
 function ToastClose({ className, children, ...props }: ToastPrimitive.Close.Props) {
   return (
     <ToastPrimitive.Close
@@ -311,15 +332,11 @@ function ToastList() {
               className={cn('col-start-3 self-center justify-self-end', hasDescription ? 'row-start-2' : 'row-start-1')}
             >
               {toastItem.data?.actionControl === 'switch' ? (
-                <Switch
-                  aria-label={
+                <ToastSwitchAction
+                  label={
                     typeof toastItem.actionProps.children === 'string' ? toastItem.actionProps.children : undefined
                   }
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      toastItem.data?.actionOnClick?.()
-                    }
-                  }}
+                  onActivate={toastItem.data?.actionOnClick}
                 />
               ) : (
                 <ToastAction />

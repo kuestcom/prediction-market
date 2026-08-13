@@ -102,8 +102,11 @@ describe('Toast', () => {
       })
     })
 
-    fireEvent.click(await screen.findByRole('switch', { name: 'Enable' }))
+    const switchAction = await screen.findByRole('switch', { name: 'Enable' })
+    fireEvent.click(switchAction)
     expect(onAction).toHaveBeenCalledOnce()
+    expect(switchAction).toBeChecked()
+    expect(switchAction).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('keeps behind toasts opaque when the stack is expanded', async () => {

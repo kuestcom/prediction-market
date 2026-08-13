@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   refreshTradeAlerts: vi.fn(),
   setCommunityFollow: vi.fn(),
   toastError: vi.fn(),
+  toastDismiss: vi.fn(),
   toastMessage: vi.fn(),
   toastSuccess: vi.fn(),
   tradeAlertState: { enabled: false, permission: 'default' },
@@ -30,7 +31,7 @@ vi.mock('wagmi', () => ({
 
 vi.mock('@/components/ui/toast', () => ({
   toast: {
-    dismiss: vi.fn(),
+    dismiss: (...args: unknown[]) => mocks.toastDismiss(...args),
     error: (...args: unknown[]) => mocks.toastError(...args),
     message: (...args: unknown[]) => mocks.toastMessage(...args),
     success: (...args: unknown[]) => mocks.toastSuccess(...args),
@@ -110,6 +111,7 @@ describe('CommunityFollowsProvider', () => {
     mocks.enableTradeAlerts.mockReset().mockResolvedValue(true)
     mocks.setCommunityFollow.mockReset()
     mocks.toastError.mockReset()
+    mocks.toastDismiss.mockReset()
     mocks.toastMessage.mockReset()
     mocks.toastSuccess.mockReset()
     mocks.tradeAlertState = { enabled: false, permission: 'default' }
@@ -162,6 +164,38 @@ describe('CommunityFollowsProvider', () => {
     options.action.onClick()
     await waitFor(() => expect(mocks.enableTradeAlerts).toHaveBeenCalledTimes(1))
     expect(mocks.toastSuccess).toHaveBeenCalledWith('Trade alerts enabled.')
+  })
+
+  it('starts push activation before dismissing the follow prompt', async () => {
+    let finishEnable: ((enabled: boolean) => void) | undefined
+    mocks.enableTradeAlerts.mockReset().mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishEnable = resolve
+        }),
+    )
+    mocks.setCommunityFollow.mockResolvedValueOnce({
+      wallet: WALLET_A,
+      isFollowing: true,
+      followersCount: 3,
+      followingCount: 0,
+      profile: null,
+    })
+    renderProvider()
+    fireEvent.click(await screen.findByRole('button', { name: 'A:not-following:2' }))
+
+    await waitFor(() => expect(mocks.toastMessage).toHaveBeenCalledTimes(1))
+    const options = mocks.toastMessage.mock.calls[0]?.[1] as { action: { onClick: () => void } }
+    options.action.onClick()
+
+    expect(mocks.enableTradeAlerts).toHaveBeenCalledOnce()
+    expect(mocks.toastDismiss).not.toHaveBeenCalled()
+
+    finishEnable?.(true)
+    await waitFor(() => expect(mocks.toastDismiss).toHaveBeenCalledOnce())
+    expect(mocks.enableTradeAlerts.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.toastDismiss.mock.invocationCallOrder[0],
+    )
   })
 
   it('does not prompt when push is already enabled in the current browser', async () => {

@@ -148,10 +148,15 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
     function openSettings() {
       router.push('/settings/notifications')
     }
+    let enableInFlight = false
     async function enableFromPrompt() {
-      toast.dismiss(TRADE_ALERT_PROMPT_TOAST_ID)
+      if (enableInFlight) {
+        return
+      }
+      enableInFlight = true
       try {
         const enabled = await tradeAlerts.enable()
+        toast.dismiss(TRADE_ALERT_PROMPT_TOAST_ID)
         if (enabled) {
           toast.success(t('Trade alerts enabled.'))
           return
@@ -160,7 +165,10 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
           action: { label: t('Settings'), onClick: openSettings },
         })
       } catch {
+        toast.dismiss(TRADE_ALERT_PROMPT_TOAST_ID)
         toast.error(t('Could not update trade alerts. Please try again.'))
+      } finally {
+        enableInFlight = false
       }
     }
 
