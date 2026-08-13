@@ -1,5 +1,4 @@
-import { useExtracted, useLocale } from 'next-intl'
-import { ViewTransition } from 'react'
+import { useExtracted } from 'next-intl'
 
 import type { Event, Market } from '@/types'
 
@@ -11,7 +10,6 @@ import EventIconImage from '@/components/EventIconImage'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { resolveCryptoCadenceEventTitle } from '@/lib/crypto-cadence-event'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { isEventResolvedLike } from '@/lib/home-events'
 import { cn } from '@/lib/utils'
@@ -36,7 +34,6 @@ export default function EventCardHeader({
   roundedPrimaryDisplayChance,
 }: EventCardHeaderProps) {
   const t = useExtracted()
-  const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isResolvedEvent = isEventResolvedLike(event)
   const yesOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES) : null
@@ -57,8 +54,6 @@ export default function EventCardHeader({
   const primaryChanceLabel = formatHomeCardChanceLabel(roundedPrimaryDisplayChance)
   const eventHref = resolveEventPagePath(event)
   const isSportsEvent = Boolean(event.sports_event_id || event.sports_sport_slug || event.sports_event_slug)
-  const eventDisplayTitle = resolveCryptoCadenceEventTitle(event, locale) ?? event.title
-  const canShareTitle = title === eventDisplayTitle
   const titleNode = (
     <h3
       className={cn(
@@ -73,24 +68,16 @@ export default function EventCardHeader({
   return (
     <div className="mb-3 flex items-start justify-between">
       <Link href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
-        <ViewTransition name={`event-${event.id}-icon`} default="none" share="event-shared-icon">
-          <div className="flex size-10 shrink-0 items-center justify-center self-start rounded-sm">
-            <EventIconImage
-              src={event.icon_url}
-              alt={title || event.creator || 'Market'}
-              sizes="40px"
-              containerClassName="size-full rounded-sm"
-            />
-          </div>
-        </ViewTransition>
+        <div className="flex size-10 shrink-0 items-center justify-center self-start rounded-sm">
+          <EventIconImage
+            src={event.icon_url}
+            alt={title || event.creator || 'Market'}
+            sizes="40px"
+            containerClassName="size-full rounded-sm"
+          />
+        </div>
 
-        {canShareTitle ? (
-          <ViewTransition name={`event-${event.id}-title`} default="none" share="event-shared-title">
-            {titleNode}
-          </ViewTransition>
-        ) : (
-          titleNode
-        )}
+        {titleNode}
       </Link>
 
       {isSingleMarket && !isResolvedEvent && hasPrimaryDisplayChance && (

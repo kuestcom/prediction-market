@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, ViewTransition } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import type { Event } from '@/types'
 
@@ -331,20 +331,14 @@ export default function EventRelated({ event }: EventRelatedProps) {
                 href={resolveEventPagePath(relatedEvent)}
                 className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/80"
               >
-                <ViewTransition name={`event-${relatedEvent.id}-icon`} default="none" share="event-shared-icon">
-                  <EventIconImage
-                    src={relatedEvent.icon_url}
-                    alt={relatedEvent.title}
-                    sizes="42px"
-                    containerClassName="size-[42px] shrink-0 rounded-sm"
-                  />
-                </ViewTransition>
+                <EventIconImage
+                  src={relatedEvent.icon_url}
+                  alt={relatedEvent.title}
+                  sizes="42px"
+                  containerClassName="size-[42px] shrink-0 rounded-sm"
+                />
                 <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  <ViewTransition name={`event-${relatedEvent.id}-title`} default="none" share="event-shared-title">
-                    <strong className="line-clamp-2 text-[13px] font-medium text-foreground">
-                      {relatedEvent.title}
-                    </strong>
-                  </ViewTransition>
+                  <strong className="line-clamp-2 text-[13px] font-medium text-foreground">{relatedEvent.title}</strong>
                   <div className="flex shrink-0 items-start gap-0">
                     {relatedEvent.has_live_chart && (
                       <span className="relative mt-1.5 flex size-2">

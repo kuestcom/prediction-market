@@ -6,17 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon, FlameIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import {
-  addTransitionType,
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  ViewTransition,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import type {
   LinePickerMarketType,
@@ -78,30 +68,7 @@ interface HomeFeaturedEventsCarouselProps {
 const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
-const HOME_FEATURED_NAVIGATION_TYPE = 'home-featured-navigation'
-const HOME_FEATURED_NAVIGATION_UPDATE = {
-  [HOME_FEATURED_NAVIGATION_TYPE]: 'auto' as const,
-  default: 'none' as const,
-}
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
-
-function skipHomeFeaturedNavigationTransition() {
-  const activeTransition = document.activeViewTransition
-  if (!activeTransition) {
-    return
-  }
-
-  let isHomeFeaturedNavigation = false
-  activeTransition.types?.forEach((type) => {
-    if (type === HOME_FEATURED_NAVIGATION_TYPE) {
-      isHomeFeaturedNavigation = true
-    }
-  })
-
-  if (isHomeFeaturedNavigation) {
-    activeTransition.skipTransition()
-  }
-}
 
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
 interface FeaturedSportsButtonMarket {
@@ -1988,18 +1955,6 @@ export default function HomeFeaturedEventsCarousel({
     return () => observer.disconnect()
   }, [])
 
-  useEffect(function stopFeaturedNavigationTransitionOnScroll() {
-    window.addEventListener('scroll', skipHomeFeaturedNavigationTransition, { passive: true })
-    window.addEventListener('touchmove', skipHomeFeaturedNavigationTransition, { passive: true })
-    window.addEventListener('wheel', skipHomeFeaturedNavigationTransition, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', skipHomeFeaturedNavigationTransition)
-      window.removeEventListener('touchmove', skipHomeFeaturedNavigationTransition)
-      window.removeEventListener('wheel', skipHomeFeaturedNavigationTransition)
-    }
-  }, [])
-
   if (!activeItem) {
     return null
   }
@@ -2009,10 +1964,7 @@ export default function HomeFeaturedEventsCarousel({
       return
     }
 
-    startTransition(() => {
-      addTransitionType(HOME_FEATURED_NAVIGATION_TYPE)
-      setActiveIndex((nextIndex + items.length) % items.length)
-    })
+    setActiveIndex((nextIndex + items.length) % items.length)
   }
 
   return (
@@ -2097,13 +2049,7 @@ export default function HomeFeaturedEventsCarousel({
                 <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
                   <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
                     <ChevronLeftIcon className="size-4" />
-                    <ViewTransition
-                      name="home-featured-navigation-previous-text"
-                      default="none"
-                      update={HOME_FEATURED_NAVIGATION_UPDATE}
-                    >
-                      <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.previousTitle}</span>
-                    </ViewTransition>
+                    <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.previousTitle}</span>
                   </span>
                 </span>
               </Button>
@@ -2115,13 +2061,7 @@ export default function HomeFeaturedEventsCarousel({
               >
                 <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
                   <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
-                    <ViewTransition
-                      name="home-featured-navigation-next-text"
-                      default="none"
-                      update={HOME_FEATURED_NAVIGATION_UPDATE}
-                    >
-                      <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.nextTitle}</span>
-                    </ViewTransition>
+                    <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.nextTitle}</span>
                     <ChevronRightIcon className="size-4" />
                   </span>
                 </span>
