@@ -296,6 +296,7 @@ export default function ProfileLink({
             avatarSeed,
             href: profileHref,
             joinedAt,
+            tradingWallet: addressSlug,
           }}
           stats={tooltipStats}
           isLoading={isTooltipLoading}

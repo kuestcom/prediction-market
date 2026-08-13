@@ -35,6 +35,7 @@ interface PublicProfileHeroCardsProps {
   profile: ProfileForCards
   snapshot: PortfolioSnapshot
   actions?: ReactNode
+  headerActions?: ReactNode
   resolutionHistoryAdornment?: ReactNode
   variant?: 'public' | 'portfolio'
   fallbackChartEndDate?: string
@@ -792,6 +793,7 @@ export default function PublicProfileHeroCards({
   profile,
   snapshot,
   actions,
+  headerActions,
   resolutionHistoryAdornment,
   variant = 'public',
   fallbackChartEndDate,
@@ -802,6 +804,7 @@ export default function PublicProfileHeroCards({
         profile={profile}
         snapshot={snapshot}
         actions={actions}
+        headerActions={headerActions}
         resolutionHistoryAdornment={resolutionHistoryAdornment}
         variant={variant}
         enableLiveValue={variant === 'portfolio'}

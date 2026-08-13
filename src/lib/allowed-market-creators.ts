@@ -24,8 +24,18 @@ export interface AdminAllowedMarketCreatorsResponse {
   allowed: boolean
 }
 
+interface PublicAllowedMarketCreatorIcon {
+  src: string
+  sizes: '192x192' | '512x512'
+}
+
 export interface PublicAllowedMarketCreatorsResponse {
   wallets: string[]
+  schema_version?: number
+  chain_id?: number
+  market_status_path?: string
+  name?: string
+  icons?: PublicAllowedMarketCreatorIcon[]
 }
 
 function withDefaultProtocol(value: string) {

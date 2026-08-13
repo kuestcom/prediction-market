@@ -2,6 +2,7 @@ import Image from 'next/image'
 
 import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 
+import CommunityFollowButton from '@/components/CommunityFollowButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
@@ -14,6 +15,7 @@ interface ProfileActivityTooltipCardProps {
     avatarSeed?: string | null
     href: string
     joinedAt?: string | null
+    tradingWallet?: string | null
   }
   stats: ProfileLinkStats | null
   isLoading?: boolean
@@ -146,6 +148,7 @@ export default function ProfileActivityTooltipCard({
           </Link>
           {joinedLabel && <div className="text-left text-xs text-muted-foreground">{joinedLabel}</div>}
         </div>
+        <CommunityFollowButton wallet={profile.tradingWallet} variant="icon" className="size-9 rounded-full" />
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">

@@ -7,10 +7,13 @@ import { startTransition, useOptimistic, useRef, useState } from 'react'
 import type { User } from '@/types'
 
 import { updateNotificationSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-notification-settings'
+import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toast'
+import { usePwaInstall } from '@/hooks/usePwaInstall'
+import { useTradeAlerts } from '@/hooks/useTradeAlerts'
 
 interface NotificationSettings {
   email_resolutions: boolean
@@ -28,6 +31,8 @@ function useNotificationsFormState() {
 export default function SettingsNotificationsContent({ user }: { user: User }) {
   const t = useExtracted()
   const { status, setStatus, formRef } = useNotificationsFormState()
+  const tradeAlerts = useTradeAlerts()
+  const { isIos, isStandalone } = usePwaInstall()
   const initialSettings = user.settings?.notifications ?? {
     email_resolutions: false,
     inapp_order_fills: false,
@@ -64,6 +69,38 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
       }
     })
   }
+
+  async function handleTradeAlertsChange(checked: boolean) {
+    try {
+      if (checked) {
+        const enabled = await tradeAlerts.enable()
+        if (enabled) {
+          toast.success(t('Trade alerts enabled.'))
+        }
+      } else {
+        await tradeAlerts.disable()
+        toast.success(t('Trade alerts disabled.'))
+      }
+    } catch {
+      toast.error(t('Could not update trade alerts. Please try again.'))
+    }
+  }
+
+  const tradeAlertDescription = (() => {
+    if (!tradeAlerts.supported) {
+      return t('This browser does not support Web Push notifications.')
+    }
+    if (isIos && !isStandalone) {
+      return t('Add this site to your Home Screen to enable notifications.')
+    }
+    if (tradeAlerts.permission === 'denied') {
+      return t('Notifications are blocked. Enable them in your browser or system settings.')
+    }
+    if (tradeAlerts.enabled) {
+      return t('Receive timely alerts when traders you follow trade on this site.')
+    }
+    return t('Enable browser and PWA notifications for traders you follow.')
+  })()
 
   return (
     <div className="grid gap-8">
@@ -152,6 +189,39 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
           </div>
         </div>
       </Form>
+
+      <div className="rounded-lg border p-6">
+        <div className="grid gap-4">
+          <h3 className="text-lg font-semibold">{t('Trade alerts')}</h3>
+          <div className="flex items-center justify-between gap-6">
+            <div className="grid gap-1">
+              <Label htmlFor="trade-alerts" className="text-sm font-medium">
+                {t('Followed trader activity')}
+              </Label>
+              <p className="text-sm text-muted-foreground">{tradeAlertDescription}</p>
+            </div>
+            <Switch
+              id="trade-alerts"
+              checked={tradeAlerts.enabled}
+              onCheckedChange={(checked) => void handleTradeAlertsChange(checked)}
+              disabled={
+                tradeAlerts.loading ||
+                !tradeAlerts.supported ||
+                tradeAlerts.permission === 'denied' ||
+                (isIos && !isStandalone)
+              }
+            />
+          </div>
+          {isIos && !isStandalone && (
+            <div className="rounded-md bg-muted/40 p-4">
+              <p className="mb-3 text-sm font-medium">
+                {t('Add this site to your Home Screen to enable notifications.')}
+              </p>
+              <PwaInstallIosInstructions />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

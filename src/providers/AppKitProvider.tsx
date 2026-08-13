@@ -22,6 +22,7 @@ import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { usePolymarketWalletConnection } from '@/hooks/usePolymarketWalletConnection'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { detachTradeAlertsBeforeLogout } from '@/hooks/useTradeAlerts'
 import { createAppKitWagmiAdapter, defaultNetwork, networks } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
@@ -348,6 +349,11 @@ function initializeAppKitSingleton(
         },
         signOut: async () => {
           try {
+            const currentUser = useUser.getState()
+            const communityApiUrl = window.__PUBLIC_RUNTIME_CONFIG__?.communityUrl
+            if (currentUser?.address && communityApiUrl) {
+              await detachTradeAlertsBeforeLogout(communityApiUrl, currentUser.address).catch(() => undefined)
+            }
             await authClient.signOut()
             useUser.setState(null)
             return true

@@ -3,6 +3,7 @@ import { defaultPublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 
 const STORAGE_KEY = 'community_auth'
 const STORAGE_VERSION = 3
+export const COMMUNITY_AUTH_CHANGED_EVENT = 'community-auth-changed'
 
 interface StoredCommunityAuth {
   version?: number
@@ -94,6 +95,7 @@ function storeCommunityAuth(auth: StoredCommunityAuth) {
     return
   }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(auth))
+  window.dispatchEvent(new Event(COMMUNITY_AUTH_CHANGED_EVENT))
 }
 
 export function clearCommunityAuth() {
@@ -101,6 +103,7 @@ export function clearCommunityAuth() {
     return
   }
   window.localStorage.removeItem(STORAGE_KEY)
+  window.dispatchEvent(new Event(COMMUNITY_AUTH_CHANGED_EVENT))
 }
 
 export async function ensureCommunityToken({

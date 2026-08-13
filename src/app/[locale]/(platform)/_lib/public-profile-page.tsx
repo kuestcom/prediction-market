@@ -12,6 +12,7 @@ import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_component
 import PublicProfileResolutionHistory from '@/app/[locale]/(platform)/profile/_components/PublicProfileResolutionHistory'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 import PublicResolutionsList from '@/app/[locale]/(platform)/profile/_components/PublicResolutionsList'
+import CommunityFollowButton from '@/components/CommunityFollowButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import {
@@ -356,6 +357,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
           }}
           snapshot={snapshot}
           fallbackChartEndDate={fallbackChartEndDate}
+          headerActions={<CommunityFollowButton wallet={normalized.value} />}
           resolutionHistoryAdornment={
             <Suspense fallback={null}>
               <PublicProfileResolutionHistorySlot
@@ -391,6 +393,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
         }}
         snapshot={snapshot}
         fallbackChartEndDate={fallbackChartEndDate}
+        headerActions={<CommunityFollowButton wallet={userAddress} />}
         resolutionHistoryAdornment={
           <Suspense fallback={null}>
             <PublicProfileResolutionHistorySlot

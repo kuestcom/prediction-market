@@ -4,6 +4,7 @@ import type { Route } from 'next'
 import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from 'react'
 
 import { BellIcon, ExternalLinkIcon, MergeIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { getAvatarPlaceholderStyle } from '@/lib/avatar'
+import { markTradeAlertsRead } from '@/lib/trade-alerts-idb'
 import { cn } from '@/lib/utils'
 import {
   isLocalOrderFillNotification,
@@ -24,6 +26,8 @@ import {
   useNotificationsLoading,
   useUnreadNotificationCount,
 } from '@/stores/useNotifications'
+import { useTradeAlertsStore } from '@/stores/useTradeAlerts'
+import { useUser } from '@/stores/useUser'
 
 const WHEEL_DELTA_LINE_MODE = 1
 const WHEEL_DELTA_PAGE_MODE = 2
@@ -100,6 +104,10 @@ function isLocalMergeNotification(notification: Notification) {
   return metadata?.action === 'merge'
 }
 
+function isFollowedTradeNotification(notification: Notification) {
+  return notification.metadata?.source === 'followed_trade'
+}
+
 function getWheelLineHeight(element: HTMLElement) {
   const lineHeight = Number.parseFloat(window.getComputedStyle(element).lineHeight)
 
@@ -134,6 +142,7 @@ function useLoadNotificationsOnMount() {
 }
 
 export default function HeaderNotifications() {
+  const t = useExtracted()
   const router = useRouter()
   const notificationsListRef = useRef<HTMLDivElement>(null)
   const previousTouchYRef = useRef<number | null>(null)
@@ -143,9 +152,19 @@ export default function HeaderNotifications() {
   const removeNotification = useNotifications((state) => state.removeNotification)
   const isLoading = useNotificationsLoading()
   const error = useNotificationsError()
+  const user = useUser()
+  const profileId = useTradeAlertsStore((state) => state.profileId)
   const hasNotifications = notifications.length > 0
 
   useLoadNotificationsOnMount()
+
+  function handleBellOpenChange(open: boolean) {
+    if (!open || !profileId || !user) {
+      return
+    }
+    useTradeAlertsStore.getState().markAllRead()
+    void markTradeAlertsRead(window.location.origin, profileId)
+  }
 
   function scrollNotificationsList(deltaY: number) {
     const notificationsList = notificationsListRef.current
@@ -199,8 +218,8 @@ export default function HeaderNotifications() {
     previousTouchYRef.current = null
   }
 
-  function handleLocalOrderFillClick(notification: Notification) {
-    if (!isLocalOrderFillNotification(notification)) {
+  function handleLocalTradeClick(notification: Notification) {
+    if (!isLocalOrderFillNotification(notification) && !isFollowedTradeNotification(notification)) {
       return
     }
 
@@ -212,12 +231,18 @@ export default function HeaderNotifications() {
       window.open(notification.link_url, '_blank', 'noopener,noreferrer')
     }
 
-    void removeNotification(notification.id)
+    if (isLocalOrderFillNotification(notification)) {
+      void removeNotification(notification.id)
+    }
   }
 
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger render={<Button type="button" size="icon" variant="ghost" className="relative" />}>
+    <DropdownMenu modal={false} onOpenChange={handleBellOpenChange}>
+      <DropdownMenuTrigger
+        render={
+          <Button type="button" size="icon" variant="ghost" className="relative" aria-label={t('Notifications')} />
+        }
+      >
         <BellIcon className="size-[1.35rem]" />
         {unreadCount > 0 && (
           <span
@@ -240,7 +265,7 @@ export default function HeaderNotifications() {
         onTouchCancelCapture={handleNotificationsTouchEnd}
       >
         <div className="border-b border-border px-3 py-2">
-          <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t('Notifications')}</h3>
         </div>
 
         <div
@@ -250,21 +275,21 @@ export default function HeaderNotifications() {
           {isLoading && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 animate-pulse opacity-50" />
-              <p className="text-sm">Loading notifications...</p>
+              <p className="text-sm">{t('Loading notifications...')}</p>
             </div>
           )}
 
           {error && !hasNotifications && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 opacity-50" />
-              <p className="text-sm text-destructive">Failed to load notifications</p>
+              <p className="text-sm text-destructive">{t('Failed to load notifications')}</p>
             </div>
           )}
 
           {!isLoading && !error && !hasNotifications && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 opacity-50" />
-              <p className="text-sm">You have no notifications.</p>
+              <p className="text-sm">{t('You have no notifications.')}</p>
             </div>
           )}
 
@@ -273,9 +298,11 @@ export default function HeaderNotifications() {
               {notifications.map((notification) => {
                 const timeLabel = getNotificationTimeLabel(notification, currentTimestamp)
                 const hasLink = Boolean(notification.link_url)
-                const isLocalOrderFill = isLocalOrderFillNotification(notification)
+                const isFollowedTrade = isFollowedTradeNotification(notification)
+                const isLocalOrderFill = isLocalOrderFillNotification(notification) || isFollowedTrade
                 const isLocalMerge = isLocalMergeNotification(notification)
-                const linkIsExternal = notification.link_type === 'external' || isLocalOrderFill
+                const linkIsExternal =
+                  notification.link_type === 'external' || isLocalOrderFillNotification(notification)
                 const extraInfo = notification.extra_info?.trim()
                 const shouldShowExtraInfo = Boolean(extraInfo) && !isLikelyTransactionHashSnippet(extraInfo)
                 const linkIcon = (
@@ -324,13 +351,13 @@ export default function HeaderNotifications() {
                     )}
                     role={isLocalOrderFill ? 'button' : undefined}
                     tabIndex={isLocalOrderFill ? 0 : undefined}
-                    onClick={isLocalOrderFill ? () => handleLocalOrderFillClick(notification) : undefined}
+                    onClick={isLocalOrderFill ? () => handleLocalTradeClick(notification) : undefined}
                     onKeyDown={
                       isLocalOrderFill
                         ? (event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault()
-                              handleLocalOrderFillClick(notification)
+                              handleLocalTradeClick(notification)
                             }
                           }
                         : undefined
@@ -355,7 +382,7 @@ export default function HeaderNotifications() {
                               className="inline-flex"
                               target={linkIsExternal ? '_blank' : undefined}
                               rel={linkIsExternal ? 'noreferrer noopener' : undefined}
-                              aria-label={notification.link_label ?? 'View notification details'}
+                              aria-label={notification.link_label ?? t('View notification details')}
                               onClick={(event) => event.stopPropagation()}
                             >
                               {linkIcon}

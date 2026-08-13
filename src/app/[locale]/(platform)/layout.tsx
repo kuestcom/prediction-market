@@ -17,6 +17,8 @@ import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform
 import { shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 import { getWagmiStateCookieValue } from '@/lib/wagmi-storage.server'
 import AppKitProvider from '@/providers/AppKitProvider'
+import { CommunityFollowsProvider } from '@/providers/CommunityFollowsProvider'
+import TradeAlertsProvider from '@/providers/TradeAlertsProvider'
 
 async function loadPlatformLayoutNavigation() {
   'use cache'
@@ -65,7 +67,11 @@ export default async function PlatformLayout({ children }: LayoutProps<'/[locale
 
   return (
     <AppKitProvider wagmiCookie={wagmiCookie}>
-      <PlatformLayoutContent>{children}</PlatformLayoutContent>
+      <CommunityFollowsProvider>
+        <TradeAlertsProvider>
+          <PlatformLayoutContent>{children}</PlatformLayoutContent>
+        </TradeAlertsProvider>
+      </CommunityFollowsProvider>
     </AppKitProvider>
   )
 }

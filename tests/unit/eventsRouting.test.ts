@@ -3,6 +3,14 @@ import { describe, expect, it } from 'vitest'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 
 describe('events routing', () => {
+  it('opens the exact market for regular, multi-market and NegRisk event pages', () => {
+    const event = { slug: 'presidential-election' }
+
+    expect(resolveEventMarketPath(event, 'winner')).toBe('/event/presidential-election/winner')
+    expect(resolveEventMarketPath(event, 'popular-vote')).toBe('/event/presidential-election/popular-vote')
+    expect(resolveEventMarketPath(event, 'democratic-nominee')).toBe('/event/presidential-election/democratic-nominee')
+  })
+
   it('keeps sports games on sports routes', () => {
     const event = {
       slug: 'lakers-celtics-2026-03-09',

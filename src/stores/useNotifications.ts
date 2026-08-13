@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import type { Notification } from '@/types'
 
 import { POLYGON_SCAN_BASE } from '@/lib/network'
+import { useTradeAlertsStore } from '@/stores/useTradeAlerts'
 
 const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
 const LOCAL_ORDER_FILL_NOTIFICATION_SOURCE = 'local_order_fill'
@@ -177,6 +178,27 @@ function mergeNotifications(apiNotifications: Notification[], localNotifications
   return sortNotificationsByCreatedAtDesc(dedupeNotificationsById([...localNotifications, ...apiNotifications]))
 }
 
+function tradeAlertNotifications(alerts: ReturnType<typeof useTradeAlertsStore.getState>['alerts']): Notification[] {
+  return alerts.map((alert) => ({
+    id: alert.notification_id,
+    category: 'trade',
+    title: alert.message,
+    description: alert.market_title,
+    created_at: alert.created_at,
+    user_avatar: alert.market_icon,
+    link_type: 'market',
+    link_target: new URL(alert.url).pathname + new URL(alert.url).search,
+    link_url: alert.url,
+    link_label: 'Open market',
+    metadata: {
+      source: 'followed_trade',
+      read: alert.read,
+      followedWallet: alert.followed_wallet,
+      conditionId: alert.condition_id,
+    },
+  }))
+}
+
 export function isLocalOrderFillNotification(notification: Notification) {
   if (notification.id.startsWith(LOCAL_ORDER_FILL_NOTIFICATION_PREFIX)) {
     return true
@@ -301,11 +323,15 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
 }))
 
 export function useNotificationList() {
-  return useNotifications((state) => state.notifications)
+  const notifications = useNotifications((state) => state.notifications)
+  const tradeAlerts = useTradeAlertsStore((state) => state.alerts)
+  return mergeNotifications(notifications, tradeAlertNotifications(tradeAlerts))
 }
 
 export function useUnreadNotificationCount() {
-  return useNotifications((state) => state.notifications.length)
+  const legacyCount = useNotifications((state) => state.notifications.length)
+  const unreadTradeAlerts = useTradeAlertsStore((state) => state.alerts.filter((alert) => !alert.read).length)
+  return legacyCount + unreadTradeAlerts
 }
 
 export function useNotificationsLoading() {

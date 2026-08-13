@@ -1,3 +1,4 @@
+import { detachTradeAlertsBeforeLogout } from '@/hooks/useTradeAlerts'
 import { authClient } from '@/lib/auth-client'
 import { localizePathname } from '@/lib/locale-path'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
@@ -9,6 +10,12 @@ interface SignOutAndRedirectOptions {
 }
 
 export async function signOutAndRedirect({ currentPathname, redirectPath = '/' }: SignOutAndRedirectOptions) {
+  const currentUser = useUser.getState()
+  const communityApiUrl = window.__PUBLIC_RUNTIME_CONFIG__?.communityUrl
+  if (currentUser?.address && communityApiUrl) {
+    await detachTradeAlertsBeforeLogout(communityApiUrl, currentUser.address).catch(() => undefined)
+  }
+
   let signOutSucceeded = false
 
   try {

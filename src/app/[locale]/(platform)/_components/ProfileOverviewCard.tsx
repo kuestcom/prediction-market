@@ -32,6 +32,7 @@ interface ProfileOverviewCardProps {
   profile: ProfileForCards
   snapshot: PortfolioSnapshot
   actions?: ReactNode
+  headerActions?: ReactNode
   resolutionHistoryAdornment?: ReactNode
   variant?: 'public' | 'portfolio'
   useDefaultUserWallet?: boolean
@@ -55,6 +56,7 @@ export default function ProfileOverviewCard({
   profile,
   snapshot,
   actions,
+  headerActions,
   resolutionHistoryAdornment,
   variant = 'public',
   useDefaultUserWallet = true,
@@ -213,19 +215,22 @@ export default function ProfileOverviewCard({
                   </div>
                 </div>
 
-                {profile.portfolioAddress && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      `size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm transition-colors hover:bg-background`,
-                    )}
-                    onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
-                    aria-label={t('Copy portfolio address')}
-                  >
-                    {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
-                  </Button>
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  {headerActions}
+                  {profile.portfolioAddress && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        `size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm transition-colors hover:bg-background`,
+                      )}
+                      onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
+                      aria-label={t('Copy portfolio address')}
+                    >
+                      {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
