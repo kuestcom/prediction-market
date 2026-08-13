@@ -44,6 +44,7 @@ import {
   normalizeSubscriptionSymbol,
   parseUtcDate,
   requiresCanonicalBinanceDailyClose,
+  resolveLiveChartPaddedDomainEnd,
   resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
   resolveLiveSeriesCountdown,
@@ -798,13 +799,22 @@ function EventLiveSeriesChartContent({
     return [new Date(startMs), new Date(chartNowMs)]
   }, [chartNowMs, isEventClosed, isMobile, tradingWindowStartMs])
 
-  const liveXAxisDomain = useMemo(
-    () => ({
-      start: new Date(isEventClosed ? tradingWindowStartMs : chartNowMs - LIVE_WINDOW_MS),
-      end: new Date(chartNowMs),
-    }),
-    [chartNowMs, isEventClosed, tradingWindowStartMs],
-  )
+  const liveXAxisDomain = useMemo(() => {
+    const startTimestamp = isEventClosed ? tradingWindowStartMs : chartNowMs - LIVE_WINDOW_MS
+    const paddedEndTimestamp = resolveLiveChartPaddedDomainEnd({
+      startTimestamp,
+      endTimestamp: chartNowMs,
+      chartWidth,
+      marginLeft: LIVE_CHART_MARGIN_LEFT,
+      marginRight: LIVE_CHART_MARGIN_RIGHT,
+      rightInset: Math.abs(LIVE_CURRENT_MARKER_OFFSET_X),
+    })
+
+    return {
+      start: new Date(startTimestamp),
+      end: new Date(paddedEndTimestamp),
+    }
+  }, [chartNowMs, chartWidth, isEventClosed, tradingWindowStartMs])
 
   const visibleCountdownUnits = useMemo(
     () =>
@@ -925,8 +935,8 @@ function EventLiveSeriesChartContent({
                 markerOuterRadius={10}
                 markerInnerRadius={3.4}
                 markerPulseStyle="ring"
-                markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
-                lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+                markerOffsetX={0}
+                lineEndOffsetX={0}
                 lineStrokeWidth={2.15}
                 plotClipPadding={{
                   top: 0,

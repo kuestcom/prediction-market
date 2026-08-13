@@ -15,6 +15,7 @@ import {
   MAX_POINTS,
   POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS,
   requiresCanonicalBinanceDailyClose,
+  resolveLiveChartPaddedDomainEnd,
   resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
   resolveLivePriceTransitionDuration,
@@ -192,6 +193,26 @@ function createEvent(overrides: Partial<Event> = {}): Event {
 }
 
 describe('event live series chart utils', () => {
+  it('pads the chart domain so the line inset and cursor share one x-scale', () => {
+    const startTimestamp = 10_000
+    const endTimestamp = 50_000
+    const chartWidth = 900
+    const marginRight = 52
+    const rightInset = 34
+    const plotWidth = chartWidth - marginRight
+    const paddedEndTimestamp = resolveLiveChartPaddedDomainEnd({
+      startTimestamp,
+      endTimestamp,
+      chartWidth,
+      marginLeft: 0,
+      marginRight,
+      rightInset,
+    })
+    const renderedEndX = ((endTimestamp - startTimestamp) / (paddedEndTimestamp - startTimestamp)) * plotWidth
+
+    expect(renderedEndX).toBeCloseTo(plotWidth - rightInset, 8)
+  })
+
   it('builds closed-event history across the event window with canonical endpoints', () => {
     const startTimestamp = Date.parse('2026-08-13T08:00:00.000Z')
     const endTimestamp = Date.parse('2026-08-13T12:00:00.000Z')

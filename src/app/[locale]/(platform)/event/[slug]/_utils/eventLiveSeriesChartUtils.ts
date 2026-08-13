@@ -58,6 +58,28 @@ export function buildLiveSeriesFallbackData(price: number | null, chartEndTimest
   ] satisfies DataPoint[]
 }
 
+export function resolveLiveChartPaddedDomainEnd({
+  startTimestamp,
+  endTimestamp,
+  chartWidth,
+  marginLeft,
+  marginRight,
+  rightInset,
+}: {
+  startTimestamp: number
+  endTimestamp: number
+  chartWidth: number
+  marginLeft: number
+  marginRight: number
+  rightInset: number
+}) {
+  const duration = Math.max(1, endTimestamp - startTimestamp)
+  const plotWidth = Math.max(1, chartWidth - marginLeft - marginRight)
+  const visibleWidth = Math.max(1, plotWidth - Math.max(0, rightInset))
+
+  return startTimestamp + (duration * plotWidth) / visibleWidth
+}
+
 export function buildClosedLiveSeriesData({
   startTimestamp,
   endTimestamp,
