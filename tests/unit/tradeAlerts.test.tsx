@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseTradeAlertPayload } from '@/lib/trade-alerts'
+import { parseTradeAlertPayload, shouldDisplayTradeAlertToast } from '@/lib/trade-alerts'
 
 const origin = 'https://example.com'
 
@@ -52,5 +52,11 @@ describe('trade alert validation', () => {
 
     expect(expired).toBeNull()
     expect(safe?.url).toBe(origin)
+  })
+
+  it('shows an in-app toast only while the site is visible and focused', () => {
+    expect(shouldDisplayTradeAlertToast('visible', true)).toBe(true)
+    expect(shouldDisplayTradeAlertToast('visible', false)).toBe(false)
+    expect(shouldDisplayTradeAlertToast('hidden', true)).toBe(false)
   })
 })

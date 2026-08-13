@@ -16,7 +16,7 @@ import { detachTradeAlertsBeforeLogout } from '@/hooks/useTradeAlerts'
 import { COMMUNITY_AUTH_CHANGED_EVENT, loadCommunityAuth } from '@/lib/community-auth'
 import { upsertCommunityPushSubscription } from '@/lib/community-push'
 import { buildCommunityApiUrl } from '@/lib/community-url'
-import { parseTradeAlertPayload } from '@/lib/trade-alerts'
+import { parseTradeAlertPayload, shouldDisplayTradeAlertToast } from '@/lib/trade-alerts'
 import {
   cleanupTradeAlerts,
   getTradeAlertsNeedsSync,
@@ -181,10 +181,13 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         }
         await cleanupTradeAlerts()
         const result = await putTradeAlert(payload, { origin: window.location.origin })
+        useTradeAlertsStore.getState().prependAlert(result.alert)
         if (!result.isNew) {
           return
         }
-        useTradeAlertsStore.getState().prependAlert(result.alert)
+        if (!shouldDisplayTradeAlertToast(document.visibilityState, document.hasFocus())) {
+          return
+        }
         const hasStructuredSummary = Boolean(payload.trader && payload.side && payload.outcome)
         toast.message(
           hasStructuredSummary ? (

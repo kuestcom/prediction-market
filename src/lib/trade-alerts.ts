@@ -29,6 +29,7 @@ export interface StoredTradeAlert extends TradeAlertPayload {
   partition: string
   read: boolean
   created_at_ms: number
+  native_notified?: boolean
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -42,6 +43,10 @@ function readRequiredString(record: Record<string, unknown>, key: string) {
 
 export function tradeAlertPartition(origin: string, profileId: string) {
   return `${origin}\u0000${profileId}`
+}
+
+export function shouldDisplayTradeAlertToast(visibilityState: DocumentVisibilityState, hasFocus: boolean) {
+  return visibilityState === 'visible' && hasFocus
 }
 
 function isTradeAlertFresh(payload: TradeAlertPayload, now = Date.now()) {

@@ -99,7 +99,7 @@ function parseTradeAlert(raw) {
   }
 }
 
-async function persistTradeAlert(alert) {
+async function persistTradeAlert(alert, { markNativeNotified = false } = {}) {
   const database = await openTradeAlertsDatabase()
   const cleanupTransaction = database.transaction(TRADE_ALERT_STORE, 'readwrite')
   const cleanupCompleted = transactionComplete(cleanupTransaction)
@@ -131,11 +131,16 @@ async function persistTradeAlert(alert) {
     request.onerror = () => reject(request.error)
   })
   if (!existing) {
-    store.add(alert)
+    store.add({ ...alert, native_notified: markNativeNotified })
+  } else if (markNativeNotified && existing.native_notified !== true) {
+    store.put({ ...existing, native_notified: true })
   }
   await completed
   database.close()
-  return !existing
+  return {
+    isNew: !existing,
+    shouldNotify: markNativeNotified && (!existing || existing.native_notified !== true),
+  }
 }
 
 async function setNeedsSync() {
@@ -164,17 +169,16 @@ globalThis.addEventListener('push', (event) => {
         return
       }
       const windowClients = await globalThis.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      const visibleClients = windowClients.filter((client) => client.visibilityState === 'visible')
-      if (visibleClients.length > 0) {
-        const focusedClient = visibleClients.find((client) => client.focused) || visibleClients[0]
+      const focusedClient = windowClients.find((client) => client.focused && client.visibilityState === 'visible')
+      if (focusedClient) {
         focusedClient.postMessage({ type: 'TRADE_ALERT', payload: alert })
         return
       }
-      const isNew = await persistTradeAlert(alert)
-      if (!isNew) {
+      const { shouldNotify } = await persistTradeAlert(alert, { markNativeNotified: true })
+      if (!shouldNotify) {
         return
       }
-      await globalThis.registration.showNotification(alert.message, {
+      await globalThis.registration.showNotification(alert.title || alert.message, {
         body: alert.market_title,
         icon: alert.trader_avatar || alert.icon || '/images/pwa/default-icon-192.png',
         badge: alert.badge || alert.icon || '/images/pwa/default-icon-192.png',
