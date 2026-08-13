@@ -39,7 +39,6 @@ export function useLiveSeriesWebSocket({
   const wsUrl = wsLiveDataUrl
   const [data, setData] = useState<DataPoint[]>([])
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(() => (wsUrl ? 'connecting' : 'offline'))
-  const [snapshotRevision, setSnapshotRevision] = useState(0)
 
   useEffect(
     function connectLiveSeriesWebSocket() {
@@ -145,9 +144,6 @@ export function useLiveSeriesWebSocket({
         previousPriceMessageTimestamp = arrivalTimestamp
 
         setStatus('live')
-        if (messageIsSnapshot) {
-          setSnapshotRevision((revision) => revision + 1)
-        }
         const latest = wsUpdatesForRender.at(-1)
         if (latest) {
           writePersistedLivePrice(topic, subscriptionSymbol, latest.price, latest.timestamp)
@@ -217,8 +213,6 @@ export function useLiveSeriesWebSocket({
         if (!document.hidden) {
           previousPriceMessageTimestamp = null
           setStatus('connecting')
-          setData([])
-          setSnapshotRevision((revision) => revision + 1)
         }
         reconnectController?.handleVisibilityChange()
       }
@@ -288,5 +282,5 @@ export function useLiveSeriesWebSocket({
     [eventEndTimestamp, eventType, topic, isLiveView, wsUrl, subscriptionSymbol],
   )
 
-  return { data, status, snapshotRevision }
+  return { data, status }
 }

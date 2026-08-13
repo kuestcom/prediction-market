@@ -1,67 +1,154 @@
 'use client'
 
-import type { ReactElement, SetStateAction } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactElement, SetStateAction } from 'react'
 
-import { AxisBottom, AxisRight } from '@visx/axis'
-import { curveBasis, curveCatmullRom, curveMonotoneX } from '@visx/curve'
-import { localPoint } from '@visx/event'
-import { Group } from '@visx/group'
-import { scaleLinear, scaleTime } from '@visx/scale'
-import { useTooltip } from '@visx/tooltip'
-import { bisector } from 'd3-array'
-import { useCallback, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import type { DataPoint, PredictionChartProps } from '@/types/PredictionChartTypes'
+import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
 
 import {
   clusterAnnotationMarkers,
-  PredictionChartAnnotationDots,
   PredictionChartAnnotationTooltip,
   resolveAnnotationMarkers,
 } from '@/components/PredictionChartAnnotations'
-import PredictionChartGrid from '@/components/PredictionChartGrid'
+import { drawPredictionChartCanvas, type PredictionChartCanvasFrame } from '@/components/PredictionChartCanvasRenderer'
 import PredictionChartHeader from '@/components/PredictionChartHeader'
-import PredictionChartMarkers from '@/components/PredictionChartMarkers'
-import PredictionChartSeriesLines from '@/components/PredictionChartSeriesLines'
 import PredictionChartTooltipOverlay from '@/components/PredictionChartTooltipOverlay'
 import useDarkMode from '@/hooks/useDarkMode'
-import usePredictionChartAnimation from '@/hooks/usePredictionChartAnimation'
 import usePredictionChartData from '@/hooks/usePredictionChartData'
 import {
   calculateYAxisBounds,
-  clamp01,
   DEFAULT_X_AXIS_TICKS,
   DEFAULT_Y_AXIS_MAX,
-  INTERACTION_BASE_REVEAL_DURATION,
-  runRevealAnimation,
   snapTimestampToInterval,
-  stopRevealAnimation,
   TOOLTIP_LABEL_GAP,
   TOOLTIP_LABEL_HEIGHT,
   TOOLTIP_PANEL_LABEL_GAP,
   TOOLTIP_PANEL_LABEL_HEIGHT,
 } from '@/lib/prediction-chart'
-import { normalizeTicks, resolvePointFromPaths, sanitizeSvgId, toDomainTimestamp } from '@/lib/prediction-chart-helpers'
-
-const dateBisector = bisector<DataPoint, Date>((d) => d.date)
-
-function bisectDate(data: DataPoint[], targetDate: Date) {
-  return dateBisector.left(data, targetDate)
-}
+import { normalizeTicks, toDomainTimestamp } from '@/lib/prediction-chart-helpers'
 
 const defaultMargin = { top: 30, right: 60, bottom: 40, left: 0 }
-const FUTURE_LINE_COLOR_DARK = '#2C3F4F'
-const FUTURE_LINE_COLOR_LIGHT = '#99A6B5'
-const FUTURE_LINE_OPACITY_DARK = 0.55
-const FUTURE_LINE_OPACITY_LIGHT = 0.35
 const GRID_LINE_COLOR_DARK = '#51677A'
 const GRID_LINE_COLOR_LIGHT = '#8F9EAD'
 const GRID_LINE_OPACITY_DARK = 0.7
 const GRID_LINE_OPACITY_LIGHT = 0.35
-const SURGE_DURATION = 760
 const MIN_Y_AXIS_TICKS = 3
 const PREFERRED_MAX_Y_AXIS_TICKS = 5
 const MAX_Y_AXIS_TICKS = 6
+const MARKER_PULSE_DURATION = 2600
+
+interface CursorState {
+  point: DataPoint
+  left: number
+}
+
+interface TooltipEntry {
+  key: string
+  name: string
+  color: string
+  value: number
+  initialTop: number
+}
+
+type PositionedTooltipEntry = TooltipEntry & { top: number }
+
+function interpolateCursorPoint(data: DataPoint[], seriesKeys: string[], targetDate: Date) {
+  if (!data.length) {
+    return null
+  }
+
+  const targetTime = targetDate.getTime()
+  const firstPoint = data[0]
+  const lastPoint = data.at(-1)!
+  const firstTime = firstPoint.date.getTime()
+  const lastTime = lastPoint.date.getTime()
+
+  if (targetTime <= firstTime) {
+    return { ...firstPoint, date: targetDate }
+  }
+
+  if (targetTime >= lastTime) {
+    return { ...lastPoint, date: targetDate }
+  }
+
+  let low = 0
+  let high = data.length - 1
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2)
+    if (data[middle].date.getTime() < targetTime) {
+      low = middle + 1
+    } else {
+      high = middle - 1
+    }
+  }
+
+  const previousPoint = data[Math.max(0, low - 1)]
+  const nextPoint = data[Math.min(data.length - 1, low)]
+  const previousTime = previousPoint.date.getTime()
+  const nextTime = nextPoint.date.getTime()
+  const ratio = nextTime > previousTime ? (targetTime - previousTime) / (nextTime - previousTime) : 0
+  const point: DataPoint = { date: targetDate }
+
+  seriesKeys.forEach((seriesKey) => {
+    const previousValue = previousPoint[seriesKey]
+    const nextValue = nextPoint[seriesKey]
+
+    if (typeof previousValue === 'number' && typeof nextValue === 'number') {
+      point[seriesKey] = previousValue + (nextValue - previousValue) * ratio
+    } else if (typeof previousValue === 'number') {
+      point[seriesKey] = previousValue
+    } else if (typeof nextValue === 'number') {
+      point[seriesKey] = nextValue
+    }
+  })
+
+  return point
+}
+
+function positionTooltipEntries(
+  entries: TooltipEntry[],
+  marginTop: number,
+  innerHeight: number,
+  labelHeight: number,
+  labelGap: number,
+) {
+  if (!entries.length) {
+    return []
+  }
+
+  const minTop = marginTop
+  const maxTop = Math.max(minTop, marginTop + innerHeight - labelHeight)
+  const step = labelHeight + labelGap
+  const positioned = entries
+    .slice()
+    .sort((left, right) => left.initialTop - right.initialTop)
+    .reduce<PositionedTooltipEntry[]>((result, entry) => {
+      const desiredTop = Math.max(minTop, Math.min(entry.initialTop, maxTop))
+      const previousTop = result.at(-1)?.top
+      result.push({
+        ...entry,
+        top: previousTop == null ? desiredTop : Math.max(desiredTop, previousTop + step),
+      })
+      return result
+    }, [])
+
+  const overflow = positioned.at(-1)!.top - maxTop
+  if (overflow > 0) {
+    positioned.forEach((entry) => {
+      entry.top -= overflow
+    })
+  }
+
+  const underflow = minTop - positioned[0].top
+  if (underflow > 0) {
+    positioned.forEach((entry) => {
+      entry.top += underflow
+    })
+  }
+
+  return positioned
+}
 
 export default function PredictionChart({
   data: providedData,
@@ -82,7 +169,7 @@ export default function PredictionChart({
   centerXAxisTickLabels = false,
   xAxisLabelsRightInset = 0,
   alignYAxisLabelsToChartEdge = false,
-  fadeYAxisEdges = false,
+  fadeYAxisEdges: _fadeYAxisEdges = false,
   neutralAxisColors = false,
   showXAxisTopRule = false,
   showXAxisTopRuleFullWidth = false,
@@ -102,8 +189,8 @@ export default function PredictionChart({
   legendContent,
   showLegend = true,
   yAxis,
-  disableCursorSplit = false,
-  disableResetAnimation = false,
+  disableCursorSplit: _disableCursorSplit = false,
+  disableResetAnimation: _disableResetAnimation = false,
   markerOuterRadius = 6,
   markerInnerRadius = 2.8,
   markerPulseStyle = 'filled',
@@ -111,7 +198,7 @@ export default function PredictionChart({
   lineEndOffsetX = -12,
   lineStrokeWidth = 1.6,
   lineCurve = 'catmullRom',
-  plotClipPadding,
+  plotClipPadding: _plotClipPadding,
   showAreaFill = false,
   areaFillTopOpacity = 0.16,
   areaFillBottomOpacity = 0,
@@ -128,635 +215,142 @@ export default function PredictionChart({
 }: PredictionChartProps): ReactElement {
   const series = useMemo(() => providedSeries ?? [], [providedSeries])
   const normalizedSignature = dataSignature ?? '__default__'
-  const { data, isClient, lastDataUpdateTypeRef, previousDataRef } = usePredictionChartData(
-    providedData,
-    normalizedSignature,
-    dataSyncMode,
-  )
+  const { data, isClient } = usePredictionChartData(providedData, normalizedSignature, dataSyncMode)
   const isDarkMode = useDarkMode()
-  const annotationHoverScopeKey = `${normalizedSignature}:${showAnnotations ? '1' : '0'}`
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [cursor, setCursor] = useState<CursorState | null>(null)
+  const annotationScopeKey = `${normalizedSignature}:${showAnnotations ? '1' : '0'}`
   const [annotationHoverState, setAnnotationHoverState] = useState<{
     scopeKey: string
     clusterId: string | null
-  }>({
-    scopeKey: annotationHoverScopeKey,
-    clusterId: null,
-  })
-  const seriesPathRef = useRef<Record<string, SVGPathElement | null>>({})
-
+  }>({ scopeKey: annotationScopeKey, clusterId: null })
   const hoveredAnnotationClusterId =
-    annotationHoverState.scopeKey === annotationHoverScopeKey ? annotationHoverState.clusterId : null
+    annotationHoverState.scopeKey === annotationScopeKey ? annotationHoverState.clusterId : null
   const setHoveredAnnotationClusterId = useCallback(
     (nextClusterId: SetStateAction<string | null>) => {
       setAnnotationHoverState((current) => {
-        const currentScopedClusterId = current.scopeKey === annotationHoverScopeKey ? current.clusterId : null
-        const resolvedNextClusterId =
-          typeof nextClusterId === 'function' ? nextClusterId(currentScopedClusterId) : nextClusterId
-
-        if (currentScopedClusterId === resolvedNextClusterId && current.scopeKey === annotationHoverScopeKey) {
+        const currentId = current.scopeKey === annotationScopeKey ? current.clusterId : null
+        const nextId = typeof nextClusterId === 'function' ? nextClusterId(currentId) : nextClusterId
+        if (current.scopeKey === annotationScopeKey && currentId === nextId) {
           return current
         }
-
-        return {
-          scopeKey: annotationHoverScopeKey,
-          clusterId: resolvedNextClusterId,
-        }
+        return { scopeKey: annotationScopeKey, clusterId: nextId }
       })
     },
-    [annotationHoverScopeKey],
+    [annotationScopeKey],
   )
 
-  const { tooltipData, tooltipLeft, tooltipOpen, showTooltip, hideTooltip } = useTooltip<DataPoint>()
-  const tooltipActive = Boolean(tooltipOpen && tooltipData && tooltipLeft !== undefined)
-
-  const {
-    revealProgress,
-    setRevealProgress: _setRevealProgress,
-    crossFadeData,
-    crossFadeProgress,
-    surgeActive,
-    surgeLengths,
-    revealSeriesSet,
-    revealAnimationFrameRef,
-    hasPointerInteractionRef,
-    lastCursorProgressRef,
-  } = usePredictionChartAnimation({
-    data,
-    series,
-    disableResetAnimation,
-    tooltipActive,
-    lastDataUpdateTypeRef,
-    previousDataRef,
-    seriesPathRef,
-  })
-
-  const clipId = useId().replace(/:/g, '')
-  const plotAreaClipId = `${clipId}-plot`
-  const gridAreaClipId = `${clipId}-grid`
-  const xAxisAreaClipId = `${clipId}-x-axis`
-  const yAxisFadeMaskId = `${clipId}-y-axis-fade`
-  const yAxisFadeGradientId = `${clipId}-y-axis-fade-gradient`
-  const leftClipId = `${clipId}-left`
-  const rightClipId = `${clipId}-right`
-  const shouldRenderLegend = showLegend && Boolean(legendContent)
-  const shouldRenderWatermark = Boolean(watermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label))
-  const resolvedLineStrokeWidth = Number.isFinite(lineStrokeWidth) && lineStrokeWidth > 0 ? lineStrokeWidth : 1.6
-  const resolvedAreaFillTopOpacity = Number.isFinite(areaFillTopOpacity) ? clamp01(areaFillTopOpacity) : 0.16
-  const resolvedAreaFillBottomOpacity = Number.isFinite(areaFillBottomOpacity) ? clamp01(areaFillBottomOpacity) : 0
-  const resolvedSurgeStrokeWidth = Math.max(resolvedLineStrokeWidth + 1.2, 2.8)
-  const emitCursorDataChange = useCallback(
-    (point: DataPoint | null) => {
-      if (!onCursorDataChange) {
-        return
-      }
-
-      if (!point) {
-        onCursorDataChange(null)
-        return
-      }
-
-      const values: Record<string, number> = {}
-
-      series.forEach((seriesItem) => {
-        const value = point[seriesItem.key]
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          values[seriesItem.key] = value
-        }
-      })
-
-      onCursorDataChange({
-        date: point.date,
-        values,
-      })
-    },
-    [onCursorDataChange, series],
-  )
-  const resolvedLineCurve =
-    lineCurve === 'monotoneX' ? curveMonotoneX : lineCurve === 'basis' ? curveBasis : curveCatmullRom
-
-  const resolvedMargin = useMemo(() => {
-    const axisPadding = 12
-    return {
+  const resolvedMargin = useMemo(
+    () => ({
       top: margin.top,
       left: margin.left,
-      right: showYAxis ? margin.right : Math.min(margin.right, axisPadding),
-      bottom: showXAxis ? margin.bottom : Math.min(margin.bottom, axisPadding),
-    }
-  }, [margin.top, margin.left, margin.right, margin.bottom, showXAxis, showYAxis])
-  const plotHeight = Math.max(1, height - resolvedMargin.top - resolvedMargin.bottom)
-  const yAxisMinTicks = Math.max(MIN_Y_AXIS_TICKS, Math.min(PREFERRED_MAX_Y_AXIS_TICKS, Math.round(plotHeight / 56)))
-  const {
-    min: defaultYAxisMin,
-    max: defaultYAxisMax,
-    ticks: defaultYAxisTicks,
-  } = useMemo(() => {
+      right: showYAxis ? margin.right : Math.min(margin.right, 12),
+      bottom: showXAxis ? margin.bottom : Math.min(margin.bottom, 12),
+    }),
+    [margin.bottom, margin.left, margin.right, margin.top, showXAxis, showYAxis],
+  )
+  const innerWidth = Math.max(1, width - resolvedMargin.left - resolvedMargin.right)
+  const innerHeight = Math.max(1, height - resolvedMargin.top - resolvedMargin.bottom)
+  const yAxisMinTicks = Math.max(MIN_Y_AXIS_TICKS, Math.min(PREFERRED_MAX_Y_AXIS_TICKS, Math.round(innerHeight / 56)))
+  const defaultYAxis = useMemo(() => {
     if (!autoscale) {
-      return {
-        min: 0,
-        max: DEFAULT_Y_AXIS_MAX,
-        ticks: [0, 25, 50, 75, 100],
-      }
+      return { min: 0, max: DEFAULT_Y_AXIS_MAX, ticks: [0, 25, 50, 75, 100] }
     }
     return calculateYAxisBounds(data, series, yAxisMinTicks, MAX_Y_AXIS_TICKS)
   }, [autoscale, data, series, yAxisMinTicks])
-  const yAxisMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min) ? yAxis.min : defaultYAxisMin
-  const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max) ? yAxis.max : defaultYAxisMax
-  const hasExplicitYMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min)
-  const hasExplicitYMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max)
-  const hasExplicitYTicks = Array.isArray(yAxis?.ticks) && yAxis.ticks.length > 0
-  const shouldUseNiceYScale = autoscale && !(hasExplicitYMin || hasExplicitYMax || hasExplicitYTicks)
+  const yAxisMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min) ? yAxis.min : defaultYAxis.min
+  const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max) ? yAxis.max : defaultYAxis.max
+  const resolvedYAxisTicks = useMemo(() => {
+    if (!Array.isArray(yAxis?.ticks)) {
+      return normalizeTicks(defaultYAxis.ticks)
+    }
+    if (yAxis.ticks.length === 0) {
+      return []
+    }
+    const normalizedTicks = normalizeTicks(yAxis.ticks)
+    return normalizedTicks.length > 0 ? normalizedTicks : defaultYAxis.ticks
+  }, [defaultYAxis.ticks, yAxis?.ticks])
 
-  const resolvedYAxisTicks = Array.isArray(yAxis?.ticks)
-    ? yAxis.ticks.length === 0
-      ? []
-      : (() => {
-          const normalizedTicks = normalizeTicks(yAxis.ticks)
-          return normalizedTicks.length > 0 ? normalizedTicks : defaultYAxisTicks
-        })()
-    : normalizeTicks(defaultYAxisTicks)
   const domainBounds = useMemo(() => {
     const explicitStart = toDomainTimestamp(xDomain?.start)
     const explicitEnd = toDomainTimestamp(xDomain?.end)
-
-    if (!data.length) {
-      const start = Number.isFinite(explicitStart) ? explicitStart : 0
-      const endCandidate = Number.isFinite(explicitEnd) ? explicitEnd : start + 1
-      return { start, end: Math.max(start + 1, endCandidate) }
-    }
-
-    let dataStart = data[0].date.getTime()
-    let dataEnd = dataStart
-
-    for (let index = 1; index < data.length; index += 1) {
-      const value = data[index].date.getTime()
-      if (value < dataStart) {
-        dataStart = value
-      }
-      if (value > dataEnd) {
-        dataEnd = value
-      }
-    }
+    const timestamps = data.map((point) => point.date.getTime()).filter(Number.isFinite)
+    const dataStart = timestamps.length ? Math.min(...timestamps) : 0
+    const dataEnd = timestamps.length ? Math.max(...timestamps) : dataStart + 1
     const leadingStart = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
     const defaultStart = Number.isFinite(leadingStart) ? Math.min(dataStart, leadingStart) : dataStart
-    let start = Number.isFinite(explicitStart) ? explicitStart : defaultStart
-    let end = Number.isFinite(explicitEnd) ? explicitEnd : dataEnd
-
-    if (!Number.isFinite(start)) {
-      start = defaultStart
-    }
-    if (!Number.isFinite(end)) {
-      end = dataEnd
-    }
-    if (end <= start) {
-      end = start + 1
-    }
-
-    return { start, end }
+    const start = Number.isFinite(explicitStart) ? explicitStart : defaultStart
+    const resolvedEnd = Number.isFinite(explicitEnd) ? explicitEnd : dataEnd
+    return { start, end: Math.max(start + 1, resolvedEnd) }
   }, [data, leadingGapStart, xDomain?.end, xDomain?.start])
+
   const dataBounds = useMemo(() => {
     if (!data.length) {
       return null
     }
-
-    let start = data[0].date.getTime()
-    let end = start
-
-    for (let index = 1; index < data.length; index += 1) {
-      const timestamp = data[index]?.date.getTime()
-      if (!Number.isFinite(timestamp)) {
-        continue
-      }
-
-      if (timestamp < start) {
-        start = timestamp
-      }
-      if (timestamp > end) {
-        end = timestamp
-      }
-    }
-
-    return { start, end }
+    return { start: data[0].date.getTime(), end: data.at(-1)!.date.getTime() }
   }, [data])
 
-  const getClampedCursorPoint = useCallback(
-    (targetDate: Date) => {
-      if (!data.length) {
-        return null
-      }
-
-      const firstPoint = data[0]
-      const lastPoint = data.at(-1)
-      if (!firstPoint || !lastPoint) {
-        return null
-      }
-      const targetTime = targetDate.getTime()
-      const firstTime = firstPoint.date.getTime()
-      const lastTime = lastPoint.date.getTime()
-
-      if (!Number.isFinite(targetTime) || !Number.isFinite(firstTime) || !Number.isFinite(lastTime)) {
-        return null
-      }
-
-      if (targetTime <= firstTime) {
-        return { ...firstPoint, date: targetDate }
-      }
-
-      if (targetTime >= lastTime) {
-        return { ...lastPoint, date: targetDate }
-      }
-
-      const index = bisectDate(data, targetDate)
-      const previousPoint = data[index - 1] ?? null
-      const nextPoint = data[index] ?? null
-
-      if (!previousPoint && !nextPoint) {
-        return null
-      }
-
-      if (!previousPoint) {
-        return { ...nextPoint, date: targetDate }
-      }
-
-      if (!nextPoint) {
-        return { ...previousPoint, date: targetDate }
-      }
-
-      const previousTime = previousPoint.date.getTime()
-      const nextTime = nextPoint.date.getTime()
-      const span = nextTime - previousTime
-      const ratio = span > 0 ? (targetTime - previousTime) / span : 0
-      const clampedRatio = Math.max(0, Math.min(1, ratio))
-      const interpolated: DataPoint = { date: targetDate }
-
-      series.forEach((seriesItem) => {
-        const previousValue = previousPoint[seriesItem.key]
-        const nextValue = nextPoint[seriesItem.key]
-
-        if (typeof previousValue === 'number' && typeof nextValue === 'number') {
-          interpolated[seriesItem.key] = previousValue + (nextValue - previousValue) * clampedRatio
-        } else if (typeof previousValue === 'number') {
-          interpolated[seriesItem.key] = previousValue
-        } else if (typeof nextValue === 'number') {
-          interpolated[seriesItem.key] = nextValue
-        }
-      })
-
-      return interpolated
-    },
-    [data, series],
-  )
-
-  const handleTooltip = useCallback(
-    (event: React.TouchEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
-      if (!data.length || !series.length) {
-        return
-      }
-
-      const { x } = localPoint(event) || { x: 0 }
-      const innerWidth = width - resolvedMargin.left - resolvedMargin.right
-      const innerHeight = height - resolvedMargin.top - resolvedMargin.bottom
-      const resolvedLineEndOffsetX = Number.isFinite(lineEndOffsetX) ? Math.min(0, lineEndOffsetX) : 0
-      const cursorRangeEnd = Math.max(1, innerWidth + resolvedLineEndOffsetX)
-      const domainStart = domainBounds.start
-      const domainEnd = domainBounds.end
-
-      const xScale = scaleTime<number>({
-        range: [0, cursorRangeEnd],
-        domain: [domainStart, domainEnd],
-      })
-
-      const yScale = scaleLinear<number>({
-        range: [innerHeight, 0],
-        domain: [yAxisMin, yAxisMax],
-        nice: shouldUseNiceYScale,
-      })
-
-      const rawDate = xScale.invert(x - resolvedMargin.left)
-      const clampedTime = Math.max(domainStart, Math.min(domainEnd, rawDate.getTime()))
-      const localX = x - resolvedMargin.left
-      let targetTime = clampedTime
-      if (localX >= cursorRangeEnd - 1) {
-        targetTime = domainEnd
-      } else if (localX <= 1) {
-        targetTime = domainStart
-      } else if (cursorStepMs && cursorStepMs > 0) {
-        const snappedTime = snapTimestampToInterval(clampedTime, cursorStepMs, domainStart)
-        const snapThreshold = Math.max(1, cursorStepMs / 2)
-
-        if (domainEnd - clampedTime <= snapThreshold) {
-          targetTime = domainEnd
-        } else if (clampedTime - domainStart <= snapThreshold) {
-          targetTime = domainStart
-        } else {
-          targetTime = snappedTime
-        }
-      }
-      if (clampCursorToDataExtent && dataBounds) {
-        targetTime = Math.max(dataBounds.start, Math.min(dataBounds.end, targetTime))
-      }
-      const targetDate = new Date(targetTime)
-      if (!disableCursorSplit) {
-        const domainSpan = Math.max(1, domainEnd - domainStart)
-        lastCursorProgressRef.current = clamp01((targetTime - domainStart) / domainSpan)
-        hasPointerInteractionRef.current = true
-        stopRevealAnimation(revealAnimationFrameRef)
-      }
-      const tooltipLeftPosition = xScale(targetDate)
-      const cursorPoint = getClampedCursorPoint(targetDate)
-      const resolvedPoint = cursorPoint
-        ? resolvePointFromPaths({
-            basePoint: cursorPoint,
-            series,
-            seriesPaths: seriesPathRef.current,
-            targetX: tooltipLeftPosition,
-            yScale,
-          })
-        : null
-      const tooltipPoint = resolvedPoint ?? cursorPoint ?? data[0]
-
-      const tooltipTopValue = series.reduce<number | null>((resolvedValue, seriesItem) => {
-        if (resolvedValue !== null) {
-          return resolvedValue
-        }
-
-        const value = tooltipPoint[seriesItem.key]
-        return typeof value === 'number' && Number.isFinite(value) ? value : null
-      }, null)
-
-      showTooltip({
-        tooltipData: tooltipPoint,
-        tooltipLeft: tooltipLeftPosition,
-        tooltipTop: yScale(tooltipTopValue ?? yAxisMin),
-      })
-
-      emitCursorDataChange(resolvedPoint ?? cursorPoint ?? tooltipPoint ?? null)
-    },
-    [
-      showTooltip,
-      data,
-      width,
-      height,
-      resolvedMargin.left,
-      resolvedMargin.right,
-      resolvedMargin.top,
-      resolvedMargin.bottom,
-      cursorStepMs,
-      clampCursorToDataExtent,
-      dataBounds,
-      domainBounds,
-      revealAnimationFrameRef,
-      getClampedCursorPoint,
-      emitCursorDataChange,
-      series,
-      yAxisMin,
-      yAxisMax,
-      shouldUseNiceYScale,
-      disableCursorSplit,
-      hasPointerInteractionRef,
-      lastCursorProgressRef,
-      lineEndOffsetX,
-    ],
-  )
-
-  const dataLength = data.length
-
-  const handleInteractionEnd = useCallback(() => {
-    hideTooltip()
-    emitCursorDataChange(null)
-
-    if (!dataLength) {
-      return
-    }
-
-    if (disableCursorSplit) {
-      return
-    }
-
-    if (!hasPointerInteractionRef.current) {
-      return
-    }
-
-    hasPointerInteractionRef.current = false
-
-    const startProgress = clamp01(lastCursorProgressRef.current)
-    const distance = Math.abs(1 - startProgress)
-    const duration = Math.max(400, distance * INTERACTION_BASE_REVEAL_DURATION)
-
-    runRevealAnimation({
-      from: startProgress,
-      to: 1,
-      duration,
-      frameRef: revealAnimationFrameRef,
-      setProgress: _setRevealProgress,
-    })
-  }, [
-    hideTooltip,
-    emitCursorDataChange,
-    dataLength,
-    revealAnimationFrameRef,
-    disableCursorSplit,
-    hasPointerInteractionRef,
-    lastCursorProgressRef,
-    _setRevealProgress,
-  ])
-
-  const registerSeriesPath = useCallback((seriesKey: string) => {
-    return (node: SVGPathElement | null) => {
-      seriesPathRef.current[seriesKey] = node
-    }
-  }, [])
-
-  const surgeFilter = isDarkMode
-    ? 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.75))'
-    : 'drop-shadow(0 0 1.5px rgba(15, 23, 42, 0.45))'
-
-  const resolveSurgeColor = useCallback(
-    (_color: string) => {
-      if (isDarkMode) {
-        return 'rgba(255, 255, 255, 0.82)'
-      }
-      return 'rgba(15, 23, 42, 0.55)'
-    },
-    [isDarkMode],
-  )
-
-  const firstFinitePointBySeries = useMemo(() => {
-    const result: Record<string, DataPoint | null> = {}
-
-    if (!data.length || !series.length) {
-      return result
-    }
-
-    series.forEach((seriesItem) => {
-      result[seriesItem.key] = null
-    })
-
-    let remaining = series.length
-
-    for (const point of data) {
-      if (remaining === 0) {
-        break
-      }
-
-      for (const seriesItem of series) {
-        if (result[seriesItem.key]) {
-          continue
-        }
-
-        const value = point[seriesItem.key]
-        if (typeof value === 'number' && Number.isFinite(value)) {
-          result[seriesItem.key] = point
-          remaining -= 1
-          if (remaining === 0) {
-            break
-          }
-        }
-      }
-    }
-
-    return result
-  }, [data, series])
-  const resolvedXAxisTickValues = useMemo(() => {
-    if (!Array.isArray(xAxisTickValues) || xAxisTickValues.length === 0) {
-      return null
-    }
-
-    const filtered = xAxisTickValues
-      .filter((tick) => {
+  const resolvedXAxisTicks = useMemo(() => {
+    const explicitTicks = xAxisTickValues
+      ?.filter((tick) => {
         const timestamp = tick.getTime()
         return Number.isFinite(timestamp) && timestamp >= domainBounds.start && timestamp <= domainBounds.end
       })
-      .sort((a, b) => a.getTime() - b.getTime())
+      .sort((left, right) => left.getTime() - right.getTime())
 
-    return filtered.length >= 2 ? filtered : null
-  }, [domainBounds.end, domainBounds.start, xAxisTickValues])
-
-  if (!isClient || data.length === 0 || series.length === 0) {
-    return (
-      <div className="relative size-full">
-        <svg width="100%" height={height}>
-          <rect width="100%" height={height} fill="transparent" />
-        </svg>
-      </div>
-    )
-  }
-
-  const innerWidth = width - resolvedMargin.left - resolvedMargin.right
-  const innerHeight = height - resolvedMargin.top - resolvedMargin.bottom
-  const resolvedAreaFillBottomOffset =
-    Number.isFinite(areaFillBottomOffset) && areaFillBottomOffset > 0 ? Math.min(areaFillBottomOffset, innerHeight) : 0
-
-  const xScale = scaleTime<number>({
-    range: [0, innerWidth],
-    domain: [domainBounds.start, domainBounds.end],
-  })
-  const resolvedXAxisLabelsRightInset = Number.isFinite(xAxisLabelsRightInset) ? Math.max(0, xAxisLabelsRightInset) : 0
-  const xAxisLabelsWidth = Math.max(
-    1,
-    (showXAxisTopRuleFullWidth ? width - resolvedMargin.left : innerWidth) - resolvedXAxisLabelsRightInset,
-  )
-  const xAxisScale = showXAxisTopRuleFullWidth
-    ? scaleTime<number>({
-        range: [0, xAxisLabelsWidth],
-        domain: [domainBounds.start, domainBounds.end],
-      })
-    : scaleTime<number>({
-        range: [0, xAxisLabelsWidth],
-        domain: [domainBounds.start, domainBounds.end],
-      })
-
-  const yScale = scaleLinear<number>({
-    range: [innerHeight, 0],
-    domain: [yAxisMin, yAxisMax],
-    nice: shouldUseNiceYScale,
-  })
-
-  const clampedTooltipX = tooltipActive ? Math.max(0, Math.min(tooltipLeft as number, innerWidth)) : innerWidth
-  const cursorDate = tooltipActive ? xScale.invert(clampedTooltipX) : null
-  const shouldSplitByCursor = !disableCursorSplit && Boolean(tooltipActive && cursorDate)
-  const leftClipWidth = shouldSplitByCursor ? clampedTooltipX : innerWidth
-  const rightClipWidth = shouldSplitByCursor ? Math.max(0, innerWidth - clampedTooltipX) : 0
-  const domainSpan = Math.max(1, domainBounds.end - domainBounds.start)
-  const revealTime = domainBounds.start + domainSpan * clamp01(revealProgress)
-  const dashedSplitTime = tooltipActive && cursorDate ? cursorDate.getTime() : revealTime
-  const cursorPoint = tooltipActive && cursorDate ? getClampedCursorPoint(cursorDate) : null
-  const effectiveTooltipData = tooltipData ?? cursorPoint ?? null
-
-  let coloredPoints: DataPoint[] = data
-  let mutedPoints: DataPoint[] = []
-
-  if (disableCursorSplit) {
-    coloredPoints = data
-    mutedPoints = []
-  } else if (shouldSplitByCursor) {
-    coloredPoints = data
-    mutedPoints = data
-  } else if (data.length > 0) {
-    const totalSegments = Math.max(1, data.length - 1)
-    const revealIndex = Math.round(totalSegments * clamp01(revealProgress))
-    const clampedIndex = Math.min(revealIndex, data.length - 1)
-
-    coloredPoints = data.slice(0, clampedIndex + 1)
-    mutedPoints = data.slice(clampedIndex + 1)
-
-    if (coloredPoints.length === 0) {
-      coloredPoints = [data[0]]
-    }
-  }
-
-  const lastDataPoint = data.length > 0 ? (data.at(-1) ?? null) : null
-  const isTooltipAtLastPoint =
-    tooltipActive &&
-    lastDataPoint !== null &&
-    effectiveTooltipData !== null &&
-    effectiveTooltipData.date.getTime() === lastDataPoint.date.getTime()
-  const canShowMarkers = Boolean(lastDataPoint) && (disableCursorSplit || !tooltipActive || isTooltipAtLastPoint)
-  const crossFadeActive = Boolean(crossFadeData && crossFadeProgress < 0.999 && !shouldSplitByCursor)
-  const crossFadeIn = crossFadeActive ? crossFadeProgress : 1
-  const crossFadeOut = crossFadeActive ? 1 - crossFadeProgress : 0
-  const totalDurationHours =
-    data.length > 1 && lastDataPoint ? (lastDataPoint.date.valueOf() - data[0].date.valueOf()) / 36e5 : 0
-  const isMonthOnlyLabels = totalDurationHours > 24 * 45
-  const verticalGridTicks = showVerticalGrid
-    ? (resolvedXAxisTickValues ?? xScale.ticks(Math.max(2, xAxisTickCount * 2)))
-    : []
-
-  function formatAxisTick(value: number | { valueOf: () => number }) {
-    const numericValue = typeof value === 'number' ? value : value.valueOf()
-    const date = new Date(numericValue)
-
-    if (xAxisTickFormatter) {
-      return xAxisTickFormatter(date)
+    if (explicitTicks && explicitTicks.length >= 2) {
+      return explicitTicks
     }
 
-    if (totalDurationHours <= 48) {
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    }
-
-    if (totalDurationHours <= 24 * 45) {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
-    }
-
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
+    const count = Math.max(2, Math.floor(xAxisTickCount))
+    return Array.from({ length: count }, (_, index) => {
+      const progress = count === 1 ? 0 : index / (count - 1)
+      return new Date(domainBounds.start + (domainBounds.end - domainBounds.start) * progress)
     })
-  }
+  }, [domainBounds.end, domainBounds.start, xAxisTickCount, xAxisTickValues])
 
-  const resolvedAnnotationClusters =
-    !showAnnotations || !annotationMarkers.length
-      ? []
-      : clusterAnnotationMarkers(resolveAnnotationMarkers(annotationMarkers, xScale, yScale, innerWidth, innerHeight))
+  const totalDurationHours = (domainBounds.end - domainBounds.start) / 36e5
+  const formatXAxisTick = useCallback(
+    (date: Date) => {
+      if (xAxisTickFormatter) {
+        return xAxisTickFormatter(date)
+      }
+      if (totalDurationHours <= 48) {
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      }
+      if (totalDurationHours <= 24 * 45) {
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }
+      return date.toLocaleDateString('en-US', { month: 'short' })
+    },
+    [totalDurationHours, xAxisTickFormatter],
+  )
+  const formatYAxisTick = useCallback(
+    (value: number) => (yAxis?.tickFormat ? yAxis.tickFormat(value) : `${value}%`),
+    [yAxis],
+  )
 
+  const xScale = useCallback(
+    (date: Date) => ((date.getTime() - domainBounds.start) / (domainBounds.end - domainBounds.start)) * innerWidth,
+    [domainBounds.end, domainBounds.start, innerWidth],
+  )
+  const yScale = useCallback(
+    (value: number) => innerHeight - ((value - yAxisMin) / Math.max(Number.EPSILON, yAxisMax - yAxisMin)) * innerHeight,
+    [innerHeight, yAxisMax, yAxisMin],
+  )
+  const resolvedAnnotationClusters = useMemo(
+    () =>
+      !showAnnotations || !annotationMarkers.length
+        ? []
+        : clusterAnnotationMarkers(
+            resolveAnnotationMarkers(annotationMarkers, xScale, yScale, innerWidth, innerHeight),
+          ),
+    [annotationMarkers, innerHeight, innerWidth, showAnnotations, xScale, yScale],
+  )
   const hoveredAnnotationCluster = hoveredAnnotationClusterId
     ? (resolvedAnnotationClusters.find((cluster) => cluster.id === hoveredAnnotationClusterId) ?? null)
     : null
-
   const hoveredAnnotationTooltipPosition = hoveredAnnotationCluster
     ? {
         left: Math.max(16, Math.min(width - 16, resolvedMargin.left + hoveredAnnotationCluster.x)),
@@ -764,106 +358,32 @@ export default function PredictionChart({
       }
     : null
 
-  interface TooltipEntry {
-    key: string
-    name: string
-    color: string
-    value: number
-    initialTop: number
-  }
-  type PositionedTooltipEntry = TooltipEntry & { top: number }
-
-  const tooltipLabelHeight = tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_HEIGHT : TOOLTIP_LABEL_HEIGHT
-  const tooltipLabelGap = tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_GAP : TOOLTIP_LABEL_GAP
-
-  const tooltipEntries: TooltipEntry[] =
-    tooltipActive && effectiveTooltipData
-      ? series
-          .map((seriesItem) => {
-            const value = effectiveTooltipData[seriesItem.key]
-            if (typeof value !== 'number') {
-              return null
-            }
-
-            return {
-              key: seriesItem.key,
-              name: seriesItem.name,
-              color: seriesItem.color,
-              value,
-              initialTop: resolvedMargin.top + yScale(value) - tooltipLabelHeight,
-            }
+  const tooltipEntries = cursor
+    ? series.reduce<TooltipEntry[]>((entries, seriesItem) => {
+        const value = cursor.point[seriesItem.key]
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          entries.push({
+            key: seriesItem.key,
+            name: seriesItem.name,
+            color: seriesItem.color,
+            value,
+            initialTop:
+              resolvedMargin.top +
+              yScale(value) -
+              (tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_HEIGHT : TOOLTIP_LABEL_HEIGHT),
           })
-          .filter((entry): entry is TooltipEntry => entry !== null)
-      : []
-
-  let positionedTooltipEntries: PositionedTooltipEntry[] = []
-  if (tooltipEntries.length > 0) {
-    const sorted = [...tooltipEntries].sort((a, b) => a.initialTop - b.initialTop)
-
-    const minTop = resolvedMargin.top
-    const rawMaxTop = resolvedMargin.top + innerHeight - tooltipLabelHeight
-    const maxTop = rawMaxTop < minTop ? minTop : rawMaxTop
-    const step = tooltipLabelHeight + tooltipLabelGap
-
-    const positioned: PositionedTooltipEntry[] = []
-    sorted.forEach((entry, index) => {
-      const clampedDesired = Math.max(minTop, Math.min(entry.initialTop, maxTop))
-      const previousTop = index > 0 ? positioned[index - 1].top : null
-      const top = previousTop === null ? clampedDesired : Math.max(clampedDesired, previousTop + step)
-
-      positioned.push({
-        ...entry,
-        top,
-      })
-    })
-
-    if (positioned.length > 0) {
-      const lastIndex = positioned.length - 1
-      const overflow = positioned[lastIndex].top - maxTop
-      if (overflow > 0) {
-        for (let i = 0; i < positioned.length; i += 1) {
-          positioned[i].top -= overflow
         }
-      }
+        return entries
+      }, [])
+    : []
+  const positionedTooltipEntries = positionTooltipEntries(
+    tooltipEntries,
+    resolvedMargin.top,
+    innerHeight,
+    tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_HEIGHT : TOOLTIP_LABEL_HEIGHT,
+    tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_GAP : TOOLTIP_LABEL_GAP,
+  )
 
-      const underflow = minTop - positioned[0].top
-      if (underflow > 0) {
-        for (let i = 0; i < positioned.length; i += 1) {
-          positioned[i].top += underflow
-        }
-      }
-    }
-
-    positionedTooltipEntries = positioned
-  }
-
-  function getDate(d: DataPoint) {
-    return d.date
-  }
-
-  function getX(d: DataPoint) {
-    const baseX = xScale(getDate(d))
-    const resolvedLineEndOffsetX = Number.isFinite(lineEndOffsetX) ? lineEndOffsetX : 0
-    const offsetProgress = innerWidth > 0 ? clamp01(baseX / innerWidth) : 1
-    return baseX + resolvedLineEndOffsetX * offsetProgress
-  }
-
-  function getSeriesValue(point: DataPoint, seriesKey: string) {
-    const value = point[seriesKey]
-    return typeof value === 'number' && Number.isFinite(value) ? value : null
-  }
-
-  function hasSeriesValue(point: DataPoint, seriesKey: string) {
-    return getSeriesValue(point, seriesKey) !== null
-  }
-
-  function getSeriesY(point: DataPoint, seriesKey: string) {
-    const value = getSeriesValue(point, seriesKey)
-    return value === null ? Number.NaN : yScale(value)
-  }
-
-  const futureLineColor = isDarkMode ? FUTURE_LINE_COLOR_DARK : FUTURE_LINE_COLOR_LIGHT
-  const futureLineOpacity = isDarkMode ? FUTURE_LINE_OPACITY_DARK : FUTURE_LINE_OPACITY_LIGHT
   const gridLineColor = neutralAxisColors
     ? isDarkMode
       ? '#4a4a4a'
@@ -874,20 +394,240 @@ export default function PredictionChart({
   const defaultGridLineOpacity = isDarkMode ? GRID_LINE_OPACITY_DARK : GRID_LINE_OPACITY_LIGHT
   const resolvedGridLineOpacity =
     typeof gridLineOpacityOverride === 'number' && Number.isFinite(gridLineOpacityOverride)
-      ? clamp01(gridLineOpacityOverride)
+      ? Math.max(0, Math.min(1, gridLineOpacityOverride))
       : defaultGridLineOpacity
   const axisLabelColor = neutralAxisColors ? '#7A8595' : gridLineColor
   const axisLabelOpacity = neutralAxisColors ? 1 : Math.min(1, defaultGridLineOpacity + 0.25)
-  const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
-  const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
-  const clipPadding = Math.ceil(Math.max(resolvedLineStrokeWidth, resolvedSurgeStrokeWidth) + 2)
-  const resolvedPlotClipPadding = {
-    top: plotClipPadding?.top === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.top ?? 0)),
-    right: Math.max(clipPadding, Number(plotClipPadding?.right ?? 0)),
-    bottom: plotClipPadding?.bottom === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.bottom ?? 0)),
-    left: plotClipPadding?.left === 0 ? 0 : Math.max(clipPadding, Number(plotClipPadding?.left ?? 0)),
-  }
-  const resolvedCursorGuideTop = typeof cursorGuideTop === 'number' ? cursorGuideTop : -resolvedMargin.top
+
+  const createCanvasFrame = useCallback(
+    (markerPulseProgress: number): PredictionChartCanvasFrame => ({
+      width,
+      height,
+      margin: resolvedMargin,
+      data,
+      series,
+      domainStart: domainBounds.start,
+      domainEnd: domainBounds.end,
+      yMin: yAxisMin,
+      yMax: yAxisMax,
+      yTicks: resolvedYAxisTicks,
+      xTicks: resolvedXAxisTicks,
+      formatXTick: formatXAxisTick,
+      formatYTick: formatYAxisTick,
+      showXAxis,
+      showYAxis,
+      showHorizontalGrid,
+      showVerticalGrid,
+      showXAxisTopRule,
+      showXAxisTopRuleFullWidth,
+      hideYAxisMinimumLabel,
+      alignYAxisLabelsToChartEdge,
+      xAxisTickFontSize,
+      yAxisTickFontSize,
+      centerXAxisTickLabels,
+      xAxisLabelsRightInset,
+      gridLineStyle,
+      gridLineColor,
+      gridLineOpacity: resolvedGridLineOpacity,
+      axisLabelColor,
+      axisLabelOpacity,
+      lineCurve,
+      lineStrokeWidth: Math.max(0.5, lineStrokeWidth),
+      lineEndOffsetX: Number.isFinite(lineEndOffsetX) ? lineEndOffsetX : 0,
+      leadingGapStartMs: leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN,
+      showAreaFill,
+      areaFillTopOpacity: Math.max(0, Math.min(1, areaFillTopOpacity)),
+      areaFillBottomOpacity: Math.max(0, Math.min(1, areaFillBottomOpacity)),
+      areaFillBottomOffset: Math.max(0, Math.min(innerHeight, areaFillBottomOffset)),
+      annotations: resolvedAnnotationClusters,
+      markerOuterRadius,
+      markerInnerRadius,
+      markerPulseStyle,
+      markerOffsetX,
+      markerPulseProgress,
+      cursor: cursor
+        ? {
+            x: cursor.left,
+            values: series.reduce<Record<string, number>>((values, seriesItem) => {
+              const value = cursor.point[seriesItem.key]
+              if (typeof value === 'number' && Number.isFinite(value)) {
+                values[seriesItem.key] = value
+              }
+              return values
+            }, {}),
+            guideTop: typeof cursorGuideTop === 'number' ? cursorGuideTop : -resolvedMargin.top,
+            guideColor: cursorGuideColor,
+          }
+        : null,
+    }),
+    [
+      alignYAxisLabelsToChartEdge,
+      areaFillBottomOffset,
+      areaFillBottomOpacity,
+      areaFillTopOpacity,
+      axisLabelColor,
+      axisLabelOpacity,
+      centerXAxisTickLabels,
+      cursor,
+      cursorGuideColor,
+      cursorGuideTop,
+      data,
+      domainBounds.end,
+      domainBounds.start,
+      formatXAxisTick,
+      formatYAxisTick,
+      gridLineColor,
+      gridLineStyle,
+      height,
+      hideYAxisMinimumLabel,
+      innerHeight,
+      leadingGapStart,
+      lineCurve,
+      lineEndOffsetX,
+      lineStrokeWidth,
+      markerInnerRadius,
+      markerOffsetX,
+      markerOuterRadius,
+      markerPulseStyle,
+      resolvedAnnotationClusters,
+      resolvedGridLineOpacity,
+      resolvedMargin,
+      resolvedXAxisTicks,
+      resolvedYAxisTicks,
+      series,
+      showAreaFill,
+      showHorizontalGrid,
+      showVerticalGrid,
+      showXAxis,
+      showXAxisTopRule,
+      showXAxisTopRuleFullWidth,
+      showYAxis,
+      width,
+      xAxisLabelsRightInset,
+      xAxisTickFontSize,
+      yAxisMax,
+      yAxisMin,
+      yAxisTickFontSize,
+    ],
+  )
+
+  useLayoutEffect(
+    function renderCanvasChart() {
+      const canvas = canvasRef.current
+      if (!canvas || !isClient) {
+        return
+      }
+
+      let frameId: number | null = null
+      function draw(timestamp: number) {
+        const pulseProgress = (timestamp % MARKER_PULSE_DURATION) / MARKER_PULSE_DURATION
+        const didDraw = drawPredictionChartCanvas(canvas!, createCanvasFrame(pulseProgress))
+        if (didDraw && data.length > 0 && series.length > 0 && !cursor) {
+          frameId = window.requestAnimationFrame(draw)
+        }
+      }
+      draw(window.performance.now())
+
+      return function stopCanvasAnimation() {
+        if (frameId != null) {
+          window.cancelAnimationFrame(frameId)
+        }
+      }
+    },
+    [createCanvasFrame, cursor, data.length, isClient, series.length],
+  )
+
+  const emitCursorChange = useCallback(
+    (point: DataPoint | null) => {
+      if (!onCursorDataChange) {
+        return
+      }
+      if (!point) {
+        onCursorDataChange(null)
+        return
+      }
+
+      const values = series.reduce<Record<string, number>>((result, seriesItem) => {
+        const value = point[seriesItem.key]
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          result[seriesItem.key] = value
+        }
+        return result
+      }, {})
+      onCursorDataChange({ date: point.date, values } satisfies PredictionChartCursorSnapshot)
+    },
+    [onCursorDataChange, series],
+  )
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (!data.length || !series.length) {
+        return
+      }
+
+      const rect = event.currentTarget.getBoundingClientRect()
+      const renderedX = rect.width > 0 ? ((event.clientX - rect.left) / rect.width) * width : 0
+      const renderedY = rect.height > 0 ? ((event.clientY - rect.top) / rect.height) * height : 0
+      const localX = Math.max(0, Math.min(innerWidth, renderedX - resolvedMargin.left))
+      const localY = renderedY - resolvedMargin.top
+      const rawTimestamp = domainBounds.start + (localX / innerWidth) * (domainBounds.end - domainBounds.start)
+      let targetTimestamp = rawTimestamp
+
+      if (cursorStepMs && cursorStepMs > 0) {
+        targetTimestamp = snapTimestampToInterval(rawTimestamp, cursorStepMs, domainBounds.start)
+      }
+      targetTimestamp = Math.max(domainBounds.start, Math.min(domainBounds.end, targetTimestamp))
+      if (clampCursorToDataExtent && dataBounds) {
+        targetTimestamp = Math.max(dataBounds.start, Math.min(dataBounds.end, targetTimestamp))
+      }
+
+      const targetDate = new Date(targetTimestamp)
+      const point = interpolateCursorPoint(
+        data,
+        series.map((seriesItem) => seriesItem.key),
+        targetDate,
+      )
+      if (!point) {
+        return
+      }
+
+      const cursorLeft = ((targetTimestamp - domainBounds.start) / (domainBounds.end - domainBounds.start)) * innerWidth
+      setCursor({ point, left: cursorLeft })
+      emitCursorChange(point)
+
+      const nearestAnnotation = resolvedAnnotationClusters.find((cluster) => {
+        const distance = Math.hypot(cluster.x - localX, cluster.y - localY)
+        return distance <= Math.max(8, cluster.radius + 4)
+      })
+      setHoveredAnnotationClusterId(nearestAnnotation?.id ?? null)
+    },
+    [
+      clampCursorToDataExtent,
+      cursorStepMs,
+      data,
+      dataBounds,
+      domainBounds.end,
+      domainBounds.start,
+      emitCursorChange,
+      height,
+      innerWidth,
+      resolvedAnnotationClusters,
+      resolvedMargin.left,
+      resolvedMargin.top,
+      series,
+      setHoveredAnnotationClusterId,
+      width,
+    ],
+  )
+
+  const handlePointerEnd = useCallback(() => {
+    setCursor(null)
+    setHoveredAnnotationClusterId(null)
+    emitCursorChange(null)
+  }, [emitCursorChange, setHoveredAnnotationClusterId])
+
+  const shouldRenderLegend = showLegend && Boolean(legendContent)
+  const shouldRenderWatermark = Boolean(watermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label))
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -899,285 +639,27 @@ export default function PredictionChart({
       />
 
       <div className="relative w-full">
-        <svg
-          width="100%"
-          height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-          style={{ overflow: 'visible' }}
-        >
-          <defs>
-            <clipPath id={plotAreaClipId} clipPathUnits="userSpaceOnUse">
-              <rect
-                x={-resolvedPlotClipPadding.left}
-                y={-resolvedPlotClipPadding.top}
-                width={innerWidth + resolvedPlotClipPadding.left + resolvedPlotClipPadding.right}
-                height={innerHeight + resolvedPlotClipPadding.top + resolvedPlotClipPadding.bottom}
-              />
-            </clipPath>
-            <clipPath id={gridAreaClipId} clipPathUnits="userSpaceOnUse">
-              <rect x={0} y={0} width={innerWidth} height={innerHeight} />
-            </clipPath>
-            <clipPath id={xAxisAreaClipId} clipPathUnits="userSpaceOnUse">
-              <rect x={0} y={innerHeight} width={xAxisLabelsWidth} height={resolvedMargin.bottom} />
-            </clipPath>
-            <clipPath id={leftClipId} clipPathUnits="userSpaceOnUse">
-              <rect x={0} y={-clipPadding} width={leftClipWidth} height={innerHeight + clipPadding * 2} />
-            </clipPath>
-            <clipPath id={rightClipId} clipPathUnits="userSpaceOnUse">
-              <rect x={leftClipWidth} y={-clipPadding} width={rightClipWidth} height={innerHeight + clipPadding * 2} />
-            </clipPath>
-            {fadeYAxisEdges && (
-              <>
-                <linearGradient id={yAxisFadeGradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="white" stopOpacity={0} />
-                  <stop offset="3%" stopColor="white" stopOpacity={1} />
-                  <stop offset="97%" stopColor="white" stopOpacity={1} />
-                  <stop offset="100%" stopColor="white" stopOpacity={0} />
-                </linearGradient>
-                <mask id={yAxisFadeMaskId} maskUnits="userSpaceOnUse">
-                  <rect
-                    x={innerWidth}
-                    y={0}
-                    width={resolvedMargin.right}
-                    height={innerHeight}
-                    fill={`url(#${yAxisFadeGradientId})`}
-                  />
-                </mask>
-              </>
-            )}
-            {showAreaFill &&
-              series.map((seriesItem) => {
-                const areaGradientId = `${clipId}-area-${sanitizeSvgId(seriesItem.key)}`
-                return (
-                  <linearGradient key={areaGradientId} id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={seriesItem.color} stopOpacity={resolvedAreaFillTopOpacity} />
-                    <stop offset="100%" stopColor={seriesItem.color} stopOpacity={resolvedAreaFillBottomOpacity} />
-                  </linearGradient>
-                )
-              })}
-          </defs>
-          <Group left={resolvedMargin.left} top={resolvedMargin.top}>
-            <g clipPath={`url(#${gridAreaClipId})`}>
-              <PredictionChartGrid
-                showVerticalGrid={showVerticalGrid}
-                showHorizontalGrid={showHorizontalGrid}
-                verticalGridTicks={verticalGridTicks}
-                horizontalGridTicks={resolvedYAxisTicks}
-                xScale={xScale}
-                yScale={yScale}
-                innerWidth={innerWidth}
-                innerHeight={innerHeight}
-                gridLineColor={gridLineColor}
-                gridLineDasharray={gridLineDasharray}
-                gridLineOpacity={resolvedGridLineOpacity}
-              />
-            </g>
-
-            <g clipPath={`url(#${plotAreaClipId})`}>
-              <PredictionChartSeriesLines
-                series={series}
-                data={data}
-                coloredPoints={coloredPoints}
-                mutedPoints={mutedPoints}
-                crossFadeActive={crossFadeActive}
-                crossFadeData={crossFadeData}
-                crossFadeIn={crossFadeIn}
-                crossFadeOut={crossFadeOut}
-                shouldSplitByCursor={shouldSplitByCursor}
-                revealProgress={revealProgress}
-                revealSeriesSet={revealSeriesSet}
-                dashedSplitTime={dashedSplitTime}
-                surgeActive={surgeActive}
-                surgeLengths={surgeLengths}
-                surgeDuration={SURGE_DURATION}
-                surgeFilter={surgeFilter}
-                resolveSurgeColor={resolveSurgeColor}
-                resolvedSurgeStrokeWidth={resolvedSurgeStrokeWidth}
-                firstFinitePointBySeries={firstFinitePointBySeries}
-                leadingGapStartMs={leadingGapStartMs}
-                futureLineColor={futureLineColor}
-                futureLineOpacity={futureLineOpacity}
-                resolvedLineStrokeWidth={resolvedLineStrokeWidth}
-                resolvedLineCurve={resolvedLineCurve}
-                showAreaFill={showAreaFill}
-                resolvedAreaFillTopOpacity={resolvedAreaFillTopOpacity}
-                resolvedAreaFillBottomOpacity={resolvedAreaFillBottomOpacity}
-                areaFillBottomOffset={resolvedAreaFillBottomOffset}
-                clipId={clipId}
-                leftClipId={leftClipId}
-                rightClipId={rightClipId}
-                innerHeight={innerHeight}
-                lineEndOffsetX={lineEndOffsetX}
-                registerSeriesPath={registerSeriesPath}
-                getX={getX}
-                getSeriesY={getSeriesY}
-                hasSeriesValue={hasSeriesValue}
-              />
-            </g>
-
-            {showYAxis && (
-              <g mask={fadeYAxisEdges ? `url(#${yAxisFadeMaskId})` : undefined}>
-                <AxisRight
-                  left={innerWidth}
-                  scale={yScale}
-                  tickFormat={(value) => {
-                    const numericValue = typeof value === 'number' ? value : value.valueOf()
-                    const formatter = yAxis?.tickFormat ?? ((v) => `${v}%`)
-                    return formatter(numericValue)
-                  }}
-                  tickValues={
-                    hideYAxisMinimumLabel
-                      ? resolvedYAxisTicks.filter((value) => Math.abs(value - yAxisMin) > Number.EPSILON)
-                      : resolvedYAxisTicks
-                  }
-                  stroke="transparent"
-                  tickStroke="transparent"
-                  tickLabelProps={{
-                    fill: axisLabelColor,
-                    fontSize: yAxisTickFontSize,
-                    fontFamily: 'Arial, sans-serif',
-                    textAnchor: alignYAxisLabelsToChartEdge ? 'end' : 'start',
-                    dy: '0.33em',
-                    dx: alignYAxisLabelsToChartEdge ? `${Math.max(0, resolvedMargin.right - 2)}px` : '0.5em',
-                    opacity: axisLabelOpacity,
-                  }}
-                  tickLength={0}
-                />
-              </g>
-            )}
-
-            {showXAxis && (
-              <>
-                {showXAxisTopRule && (
-                  <line
-                    x1={0}
-                    x2={showXAxisTopRuleFullWidth ? width - resolvedMargin.left - 0.5 : innerWidth}
-                    y1={innerHeight}
-                    y2={innerHeight}
-                    stroke={gridLineColor}
-                    strokeWidth={1}
-                    opacity={Math.min(1, resolvedGridLineOpacity + 0.2)}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )}
-                <g clipPath={`url(#${xAxisAreaClipId})`}>
-                  <AxisBottom
-                    top={innerHeight}
-                    scale={xAxisScale}
-                    tickFormat={formatAxisTick}
-                    tickValues={resolvedXAxisTickValues ?? undefined}
-                    stroke="transparent"
-                    tickStroke="transparent"
-                    tickLabelProps={(_value, index, values) => {
-                      const lastIndex = Array.isArray(values) ? values.length - 1 : -1
-                      const shouldCenterAllLabels =
-                        centerXAxisTickLabels || (Boolean(resolvedXAxisTickValues) && !showXAxisTopRuleFullWidth)
-                      const textAnchor = shouldCenterAllLabels
-                        ? 'middle'
-                        : index === 0
-                          ? 'start'
-                          : index === lastIndex
-                            ? 'end'
-                            : 'middle'
-
-                      const hideFirstMonthLabel = isMonthOnlyLabels && index === 0
-                      return {
-                        fill: axisLabelColor,
-                        fontSize: xAxisTickFontSize,
-                        fontFamily: 'Arial, sans-serif',
-                        textAnchor,
-                        dy: showXAxisTopRuleFullWidth ? '0.72em' : showXAxisTopRule ? '1.05em' : '0.6em',
-                        opacity: hideFirstMonthLabel ? 0 : axisLabelOpacity,
-                        style: {
-                          fontVariantNumeric: 'tabular-nums',
-                        },
-                      }
-                    }}
-                    numTicks={xAxisTickCount}
-                    tickLength={0}
-                  />
-                </g>
-              </>
-            )}
-
-            {canShowMarkers && lastDataPoint && (
-              <g clipPath={`url(#${gridAreaClipId})`}>
-                <PredictionChartMarkers
-                  series={series}
-                  lastDataPoint={lastDataPoint}
-                  revealSeriesSet={revealSeriesSet}
-                  mutedPoints={mutedPoints}
-                  shouldSplitByCursor={shouldSplitByCursor}
-                  surgeActive={surgeActive}
-                  preserveMarkersDuringSurge={disableResetAnimation}
-                  markerOuterRadius={markerOuterRadius}
-                  markerInnerRadius={markerInnerRadius}
-                  markerPulseStyle={markerPulseStyle}
-                  markerOffsetX={markerOffsetX}
-                  xScale={xScale}
-                  yScale={yScale}
-                />
-              </g>
-            )}
-
-            <rect
-              x={-4}
-              y={0}
-              width={innerWidth + 8}
-              height={innerHeight}
-              fill="transparent"
-              onTouchStart={handleTooltip}
-              onTouchMove={handleTooltip}
-              onMouseMove={handleTooltip}
-              onMouseLeave={handleInteractionEnd}
-              onTouchEnd={handleInteractionEnd}
-              onTouchCancel={handleInteractionEnd}
-            />
-
-            <PredictionChartAnnotationDots
-              clusters={resolvedAnnotationClusters}
-              setHoveredAnnotationClusterId={setHoveredAnnotationClusterId}
-              handleTooltip={handleTooltip}
-            />
-
-            {tooltipActive && (
-              <line
-                x1={clampedTooltipX}
-                x2={clampedTooltipX}
-                y1={resolvedCursorGuideTop}
-                y2={innerHeight}
-                stroke={cursorGuideColor}
-                strokeWidth={1.5}
-                opacity={0.9}
-                pointerEvents="none"
-              />
-            )}
-
-            {tooltipActive &&
-              positionedTooltipEntries.map((entry) => (
-                <circle
-                  key={`${entry.key}-tooltip-circle`}
-                  cx={clampedTooltipX}
-                  cy={yScale(entry.value)}
-                  r={4}
-                  fill={entry.color}
-                  stroke={entry.color}
-                  strokeOpacity={0.1}
-                  strokeWidth={2}
-                  pointerEvents="none"
-                />
-              ))}
-          </Group>
-        </svg>
+        <canvas
+          ref={canvasRef}
+          className="block w-full touch-pan-y"
+          style={{ height }}
+          role="img"
+          aria-label="Interactive prediction chart"
+          data-chart-renderer="canvas"
+          onPointerDown={handlePointerMove}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          onPointerLeave={handlePointerEnd}
+        />
 
         <PredictionChartTooltipOverlay
-          tooltipActive={tooltipActive}
-          tooltipData={effectiveTooltipData}
+          tooltipActive={Boolean(cursor)}
+          tooltipData={cursor?.point ?? null}
           positionedTooltipEntries={positionedTooltipEntries}
           margin={resolvedMargin}
           innerWidth={innerWidth}
-          clampedTooltipX={clampedTooltipX}
+          clampedTooltipX={cursor?.left ?? innerWidth}
           valueFormatter={tooltipValueFormatter}
           dateFormatter={tooltipDateFormatter}
           headerFontSize={tooltipHeaderFontSize}

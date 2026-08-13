@@ -1,6 +1,6 @@
 'use client'
 
-import type { Dispatch, ReactElement, SetStateAction } from 'react'
+import type { ReactElement } from 'react'
 
 import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
 
@@ -113,64 +113,6 @@ export function clusterAnnotationMarkers(resolvedMarkers: ResolvedAnnotationMark
     }, [])
 }
 
-interface PredictionChartAnnotationDotsProps {
-  clusters: ResolvedAnnotationCluster[]
-  setHoveredAnnotationClusterId: Dispatch<SetStateAction<string | null>>
-  handleTooltip: (event: any) => void
-}
-
-function PredictionChartAnnotationDots({
-  clusters,
-  setHoveredAnnotationClusterId,
-  handleTooltip,
-}: PredictionChartAnnotationDotsProps): ReactElement {
-  return (
-    <>
-      {clusters.map((cluster) => {
-        return (
-          <circle
-            key={cluster.id}
-            cx={cluster.x}
-            cy={cluster.y}
-            r={cluster.radius}
-            fill={cluster.color}
-            stroke="var(--background)"
-            strokeWidth={1.2}
-            className="cursor-pointer"
-            onMouseEnter={(event) => {
-              setHoveredAnnotationClusterId(cluster.id)
-              handleTooltip(event as any)
-            }}
-            onMouseMove={(event) => {
-              setHoveredAnnotationClusterId(cluster.id)
-              handleTooltip(event as any)
-            }}
-            onMouseLeave={() => {
-              setHoveredAnnotationClusterId((current) => {
-                if (current !== cluster.id) {
-                  return current
-                }
-                return null
-              })
-            }}
-            onFocus={() => {
-              setHoveredAnnotationClusterId(cluster.id)
-            }}
-            onBlur={() => {
-              setHoveredAnnotationClusterId((current) => {
-                if (current !== cluster.id) {
-                  return current
-                }
-                return null
-              })
-            }}
-          />
-        )
-      })}
-    </>
-  )
-}
-
 interface PredictionChartAnnotationTooltipProps {
   cluster: ResolvedAnnotationCluster
   position: { left: number; top: number }
@@ -203,4 +145,4 @@ function PredictionChartAnnotationTooltip({ cluster, position }: PredictionChart
   )
 }
 
-export { PredictionChartAnnotationDots, PredictionChartAnnotationTooltip }
+export { PredictionChartAnnotationTooltip }

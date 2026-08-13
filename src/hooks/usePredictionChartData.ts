@@ -21,25 +21,25 @@ function usePredictionChartData(
   const dataSignatureRef = useRef<string | number | null>(null)
   const lastDataUpdateTypeRef = useRef<'reset' | 'append' | 'none'>('reset')
   const previousDataRef = useRef<DataPoint[] | null>(null)
-  const scheduledStateFrameRef = useRef<number | null>(null)
+  const scheduledStateTimeoutRef = useRef<number | null>(null)
 
   const cancelScheduledStateUpdate = useCallback(function cancelScheduledStateUpdate() {
-    if (scheduledStateFrameRef.current == null) {
+    if (scheduledStateTimeoutRef.current == null) {
       return
     }
 
-    window.cancelAnimationFrame(scheduledStateFrameRef.current)
-    scheduledStateFrameRef.current = null
+    window.clearTimeout(scheduledStateTimeoutRef.current)
+    scheduledStateTimeoutRef.current = null
   }, [])
 
   const scheduleStateUpdate = useCallback(
     function scheduleStateUpdate(applyUpdate: () => void) {
       cancelScheduledStateUpdate()
 
-      scheduledStateFrameRef.current = window.requestAnimationFrame(() => {
-        scheduledStateFrameRef.current = null
+      scheduledStateTimeoutRef.current = window.setTimeout(() => {
+        scheduledStateTimeoutRef.current = null
         applyUpdate()
-      })
+      }, 0)
     },
     [cancelScheduledStateUpdate],
   )

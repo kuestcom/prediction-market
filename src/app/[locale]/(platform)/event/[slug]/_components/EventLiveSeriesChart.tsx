@@ -191,7 +191,7 @@ function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string) {
     }
 
     targetRef.current = { scopeKey, axis: candidate }
-    // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- Starts a local SVG-axis animation; it does not subscribe to an external store.
+    // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- Starts a local canvas-axis animation; it does not subscribe to an external store.
     startAxisAnimation()
     return undefined
   }, [candidate, candidateKey, scopeKey, startAxisAnimation])
@@ -399,7 +399,7 @@ function EventLiveSeriesChartContent({
     [config.active_window_minutes, realtimeTopic],
   )
 
-  const { data, status, snapshotRevision } = useLiveSeriesWebSocket({
+  const { data, status } = useLiveSeriesWebSocket({
     topic: realtimeTopic,
     eventType: config.event_type,
     eventEndTimestamp: explicitEndTimestamp,
@@ -703,7 +703,7 @@ function EventLiveSeriesChartContent({
     dataSource.length > 1 ? 'history-ready' : dataSource.length === 1 ? 'first-point' : 'fallback'
   const axisValues = useStableLiveChartAxis(
     candidateAxisValues,
-    `${event.id}:${realtimeTopic}:${subscriptionSymbol}:${axisInitializationPhase}:${snapshotRevision}`,
+    `${event.id}:${realtimeTopic}:${subscriptionSymbol}:${axisInitializationPhase}`,
   )
 
   const currentLineTop = (() => {

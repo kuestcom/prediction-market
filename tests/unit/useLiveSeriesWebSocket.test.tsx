@@ -265,4 +265,28 @@ describe('useLiveSeriesWebSocket', () => {
     })
     hiddenSpy.mockRestore()
   })
+
+  it('retains rendered history while replacing the socket after focus returns', () => {
+    const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+    const { result, socket } = mountHook()
+
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [
+          { symbol: 'BTC', value: 100, timestamp: now - 1_000 },
+          { symbol: 'BTC', value: 101, timestamp: now },
+        ],
+      }),
+    )
+    const visibleData = result.current.data
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(result.current.data).toBe(visibleData)
+    expect(result.current.data).toHaveLength(2)
+    hiddenSpy.mockRestore()
+  })
 })
