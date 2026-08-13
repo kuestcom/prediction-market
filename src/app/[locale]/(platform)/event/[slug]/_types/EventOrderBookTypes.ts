@@ -16,7 +16,7 @@ export interface EventOrderBookProps {
   summaries?: OrderBookSummariesResponse
   isLoadingSummaries: boolean
   eventSlug: string
-  surfaceVariant?: 'default' | 'sportsCard'
+  surfaceVariant?: 'default' | 'sportsCard' | 'transparent'
   oddsFormat?: OddsFormat
   tradeLabel?: string
   onToggleOutcome?: () => void

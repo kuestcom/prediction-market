@@ -151,7 +151,8 @@ export default function EventCommentReplyItem({
         profileSlug={profileSlug}
         date={reply.created_at}
         joinedAt={reply.user_created_at}
-        containerClassName="[&_[data-avatar-wrapper]]:mt-1.5 [&_[data-avatar]]:h-10 [&_[data-avatar]]:w-10"
+        avatarSize={40}
+        containerClassName="[&_[data-avatar-wrapper]]:mt-1.5"
         usernameClassName="text-sm font-semibold text-foreground hover:underline underline-offset-2"
         usernameAddon={
           <CommentPositionsIndicator

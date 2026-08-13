@@ -265,6 +265,9 @@ interface EventLiveSeriesChartProps {
   chartWidth?: number
   chartHeightOffset?: number
   showSeriesControls?: boolean
+  showAreaFill?: boolean
+  showCurrentPriceGuide?: boolean
+  compactBitcoinHeaderPrices?: boolean
 }
 
 export default function EventLiveSeriesChart({
@@ -275,6 +278,9 @@ export default function EventLiveSeriesChart({
   chartWidth,
   chartHeightOffset = 0,
   showSeriesControls = true,
+  showAreaFill = true,
+  showCurrentPriceGuide = true,
+  compactBitcoinHeaderPrices = false,
 }: EventLiveSeriesChartProps) {
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
@@ -293,6 +299,9 @@ export default function EventLiveSeriesChart({
       chartWidth={chartWidth}
       chartHeightOffset={chartHeightOffset}
       showSeriesControls={showSeriesControls}
+      showAreaFill={showAreaFill}
+      showCurrentPriceGuide={showCurrentPriceGuide}
+      compactBitcoinHeaderPrices={compactBitcoinHeaderPrices}
     />
   )
 }
@@ -306,6 +315,9 @@ interface EventLiveSeriesChartContentProps {
   chartWidth?: number
   chartHeightOffset: number
   showSeriesControls: boolean
+  showAreaFill: boolean
+  showCurrentPriceGuide: boolean
+  compactBitcoinHeaderPrices: boolean
 }
 
 function EventLiveSeriesChartContent({
@@ -317,6 +329,9 @@ function EventLiveSeriesChartContent({
   chartWidth: providedChartWidth,
   chartHeightOffset,
   showSeriesControls,
+  showAreaFill,
+  showCurrentPriceGuide,
+  compactBitcoinHeaderPrices,
 }: EventLiveSeriesChartContentProps) {
   const site = useSiteIdentity()
   const { width: windowWidth } = useWindowSize()
@@ -667,7 +682,9 @@ function EventLiveSeriesChartContent({
     precisionReferencePrice,
   )
   const axisPriceDisplayDigits = resolveLiveSeriesAxisPriceDigits(priceDisplayDigits, subscriptionSymbol)
-  const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
+  const normalizedPriceSymbol = subscriptionSymbol.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const isBitcoinSymbol = normalizedPriceSymbol.startsWith('btc') || normalizedPriceSymbol.startsWith('xbt')
+  const headerPriceDisplayDigits = compactBitcoinHeaderPrices && isBitcoinSymbol ? 0 : Math.max(2, priceDisplayDigits)
   const delta = currentPrice != null && displayedBaselinePrice != null ? currentPrice - displayedBaselinePrice : null
   const deltaDisplayDigits = resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits, delta)
   const axisFallbackPrice = renderData.length === 0 ? currentPrice : null
@@ -821,7 +838,7 @@ function EventLiveSeriesChartContent({
                 targetLine={targetLine}
                 targetLineGuideColor={targetLineGuideColor}
                 targetBadgeColor={targetBadgeColor}
-                currentLineTop={currentLineTop}
+                currentLineTop={showCurrentPriceGuide ? currentLineTop : null}
                 currentPriceGuideColor={currentPriceGuideColor}
               />
               <PredictionChart
@@ -879,7 +896,7 @@ function EventLiveSeriesChartContent({
                   bottom: 0,
                   left: 0,
                 }}
-                showAreaFill
+                showAreaFill={showAreaFill}
                 areaFillTopOpacity={0.045}
                 areaFillBottomOpacity={0}
                 areaFillBottomOffset={5}

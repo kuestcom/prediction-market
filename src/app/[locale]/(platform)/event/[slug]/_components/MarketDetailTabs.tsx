@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { MarketDetailTab } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
@@ -17,6 +17,7 @@ import EventMarketHistory from '@/app/[locale]/(platform)/event/[slug]/_componen
 import EventMarketOpenOrders from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketOpenOrders'
 import EventMarketPositions from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketPositions'
 import EventOrderBook from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
+import EventRewardsBadge from '@/app/[locale]/(platform)/event/[slug]/_components/EventRewardsBadge'
 import MarketOutcomeGraph from '@/app/[locale]/(platform)/event/[slug]/_components/MarketOutcomeGraph'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
@@ -28,6 +29,7 @@ import {
 import { toResolutionTimelineOutcome } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useMarketRewards } from '@/hooks/useMarketRewards'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData } from '@/lib/data-api/user'
@@ -91,6 +93,9 @@ export default function MarketDetailTabs({
   const { name: siteName } = useSiteIdentity()
   const user = useUser()
   const marketChannelStatus = useMarketChannelStatus()
+  const rewardsQuery = useMarketRewards([market.condition_id])
+  const rewardConfig = rewardsQuery.data?.[0] ?? null
+  const [showRewardHighlight, setShowRewardHighlight] = useState(false)
   const { selected: controlledTab, select } = tabController
   const positionSizeThreshold = POSITION_VISIBILITY_THRESHOLD
   const isResolvedView = variant === 'resolved'
@@ -225,7 +230,14 @@ export default function MarketDetailTabs({
             })}
           </TabsList>
 
-          {!shouldHideOrderBook && <ConnectionStatusIndicator className="-mt-2" status={marketChannelStatus} />}
+          {!shouldHideOrderBook && rewardConfig && (
+            <EventRewardsBadge
+              rewards={[rewardConfig]}
+              compact
+              active={showRewardHighlight}
+              onHighlightChange={setShowRewardHighlight}
+            />
+          )}
 
           {!shouldHideOrderBook && (
             <button
@@ -247,6 +259,8 @@ export default function MarketDetailTabs({
               />
             </button>
           )}
+
+          {!shouldHideOrderBook && <ConnectionStatusIndicator className="-mt-2" status={marketChannelStatus} />}
         </div>
       </div>
 
@@ -259,7 +273,9 @@ export default function MarketDetailTabs({
               summaries={orderBookData.summaries}
               isLoadingSummaries={orderBookData.isLoading}
               eventSlug={event.slug}
+              surfaceVariant={isNegRiskEnabled ? 'transparent' : 'default'}
               openMobileOrderPanelOnLevelSelect={isMobile}
+              rewardHighlight={showRewardHighlight}
             />
           </TabsContent>
         )}
@@ -297,6 +313,22 @@ export default function MarketDetailTabs({
         </TabsContent>
 
         <TabsContent value="resolution" className="mt-0">
+          {isNegRiskEnabled && !isMarketResolved(market) && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mb-3 self-start rounded-md border-border bg-background text-foreground hover:bg-muted"
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open-resolution-proposal', {
+                    detail: { targetId: `propose-resolution-${market.condition_id}` },
+                  }),
+                )
+              }}
+            >
+              {t('Propose resolution')}
+            </Button>
+          )}
           <div className="flex items-center justify-between gap-3">
             <ResolutionTimelinePanel
               market={market}
@@ -306,7 +338,8 @@ export default function MarketDetailTabs({
               )}
               className="min-w-0 flex-1"
             />
-            {!isMarketResolved(market) &&
+            {!isNegRiskEnabled &&
+              !isMarketResolved(market) &&
               !isDirectResolutionMarket(market) &&
               (proposeUrl ? (
                 <Button

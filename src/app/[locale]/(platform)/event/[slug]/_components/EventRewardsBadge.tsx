@@ -41,8 +41,8 @@ export default function EventRewardsBadge({
             className={cn(
               compact
                 ? 'group inline-flex min-h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-violet-500/20 bg-violet-500/5 px-1.5 text-xs font-semibold text-violet-500 transition-colors hover:border-violet-500/40 hover:bg-violet-500/10'
-                : 'inline-flex h-7 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/8 px-2 text-xs font-semibold text-primary transition-colors hover:border-primary/50 hover:bg-primary/15',
-              active && (compact ? 'border-violet-500/50 bg-violet-500/15' : 'border-primary/60 bg-primary/20'),
+                : 'inline-flex h-7 items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/8 px-2 text-xs font-semibold text-violet-500 transition-colors hover:border-violet-500/50 hover:bg-violet-500/15',
+              active && 'border-violet-500/50 bg-violet-500/15',
             )}
             aria-label={t('Liquidity rewards')}
             onPointerEnter={() => onHighlightChange?.(true)}
@@ -72,7 +72,7 @@ export default function EventRewardsBadge({
         side="top"
         align="end"
         collisionPadding={16}
-        className="w-64 overflow-hidden rounded-xl border-primary/55 bg-popover p-0 text-left font-normal shadow-2xl"
+        className="w-64 overflow-hidden rounded-xl border-violet-500/55 bg-popover p-0 text-left font-normal shadow-2xl"
       >
         <div className="p-4">
           <p className="text-center text-sm leading-5 font-medium text-foreground">
@@ -82,7 +82,7 @@ export default function EventRewardsBadge({
           <div className="mt-4 grid gap-2 text-sm">
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">{t('Daily rewards')}</span>
-              <span className="inline-flex items-center gap-1 font-semibold text-primary">
+              <span className="inline-flex items-center gap-1 font-semibold text-violet-500">
                 <GiftIcon className="size-3.5" aria-hidden />
                 {dailyRateLabel}
               </span>

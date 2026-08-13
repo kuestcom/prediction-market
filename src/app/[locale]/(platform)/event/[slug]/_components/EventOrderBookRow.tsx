@@ -52,7 +52,7 @@ export default function EventOrderBookRow({
     <div
       className={cn(
         `relative grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center pr-4 pl-0 transition-colors ${hoverClass}`,
-        showRewardHighlight && rewardEligible && 'bg-primary/[0.06]',
+        showRewardHighlight && rewardEligible && 'bg-violet-500/[0.08]',
       )}
       onClick={() => onSelect?.(level)}
     >

@@ -1828,6 +1828,9 @@ function FeaturedSlide({
               chartWidth={liveChartWidth}
               chartHeightOffset={HOME_FEATURED_CHART_HEIGHT_OFFSET}
               showSeriesControls={false}
+              showAreaFill={false}
+              showCurrentPriceGuide={false}
+              compactBitcoinHeaderPrices
             />
           ) : item.kind === 'sports' && sportsGraphCard && sportsGraphSelection ? (
             <HomeSportsGameGraph
