@@ -29,6 +29,10 @@ import {
 import { normalizeTicks, toDomainTimestamp } from '@/lib/prediction-chart-helpers'
 
 const defaultMargin = { top: 30, right: 60, bottom: 40, left: 0 }
+const FUTURE_LINE_COLOR_DARK = '#2C3F4F'
+const FUTURE_LINE_COLOR_LIGHT = '#99A6B5'
+const FUTURE_LINE_OPACITY_DARK = 0.55
+const FUTURE_LINE_OPACITY_LIGHT = 0.35
 const GRID_LINE_COLOR_DARK = '#51677A'
 const GRID_LINE_COLOR_LIGHT = '#8F9EAD'
 const GRID_LINE_OPACITY_DARK = 0.7
@@ -189,7 +193,7 @@ export default function PredictionChart({
   legendContent,
   showLegend = true,
   yAxis,
-  disableCursorSplit: _disableCursorSplit = false,
+  disableCursorSplit = false,
   disableResetAnimation: _disableResetAnimation = false,
   markerOuterRadius = 6,
   markerInnerRadius = 2.8,
@@ -459,6 +463,12 @@ export default function PredictionChart({
             guideColor: cursorGuideColor,
           }
         : null,
+      cursorSplit: disableCursorSplit
+        ? null
+        : {
+            color: isDarkMode ? FUTURE_LINE_COLOR_DARK : FUTURE_LINE_COLOR_LIGHT,
+            opacity: isDarkMode ? FUTURE_LINE_OPACITY_DARK : FUTURE_LINE_OPACITY_LIGHT,
+          },
     }),
     [
       alignYAxisLabelsToChartEdge,
@@ -472,6 +482,7 @@ export default function PredictionChart({
       cursorGuideColor,
       cursorGuideTop,
       data,
+      disableCursorSplit,
       domainBounds.end,
       domainBounds.start,
       formatXAxisTick,
@@ -481,6 +492,7 @@ export default function PredictionChart({
       height,
       hideYAxisMinimumLabel,
       innerHeight,
+      isDarkMode,
       leadingGapStart,
       lineCurve,
       lineEndOffsetX,

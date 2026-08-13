@@ -18,6 +18,7 @@ const canvasCalls = {
   fillText: vi.fn(),
   lineTo: vi.fn(),
   moveTo: vi.fn(),
+  rect: vi.fn(),
 }
 
 function createCanvasContext(canvas: HTMLCanvasElement) {
@@ -34,7 +35,7 @@ function createCanvasContext(canvas: HTMLCanvasElement) {
     fillText: canvasCalls.fillText,
     lineTo: canvasCalls.lineTo,
     moveTo: canvasCalls.moveTo,
-    rect: vi.fn(),
+    rect: canvasCalls.rect,
     restore: vi.fn(),
     save: vi.fn(),
     setLineDash: vi.fn(),
@@ -169,6 +170,34 @@ describe('predictionChart', () => {
     })
     const snapshot = onCursorDataChange.mock.calls.at(-1)?.[0]
     expect(snapshot.values.price).toBeCloseTo(50, 3)
+    await waitFor(() => {
+      expect(canvasCalls.rect.mock.calls).toContainEqual([170, 26, 170, 186])
+    })
+  })
+
+  it('does not split the series color when cursor splitting is disabled', async () => {
+    const { getByRole } = render(
+      <PredictionChart data={data} series={series} width={400} height={220} showXAxis={false} disableCursorSplit />,
+    )
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    canvasCalls.rect.mockClear()
+    fireEvent.pointerMove(canvas, { clientX: 170, clientY: 100 })
+
+    await waitFor(() => expect(canvasCalls.clearRect.mock.calls.length).toBeGreaterThan(1))
+    expect(canvasCalls.rect.mock.calls).not.toContainEqual([170, 26, 170, 186])
   })
 
   it('keeps curved paths moving forward across uneven timestamps', async () => {

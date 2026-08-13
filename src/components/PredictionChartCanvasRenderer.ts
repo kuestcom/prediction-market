@@ -63,6 +63,10 @@ export interface PredictionChartCanvasFrame {
     guideTop: number
     guideColor: string
   } | null
+  cursorSplit: {
+    color: string
+    opacity: number
+  } | null
 }
 
 function resolveCssColor(canvas: HTMLCanvasElement, color: string, fallback: string) {
@@ -271,22 +275,49 @@ function drawSeries(context: CanvasRenderingContext2D, frame: PredictionChartCan
   frame.series.forEach((seriesItem) => {
     const color = resolveCssColor(context.canvas, seriesItem.color, '#1452f0')
     const segments = buildSeriesSegments(frame, seriesItem.key)
+    const splitX = frame.cursor && frame.cursorSplit ? frame.margin.left + frame.cursor.x : null
 
     segments.forEach((points) => {
-      drawArea(context, frame, points, color)
       if (points.length < 2) {
         return
       }
 
-      context.save()
-      context.beginPath()
-      traceSeriesPath(context, points, frame.lineCurve)
-      context.strokeStyle = color
-      context.lineWidth = frame.lineStrokeWidth
-      context.lineCap = 'round'
-      context.lineJoin = 'round'
-      context.stroke()
-      context.restore()
+      function drawStroke(
+        strokeColor: string,
+        strokeWidth: number,
+        opacity: number,
+        clipLeft: number,
+        clipWidth: number,
+      ) {
+        if (clipWidth <= 0) {
+          return
+        }
+
+        context.save()
+        context.beginPath()
+        context.rect(clipLeft, plotTop - 4, clipWidth, plotHeight + 8)
+        context.clip()
+        context.beginPath()
+        traceSeriesPath(context, points, frame.lineCurve)
+        context.strokeStyle = strokeColor
+        context.globalAlpha = opacity
+        context.lineWidth = strokeWidth
+        context.lineCap = 'round'
+        context.lineJoin = 'round'
+        context.stroke()
+        context.restore()
+      }
+
+      if (splitX != null && frame.cursorSplit) {
+        const clampedSplitX = Math.max(plotLeft, Math.min(plotLeft + plotWidth, splitX))
+        const mutedColor = resolveCssColor(context.canvas, frame.cursorSplit.color, '#99A6B5')
+        drawStroke(mutedColor, 1.4, frame.cursorSplit.opacity, clampedSplitX, plotLeft + plotWidth - clampedSplitX)
+        drawStroke(color, frame.lineStrokeWidth, 1, plotLeft - 4, clampedSplitX - plotLeft + 4)
+        return
+      }
+
+      drawArea(context, frame, points, color)
+      drawStroke(color, frame.lineStrokeWidth, 1, plotLeft - 4, plotWidth + 8)
     })
 
     const firstPoint = frame.data.find((point) => {
