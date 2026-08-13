@@ -212,6 +212,7 @@ export async function GET(request: Request) {
     // Prefer explicit event start when provided, fallback to countdown-derived window.
     const eventWindowStartMs = hasValidExplicitStart ? explicitEventStartMs : Math.max(0, eventEndMs - activeWindowMs)
     const eventWindowEndMs = eventEndMs
+    const isEventClosed = Date.now() >= eventEndMs
     // Daily markets should use a finer candle for "start of window" so baseline matches real market time.
     const openingPreferredInterval: Interval = seriesEntry.interval === '1d' ? '5m' : seriesEntry.interval
     const openingPreferredIntervalMs = intervalToMs(openingPreferredInterval)
@@ -245,18 +246,37 @@ export async function GET(request: Request) {
       to: String(closingHistoryTargetMs),
       limit: '16',
     })
+    const chartHistoryInterval: Interval = '5m'
+    const chartHistoryIntervalMs = intervalToMs(chartHistoryInterval)
+    const chartHistoryParams = new URLSearchParams({
+      instrument: seriesEntry.instrument,
+      interval: chartHistoryInterval,
+      from: String(eventWindowStartMs),
+      to: String(eventWindowEndMs),
+      limit: String(Math.min(1000, Math.max(2, Math.ceil(activeWindowMs / chartHistoryIntervalMs) + 2))),
+    })
     const { priceReferenceUrl } = resolvePublicRuntimeEnv(process.env)
 
-    const [latestPayload, openingHistoryPayload, closingHistoryPayload, openingFallbackPayload] = await Promise.all([
-      fetchJson<PriceReferenceLatestResponse>(`${priceReferenceUrl}/marks/latest`),
-      fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${openingHistoryParams.toString()}`),
-      fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${closingHistoryParams.toString()}`),
-      shouldFetchOpeningFallback
-        ? fetchJson<PriceReferenceHistoryResponse>(
-            `${priceReferenceUrl}/marks/history?${openingFallbackParams.toString()}`,
-          )
-        : Promise.resolve<PriceReferenceHistoryResponse>({ rows: [] }),
-    ])
+    const [latestPayload, openingHistoryPayload, closingHistoryPayload, openingFallbackPayload, chartHistoryPayload] =
+      await Promise.all([
+        fetchJson<PriceReferenceLatestResponse>(`${priceReferenceUrl}/marks/latest`),
+        fetchJson<PriceReferenceHistoryResponse>(
+          `${priceReferenceUrl}/marks/history?${openingHistoryParams.toString()}`,
+        ),
+        fetchJson<PriceReferenceHistoryResponse>(
+          `${priceReferenceUrl}/marks/history?${closingHistoryParams.toString()}`,
+        ),
+        shouldFetchOpeningFallback
+          ? fetchJson<PriceReferenceHistoryResponse>(
+              `${priceReferenceUrl}/marks/history?${openingFallbackParams.toString()}`,
+            )
+          : Promise.resolve<PriceReferenceHistoryResponse>({ rows: [] }),
+        isEventClosed
+          ? fetchJson<PriceReferenceHistoryResponse>(
+              `${priceReferenceUrl}/marks/history?${chartHistoryParams.toString()}`,
+            )
+          : Promise.resolve<PriceReferenceHistoryResponse>({ rows: [] }),
+      ])
 
     const latestMarket = (latestPayload.markets ?? []).find(
       (market) =>
@@ -287,6 +307,12 @@ export async function GET(request: Request) {
       closingHistoryPayload.rows,
       seriesEntry.instrument,
       seriesEntry.interval,
+      seriesEntry.source,
+    )
+    const chartHistoryRows = sortAndFilterHistoryRows(
+      chartHistoryPayload.rows,
+      seriesEntry.instrument,
+      chartHistoryInterval,
       seriesEntry.source,
     )
 
@@ -331,6 +357,13 @@ export async function GET(request: Request) {
     const latestPrice = toFiniteNumber(latestMarket?.last_final?.price)
     const latestWindowEndMs = toFiniteNumber(latestMarket?.last_final?.window_end_ms)
     const latestSourceTimestampMs = toFiniteNumber(latestMarket?.last_final?.source_timestamp_ms)
+    const priceHistory = chartHistoryRows
+      .filter((row) => row.window_end_ms > eventWindowStartMs && row.window_end_ms < eventWindowEndMs)
+      .map((row) => ({
+        timestamp_ms: row.window_end_ms,
+        price: row.settlement_price,
+      }))
+      .reverse()
 
     return NextResponse.json({
       series_slug: seriesEntry.series_slug,
@@ -346,7 +379,8 @@ export async function GET(request: Request) {
       latest_price: latestPrice,
       latest_window_end_ms: latestWindowEndMs,
       latest_source_timestamp_ms: latestSourceTimestampMs,
-      is_event_closed: Date.now() >= eventEndMs,
+      price_history: priceHistory,
+      is_event_closed: isEventClosed,
     })
   } catch (error) {
     console.error('Failed to build live-series price snapshot', error)

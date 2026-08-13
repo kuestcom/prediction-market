@@ -33,6 +33,81 @@ export interface PersistedLivePrice {
   timestamp: number
 }
 
+export interface LiveSeriesPriceHistoryPoint {
+  timestamp_ms: number
+  price: number
+}
+
+export function buildLiveSeriesFallbackData(price: number | null, chartEndTimestamp: number) {
+  if (price == null || !Number.isFinite(price) || price <= 0 || !Number.isFinite(chartEndTimestamp)) {
+    return []
+  }
+
+  const domainEnd = Math.max(0, chartEndTimestamp)
+  const domainStart = Math.max(0, domainEnd - LIVE_WINDOW_MS)
+
+  return [
+    {
+      date: new Date(domainStart),
+      [SERIES_KEY]: price,
+    },
+    {
+      date: new Date(domainEnd),
+      [SERIES_KEY]: price,
+    },
+  ] satisfies DataPoint[]
+}
+
+export function buildClosedLiveSeriesData({
+  startTimestamp,
+  endTimestamp,
+  openingPrice,
+  closingPrice,
+  history,
+}: {
+  startTimestamp: number
+  endTimestamp: number
+  openingPrice: number | null
+  closingPrice: number | null
+  history: LiveSeriesPriceHistoryPoint[]
+}) {
+  if (!Number.isFinite(startTimestamp) || !Number.isFinite(endTimestamp) || startTimestamp >= endTimestamp) {
+    return []
+  }
+
+  const pointsByTimestamp = new Map<number, number>()
+
+  for (const point of history) {
+    if (
+      Number.isFinite(point.timestamp_ms) &&
+      point.timestamp_ms > startTimestamp &&
+      point.timestamp_ms < endTimestamp &&
+      Number.isFinite(point.price) &&
+      point.price > 0
+    ) {
+      pointsByTimestamp.set(point.timestamp_ms, point.price)
+    }
+  }
+
+  const resolvedOpeningPrice =
+    openingPrice != null && Number.isFinite(openingPrice) && openingPrice > 0 ? openingPrice : closingPrice
+  if (resolvedOpeningPrice != null && Number.isFinite(resolvedOpeningPrice) && resolvedOpeningPrice > 0) {
+    pointsByTimestamp.set(startTimestamp, resolvedOpeningPrice)
+  }
+
+  if (closingPrice != null && Number.isFinite(closingPrice) && closingPrice > 0) {
+    pointsByTimestamp.set(endTimestamp, closingPrice)
+  }
+
+  return Array.from(pointsByTimestamp.entries())
+    .sort(([leftTimestamp], [rightTimestamp]) => leftTimestamp - rightTimestamp)
+    .map(([timestamp, price]) => ({
+      date: new Date(timestamp),
+      [SERIES_KEY]: price,
+    }))
+    .slice(-MAX_POINTS) satisfies DataPoint[]
+}
+
 export interface LiveSeriesPriceSnapshot {
   series_slug: string
   instrument: string
@@ -46,6 +121,7 @@ export interface LiveSeriesPriceSnapshot {
   latest_price: number | null
   latest_window_end_ms: number | null
   latest_source_timestamp_ms: number | null
+  price_history?: LiveSeriesPriceHistoryPoint[]
   is_event_closed: boolean
 }
 

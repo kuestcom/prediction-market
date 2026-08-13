@@ -5,6 +5,8 @@ import type { DataPoint } from '@/types/PredictionChartTypes'
 
 import {
   appendLivePriceTransition,
+  buildClosedLiveSeriesData,
+  buildLiveSeriesFallbackData,
   classifyLiveSeriesReference,
   findLiveSeriesEvent,
   getVisibleCountdownUnits,
@@ -190,6 +192,66 @@ function createEvent(overrides: Partial<Event> = {}): Event {
 }
 
 describe('event live series chart utils', () => {
+  it('builds closed-event history across the event window with canonical endpoints', () => {
+    const startTimestamp = Date.parse('2026-08-13T08:00:00.000Z')
+    const endTimestamp = Date.parse('2026-08-13T12:00:00.000Z')
+
+    expect(
+      buildClosedLiveSeriesData({
+        startTimestamp,
+        endTimestamp,
+        openingPrice: 63_798.82,
+        closingPrice: 63_407.97,
+        history: [
+          { timestamp_ms: startTimestamp - 1, price: 99_999 },
+          { timestamp_ms: startTimestamp + 5 * 60 * 1000, price: 63_750 },
+          { timestamp_ms: endTimestamp - 5 * 60 * 1000, price: 63_414.66 },
+          { timestamp_ms: endTimestamp, price: 63_414.66 },
+        ],
+      }),
+    ).toEqual([
+      { date: new Date(startTimestamp), [SERIES_KEY]: 63_798.82 },
+      { date: new Date(startTimestamp + 5 * 60 * 1000), [SERIES_KEY]: 63_750 },
+      { date: new Date(endTimestamp - 5 * 60 * 1000), [SERIES_KEY]: 63_414.66 },
+      { date: new Date(endTimestamp), [SERIES_KEY]: 63_407.97 },
+    ])
+  })
+
+  it('falls back to the opening and closing prices when closed history is unavailable', () => {
+    expect(
+      buildClosedLiveSeriesData({
+        startTimestamp: 1_000,
+        endTimestamp: 2_000,
+        openingPrice: 100,
+        closingPrice: 90,
+        history: [],
+      }),
+    ).toEqual([
+      { date: new Date(1_000), [SERIES_KEY]: 100 },
+      { date: new Date(2_000), [SERIES_KEY]: 90 },
+    ])
+  })
+
+  it('seeds an immediately renderable line from the fallback price', () => {
+    const chartEndTimestamp = Date.parse('2026-08-13T15:00:00.000Z')
+
+    expect(buildLiveSeriesFallbackData(63_800, chartEndTimestamp)).toEqual([
+      {
+        date: new Date(chartEndTimestamp - 40_000),
+        [SERIES_KEY]: 63_800,
+      },
+      {
+        date: new Date(chartEndTimestamp),
+        [SERIES_KEY]: 63_800,
+      },
+    ])
+  })
+
+  it('does not seed the live line without a valid fallback price', () => {
+    expect(buildLiveSeriesFallbackData(null, Date.now())).toEqual([])
+    expect(buildLiveSeriesFallbackData(0, Date.now())).toEqual([])
+  })
+
   it('returns a zero countdown for the SSR clock sentinel', () => {
     expect(resolveLiveSeriesCountdown(Date.parse('2026-07-31T00:00:00.000Z'), 0)).toEqual({
       totalSeconds: 0,
