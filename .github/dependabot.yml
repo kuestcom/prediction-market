@@ -6,6 +6,16 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: '@fullcalendar/core'
+        versions:
+          - '7.x'
+      - dependency-name: '@fullcalendar/react'
+        versions:
+          - '7.x'
+      - dependency-name: '@wagmi/core'
+        versions:
+          - '3.x'
     groups:
       npm-dependencies:
         patterns:
