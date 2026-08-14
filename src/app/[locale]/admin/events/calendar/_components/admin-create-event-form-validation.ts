@@ -45,6 +45,7 @@ export function buildStepErrors(
     allowPastResolutionDate: boolean
     hasCreatorSelection: boolean
     hasRecurringCadence: boolean
+    hasRecurringSeries: boolean
     recurringPreviewErrors: string[]
   },
 ): string[] {
@@ -89,6 +90,9 @@ export function buildStepErrors(
       }
       if (!args.hasRecurringCadence) {
         errors.push('Select a valid recurrence cadence.')
+      }
+      if (!args.hasRecurringSeries) {
+        errors.push('Select or name the recurrence group.')
       }
     }
 

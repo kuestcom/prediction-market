@@ -54,6 +54,7 @@ interface EventCreationPreparePayload {
   options?: PreparePayloadOption[]
   resolutionSource: string
   resolutionRules: string
+  seriesSlug?: string
   sports?: ReturnType<typeof buildAdminSportsDerivedContent>['payload']
 }
 
@@ -282,6 +283,11 @@ export function buildEventCreationPreparePayload(input: {
     marketMode: isSports ? 'multi_multiple' : marketMode,
     resolutionSource,
     resolutionRules,
+  }
+
+  const seriesSlug = readString(readSnapshot(record).seriesSlug)
+  if (record.creationMode === 'recurring' && seriesSlug) {
+    payload.seriesSlug = seriesSlug
   }
 
   if (isSports) {

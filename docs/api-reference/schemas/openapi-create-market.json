@@ -744,6 +744,10 @@
           "leagueSlug": {
             "type": "string"
           },
+          "seriesSlug": {
+            "type": "string",
+            "description": "Optional legacy sports-series identifier stored in sports.event.series_slug. Unlike the top-level seriesSlug, this field does not require the protected recurrence suffix. When no top-level seriesSlug is provided, it also remains the compatibility fallback for event.series_slug."
+          },
           "sourceProvider": {
             "type": "string",
             "description": "Independent sports data provider key, for example thesportsdb for sports or pandascore for esports."
@@ -884,6 +888,10 @@
           "resolutionRules": {
             "type": "string",
             "minLength": 60
+          },
+          "seriesSlug": {
+            "type": "string",
+            "description": "Optional protected recurrence-group identifier. It must end with a Unix timestamp followed by the authenticated creator wallet suffix."
           },
           "sports": {
             "$ref": "#/components/schemas/SportsPayload"

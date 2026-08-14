@@ -6,7 +6,10 @@ import {
   applyEventCreationTemplate,
   buildDefaultDeployAt,
   buildEventCreationTimestampSeed,
+  buildEventCreationSeriesSlug,
   buildEventCreationWalletTail,
+  formatEventCreationSeriesName,
+  isEventCreationSeriesSlugForCreator,
   buildScheduledRecurringDeployAt,
   expandEventCreationOccurrences,
   hasEventCreationDateTemplateVariable,
@@ -74,6 +77,7 @@ function buildDraft(overrides: Partial<EventCreationDraftRecord> = {}): EventCre
     resolutionSource: 'https://example.com',
     resolutionRules: 'Resolve YES if BTC closes above the opening price on {{date}} {{year}}.',
     draftPayload: {
+      seriesSlug: 'btc-direction-monthly-1774177200111111111111',
       form: {
         title: 'BTC will rise?',
         slug: 'btc-will-rise',
@@ -154,6 +158,21 @@ describe('event creation helpers', () => {
     expect(result.payload.resolutionRules).toBe('Resolve YES if BTC closes above the opening price on 22 March 2026.')
     expectLocalDateTimeParts(result.payload.endDateIso, { year: 2026, monthIndex: 2, day: 22, hour: 12 })
     expect(result.payload.binaryOutcomeYes).toBe('Yes')
+    expect(result.payload.seriesSlug).toBe('btc-direction-monthly-1774177200111111111111')
+  })
+
+  it('builds and recognizes creator-protected recurrence group slugs', () => {
+    const creator = '0x1111111111111111111111111111111111111abc'
+    const seriesSlug = buildEventCreationSeriesSlug({
+      name: 'Presidential approval — weekly',
+      timestampSeed: '1780000000',
+      walletAddress: creator,
+    })
+
+    expect(seriesSlug).toBe('presidential-approval-weekly-1780000000111111111abc')
+    expect(isEventCreationSeriesSlugForCreator(seriesSlug, creator)).toBe(true)
+    expect(isEventCreationSeriesSlugForCreator(seriesSlug, '0x2222222222222222222222222222222222222def')).toBe(false)
+    expect(formatEventCreationSeriesName(seriesSlug)).toBe('Presidential approval weekly')
   })
 
   it('supports day offsets in recurring template variables', () => {

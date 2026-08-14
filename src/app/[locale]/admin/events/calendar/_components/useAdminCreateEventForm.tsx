@@ -42,7 +42,10 @@ import {
 import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
   appendEventCreationSlugSuffix,
+  buildEventCreationSeriesSlug,
   buildEventCreationWalletTail,
+  formatEventCreationSeriesName,
+  isEventCreationSeriesSlugForCreator,
   normalizeEventCreationAssetPayload,
   slugifyEventCreationValue as slugify,
 } from '@/lib/event-creation'
@@ -160,9 +163,11 @@ import { useSportsMarketRows } from './useSportsMarketRows'
 import { useSportsMatchSearch } from './useSportsMatchSearch'
 
 const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
+const NEW_RECURRING_SERIES_VALUE = '__new_recurring_series__'
 
 export function useAdminCreateEventForm({
   sportsSlugCatalog,
+  seriesOptions,
   creationMode,
   initialDraftRecord,
   draftId,
@@ -175,6 +180,7 @@ export function useAdminCreateEventForm({
   serverAssetPayload,
 }: {
   sportsSlugCatalog: AdminSportsSlugCatalog
+  seriesOptions: string[]
   creationMode: EventCreationMode
   initialDraftRecord: EventCreationDraftRecord | null
   draftId: string | null
@@ -268,6 +274,8 @@ export function useAdminCreateEventForm({
   const [automaticWalletAddress, setAutomaticWalletAddress] = useState(initialWalletAddress)
   const [recurrenceUnit, setRecurrenceUnit] = useState<EventCreationRecurrenceUnit | ''>(initialRecurrenceUnit)
   const [recurrenceInterval, setRecurrenceInterval] = useState(initialRecurrenceInterval)
+  const [recurringSeriesSelection, setRecurringSeriesSelection] = useState(NEW_RECURRING_SERIES_VALUE)
+  const [recurringSeriesName, setRecurringSeriesName] = useState('')
   const [signers, setSigners] = useState<SignerOption[]>([])
   const [isLoadingSigners, setIsLoadingSigners] = useState(false)
   const [sportsForm, setSportsForm] = useState<AdminSportsFormState>(() => createInitialAdminSportsForm())
@@ -494,6 +502,42 @@ export function useAdminCreateEventForm({
     return getAddress(candidate)
   }, [automaticWalletAddress, eoaAddress])
   const slugWalletAddress = useMemo(() => selectedCreatorAddress ?? '', [selectedCreatorAddress])
+  const eligibleRecurringSeriesOptions = useMemo(
+    () =>
+      Array.from(new Set(seriesOptions.map((option) => option.trim()).filter(Boolean))).filter((option) =>
+        isEventCreationSeriesSlugForCreator(option, selectedCreatorAddress),
+      ),
+    [selectedCreatorAddress, seriesOptions],
+  )
+  const resolvedRecurringSeriesSlug = useMemo(() => {
+    if (creationMode !== 'recurring') {
+      return ''
+    }
+    if (recurringSeriesSelection !== NEW_RECURRING_SERIES_VALUE) {
+      return eligibleRecurringSeriesOptions.includes(recurringSeriesSelection) ? recurringSeriesSelection : ''
+    }
+
+    return buildEventCreationSeriesSlug({
+      name: recurringSeriesName,
+      timestampSeed: slugSeed,
+      walletAddress: selectedCreatorAddress,
+    })
+  }, [
+    creationMode,
+    eligibleRecurringSeriesOptions,
+    recurringSeriesName,
+    recurringSeriesSelection,
+    selectedCreatorAddress,
+    slugSeed,
+  ])
+  const recurringSeriesChoices = useMemo(
+    () =>
+      eligibleRecurringSeriesOptions.map((value) => ({
+        label: formatEventCreationSeriesName(value),
+        value,
+      })),
+    [eligibleRecurringSeriesOptions],
+  )
   const { isAddressCopied, copyWalletAddress, openAdminSettings, resetAddressCopied } =
     useAdminWalletActions(eoaAddress)
   const creatorSlugTail = useMemo(() => buildEventCreationWalletTail(slugWalletAddress), [slugWalletAddress])
@@ -573,6 +617,7 @@ export function useAdminCreateEventForm({
         creator: selectedCreatorAddress?.toLowerCase() ?? '',
         recurrenceUnit,
         recurrenceInterval,
+        seriesSlug: resolvedRecurringSeriesSlug,
         targetChainId,
         marketCount,
         form: {
@@ -609,6 +654,7 @@ export function useAdminCreateEventForm({
       marketCount,
       recurrenceInterval,
       recurrenceUnit,
+      resolvedRecurringSeriesSlug,
       selectedCreatorAddress,
       sportsDerivedContent.payload,
       targetChainId,
@@ -768,6 +814,7 @@ export function useAdminCreateEventForm({
           allowPastResolutionDate,
           hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
           hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+          hasRecurringSeries: creationMode !== 'recurring' || Boolean(resolvedRecurringSeriesSlug),
           recurringPreviewErrors,
         }).length === 0
       )
@@ -788,6 +835,7 @@ export function useAdminCreateEventForm({
       pendingAiIssues.length,
       proposerWhitelistCheckState,
       recurrenceUnit,
+      resolvedRecurringSeriesSlug,
       recurringPreviewErrors,
       slugValidationState,
     ],
@@ -1156,6 +1204,8 @@ export function useAdminCreateEventForm({
             walletAddress?: unknown
             recurrenceUnit?: unknown
             recurrenceInterval?: unknown
+            recurringSeriesSelection?: unknown
+            recurringSeriesName?: unknown
             currentStep?: number
             maxVisitedStep?: number
             slugSeed?: string
@@ -1182,6 +1232,12 @@ export function useAdminCreateEventForm({
                 ? String(Math.max(1, Math.floor(parsed.recurrenceInterval)))
                 : initialRecurrenceInterval,
           )
+          setRecurringSeriesSelection(
+            typeof parsed.recurringSeriesSelection === 'string' && parsed.recurringSeriesSelection.trim()
+              ? parsed.recurringSeriesSelection.trim()
+              : NEW_RECURRING_SERIES_VALUE,
+          )
+          setRecurringSeriesName(typeof parsed.recurringSeriesName === 'string' ? parsed.recurringSeriesName : '')
 
           if (parsed.form && typeof parsed.form === 'object') {
             const fallback = createInitialForm({
@@ -1471,6 +1527,9 @@ export function useAdminCreateEventForm({
         walletAddress: automaticWalletAddress,
         recurrenceUnit,
         recurrenceInterval,
+        recurringSeriesSelection,
+        recurringSeriesName,
+        seriesSlug: resolvedRecurringSeriesSlug,
         currentStep,
         maxVisitedStep,
         slugSeed,
@@ -1563,6 +1622,9 @@ export function useAdminCreateEventForm({
       creationMode,
       recurrenceInterval,
       recurrenceUnit,
+      recurringSeriesName,
+      recurringSeriesSelection,
+      resolvedRecurringSeriesSlug,
       slugSeed,
       slugTemplate,
       sportsForm,
@@ -1788,6 +1850,8 @@ export function useAdminCreateEventForm({
           return t('Select a creator for recurring deployments.')
         case 'Select a valid recurrence cadence.':
           return t('Select a valid recurrence cadence.')
+        case 'Select or name the recurrence group.':
+          return t('Select or name the recurrence group.')
         case 'Select a market type.':
           return t('Select a market type.')
         case 'Binary question is required.':
@@ -2091,6 +2155,10 @@ export function useAdminCreateEventForm({
           : resolvedForm.resolutionRules.trim(),
     }
 
+    if (creationMode === 'recurring' && resolvedRecurringSeriesSlug) {
+      payload.seriesSlug = resolvedRecurringSeriesSlug
+    }
+
     if (isSportsEvent && sportsDerivedContent.payload) {
       payload.options = sportsDerivedContent.options.map((option) => ({
         id: option.id,
@@ -2124,6 +2192,7 @@ export function useAdminCreateEventForm({
     getResolvedDateForms,
     isSportsEvent,
     recurringResolvedRules,
+    resolvedRecurringSeriesSlug,
     resolutionType,
     selectedMainCategory,
     sportsDerivedContent.categories,
@@ -3634,6 +3703,7 @@ export function useAdminCreateEventForm({
         allowPastResolutionDate,
         hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
         hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+        hasRecurringSeries: creationMode !== 'recurring' || Boolean(resolvedRecurringSeriesSlug),
         recurringPreviewErrors,
       })
 
@@ -3661,6 +3731,7 @@ export function useAdminCreateEventForm({
       pendingAiIssues.length,
       proposerWhitelistCheckState,
       recurrenceUnit,
+      resolvedRecurringSeriesSlug,
       recurringPreviewErrors,
       showFirstError,
       slugValidationState,
@@ -3691,6 +3762,8 @@ export function useAdminCreateEventForm({
     setAutomaticWalletAddress(initialWalletAddress)
     setRecurrenceUnit(initialRecurrenceUnit)
     setRecurrenceInterval(initialRecurrenceInterval)
+    setRecurringSeriesSelection(NEW_RECURRING_SERIES_VALUE)
+    setRecurringSeriesName('')
     setSportsForm(createInitialAdminSportsForm())
     setSlugSeed(nextSlugSeed)
     setCategoryQuery('')
@@ -3789,6 +3862,8 @@ export function useAdminCreateEventForm({
     setAutomaticWalletAddress(initialWalletAddress)
     setRecurrenceUnit(initialRecurrenceUnit)
     setRecurrenceInterval(initialRecurrenceInterval)
+    setRecurringSeriesSelection(NEW_RECURRING_SERIES_VALUE)
+    setRecurringSeriesName('')
     setSportsForm(createInitialAdminSportsForm())
     setSlugSeed(nextSlugSeed)
     setCategoryQuery('')
@@ -4087,6 +4162,12 @@ export function useAdminCreateEventForm({
     setRecurrenceUnit,
     recurrenceInterval,
     setRecurrenceInterval,
+    recurringSeriesSelection,
+    setRecurringSeriesSelection,
+    recurringSeriesName,
+    setRecurringSeriesName,
+    recurringSeriesChoices,
+    resolvedRecurringSeriesSlug,
     signers,
     isLoadingSigners,
     sportsForm,

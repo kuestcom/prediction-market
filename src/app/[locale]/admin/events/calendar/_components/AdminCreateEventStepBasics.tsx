@@ -91,6 +91,9 @@ export function AdminCreateEventStepBasics({
     nextRecurringResolutionDate,
     recurrenceInterval,
     recurrenceUnit,
+    recurringSeriesChoices,
+    recurringSeriesName,
+    recurringSeriesSelection,
     recurringResolvedSlug,
     recurringResolvedTitle,
     removeCategory,
@@ -102,6 +105,8 @@ export function AdminCreateEventStepBasics({
     setCategoryQuery,
     setRecurrenceInterval,
     setRecurrenceUnit,
+    setRecurringSeriesName,
+    setRecurringSeriesSelection,
     setSlugTemplate,
     setSportsMatchQuery,
     setTitleTemplate,
@@ -284,6 +289,70 @@ export function AdminCreateEventStepBasics({
                   </p>
                 )}
               </div>
+
+              {creationMode === 'recurring' && (
+                <div className="space-y-4 rounded-lg border border-border/70 p-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recurring-series-group">
+                      {isSportsEvent ? t('Championship') : t('Recurrence group')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {isSportsEvent
+                        ? t('Select the championship these events belong to, or create a new one.')
+                        : t(
+                            'Groups all events created by this recurrence. For example, weekly presidential approval events can use “Presidential approval — weekly”.',
+                          )}
+                    </p>
+                    <Select
+                      items={[
+                        ...recurringSeriesChoices,
+                        {
+                          label: isSportsEvent
+                            ? t('Create a new championship...')
+                            : t('Create a new recurrence group...'),
+                          value: '__new_recurring_series__',
+                        },
+                      ]}
+                      value={recurringSeriesSelection}
+                      onValueChange={(value) => value !== null && setRecurringSeriesSelection(value)}
+                    >
+                      <SelectTrigger id="recurring-series-group" className="w-full">
+                        <SelectValue
+                          placeholder={isSportsEvent ? t('Select championship') : t('Select recurrence group')}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {recurringSeriesChoices.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__new_recurring_series__">
+                          {isSportsEvent ? t('Create a new championship...') : t('Create a new recurrence group...')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {recurringSeriesSelection === '__new_recurring_series__' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="recurring-series-name">
+                        {isSportsEvent ? t('Championship name') : t('Recurrence name')}
+                      </Label>
+                      <Input
+                        id="recurring-series-name"
+                        value={recurringSeriesName}
+                        onChange={(event) => setRecurringSeriesName(event.currentTarget.value)}
+                        placeholder={
+                          isSportsEvent
+                            ? t('Example: 2026 World Championship')
+                            : t('Example: Presidential approval — weekly')
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">

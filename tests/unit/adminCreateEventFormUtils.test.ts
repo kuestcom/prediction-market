@@ -78,6 +78,7 @@ function buildValidationArgs(
     allowPastResolutionDate: false,
     hasCreatorSelection: true,
     hasRecurringCadence: true,
+    hasRecurringSeries: true,
     recurringPreviewErrors: [],
     ...overrides,
   }
@@ -286,6 +287,18 @@ describe('admin create event form utils', () => {
           'Select at least 4 sub categories.',
         ]),
       )
+    })
+
+    it('requires a recurrence group for recurring events', () => {
+      expect(
+        buildStepErrors(
+          1,
+          buildValidationArgs({
+            creationMode: 'recurring',
+            hasRecurringSeries: false,
+          }),
+        ),
+      ).toContain('Select or name the recurrence group.')
     })
 
     it('preserves resolution source and rules validation on step three', () => {

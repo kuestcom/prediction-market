@@ -155,6 +155,7 @@ export interface PreparePayloadBody {
   options?: PreparePayloadOption[]
   resolutionSource: string
   resolutionRules: string
+  seriesSlug?: string
   sports?: unknown
 }
 
@@ -241,6 +242,7 @@ export interface SignatureExecutionTx extends PrepareTxPlanItem {
 
 export interface AdminCreateEventFormProps {
   sportsSlugCatalog: import('@/lib/admin-sports-create').AdminSportsSlugCatalog
+  seriesOptions?: string[]
   creationMode?: EventCreationMode
   initialDraftRecord?: import('@/lib/db/queries/event-creations').EventCreationDraftRecord | null
   draftId?: string | null

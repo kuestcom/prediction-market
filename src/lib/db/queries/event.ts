@@ -1773,6 +1773,42 @@ async function hydrateEventListResults({
 }
 
 export const EventRepository = {
+  async listAdminSeriesSlugs(creatorWalletAddresses: string[]): Promise<QueryResult<string[]>> {
+    const creators = Array.from(
+      new Set(
+        creatorWalletAddresses
+          .map((address) => address.trim().toLowerCase())
+          .filter((address) => /^0x[0-9a-f]{40}$/.test(address)),
+      ),
+    )
+
+    if (creators.length === 0) {
+      return { data: [], error: null }
+    }
+
+    const creatorSeriesConditions = creators.map((creator) => {
+      const walletTail = creator.slice(-12)
+      return and(
+        eq(sql<string>`LOWER(COALESCE(${events.creator}, ''))`, creator),
+        sql`LOWER(TRIM(COALESCE(${events.series_slug}, ''))) ~ ${`-[0-9]{10,}${walletTail}$`}`,
+      )
+    })
+
+    return runQuery(async () => {
+      const rows = await db
+        .select({ series_slug: events.series_slug })
+        .from(events)
+        .where(or(...creatorSeriesConditions))
+        .groupBy(events.series_slug)
+        .orderBy(asc(events.series_slug))
+
+      return {
+        data: rows.map((row) => row.series_slug?.trim() ?? '').filter(Boolean),
+        error: null,
+      }
+    })
+  },
+
   async listEvents({
     tag,
     mainTag = '',

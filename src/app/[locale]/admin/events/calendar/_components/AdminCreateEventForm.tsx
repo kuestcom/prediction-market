@@ -20,6 +20,7 @@ import { useAdminCreateEventForm } from './useAdminCreateEventForm'
 
 export default function AdminCreateEventForm({
   sportsSlugCatalog,
+  seriesOptions = [],
   creationMode = 'single',
   initialDraftRecord = null,
   draftId = null,
@@ -34,6 +35,7 @@ export default function AdminCreateEventForm({
 }: AdminCreateEventFormProps) {
   const hook = useAdminCreateEventForm({
     sportsSlugCatalog,
+    seriesOptions,
     creationMode,
     initialDraftRecord,
     draftId,

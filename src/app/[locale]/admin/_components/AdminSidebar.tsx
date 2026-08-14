@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
+import { Fragment } from 'react'
 
 import {
   BadgePercentIcon,
@@ -36,14 +37,14 @@ export default function AdminSidebar() {
       href: '/admin' as Route,
       icon: LayoutDashboardIcon,
     },
-    { id: 'general', label: t('General'), href: '/admin/general' as Route, icon: SettingsIcon },
-    { id: 'integrations', label: t('Integrations'), href: '/admin/integrations' as Route, icon: PlugIcon },
-    { id: 'theme', label: t('Theme'), href: '/admin/theme' as Route, icon: SwatchBookIcon },
-    { id: 'locales', label: t('Locales'), href: '/admin/locales' as Route, icon: LanguagesIcon },
-    { id: 'categories', label: t('Categories'), href: '/admin/categories' as Route, icon: TagsIcon },
-    { id: 'affiliate', label: t('Affiliate & Fees'), href: '/admin/affiliate' as Route, icon: BadgePercentIcon },
     { id: 'events', label: t('Events'), href: '/admin/events' as Route, icon: CalendarIcon },
     { id: 'users', label: t('Users'), href: '/admin/users' as Route, icon: UsersIcon },
+    { id: 'affiliate', label: t('Affiliate & Fees'), href: '/admin/affiliate' as Route, icon: BadgePercentIcon },
+    { id: 'general', label: t('General'), href: '/admin/general' as Route, icon: SettingsIcon },
+    { id: 'integrations', label: t('Integrations'), href: '/admin/integrations' as Route, icon: PlugIcon },
+    { id: 'categories', label: t('Categories'), href: '/admin/categories' as Route, icon: TagsIcon },
+    { id: 'locales', label: t('Locales'), href: '/admin/locales' as Route, icon: LanguagesIcon },
+    { id: 'theme', label: t('Theme'), href: '/admin/theme' as Route, icon: SwatchBookIcon },
   ]
   const pathname = usePathname()
   const activeItem = adminMenuItems.find((item) => {
@@ -62,21 +63,25 @@ export default function AdminSidebar() {
         )}
       >
         {adminMenuItems.map((item) => (
-          <Button
-            key={item.id}
-            variant="ghost"
-            className={cn(
-              `h-auto shrink-0 snap-start flex-col gap-1.5 px-3 py-2 text-foreground lg:h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-2 lg:px-4 lg:py-2`,
-              { 'bg-accent hover:bg-accent': active === item.id },
+          <Fragment key={item.id}>
+            <Button
+              variant="ghost"
+              className={cn(
+                `h-auto shrink-0 snap-start flex-col gap-1.5 px-3 py-2 text-foreground lg:h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-2 lg:px-4 lg:py-2`,
+                { 'bg-accent hover:bg-accent': active === item.id },
+              )}
+              nativeButton={false}
+              render={
+                <Link href={item.href}>
+                  <item.icon className="size-6 text-muted-foreground lg:size-5" />
+                  <span>{item.label}</span>
+                </Link>
+              }
+            />
+            {(item.id === 'dashboard' || item.id === 'affiliate') && (
+              <div aria-hidden className="mx-1 h-8 w-px shrink-0 self-center bg-border lg:mx-3 lg:my-1 lg:h-px lg:w-auto" />
             )}
-            nativeButton={false}
-            render={
-              <Link href={item.href}>
-                <item.icon className="size-6 text-muted-foreground lg:size-5" />
-                <span>{item.label}</span>
-              </Link>
-            }
-          />
+          </Fragment>
         ))}
       </nav>
     </aside>

@@ -203,6 +203,7 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
           ),
           {
             id: payload.notification_id,
+            duration: 12_000,
             description: (
               <FollowedTradeMarketContext
                 eventTitle={payload.event_title || payload.market_title}

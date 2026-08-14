@@ -55,6 +55,8 @@ const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN =
   /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
 const EVENT_CREATION_TEMPLATE_TOKEN_PATTERN = /\{\{\s*[a-z_]+(?:[+-]\d+)?\s*\}\}/gi
 const EVENT_CREATION_TEMPLATE_TOKEN_NORMALIZE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/i
+const EVENT_CREATION_SERIES_SUFFIX_PATTERN = /-(\d{10,})([0-9a-f]{12})$/i
+const EVENT_CREATION_SERIES_WALLET_TAIL_LENGTH = 12
 
 export function slugifyEventCreationValue(value: string) {
   return slugifyText(value)
@@ -95,6 +97,41 @@ export function appendEventCreationSlugSuffix(base: string, suffix: string) {
     return trimmedBase
   }
   return `${trimmedBase}-${trimmedSuffix}`
+}
+
+export function buildEventCreationSeriesSlug(args: {
+  name: string
+  timestampSeed: string
+  walletAddress: string | null | undefined
+}) {
+  const base = slugifyEventCreationValue(args.name)
+  const walletTail = args.walletAddress
+    ?.trim()
+    .replace(/^0x/i, '')
+    .slice(-EVENT_CREATION_SERIES_WALLET_TAIL_LENGTH)
+    .toLowerCase()
+  const timestampSeed = args.timestampSeed.trim()
+  if (!base || !/^\d{10,}$/.test(timestampSeed) || !walletTail) {
+    return ''
+  }
+
+  return appendEventCreationSlugSuffix(base, `${timestampSeed}${walletTail}`)
+}
+
+export function isEventCreationSeriesSlugForCreator(seriesSlug: string, walletAddress: string | null | undefined) {
+  const walletTail = walletAddress
+    ?.trim()
+    .replace(/^0x/i, '')
+    .slice(-EVENT_CREATION_SERIES_WALLET_TAIL_LENGTH)
+    .toLowerCase()
+  const match = seriesSlug.trim().match(EVENT_CREATION_SERIES_SUFFIX_PATTERN)
+  return Boolean(walletTail && match?.[2]?.toLowerCase() === walletTail)
+}
+
+export function formatEventCreationSeriesName(seriesSlug: string) {
+  const nameSlug = seriesSlug.trim().replace(EVENT_CREATION_SERIES_SUFFIX_PATTERN, '')
+  const words = nameSlug.split('-').filter(Boolean).join(' ')
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}` : seriesSlug
 }
 
 function pad(value: number) {
