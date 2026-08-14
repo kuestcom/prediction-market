@@ -315,7 +315,7 @@ function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileRe
         <div
           key={`${profile.address}-${profile.username}`}
           onClick={onResultClick}
-          className="cursor-pointer px-3 transition-colors last:rounded-b-lg hover:bg-accent"
+          className="relative cursor-pointer px-3 transition-colors last:rounded-b-lg hover:bg-accent"
         >
           <ProfileLink
             user={{
@@ -325,6 +325,7 @@ function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileRe
               image: profile.image,
             }}
             joinedAt={formatProfileJoinedAt(profile.created_at)}
+            usernameClassName="after:absolute after:inset-0 after:content-['']"
           />
         </div>
       ))}
