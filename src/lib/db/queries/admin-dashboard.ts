@@ -45,12 +45,7 @@ export const AdminDashboardRepository = {
       const utcDay = sql`(date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`
       const userUtcDay = sql`date_trunc('day', ${users.created_at} AT TIME ZONE 'UTC')`
 
-      const [
-        missingSportsSourceRows,
-        pendingResolutionRows,
-        userRows,
-        userDailyRows,
-      ] = await Promise.all([
+      const [missingSportsSourceRows, pendingResolutionRows, userRows, userDailyRows] = await Promise.all([
         db.select({ value: count() }).from(events).where(buildMissingSportsSourceCondition()),
         db.select({ value: count() }).from(events).where(buildPastDueUnresolvedEventCondition()),
         db

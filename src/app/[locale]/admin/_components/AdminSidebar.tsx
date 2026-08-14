@@ -2,7 +2,6 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
-import { Fragment } from 'react'
 
 import {
   BadgePercentIcon,
@@ -16,6 +15,7 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { Fragment } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
@@ -79,7 +79,10 @@ export default function AdminSidebar() {
               }
             />
             {(item.id === 'dashboard' || item.id === 'affiliate') && (
-              <div aria-hidden className="mx-1 h-8 w-px shrink-0 self-center bg-border lg:mx-3 lg:my-1 lg:h-px lg:w-auto" />
+              <div
+                aria-hidden
+                className="mx-1 h-8 w-px shrink-0 self-center bg-border lg:mx-3 lg:my-1 lg:h-px lg:w-auto"
+              />
             )}
           </Fragment>
         ))}

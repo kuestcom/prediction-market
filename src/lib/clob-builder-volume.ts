@@ -5,14 +5,14 @@ interface ClobBuilderVolumeResponse {
   total: string
   periodTotal: string
   periodDays: number
-  daily: Array<{ date: string, volume: string }>
+  daily: Array<{ date: string; volume: string }>
   generatedAt: string
 }
 
 export interface BuilderVolumeSummary {
   total: number
   periodTotal: number
-  daily: Array<{ date: string, value: number }>
+  daily: Array<{ date: string; value: number }>
 }
 
 function parseVolume(value: string) {
