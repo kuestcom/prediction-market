@@ -13,6 +13,7 @@ import CommunityFollowersCount from '@/components/CommunityFollowersCount'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useBalance } from '@/hooks/useBalance'
 import { useClipboard } from '@/hooks/useClipboard'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
@@ -25,7 +26,6 @@ export interface ProfileForCards {
   username: string
   avatarUrl: string
   joinedAt?: string
-  viewsCount?: number
   portfolioAddress?: string | null
 }
 
@@ -188,24 +188,21 @@ export default function ProfileOverviewCard({
                       />
                     ) : null}
                   </div>
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <p className="min-w-0 truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center">
+                      <p
+                        className="w-full text-lg/tight font-semibold wrap-break-word sm:w-auto sm:min-w-0 sm:truncate sm:text-xl"
+                        title={profile.username}
+                      >
                         {profile.username}
                       </p>
                       {resolutionHistoryAdornment}
                     </div>
-                    <div className="flex flex-wrap items-center text-sm text-muted-foreground [&>*+*]:before:mx-2 [&>*+*]:before:text-muted-foreground/50 [&>*+*]:before:content-['•']">
+                    <div className="flex items-center text-sm whitespace-nowrap text-muted-foreground [&>*+*]:before:mx-2 [&>*+*]:before:text-muted-foreground/50 [&>*+*]:before:content-['•']">
                       {profile.portfolioAddress && <CommunityFollowersCount wallet={profile.portfolioAddress} />}
                       {joinedText && (
                         <span className="inline-flex items-center gap-1">
                           {t('Joined')} {joinedText}
-                        </span>
-                      )}
-                      {typeof profile.viewsCount === 'number' && (
-                        <span className="inline-flex items-center gap-1">
-                          <EyeIcon className="size-4" />
-                          {formatCompactCount(profile.viewsCount)} {t('views')}
                         </span>
                       )}
                     </div>
@@ -215,17 +212,24 @@ export default function ProfileOverviewCard({
                 <div className="flex shrink-0 items-center gap-2">
                   {headerActions}
                   {profile.portfolioAddress && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        `size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm transition-colors hover:bg-background`,
-                      )}
-                      onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
-                      aria-label={t('Copy portfolio address')}
-                    >
-                      {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              `size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm transition-colors hover:bg-background`,
+                            )}
+                            onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
+                            aria-label={t('Copy profile address')}
+                          >
+                            {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
+                          </Button>
+                        }
+                      />
+                      <TooltipContent>{t('Copy profile address')}</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
