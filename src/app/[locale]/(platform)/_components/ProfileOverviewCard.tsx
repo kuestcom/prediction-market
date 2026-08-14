@@ -9,6 +9,7 @@ import { useMemo } from 'react'
 
 import type { PortfolioSnapshot } from '@/lib/portfolio'
 
+import CommunityFollowersCount from '@/components/CommunityFollowersCount'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -194,22 +195,18 @@ export default function ProfileOverviewCard({
                       </p>
                       {resolutionHistoryAdornment}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center text-sm text-muted-foreground [&>*+*]:before:mx-2 [&>*+*]:before:text-muted-foreground/50 [&>*+*]:before:content-['•']">
+                      {profile.portfolioAddress && <CommunityFollowersCount wallet={profile.portfolioAddress} />}
                       {joinedText && (
                         <span className="inline-flex items-center gap-1">
                           {t('Joined')} {joinedText}
                         </span>
                       )}
                       {typeof profile.viewsCount === 'number' && (
-                        <>
-                          <span aria-hidden className="text-muted-foreground/50">
-                            •
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <EyeIcon className="size-4" />
-                            {formatCompactCount(profile.viewsCount)} {t('views')}
-                          </span>
-                        </>
+                        <span className="inline-flex items-center gap-1">
+                          <EyeIcon className="size-4" />
+                          {formatCompactCount(profile.viewsCount)} {t('views')}
+                        </span>
                       )}
                     </div>
                   </div>

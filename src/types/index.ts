@@ -196,6 +196,17 @@ export interface HomeFeaturedSportsMarketGroup {
   }>
 }
 
+export interface HomeFeaturedRolloverEvent {
+  event: Event
+  kind: HomeFeaturedCardKind
+  primaryMarkets: Market[]
+  topOutcomes: HomeFeaturedOutcomeSummary[]
+  resolvedEventId: string
+  temporalStatus: 'live' | 'daily' | 'monthly' | 'ends'
+  temporalLabel: string
+  sportsMarketGroups: HomeFeaturedSportsMarketGroup[]
+}
+
 export interface HomeFeaturedEventCard {
   featuredId: string
   targetType: HomeFeaturedTargetType
@@ -215,6 +226,8 @@ export interface HomeFeaturedEventCard {
   temporalLabel: string
   sportsMarketGroups: HomeFeaturedSportsMarketGroup[]
   liveChartConfig: EventLiveChartConfig | null
+  seriesEvents: EventSeriesEntry[]
+  nextSeriesEvent: HomeFeaturedRolloverEvent | null
 }
 
 export interface HomeFeaturedHotTopic {

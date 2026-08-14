@@ -58,6 +58,39 @@ describe('usePredictionChartData', () => {
     })
   })
 
+  it('replaces a sparse placeholder when complete history arrives for the same chart', async () => {
+    const oldHistory: DataPoint[] = [
+      { date: new Date(1_000), oldMarket: 40 },
+      { date: new Date(2_000), oldMarket: 60 },
+    ]
+    const sparsePlaceholder: DataPoint[] = [{ date: new Date(1_000) }, { date: new Date(2_000), newMarket: 55 }]
+    const completeHistory: DataPoint[] = [
+      { date: new Date(1_000), newMarket: 35 },
+      { date: new Date(1_500), newMarket: 45 },
+      { date: new Date(2_000), newMarket: 55 },
+    ]
+    const { result, rerender } = renderHook(
+      ({ data, signature }) => usePredictionChartData(data, signature, 'replace'),
+      {
+        initialProps: { data: oldHistory, signature: 'old-event' },
+      },
+    )
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual(oldHistory)
+    })
+
+    rerender({ data: sparsePlaceholder, signature: 'new-event' })
+    await waitFor(() => {
+      expect(result.current.data).toEqual(sparsePlaceholder)
+    })
+
+    rerender({ data: completeHistory, signature: 'new-event' })
+    await waitFor(() => {
+      expect(result.current.data).toEqual(completeHistory)
+    })
+  })
+
   it('does not append when a sparse series is equivalent to zero', async () => {
     const initialData: DataPoint[] = [
       {

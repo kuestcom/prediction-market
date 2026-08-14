@@ -82,6 +82,7 @@ export default function EventChartCanvas({
         height={chartHeight}
         margin={CHART_MARGIN}
         dataSignature={chartScopeKey}
+        dataSyncMode="replace"
         onCursorDataChange={handleCursorDataChange}
         xAxisTickCount={isMobile ? 2 : 4}
         autoscale={chartSettings.autoscale}

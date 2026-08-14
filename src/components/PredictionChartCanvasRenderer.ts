@@ -5,6 +5,21 @@ interface CanvasChartPoint {
   y: number
 }
 
+type PredictionChartCanvasGeometry = Pick<
+  PredictionChartCanvasFrame,
+  | 'width'
+  | 'height'
+  | 'margin'
+  | 'data'
+  | 'series'
+  | 'domainStart'
+  | 'domainEnd'
+  | 'yMin'
+  | 'yMax'
+  | 'lineCurve'
+  | 'lineEndOffsetX'
+>
+
 interface CanvasChartAnnotation {
   color: string
   radius: number
@@ -58,6 +73,7 @@ export interface PredictionChartCanvasFrame {
   markerOffsetX: number
   markerPulseProgress: number
   revealProgress: number
+  muteUnrevealedSeries: boolean
   surge: {
     color: string
     progress: number
@@ -109,27 +125,27 @@ function withOpacity(color: string, opacity: number) {
   return color
 }
 
-function scaleX(frame: PredictionChartCanvasFrame, timestamp: number) {
+function scaleX(frame: PredictionChartCanvasGeometry, timestamp: number) {
   const innerWidth = Math.max(1, frame.width - frame.margin.left - frame.margin.right)
   const ratio = (timestamp - frame.domainStart) / Math.max(1, frame.domainEnd - frame.domainStart)
   const baseX = Math.max(0, Math.min(innerWidth, ratio * innerWidth))
   return frame.margin.left + baseX
 }
 
-function scaleSeriesX(frame: PredictionChartCanvasFrame, timestamp: number) {
+function scaleSeriesX(frame: PredictionChartCanvasGeometry, timestamp: number) {
   const innerWidth = Math.max(1, frame.width - frame.margin.left - frame.margin.right)
   const baseX = scaleX(frame, timestamp) - frame.margin.left
   const offsetProgress = innerWidth > 0 ? baseX / innerWidth : 1
   return frame.margin.left + baseX + frame.lineEndOffsetX * offsetProgress
 }
 
-function scaleY(frame: PredictionChartCanvasFrame, value: number) {
+function scaleY(frame: PredictionChartCanvasGeometry, value: number) {
   const innerHeight = Math.max(1, frame.height - frame.margin.top - frame.margin.bottom)
   const ratio = (value - frame.yMin) / Math.max(Number.EPSILON, frame.yMax - frame.yMin)
   return frame.margin.top + innerHeight - Math.max(0, Math.min(1, ratio)) * innerHeight
 }
 
-function buildSeriesSegments(frame: PredictionChartCanvasFrame, seriesKey: string) {
+function buildSeriesSegments(frame: PredictionChartCanvasGeometry, seriesKey: string) {
   return frame.data
     .reduce<CanvasChartPoint[][]>((segments, point) => {
       const value = point[seriesKey]
@@ -159,32 +175,48 @@ function traceLinearPath(context: CanvasRenderingContext2D, points: CanvasChartP
   }
 }
 
-function traceMonotonePath(context: CanvasRenderingContext2D, points: CanvasChartPoint[]) {
-  context.moveTo(points[0].x, points[0].y)
+function resolveCurveControls(
+  points: CanvasChartPoint[],
+  index: number,
+  curve: PredictionChartCanvasFrame['lineCurve'],
+) {
+  const previous = points[Math.max(0, index - 1)]
+  const current = points[index]
+  const next = points[index + 1]
+  const following = points[Math.min(points.length - 1, index + 2)]
 
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const current = points[index]
-    const next = points[index + 1]
+  if (curve === 'monotoneX') {
     const middleX = (current.x + next.x) / 2
-    context.bezierCurveTo(middleX, current.y, middleX, next.y, next.x, next.y)
+    return {
+      controlOne: { x: middleX, y: current.y },
+      controlTwo: { x: middleX, y: next.y },
+    }
+  }
+
+  const segmentWidth = next.x - current.x
+  return {
+    controlOne: {
+      x: current.x + segmentWidth / 3,
+      y: current.y + (next.y - previous.y) / 6,
+    },
+    controlTwo: {
+      x: next.x - segmentWidth / 3,
+      y: next.y - (following.y - current.y) / 6,
+    },
   }
 }
 
-function traceCatmullRomPath(context: CanvasRenderingContext2D, points: CanvasChartPoint[]) {
+function traceCurvedPath(
+  context: CanvasRenderingContext2D,
+  points: CanvasChartPoint[],
+  curve: PredictionChartCanvasFrame['lineCurve'],
+) {
   context.moveTo(points[0].x, points[0].y)
 
   for (let index = 0; index < points.length - 1; index += 1) {
-    const previous = points[Math.max(0, index - 1)]
-    const current = points[index]
     const next = points[index + 1]
-    const following = points[Math.min(points.length - 1, index + 2)]
-    const segmentWidth = next.x - current.x
-    const controlOneX = current.x + segmentWidth / 3
-    const controlOneY = current.y + (next.y - previous.y) / 6
-    const controlTwoX = next.x - segmentWidth / 3
-    const controlTwoY = next.y - (following.y - current.y) / 6
-
-    context.bezierCurveTo(controlOneX, controlOneY, controlTwoX, controlTwoY, next.x, next.y)
+    const { controlOne, controlTwo } = resolveCurveControls(points, index, curve)
+    context.bezierCurveTo(controlOne.x, controlOne.y, controlTwo.x, controlTwo.y, next.x, next.y)
   }
 }
 
@@ -198,16 +230,101 @@ function traceSeriesPath(
   }
 
   if (curve === 'monotoneX') {
-    traceMonotonePath(context, points)
+    traceCurvedPath(context, points, curve)
     return
   }
 
   if (curve === 'catmullRom' || curve === 'basis') {
-    traceCatmullRomPath(context, points)
+    traceCurvedPath(context, points, curve)
     return
   }
 
   traceLinearPath(context, points)
+}
+
+function interpolateCoordinate(start: number, controlOne: number, controlTwo: number, end: number, progress: number) {
+  const inverse = 1 - progress
+  return (
+    inverse ** 3 * start +
+    3 * inverse ** 2 * progress * controlOne +
+    3 * inverse * progress ** 2 * controlTwo +
+    progress ** 3 * end
+  )
+}
+
+function resolveSegmentYAtX(
+  points: CanvasChartPoint[],
+  index: number,
+  curve: PredictionChartCanvasFrame['lineCurve'],
+  targetX: number,
+) {
+  const current = points[index]
+  const next = points[index + 1]
+  if (curve !== 'monotoneX' && curve !== 'catmullRom' && curve !== 'basis') {
+    const progress = next.x === current.x ? 0 : (targetX - current.x) / (next.x - current.x)
+    return current.y + (next.y - current.y) * progress
+  }
+
+  const { controlOne, controlTwo } = resolveCurveControls(points, index, curve)
+  let lower = 0
+  let upper = 1
+  for (let step = 0; step < 24; step += 1) {
+    const progress = (lower + upper) / 2
+    const x = interpolateCoordinate(current.x, controlOne.x, controlTwo.x, next.x, progress)
+    if (x < targetX) {
+      lower = progress
+    } else {
+      upper = progress
+    }
+  }
+
+  const progress = (lower + upper) / 2
+  return interpolateCoordinate(current.y, controlOne.y, controlTwo.y, next.y, progress)
+}
+
+function resolvePathYAtX(
+  segments: CanvasChartPoint[][],
+  curve: PredictionChartCanvasFrame['lineCurve'],
+  targetX: number,
+) {
+  let nearestPoint: CanvasChartPoint | null = null
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (const points of segments) {
+    for (const point of [points[0], points.at(-1)!]) {
+      const distance = Math.abs(point.x - targetX)
+      if (distance < nearestDistance) {
+        nearestPoint = point
+        nearestDistance = distance
+      }
+    }
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const current = points[index]
+      const next = points[index + 1]
+      if (targetX >= Math.min(current.x, next.x) && targetX <= Math.max(current.x, next.x)) {
+        return resolveSegmentYAtX(points, index, curve, targetX)
+      }
+    }
+  }
+
+  return nearestPoint?.y ?? null
+}
+
+export function resolvePredictionChartCanvasValuesAtX(frame: PredictionChartCanvasGeometry, targetX: number) {
+  const innerHeight = Math.max(1, frame.height - frame.margin.top - frame.margin.bottom)
+  const valueSpan = Math.max(Number.EPSILON, frame.yMax - frame.yMin)
+
+  return frame.series.reduce<Record<string, number>>((values, seriesItem) => {
+    const y = resolvePathYAtX(buildSeriesSegments(frame, seriesItem.key), frame.lineCurve, targetX)
+    if (y == null) {
+      return values
+    }
+
+    const ratio = Math.max(0, Math.min(1, (frame.margin.top + innerHeight - y) / innerHeight))
+    values[seriesItem.key] = frame.yMin + ratio * valueSpan
+    return values
+  }, {})
 }
 
 function drawGrid(context: CanvasRenderingContext2D, frame: PredictionChartCanvasFrame) {
@@ -272,15 +389,20 @@ function drawSeries(context: CanvasRenderingContext2D, frame: PredictionChartCan
   const plotWidth = Math.max(1, frame.width - frame.margin.left - frame.margin.right)
   const plotHeight = Math.max(1, frame.height - frame.margin.top - frame.margin.bottom)
   const revealProgress = Math.max(0, Math.min(1, frame.revealProgress))
+  const visibleLineWidth = Math.max(1, plotWidth + Math.min(0, frame.lineEndOffsetX))
+  const revealX = plotLeft + visibleLineWidth * revealProgress
+  const showMutedRemainder = frame.muteUnrevealedSeries && revealProgress < 0.999 && frame.cursorSplit !== null
 
-  if (revealProgress <= 0) {
+  if (revealProgress <= 0 && !showMutedRemainder) {
     return
   }
 
   context.save()
-  context.beginPath()
-  context.rect(plotLeft - 4, plotTop - 4, plotWidth * revealProgress + 8, plotHeight + 8)
-  context.clip()
+  if (!showMutedRemainder) {
+    context.beginPath()
+    context.rect(plotLeft - 4, plotTop - 4, visibleLineWidth * revealProgress + 8, plotHeight + 8)
+    context.clip()
+  }
 
   frame.series.forEach((seriesItem) => {
     const color = resolveCssColor(context.canvas, seriesItem.color, '#1452f0')
@@ -323,6 +445,20 @@ function drawSeries(context: CanvasRenderingContext2D, frame: PredictionChartCan
         const mutedColor = resolveCssColor(context.canvas, frame.cursorSplit.color, '#99A6B5')
         drawStroke(mutedColor, 1.4, frame.cursorSplit.opacity, clampedSplitX, plotLeft + plotWidth - clampedSplitX)
         drawStroke(color, frame.lineStrokeWidth, 1, plotLeft - 4, clampedSplitX - plotLeft + 4)
+        return
+      }
+
+      if (showMutedRemainder && frame.cursorSplit) {
+        const mutedColor = resolveCssColor(context.canvas, frame.cursorSplit.color, '#99A6B5')
+        drawStroke(mutedColor, 1.4, frame.cursorSplit.opacity, revealX, plotLeft + plotWidth - revealX)
+
+        context.save()
+        context.beginPath()
+        context.rect(plotLeft - 4, plotTop - 4, revealX - plotLeft + 4, plotHeight + 8)
+        context.clip()
+        drawArea(context, frame, points, color)
+        context.restore()
+        drawStroke(color, frame.lineStrokeWidth, 1, plotLeft - 4, revealX - plotLeft + 4)
         return
       }
 

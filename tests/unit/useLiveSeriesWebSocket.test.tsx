@@ -246,6 +246,44 @@ describe('useLiveSeriesWebSocket', () => {
     })
   })
 
+  it('keeps the same live connection and data when the featured event rolls forward', () => {
+    const initialEndTimestamp = now + 100
+    const { result, rerender } = renderHook(
+      ({ eventEndTimestamp }) =>
+        useLiveSeriesWebSocket({
+          topic: 'crypto_prices',
+          eventType: 'price',
+          eventEndTimestamp,
+          subscriptionSymbol: 'BTC',
+          isLiveView: true,
+        }),
+      { initialProps: { eventEndTimestamp: initialEndTimestamp } },
+    )
+    const socket = MockWebSocket.instances[0]!
+    act(() => socket.emitOpen())
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: now - 50 }],
+      }),
+    )
+
+    rerender({ eventEndTimestamp: initialEndTimestamp + 1_000 })
+    now = initialEndTimestamp + 200
+    act(() =>
+      socket.emitMessage({
+        type: 'update',
+        symbol: 'BTC',
+        value: 110,
+        timestamp: now,
+      }),
+    )
+
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(result.current.data.at(-1)?.[SERIES_KEY]).toBe(110)
+    expect(result.current.data.some((point) => point[SERIES_KEY] === 100)).toBe(true)
+  })
+
   it('replaces an apparently open socket when the tab becomes visible again', () => {
     const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
     const { socket } = mountHook()

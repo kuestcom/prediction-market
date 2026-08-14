@@ -49,6 +49,7 @@ import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
+import { resolveHomeFeaturedEventEndTimestamp } from '@/lib/home-featured-rollover'
 import { resolveHomeFeaturedSportsScoreboardContent } from '@/lib/home-featured-sports-score'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import {
@@ -1736,8 +1737,64 @@ function FeaturedRightRailAction() {
   )
 }
 
+function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
+  const [rolloverState, setRolloverState] = useState<{ featuredId: string; eventId: string } | null>(null)
+  const nextSeriesEvent = item.targetType === 'series' ? item.nextSeriesEvent : null
+
+  useEffect(
+    function scheduleFeaturedSeriesRollover() {
+      if (!nextSeriesEvent) {
+        return
+      }
+
+      const endTimestamp = resolveHomeFeaturedEventEndTimestamp(item.event)
+      if (endTimestamp == null) {
+        return
+      }
+      const scheduledEndTimestamp = endTimestamp
+      const rolloverEvent = nextSeriesEvent
+
+      let timeoutId: number | null = null
+      function activateNextEvent() {
+        if (Date.now() < scheduledEndTimestamp) {
+          return
+        }
+        setRolloverState({ featuredId: item.featuredId, eventId: rolloverEvent.event.id })
+      }
+
+      timeoutId = window.setTimeout(activateNextEvent, Math.max(0, scheduledEndTimestamp - Date.now()))
+      document.addEventListener('visibilitychange', activateNextEvent)
+
+      return function cancelFeaturedSeriesRollover() {
+        if (timeoutId != null) {
+          window.clearTimeout(timeoutId)
+        }
+        document.removeEventListener('visibilitychange', activateNextEvent)
+      }
+    },
+    [item.event, item.featuredId, nextSeriesEvent],
+  )
+
+  const shouldUseNextEvent =
+    nextSeriesEvent &&
+    rolloverState?.featuredId === item.featuredId &&
+    rolloverState.eventId === nextSeriesEvent.event.id
+
+  return useMemo<HomeFeaturedEventCard>(() => {
+    if (!shouldUseNextEvent) {
+      return item
+    }
+
+    return {
+      ...item,
+      ...nextSeriesEvent,
+      contextItems: [],
+    }
+  }, [item, nextSeriesEvent, shouldUseNextEvent])
+}
+
 function FeaturedSlide({
-  item,
+  item: sourceItem,
   currentTimestamp,
   isActive,
   isNext,
@@ -1749,6 +1806,7 @@ function FeaturedSlide({
   isNext: boolean
   isChartEnabled: boolean
 }) {
+  const item = useHomeFeaturedRolloverItem(sourceItem)
   const isMobile = useIsMobile()
   const linkedHref = resolveEventPagePath(item.event)
   const shouldRenderChart = isChartEnabled && (isActive || isNext)
@@ -1791,6 +1849,7 @@ function FeaturedSlide({
             <HomeEventLiveSeriesChart
               event={item.event}
               isMobile={isMobile}
+              seriesEvents={item.seriesEvents}
               config={item.liveChartConfig}
               chartWidth={liveChartWidth}
               chartHeightOffset={HOME_FEATURED_CHART_HEIGHT_OFFSET}
@@ -1798,6 +1857,7 @@ function FeaturedSlide({
               showAreaFill={false}
               showCurrentPriceGuide={false}
               compactBitcoinHeaderPrices
+              preserveSeriesContinuity
             />
           ) : item.kind === 'sports' && sportsGraphCard && sportsGraphSelection ? (
             <HomeSportsGameGraph

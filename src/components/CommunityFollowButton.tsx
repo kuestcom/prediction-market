@@ -5,19 +5,27 @@ import type { MouseEvent, PointerEvent } from 'react'
 import { LoaderCircleIcon, UserCheckIcon, UserPlusIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
+import type { CommunityFollowStatus } from '@/lib/community-follows'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCommunityFollow } from '@/providers/CommunityFollowsProvider'
 
 interface CommunityFollowButtonProps {
   wallet: string | null | undefined
-  variant?: 'icon' | 'text'
+  variant?: 'icon' | 'manage' | 'text'
   className?: string
+  initialStatus?: CommunityFollowStatus | null
 }
 
-export default function CommunityFollowButton({ wallet, variant = 'text', className }: CommunityFollowButtonProps) {
+export default function CommunityFollowButton({
+  wallet,
+  variant = 'text',
+  className,
+  initialStatus,
+}: CommunityFollowButtonProps) {
   const t = useExtracted()
-  const follow = useCommunityFollow(wallet)
+  const follow = useCommunityFollow(wallet, initialStatus)
   if (!follow.canFollow) {
     return null
   }
@@ -32,6 +40,7 @@ export default function CommunityFollowButton({ wallet, variant = 'text', classN
     event.stopPropagation()
     void follow.toggleFollow()
   }
+  const buttonText = follow.isFollowing ? (variant === 'manage' ? t('Unfollow') : t('Following')) : t('Follow')
   const button = (
     <Button
       type="button"
@@ -46,11 +55,11 @@ export default function CommunityFollowButton({ wallet, variant = 'text', classN
       onClick={handleClick}
     >
       {follow.isPending ? <LoaderCircleIcon aria-hidden className="size-4 animate-spin" /> : <Icon aria-hidden />}
-      {variant === 'text' ? (follow.isFollowing ? t('Following') : t('Follow')) : null}
+      {variant === 'icon' ? null : buttonText}
     </Button>
   )
 
-  if (variant === 'text') {
+  if (variant !== 'icon') {
     return button
   }
 

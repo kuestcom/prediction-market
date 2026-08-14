@@ -259,6 +259,7 @@ interface EventLiveSeriesChartProps {
   showAreaFill?: boolean
   showCurrentPriceGuide?: boolean
   compactBitcoinHeaderPrices?: boolean
+  preserveSeriesContinuity?: boolean
 }
 
 export default function EventLiveSeriesChart({
@@ -272,12 +273,15 @@ export default function EventLiveSeriesChart({
   showAreaFill = true,
   showCurrentPriceGuide = true,
   compactBitcoinHeaderPrices = false,
+  preserveSeriesContinuity = false,
 }: EventLiveSeriesChartProps) {
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
     [config.symbol, config.topic],
   )
-  const resetKey = `${event.id}:${config.topic}:${config.event_type}:${subscriptionSymbol}`
+  const resetKey = preserveSeriesContinuity
+    ? `${config.topic}:${config.event_type}:${subscriptionSymbol}`
+    : `${event.id}:${config.topic}:${config.event_type}:${subscriptionSymbol}`
 
   return (
     <EventLiveSeriesChartContent

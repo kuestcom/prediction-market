@@ -8,7 +8,7 @@ import { useExtracted } from 'next-intl'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useSignMessage } from 'wagmi'
 
-import type { CommunityFollowStatus } from '@/lib/community-follows'
+import type { CommunityFollowStats, CommunityFollowStatus } from '@/lib/community-follows'
 
 import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -32,10 +32,10 @@ const WALLET_PATTERN = /^0x[0-9a-f]{40}$/i
 const TRADE_ALERT_PROMPT_TOAST_ID = 'community-follow-push-prompt'
 
 interface CommunityFollowContextValue {
-  getStatus: (wallet: string) => CommunityFollowStatus
+  getStatus: (wallet: string, fallback?: CommunityFollowStatus | null) => CommunityFollowStatus
   isPending: (wallet: string) => boolean
   registerWallet: (wallet: string) => () => void
-  toggleFollow: (wallet: string) => Promise<void>
+  toggleFollow: (wallet: string, fallback?: CommunityFollowStatus | null) => Promise<void>
   viewerWallets: ReadonlySet<string>
 }
 
@@ -111,9 +111,13 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
   }, [statusQueries])
 
   const getStatus = useCallback(
-    (wallet: string) => {
+    (wallet: string, fallback?: CommunityFollowStatus | null) => {
       const normalized = normalizeWallet(wallet) ?? wallet.toLowerCase()
-      return overrides.get(normalized) ?? serverStatuses.get(normalized) ?? defaultStatus(normalized)
+      return (
+        overrides.get(normalized) ??
+        serverStatuses.get(normalized) ??
+        (fallback ? { ...fallback, wallet: normalized } : defaultStatus(normalized))
+      )
     },
     [overrides, serverStatuses],
   )
@@ -123,6 +127,13 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
       queryClient.setQueriesData<CommunityFollowStatus[]>(
         { queryKey: communityFollowQueryKeys.statusRoot(communityUrl) },
         (current) => current?.map((item) => (item.wallet === status.wallet ? status : item)),
+      )
+      queryClient.setQueryData<CommunityFollowStats>(
+        communityFollowQueryKeys.stats(communityUrl, status.wallet),
+        (current) => ({
+          followersCount: status.followersCount,
+          followingCount: current?.followingCount ?? 0,
+        }),
       )
     },
     [communityUrl, queryClient],
@@ -220,7 +231,7 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
   })
 
   const toggleFollow = useCallback(
-    async (wallet: string) => {
+    async (wallet: string, fallback?: CommunityFollowStatus | null) => {
       const normalized = normalizeWallet(wallet)
       if (!normalized || viewerWallets.has(normalized) || pendingRef.current.has(normalized)) {
         return
@@ -230,7 +241,7 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
         return
       }
 
-      const previous = getStatus(normalized)
+      const previous = getStatus(normalized, fallback)
       const following = !previous.isFollowing
       const optimistic: CommunityFollowStatus = {
         ...previous,
@@ -246,6 +257,9 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
         const result = await mutation.mutateAsync({ wallet: normalized, following })
         setOverrides((current) => new Map(current).set(normalized, result))
         updateStatusCaches(result)
+        void queryClient.invalidateQueries({
+          queryKey: communityFollowQueryKeys.following(communityUrl, viewerAddress),
+        })
         setAuthRevision((current) => current + 1)
         if (following && result.isFollowing) {
           void offerTradeAlerts()
@@ -259,7 +273,18 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
         setPendingWallets(new Set(pendingRef.current))
       }
     },
-    [getStatus, mutation, offerTradeAlerts, open, t, updateStatusCaches, viewerAddress, viewerWallets],
+    [
+      communityUrl,
+      getStatus,
+      mutation,
+      offerTradeAlerts,
+      open,
+      queryClient,
+      t,
+      updateStatusCaches,
+      viewerAddress,
+      viewerWallets,
+    ],
   )
 
   const registerWallet = useCallback((wallet: string) => {
@@ -299,7 +324,7 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
   return <CommunityFollowContext value={value}>{children}</CommunityFollowContext>
 }
 
-export function useCommunityFollow(wallet: string | null | undefined) {
+export function useCommunityFollow(wallet: string | null | undefined, initialStatus?: CommunityFollowStatus | null) {
   const context = useContext(CommunityFollowContext)
   if (!context) {
     throw new Error('useCommunityFollow must be used within CommunityFollowsProvider.')
@@ -309,11 +334,11 @@ export function useCommunityFollow(wallet: string | null | undefined) {
 
   useEffect(() => (normalizedWallet ? registerWallet(normalizedWallet) : undefined), [normalizedWallet, registerWallet])
 
-  const status = normalizedWallet ? context.getStatus(normalizedWallet) : defaultStatus('')
+  const status = normalizedWallet ? context.getStatus(normalizedWallet, initialStatus) : defaultStatus('')
   return {
     ...status,
     canFollow: Boolean(normalizedWallet && !context.viewerWallets.has(normalizedWallet)),
     isPending: normalizedWallet ? context.isPending(normalizedWallet) : false,
-    toggleFollow: () => (normalizedWallet ? context.toggleFollow(normalizedWallet) : Promise.resolve()),
+    toggleFollow: () => (normalizedWallet ? context.toggleFollow(normalizedWallet, status) : Promise.resolve()),
   }
 }

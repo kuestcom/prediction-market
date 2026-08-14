@@ -164,7 +164,7 @@ describe('predictionChart', () => {
     await waitFor(() => {
       expect(canvasCalls.clearRect).toHaveBeenCalled()
     })
-    fireEvent.pointerMove(canvas, { clientX: 170, clientY: 100 })
+    fireEvent.pointerMove(canvas, { clientX: 164, clientY: 100 })
 
     await waitFor(() => {
       expect(onCursorDataChange).toHaveBeenCalled()
@@ -172,7 +172,120 @@ describe('predictionChart', () => {
     const snapshot = onCursorDataChange.mock.calls.at(-1)?.[0]
     expect(snapshot.values.price).toBeCloseTo(50, 3)
     await waitFor(() => {
-      expect(canvasCalls.rect.mock.calls).toContainEqual([170, 26, 170, 186])
+      expect(canvasCalls.rect.mock.calls).toContainEqual([164, 26, 176, 186])
+    })
+  })
+
+  it('places the normal-chart cursor on the rendered curve and restores color from that point', async () => {
+    const onCursorDataChange = vi.fn()
+    const curvedData = [
+      { date: data[0].date, price: 20 },
+      { date: data[1].date, price: 80 },
+    ]
+    const { getByRole } = render(
+      <PredictionChart
+        data={curvedData}
+        series={series}
+        width={400}
+        height={220}
+        yAxis={{ min: 0, max: 100, ticks: [] }}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        lineCurve="monotoneX"
+        disableResetAnimation
+        onCursorDataChange={onCursorDataChange}
+      />,
+    )
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    canvasCalls.arc.mockClear()
+    fireEvent.pointerMove(canvas, { clientX: 94, clientY: 100 })
+
+    await waitFor(() => {
+      expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(26.354, 2)
+      expect(canvasCalls.arc.mock.calls.at(-1)?.[0]).toBeCloseTo(94, 2)
+      expect(canvasCalls.arc.mock.calls.at(-1)?.[1]).toBeCloseTo(161.09, 1)
+    })
+
+    canvasCalls.rect.mockClear()
+    fireEvent.pointerLeave(canvas)
+    await waitFor(() => {
+      expect(canvasCalls.rect.mock.calls).toContainEqual([94, 26, 294, 186])
+    })
+  })
+
+  it('keeps a stationary live cursor attached to the latest series line', async () => {
+    const onCursorDataChange = vi.fn()
+    function renderChart(nextData: typeof data, domain = { start: data[0].date, end: data[1].date }) {
+      return (
+        <PredictionChart
+          data={nextData}
+          series={series}
+          dataSyncMode="replace"
+          width={400}
+          height={220}
+          xDomain={domain}
+          yAxis={{ min: 0, max: 100, ticks: [] }}
+          showXAxis={false}
+          showYAxis={false}
+          showHorizontalGrid={false}
+          disableResetAnimation
+          onCursorDataChange={onCursorDataChange}
+        />
+      )
+    }
+    const { getByRole, rerender } = render(renderChart(data))
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    fireEvent.pointerMove(canvas, { clientX: 188, clientY: 100 })
+    await waitFor(() => {
+      expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(50, 3)
+    })
+
+    canvasCalls.arc.mockClear()
+    const updatedData = [
+      { date: data[0].date, price: 60 },
+      { date: data[1].date, price: 80 },
+      { date: new Date('2026-01-01T02:00:00.000Z'), price: 100 },
+    ]
+    rerender(
+      renderChart(updatedData, {
+        start: new Date('2026-01-01T00:30:00.000Z'),
+        end: new Date('2026-01-01T01:30:00.000Z'),
+      }),
+    )
+
+    await waitFor(() => {
+      expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(80, 3)
+    })
+    await waitFor(() => {
+      const latestCursorY = canvasCalls.arc.mock.calls.at(-1)?.[1]
+      expect(latestCursorY).toBeCloseTo(65.6, 1)
     })
   })
 

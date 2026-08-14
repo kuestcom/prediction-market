@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { DataPoint } from '@/types/PredictionChartTypes'
 
@@ -37,6 +37,8 @@ export function useLiveSeriesWebSocket({
 }: UseLiveSeriesWebSocketOptions) {
   const { wsLiveDataUrl } = usePublicRuntimeConfig()
   const wsUrl = wsLiveDataUrl
+  const eventEndTimestampRef = useRef(eventEndTimestamp)
+  eventEndTimestampRef.current = eventEndTimestamp
   const [data, setData] = useState<DataPoint[]>([])
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(() => (wsUrl ? 'connecting' : 'offline'))
 
@@ -108,6 +110,7 @@ export function useLiveSeriesWebSocket({
         }
 
         const arrivalTimestamp = Date.now()
+        const activeEventEndTimestamp = eventEndTimestampRef.current
         const updates = extractLivePriceUpdates(payload, topic, subscriptionSymbol, arrivalTimestamp)
         const normalizedUpdates = updates
           .map((update) => {
@@ -122,7 +125,7 @@ export function useLiveSeriesWebSocket({
             }
           })
           .filter((update): update is { price: number; timestamp: number; symbol: string | null } => update !== null)
-          .filter((update) => eventEndTimestamp == null || update.timestamp <= eventEndTimestamp)
+          .filter((update) => activeEventEndTimestamp == null || update.timestamp <= activeEventEndTimestamp)
 
         const messageIsSnapshot = isSnapshotMessage(payload)
         const wsUpdatesForRender = messageIsSnapshot ? normalizedUpdates : normalizedUpdates.slice(-1)
@@ -136,11 +139,11 @@ export function useLiveSeriesWebSocket({
           arrivalTimestamp,
         )
         const transitionStartTimestamp =
-          eventEndTimestamp == null ? arrivalTimestamp : Math.min(arrivalTimestamp, eventEndTimestamp)
+          activeEventEndTimestamp == null ? arrivalTimestamp : Math.min(arrivalTimestamp, activeEventEndTimestamp)
         const transitionDurationMs =
-          eventEndTimestamp == null
+          activeEventEndTimestamp == null
             ? cadenceTransitionDurationMs
-            : Math.min(cadenceTransitionDurationMs, Math.max(0, eventEndTimestamp - transitionStartTimestamp))
+            : Math.min(cadenceTransitionDurationMs, Math.max(0, activeEventEndTimestamp - transitionStartTimestamp))
         previousPriceMessageTimestamp = arrivalTimestamp
 
         setStatus('live')
@@ -279,7 +282,7 @@ export function useLiveSeriesWebSocket({
         }
       }
     },
-    [eventEndTimestamp, eventType, topic, isLiveView, wsUrl, subscriptionSymbol],
+    [eventType, topic, isLiveView, wsUrl, subscriptionSymbol],
   )
 
   return { data, status }

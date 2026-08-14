@@ -8,6 +8,7 @@ import { startTransition, useOptimistic, useRef, useState } from 'react'
 import type { User } from '@/types'
 
 import { updateNotificationSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-notification-settings'
+import ManageFollowedTradersDialog from '@/components/ManageFollowedTradersDialog'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
@@ -119,6 +120,7 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                 {t('Followed trader activity')}
               </Label>
               <p className="text-sm text-muted-foreground">{tradeAlertDescription}</p>
+              <ManageFollowedTradersDialog user={user} />
             </div>
             <Switch
               id="trade-alerts"

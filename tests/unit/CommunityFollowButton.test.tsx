@@ -57,6 +57,21 @@ describe('CommunityFollowButton', () => {
     expect(button).toHaveTextContent('Following')
   })
 
+  it('renders an explicit Unfollow action in management lists', () => {
+    mocks.useCommunityFollow.mockReturnValue({
+      canFollow: true,
+      isFollowing: true,
+      isPending: false,
+      toggleFollow: mocks.toggleFollow,
+    })
+
+    render(<CommunityFollowButton wallet="0x1111111111111111111111111111111111111111" variant="manage" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unfollow trader' }))
+    expect(screen.getByRole('button', { name: 'Unfollow trader' })).toHaveTextContent('Unfollow')
+    expect(mocks.toggleFollow).toHaveBeenCalledOnce()
+  })
+
   it('hides on the viewer own profile', () => {
     mocks.useCommunityFollow.mockReturnValue({
       canFollow: false,

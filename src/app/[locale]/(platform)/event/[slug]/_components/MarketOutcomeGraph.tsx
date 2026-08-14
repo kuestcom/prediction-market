@@ -411,6 +411,7 @@ export default function MarketOutcomeGraph({
               height={318}
               margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
               dataSignature={chartSignature}
+              dataSyncMode="replace"
               onCursorDataChange={handleCursorDataChange}
               xAxisTickCount={isMobile ? 2 : 4}
               autoscale={chartSettings.autoscale}
