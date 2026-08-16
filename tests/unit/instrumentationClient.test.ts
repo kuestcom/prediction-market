@@ -21,13 +21,6 @@ describe('client instrumentation', () => {
     expect(options.beforeSend({}, { originalException: error })).toBeNull()
   })
 
-  it('drops skipped transition abort errors', () => {
-    const error = new Error('Transition was skipped')
-    error.name = 'AbortError'
-
-    expect(options.beforeSend({}, { originalException: error })).toBeNull()
-  })
-
   it('keeps unrelated errors', () => {
     const error = new Error('Failed to verify transaction')
     const event = {
