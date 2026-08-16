@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/nextjs'
 
 import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 
-import { isSkippedTransitionAbortError } from '@/lib/errors/navigation'
 import { isNextClientStaleAssetError } from '@/lib/errors/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/errors/next-http-fallback'
 import { isSiweVerificationError } from '@/lib/errors/siwe'
@@ -27,10 +26,6 @@ Sentry.init({
   tracesSampleRate: 0.1,
   enableLogs: true,
   beforeSend(event, hint) {
-    if (isSkippedTransitionAbortError(hint.originalException)) {
-      return null
-    }
-
     if (isNextNotFoundError(hint.originalException)) {
       return null
     }
