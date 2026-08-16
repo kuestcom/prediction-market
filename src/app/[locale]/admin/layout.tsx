@@ -16,6 +16,7 @@ import {
 import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import AppKitProvider from '@/providers/AppKitProvider'
+import { CommunityFollowsProvider } from '@/providers/CommunityFollowsProvider'
 
 export const instant = false
 
@@ -46,22 +47,24 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
 
   return (
     <AppKitProvider wagmiCookie={null}>
-      <PlatformViewerState />
-      <AdminHeader />
-      <main className="container py-4 lg:py-8">
-        <div className="grid min-w-0 gap-8 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-16">
-          <AdminSidebar />
-          <div className="min-w-0 space-y-8">{children}</div>
-        </div>
-        <CopyVersion forkRepositoryUrl={forkRepositoryUrl} />
-      </main>
-      {supportSettings.enabled && (
-        <AdminOnboardingSupportWidget
-          announcementDismissedAt={getSupportAnnouncementDismissedAt(settings)}
-          initialCompletedTasks={getCompletedAdminOnboardingTasks(settings)}
-          position={supportSettings.position}
-        />
-      )}
+      <CommunityFollowsProvider>
+        <PlatformViewerState />
+        <AdminHeader />
+        <main className="container py-4 lg:py-8">
+          <div className="grid min-w-0 gap-8 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-16">
+            <AdminSidebar />
+            <div className="min-w-0 space-y-8">{children}</div>
+          </div>
+          <CopyVersion forkRepositoryUrl={forkRepositoryUrl} />
+        </main>
+        {supportSettings.enabled && (
+          <AdminOnboardingSupportWidget
+            announcementDismissedAt={getSupportAnnouncementDismissedAt(settings)}
+            initialCompletedTasks={getCompletedAdminOnboardingTasks(settings)}
+            position={supportSettings.position}
+          />
+        )}
+      </CommunityFollowsProvider>
     </AppKitProvider>
   )
 }
