@@ -22,7 +22,17 @@ allowBuilds:
   utf-8-validate: false
 
 overrides:
+  axios: 1.19.0
+  uuid: 11.1.1
+  ws: 8.21.0
   '@coinbase/cdp-sdk': 1.52.0
   '@reown/appkit-adapter-wagmi>@wagmi/connectors': 6.2.0
   '@walletconnect/relay-auth>@noble/curves': 1.8.1
   '@walletconnect/relay-auth>@noble/hashes': 1.7.1
+
+minimumReleaseAgeExclude:
+  - elliptic@6.6.2
+  - ws@8.20.1 || 8.21.0
+  - uuid@11.1.1
+  - axios@1.18.0
+  - nanoid@3.3.18
