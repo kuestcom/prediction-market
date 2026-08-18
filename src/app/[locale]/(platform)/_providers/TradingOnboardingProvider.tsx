@@ -90,6 +90,10 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 type OnboardingModal = 'username' | 'email' | 'sumsub' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
+interface ReferralSetupVerification {
+  key: string
+  status: ReferralSetupStatus
+}
 interface OpenNextRequirementOptions {
   forceTradingAuth?: boolean
   allowTradingAuthPrompt?: boolean
@@ -470,7 +474,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   const [approvalsStep, setApprovalsStep] = useState<ApprovalsStep>('idle')
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
-  const [referralSetupStatus, setReferralSetupStatus] = useState<ReferralSetupStatus>('not-required')
+  const [referralSetupVerification, setReferralSetupVerification] = useState<ReferralSetupVerification | null>(null)
   const [shouldContinueTradingAuthPrompt, setShouldContinueTradingAuthPrompt] = useState(false)
   const [sumsubStatus, setSumsubStatus] = useState<SumsubVerificationStatus>({
     enabled: false,
@@ -486,6 +490,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   const [sumsubObserveDismissed, setSumsubObserveDismissed] = useState(false)
   const pendingTradingReadyActionRef = useRef<(() => void) | null>(null)
   const pendingTradingReadyFlowStartedRef = useRef(false)
+  const referralSetupVerificationVersionRef = useRef(0)
   const sumsubRefreshPromiseRef = useRef<Promise<SumsubVerificationStatus | null> | null>(null)
   const [communityUsernameHint, setCommunityUsernameHint] = useState<{
     address: string
@@ -536,56 +541,61 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     [openAppKit, signatureRejectedMessage, walletConnectorReconnectMessage],
   )
 
+  const hasReferredUser = Boolean(user?.referred_by_user_id)
+  const depositWalletAddress = user?.deposit_wallet_address
+  const hasAffiliateMetadata =
+    affiliateMetadata.referrerAddress !== ZERO_ADDRESS && affiliateMetadata.affiliateAddress !== ZERO_ADDRESS
+  const referralSetupVerificationKey =
+    hasReferredUser &&
+    !affiliateMetadata.isLoading &&
+    depositWalletAddress &&
+    user?.deposit_wallet_status === 'deployed' &&
+    hasAffiliateMetadata
+      ? [
+          user.referred_by_user_id,
+          depositWalletAddress,
+          affiliateMetadata.referrerAddress,
+          affiliateMetadata.affiliateAddress,
+          ...viemRpcUrls,
+        ].join(':')
+      : null
+  const referralSetupStatus: ReferralSetupStatus = !hasReferredUser
+    ? 'not-required'
+    : affiliateMetadata.isLoading
+      ? 'checking'
+      : !referralSetupVerificationKey
+        ? 'required'
+        : referralSetupVerification?.key === referralSetupVerificationKey
+          ? referralSetupVerification.status
+          : 'checking'
+
   useEffect(
     function verifyAffiliateReferralSetup() {
-      const hasReferredUser = Boolean(user?.referred_by_user_id)
-      if (!hasReferredUser) {
-        setReferralSetupStatus('not-required')
+      if (!referralSetupVerificationKey || !depositWalletAddress) {
         return
       }
 
-      if (affiliateMetadata.isLoading) {
-        setReferralSetupStatus('checking')
-        return
-      }
-
-      const depositWalletAddress = user?.deposit_wallet_address
-      const hasAffiliateMetadata =
-        affiliateMetadata.referrerAddress !== ZERO_ADDRESS && affiliateMetadata.affiliateAddress !== ZERO_ADDRESS
-      if (!depositWalletAddress || user?.deposit_wallet_status !== 'deployed' || !hasAffiliateMetadata) {
-        setReferralSetupStatus('required')
-        return
-      }
-
-      let cancelled = false
-      setReferralSetupStatus('checking')
+      const verificationVersion = referralSetupVerificationVersionRef.current + 1
+      referralSetupVerificationVersionRef.current = verificationVersion
       const exchanges = [CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS] as const
       void Promise.all(
         exchanges.map((exchange) => fetchReferralLocked(exchange, depositWalletAddress as `0x${string}`, viemRpcUrls)),
       ).then((results) => {
-        if (cancelled) {
+        if (verificationVersion !== referralSetupVerificationVersionRef.current) {
           return
         }
         const resolvedStatus = resolveReferralSetupStatus(results)
         if (results.includes(null)) {
           console.warn('Failed to verify affiliate referral status; referral setup remains required.')
         }
-        setReferralSetupStatus(resolvedStatus)
+        setReferralSetupVerification({ key: referralSetupVerificationKey, status: resolvedStatus })
       })
 
       return () => {
-        cancelled = true
+        referralSetupVerificationVersionRef.current += 1
       }
     },
-    [
-      affiliateMetadata.affiliateAddress,
-      affiliateMetadata.isLoading,
-      affiliateMetadata.referrerAddress,
-      user?.deposit_wallet_address,
-      user?.deposit_wallet_status,
-      user?.referred_by_user_id,
-      viemRpcUrls,
-    ],
+    [depositWalletAddress, referralSetupVerificationKey, viemRpcUrls],
   )
 
   const status = useOnboardingStatus(user, requiresTradingAuthRefresh, referralSetupStatus)
@@ -1544,8 +1554,12 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
         void refreshSessionUserState()
       }
 
-      if (needsReferralSetup) {
-        setReferralSetupStatus(referralSetupComplete ? 'configured' : 'required')
+      if (needsReferralSetup && referralSetupVerificationKey) {
+        referralSetupVerificationVersionRef.current += 1
+        setReferralSetupVerification({
+          key: referralSetupVerificationKey,
+          status: referralSetupComplete ? 'configured' : 'required',
+        })
       }
 
       if (
@@ -1583,6 +1597,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     openNextRequirement,
     openAppKit,
     refreshSessionUserState,
+    referralSetupVerificationKey,
     resolveMissingApprovalCalls,
     resolveReferralExchanges,
     runPendingTradingReadyAction,
