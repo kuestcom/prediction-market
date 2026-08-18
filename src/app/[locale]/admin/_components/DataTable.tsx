@@ -4,6 +4,7 @@ import type { ColumnVisibilityState, RowData, SortingState, Updater } from '@tan
 import type { ReactNode } from 'react'
 
 import { flexRender, useTable } from '@tanstack/react-table'
+import { SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -155,11 +156,11 @@ export function DataTable<TData extends RowData>({
   toolbarLeftContent,
   toolbarRightContent,
   aboveTableContent,
-  searchInputClassName,
-  searchLeadingIcon,
+  searchInputClassName = 'h-9 sm:w-37.5 lg:w-62.5',
+  searchLeadingIcon = <SearchIcon className="size-4" />,
 }: DataTableProps<TData>) {
   const t = useExtracted()
-  const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search...')
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search')
   const resolvedEmptyMessage = emptyMessage ?? t('No entries found')
   const resolvedEmptyDescription = emptyDescription ?? t('There are no entries to display yet.')
 

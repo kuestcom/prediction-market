@@ -1221,7 +1221,7 @@ export default function AdminEventsTable({
     <div className="flex items-center gap-2">
       <Switch id="admin-events-active-only" checked={activeOnly} onCheckedChange={handleActiveOnlyChange} />
       <Label htmlFor="admin-events-active-only" className="text-sm font-normal text-muted-foreground">
-        {t('Only active')}
+        {t('Active only')}
       </Label>
     </div>
   )
@@ -1274,7 +1274,7 @@ export default function AdminEventsTable({
         )}
       </div>
       <div className="min-w-0 flex-1 overflow-hidden">
-        <p className="max-w-full text-sm leading-snug font-medium break-words whitespace-normal text-foreground">
+        <p className="max-w-full text-sm leading-snug font-medium wrap-break-word whitespace-normal text-foreground">
           {sportsFinalEvent.title}
         </p>
         {sportsFinalGameDateLabel ? <p className="text-xs text-muted-foreground">{sportsFinalGameDateLabel}</p> : null}
@@ -1573,7 +1573,7 @@ export default function AdminEventsTable({
                     </div>
                   )}
                 </div>
-                <span className="line-clamp-2 w-full text-xs leading-tight font-medium break-words sm:text-sm">
+                <span className="line-clamp-2 w-full text-xs leading-tight font-medium wrap-break-word sm:text-sm">
                   {sportsFinalTeams.home.name}
                 </span>
               </div>
@@ -1626,7 +1626,7 @@ export default function AdminEventsTable({
                     </div>
                   )}
                 </div>
-                <span className="line-clamp-2 w-full text-xs leading-tight font-medium break-words sm:text-sm">
+                <span className="line-clamp-2 w-full text-xs leading-tight font-medium wrap-break-word sm:text-sm">
                   {sportsFinalTeams.away.name}
                 </span>
               </div>
@@ -1802,7 +1802,6 @@ export default function AdminEventsTable({
         columns={columns}
         data={events}
         totalCount={totalCount}
-        searchPlaceholder={t('Search')}
         enableSelection={false}
         enablePagination
         enableColumnVisibility={false}
@@ -1843,8 +1842,6 @@ export default function AdminEventsTable({
             {settingsButton}
           </div>
         }
-        searchInputClassName="h-9 sm:w-37.5 lg:w-62.5"
-        searchLeadingIcon={<SearchIcon className="size-4" />}
       />
 
       <AdminResolutionReportsDialog event={resolutionReportsEvent} onClose={() => setResolutionReportsEvent(null)} />

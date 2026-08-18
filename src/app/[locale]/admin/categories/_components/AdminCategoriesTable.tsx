@@ -401,7 +401,7 @@ export default function AdminCategoriesTable() {
     <div className="flex items-center gap-2">
       <Switch id="admin-categories-main-only" checked={mainOnly} onCheckedChange={handleMainOnlyChange} />
       <Label htmlFor="admin-categories-main-only" className="text-sm font-normal text-muted-foreground">
-        {t('Only main')}
+        {t('Main only')}
       </Label>
     </div>
   )
@@ -499,7 +499,6 @@ export default function AdminCategoriesTable() {
         columns={columns}
         data={categories}
         totalCount={totalCount}
-        searchPlaceholder={t('Search categories...')}
         enableSelection={false}
         enablePagination
         enableColumnVisibility={false}

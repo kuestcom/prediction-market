@@ -49,7 +49,6 @@ export default function AdminUsersTable() {
       columns={columns}
       data={users}
       totalCount={totalCount}
-      searchPlaceholder={t('Search users...')}
       enableSelection={true}
       enablePagination={true}
       enableColumnVisibility={true}
