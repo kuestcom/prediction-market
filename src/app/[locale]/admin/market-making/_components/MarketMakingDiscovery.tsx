@@ -60,6 +60,7 @@ import { COLLATERAL_TOKEN_ADDRESS, MARKET_MAKER_ESCROW_ADDRESS, POLY_SYNCER_CREA
 import {
   linkSponsorEmail,
   NotificationApiError,
+  type NotificationPreference,
   readNotificationSettings,
   updateNotificationSettings,
 } from '@/lib/kuest-notifications'
@@ -1257,7 +1258,16 @@ function CampaignDialog({
 
   async function handleEmailVerified() {
     setEmailDialogOpen(false)
+    setEmailVerificationPending(false)
     await handleFundCampaign()
+  }
+
+  function handleEmailDialogOpenChange(nextOpen: boolean) {
+    setEmailDialogOpen(nextOpen)
+    if (!nextOpen) {
+      setEmailVerificationPending(false)
+      setEmailLinkError(null)
+    }
   }
 
   async function handleFundCampaign() {
@@ -1809,7 +1819,7 @@ function CampaignDialog({
           verificationPending={emailVerificationPending}
           error={emailLinkError}
           onEmailChange={setNotificationEmail}
-          onOpenChange={setEmailDialogOpen}
+          onOpenChange={handleEmailDialogOpenChange}
           onSubmit={() => void handleLinkSponsorEmail()}
           onVerified={() => void handleEmailVerified()}
         />
@@ -1844,7 +1854,7 @@ function CampaignDialog({
         verificationPending={emailVerificationPending}
         error={emailLinkError}
         onEmailChange={setNotificationEmail}
-        onOpenChange={setEmailDialogOpen}
+        onOpenChange={handleEmailDialogOpenChange}
         onSubmit={() => void handleLinkSponsorEmail()}
         onVerified={() => void handleEmailVerified()}
       />
@@ -1854,6 +1864,7 @@ function CampaignDialog({
 
 function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
   const { address, isConnected } = useAppKitAccount()
+  const { walletProvider } = useAppKitProvider<RpcWalletProvider>('eip155')
   const { data: walletClient } = useWalletClient()
   const { chainId, notificationsUrl } = usePublicRuntimeConfig()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -1864,12 +1875,33 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null)
   const [campaignStatus, setCampaignStatus] = useState(true)
   const [newOpportunities, setNewOpportunities] = useState(true)
+  const [nonEmailPreferences, setNonEmailPreferences] = useState<NotificationPreference[]>([])
   const [error, setError] = useState<string | null>(null)
+  const signingWalletClient = useMemo(() => {
+    if (!address) {
+      return null
+    }
+    if (walletClient?.account?.address?.toLowerCase() === address.toLowerCase()) {
+      return walletClient
+    }
+    const chain = resolveViemNetworkByChainId(chainId)
+    if (!chain || !isRpcWalletProvider(walletProvider)) {
+      return null
+    }
+    return createWalletClient({
+      account: address as `0x${string}`,
+      chain,
+      transport: custom(walletProvider),
+    })
+  }, [address, chainId, walletClient, walletProvider])
 
   async function loadSettings() {
     setOpen(true)
     setError(null)
-    if (!isConnected || !address || !walletClient) {
+    setEmailVerified(false)
+    setMaskedEmail(null)
+    setNonEmailPreferences([])
+    if (!isConnected || !address || !signingWalletClient) {
       setError(copy.walletNotReady)
       return
     }
@@ -1881,7 +1913,7 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
             notificationsUrl,
             chainId,
             wallet: address as `0x${string}`,
-            walletClient,
+            walletClient: signingWalletClient,
           }),
         { title: copy.notificationSettings, description: copy.transactionPrompt },
       )
@@ -1893,6 +1925,7 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
       const opportunityPreference = settings.preferences?.find(
         (preference) => preference.channel === 'email' && preference.topic === 'new_opportunities',
       )
+      setNonEmailPreferences(settings.preferences?.filter((preference) => preference.channel !== 'email') ?? [])
       setCampaignStatus(campaignPreference?.enabled ?? true)
       setNewOpportunities(opportunityPreference?.enabled ?? true)
     } catch {
@@ -1903,7 +1936,7 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
   }
 
   async function saveSettings() {
-    if (!address || !walletClient || !emailVerified) {
+    if (!address || !signingWalletClient || !emailVerified) {
       return
     }
     setSaving(true)
@@ -1915,8 +1948,9 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
             notificationsUrl,
             chainId,
             wallet: address as `0x${string}`,
-            walletClient,
+            walletClient: signingWalletClient,
             preferences: [
+              ...nonEmailPreferences,
               { channel: 'email', topic: 'campaign_status', enabled: campaignStatus },
               { channel: 'email', topic: 'new_opportunities', enabled: newOpportunities },
             ],
