@@ -21,7 +21,7 @@ import {
   SearchIcon,
   XIcon,
 } from 'lucide-react'
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { createWalletClient, custom, encodeFunctionData, erc20Abi } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 
@@ -1043,6 +1043,7 @@ function CampaignDialog({
   const [emailLinkPending, setEmailLinkPending] = useState(false)
   const [emailVerificationPending, setEmailVerificationPending] = useState(false)
   const [emailLinkError, setEmailLinkError] = useState<string | null>(null)
+  const emailLinkRequestId = useRef(0)
   const importStorageKey =
     address && item.slug ? `kuest-market-import:${chainId}:${address.toLowerCase()}:${item.slug}` : null
   const importPaymentStorageKey = importStorageKey ? `${importStorageKey}:payment` : null
@@ -1224,6 +1225,7 @@ function CampaignDialog({
       setEmailLinkError(copy.walletNotReady)
       return
     }
+    const requestId = ++emailLinkRequestId.current
     setEmailLinkPending(true)
     setEmailLinkError(null)
     try {
@@ -1240,6 +1242,9 @@ function CampaignDialog({
           }),
         { title: copy.emailAddress, description: copy.transactionPrompt },
       )
+      if (emailLinkRequestId.current !== requestId) {
+        return
+      }
       if (result.alreadyVerified) {
         setEmailDialogOpen(false)
         setEmailVerificationPending(false)
@@ -1248,11 +1253,16 @@ function CampaignDialog({
       }
       setEmailVerificationPending(true)
     } catch (error) {
+      if (emailLinkRequestId.current !== requestId) {
+        return
+      }
       setEmailLinkError(
         error instanceof NotificationApiError ? copy.verificationUnavailable : fundingErrorMessage(error, copy),
       )
     } finally {
-      setEmailLinkPending(false)
+      if (emailLinkRequestId.current === requestId) {
+        setEmailLinkPending(false)
+      }
     }
   }
 
@@ -1265,6 +1275,8 @@ function CampaignDialog({
   function handleEmailDialogOpenChange(nextOpen: boolean) {
     setEmailDialogOpen(nextOpen)
     if (!nextOpen) {
+      emailLinkRequestId.current += 1
+      setEmailLinkPending(false)
       setEmailVerificationPending(false)
       setEmailLinkError(null)
     }
@@ -1876,7 +1888,11 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
   const [campaignStatus, setCampaignStatus] = useState(true)
   const [newOpportunities, setNewOpportunities] = useState(true)
   const [nonEmailPreferences, setNonEmailPreferences] = useState<NotificationPreference[]>([])
+  const [settingsWallet, setSettingsWallet] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const settingsRequestId = useRef(0)
+  const activeAddress = useRef(address)
+  activeAddress.current = address
   const signingWalletClient = useMemo(() => {
     if (!address) {
       return null
@@ -1894,13 +1910,18 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
       transport: custom(walletProvider),
     })
   }, [address, chainId, walletClient, walletProvider])
+  const hasCurrentSettings = Boolean(address) && emailVerified && settingsWallet === address?.toLowerCase()
 
   async function loadSettings() {
+    const requestId = ++settingsRequestId.current
+    const requestWallet = address?.toLowerCase() ?? null
     setOpen(true)
     setError(null)
     setEmailVerified(false)
     setMaskedEmail(null)
     setNonEmailPreferences([])
+    setSettingsWallet(null)
+    setLoading(false)
     if (!isConnected || !address || !signingWalletClient) {
       setError(copy.walletNotReady)
       return
@@ -1917,6 +1938,9 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
           }),
         { title: copy.notificationSettings, description: copy.transactionPrompt },
       )
+      if (settingsRequestId.current !== requestId || activeAddress.current?.toLowerCase() !== requestWallet) {
+        return
+      }
       setEmailVerified(settings.emailVerified)
       setMaskedEmail(settings.maskedEmail ?? null)
       const campaignPreference = settings.preferences?.find(
@@ -1926,17 +1950,23 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
         (preference) => preference.channel === 'email' && preference.topic === 'new_opportunities',
       )
       setNonEmailPreferences(settings.preferences?.filter((preference) => preference.channel !== 'email') ?? [])
+      setSettingsWallet(requestWallet)
       setCampaignStatus(campaignPreference?.enabled ?? true)
       setNewOpportunities(opportunityPreference?.enabled ?? true)
     } catch {
-      setError(copy.verificationUnavailable)
+      if (settingsRequestId.current === requestId && activeAddress.current?.toLowerCase() === requestWallet) {
+        setError(copy.verificationUnavailable)
+      }
     } finally {
-      setLoading(false)
+      if (settingsRequestId.current === requestId) {
+        setLoading(false)
+      }
     }
   }
 
   async function saveSettings() {
-    if (!address || !signingWalletClient || !emailVerified) {
+    if (!address || !signingWalletClient || !hasCurrentSettings) {
+      setError(copy.walletNotReady)
       return
     }
     setSaving(true)
@@ -1987,7 +2017,7 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
               <LoaderCircleIcon className="size-4 animate-spin" />
               {copy.verifying}
             </div>
-          ) : emailVerified ? (
+          ) : hasCurrentSettings ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <Label htmlFor="campaign-status-notifications">{copy.campaignsTab}</Label>
@@ -2011,7 +2041,11 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
-            <Button type="button" disabled={!emailVerified || loading || saving} onClick={() => void saveSettings()}>
+            <Button
+              type="button"
+              disabled={!hasCurrentSettings || loading || saving}
+              onClick={() => void saveSettings()}
+            >
               {saving ? <LoaderCircleIcon className="size-4 animate-spin" /> : null}
               {copy.saveChanges}
             </Button>
