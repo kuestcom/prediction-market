@@ -1044,10 +1044,22 @@ function CampaignDialog({
   const [emailVerificationPending, setEmailVerificationPending] = useState(false)
   const [emailLinkError, setEmailLinkError] = useState<string | null>(null)
   const emailLinkRequestId = useRef(0)
+  const activeEmailWallet = useRef(address)
   const importStorageKey =
     address && item.slug ? `kuest-market-import:${chainId}:${address.toLowerCase()}:${item.slug}` : null
   const importPaymentStorageKey = importStorageKey ? `${importStorageKey}:payment` : null
   const [pendingImportPaymentHash, setPendingImportPaymentHash] = useState<string | null>(null)
+
+  useEffect(() => {
+    activeEmailWallet.current = address
+    emailLinkRequestId.current += 1
+    setEmailLinkPending(false)
+    setEmailVerificationPending(false)
+    return () => {
+      emailLinkRequestId.current += 1
+    }
+  }, [address])
+
   const quoteInput = useMemo(
     () => ({
       sponsor: address ?? '',
@@ -1226,10 +1238,14 @@ function CampaignDialog({
       return
     }
     const requestId = ++emailLinkRequestId.current
+    const requestWallet = address.toLowerCase()
     setEmailLinkPending(true)
     setEmailLinkError(null)
     try {
       await ensureWalletNetwork()
+      if (emailLinkRequestId.current !== requestId || activeEmailWallet.current?.toLowerCase() !== requestWallet) {
+        return
+      }
       const result = await runWithSignaturePrompt(
         () =>
           linkSponsorEmail({
@@ -1242,7 +1258,7 @@ function CampaignDialog({
           }),
         { title: copy.emailAddress, description: copy.transactionPrompt },
       )
-      if (emailLinkRequestId.current !== requestId) {
+      if (emailLinkRequestId.current !== requestId || activeEmailWallet.current?.toLowerCase() !== requestWallet) {
         return
       }
       if (result.alreadyVerified) {
@@ -1253,7 +1269,7 @@ function CampaignDialog({
       }
       setEmailVerificationPending(true)
     } catch (error) {
-      if (emailLinkRequestId.current !== requestId) {
+      if (emailLinkRequestId.current !== requestId || activeEmailWallet.current?.toLowerCase() !== requestWallet) {
         return
       }
       setEmailLinkError(
@@ -1892,7 +1908,17 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
   const [error, setError] = useState<string | null>(null)
   const settingsRequestId = useRef(0)
   const activeAddress = useRef(address)
-  activeAddress.current = address
+
+  useEffect(() => {
+    activeAddress.current = address
+    settingsRequestId.current += 1
+    setLoading(false)
+    setSettingsWallet(null)
+    return () => {
+      settingsRequestId.current += 1
+    }
+  }, [address])
+
   const signingWalletClient = useMemo(() => {
     if (!address) {
       return null
