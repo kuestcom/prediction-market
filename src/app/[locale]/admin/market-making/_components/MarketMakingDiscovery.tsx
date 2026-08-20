@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangleIcon,
   ArrowLeftRightIcon,
+  BellIcon,
   CalendarClockIcon,
   CalendarIcon,
   CheckCircle2Icon,
@@ -36,10 +37,19 @@ import MarketMakingCampaigns from '@/app/[locale]/admin/market-making/_component
 import MarketMakingHowItWorks from '@/app/[locale]/admin/market-making/_components/MarketMakingHowItWorks'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -47,6 +57,12 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { COLLATERAL_TOKEN_ADDRESS, MARKET_MAKER_ESCROW_ADDRESS, POLY_SYNCER_CREATOR_ADDRESS } from '@/lib/contracts'
+import {
+  linkSponsorEmail,
+  NotificationApiError,
+  readNotificationSettings,
+  updateNotificationSettings,
+} from '@/lib/kuest-notifications'
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
 import { cn } from '@/lib/utils'
 import { resolveViemNetworkByChainId } from '@/lib/viem-network'
@@ -133,6 +149,15 @@ interface MarketMakingCopy {
   importFailed: string
   importRefundable: string
   importPaymentPending: string
+  notificationSettings: string
+  emailAddress: string
+  emailDescription: string
+  continueToSign: string
+  verify: string
+  verifying: string
+  verificationUnavailable: string
+  saveChanges: string
+  marketMaking: string
 }
 
 interface MarketMakingDiscoveryProps {
@@ -813,6 +838,75 @@ function ImportProgressModal({
   )
 }
 
+function SponsorEmailDialog({
+  copy,
+  open,
+  email,
+  pending,
+  verificationPending,
+  error,
+  onEmailChange,
+  onOpenChange,
+  onSubmit,
+  onVerified,
+}: {
+  copy: MarketMakingCopy
+  open: boolean
+  email: string
+  pending: boolean
+  verificationPending: boolean
+  error: string | null
+  onEmailChange: (email: string) => void
+  onOpenChange: (open: boolean) => void
+  onSubmit: () => void
+  onVerified: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{copy.emailAddress}</DialogTitle>
+          <DialogDescription>{copy.emailDescription}</DialogDescription>
+        </DialogHeader>
+        {!verificationPending ? (
+          <div className="space-y-2">
+            <Label htmlFor="market-making-sponsor-email">{copy.emailAddress}</Label>
+            <Input
+              id="market-making-sponsor-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              disabled={pending}
+            />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{copy.verify}</p>
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <DialogFooter>
+          <Button
+            type="button"
+            disabled={pending || (!verificationPending && !email.trim())}
+            onClick={verificationPending ? onVerified : onSubmit}
+          >
+            {pending ? (
+              <>
+                <LoaderCircleIcon className="size-4 animate-spin" />
+                {copy.verifying}
+              </>
+            ) : verificationPending ? (
+              copy.verify
+            ) : (
+              copy.continueToSign
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function CampaignDialog({
   item,
   locale,
@@ -832,7 +926,7 @@ function CampaignDialog({
   const { address, isConnected } = appKitAccount
   const { walletProvider, walletProviderType } = useAppKitProvider<RpcWalletProvider>('eip155')
   const { chainId: appKitChainId, switchNetwork } = useAppKitNetwork()
-  const { chainId, escrowUrl } = usePublicRuntimeConfig()
+  const { chainId, escrowUrl, notificationsUrl } = usePublicRuntimeConfig()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient({ chainId })
   const queryClient = useQueryClient()
@@ -943,6 +1037,11 @@ function CampaignDialog({
   const [importOpen, setImportOpen] = useState(false)
   const [isRetryingImport, setIsRetryingImport] = useState(false)
   const [readyNotified, setReadyNotified] = useState(false)
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+  const [notificationEmail, setNotificationEmail] = useState('')
+  const [emailLinkPending, setEmailLinkPending] = useState(false)
+  const [emailVerificationPending, setEmailVerificationPending] = useState(false)
+  const [emailLinkError, setEmailLinkError] = useState<string | null>(null)
   const importStorageKey =
     address && item.slug ? `kuest-market-import:${chainId}:${address.toLowerCase()}:${item.slug}` : null
   const importPaymentStorageKey = importStorageKey ? `${importStorageKey}:payment` : null
@@ -1117,6 +1216,48 @@ function CampaignDialog({
     } finally {
       setIsRetryingImport(false)
     }
+  }
+
+  async function handleLinkSponsorEmail() {
+    if (!address || !transactionWalletClient) {
+      setEmailLinkError(copy.walletNotReady)
+      return
+    }
+    setEmailLinkPending(true)
+    setEmailLinkError(null)
+    try {
+      await ensureWalletNetwork()
+      const result = await runWithSignaturePrompt(
+        () =>
+          linkSponsorEmail({
+            notificationsUrl,
+            wallet: address as `0x${string}`,
+            walletClient: transactionWalletClient,
+            email: notificationEmail,
+            locale,
+            siteDomain: window.location.hostname.toLowerCase(),
+          }),
+        { title: copy.emailAddress, description: copy.transactionPrompt },
+      )
+      if (result.alreadyVerified) {
+        setEmailDialogOpen(false)
+        setEmailVerificationPending(false)
+        await handleFundCampaign()
+        return
+      }
+      setEmailVerificationPending(true)
+    } catch (error) {
+      setEmailLinkError(
+        error instanceof NotificationApiError ? copy.verificationUnavailable : fundingErrorMessage(error, copy),
+      )
+    } finally {
+      setEmailLinkPending(false)
+    }
+  }
+
+  async function handleEmailVerified() {
+    setEmailDialogOpen(false)
+    await handleFundCampaign()
   }
 
   async function handleFundCampaign() {
@@ -1335,8 +1476,18 @@ function CampaignDialog({
       toast.success(copy.campaignCreated)
       onOpenChange(false)
     } catch (error) {
+      if (error instanceof EscrowApiError && error.code === 'verified_email_required') {
+        setIssueError(null)
+        setEmailLinkError(null)
+        setEmailDialogOpen(true)
+        return
+      }
       const friendlyMessage =
-        error instanceof EscrowApiError ? quoteErrorMessage(error, copy) : fundingErrorMessage(error, copy)
+        error instanceof EscrowApiError && error.code === 'notifications_unavailable'
+          ? copy.verificationUnavailable
+          : error instanceof EscrowApiError
+            ? quoteErrorMessage(error, copy)
+            : fundingErrorMessage(error, copy)
       setIssueError(friendlyMessage)
       if (!isUserRejectedRequestError(error)) {
         console.error('Failed to fund market-making campaign.', error)
@@ -1650,6 +1801,18 @@ function CampaignDialog({
           onOpenChange={setImportOpen}
           onRetry={handleRetryImport}
         />
+        <SponsorEmailDialog
+          copy={copy}
+          open={emailDialogOpen}
+          email={notificationEmail}
+          pending={emailLinkPending}
+          verificationPending={emailVerificationPending}
+          error={emailLinkError}
+          onEmailChange={setNotificationEmail}
+          onOpenChange={setEmailDialogOpen}
+          onSubmit={() => void handleLinkSponsorEmail()}
+          onVerified={() => void handleEmailVerified()}
+        />
       </>
     )
   }
@@ -1673,6 +1836,154 @@ function CampaignDialog({
         onOpenChange={setImportOpen}
         onRetry={handleRetryImport}
       />
+      <SponsorEmailDialog
+        copy={copy}
+        open={emailDialogOpen}
+        email={notificationEmail}
+        pending={emailLinkPending}
+        verificationPending={emailVerificationPending}
+        error={emailLinkError}
+        onEmailChange={setNotificationEmail}
+        onOpenChange={setEmailDialogOpen}
+        onSubmit={() => void handleLinkSponsorEmail()}
+        onVerified={() => void handleEmailVerified()}
+      />
+    </>
+  )
+}
+
+function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
+  const { address, isConnected } = useAppKitAccount()
+  const { data: walletClient } = useWalletClient()
+  const { chainId, notificationsUrl } = usePublicRuntimeConfig()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [maskedEmail, setMaskedEmail] = useState<string | null>(null)
+  const [campaignStatus, setCampaignStatus] = useState(true)
+  const [newOpportunities, setNewOpportunities] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  async function loadSettings() {
+    setOpen(true)
+    setError(null)
+    if (!isConnected || !address || !walletClient) {
+      setError(copy.walletNotReady)
+      return
+    }
+    setLoading(true)
+    try {
+      const settings = await runWithSignaturePrompt(
+        () =>
+          readNotificationSettings({
+            notificationsUrl,
+            chainId,
+            wallet: address as `0x${string}`,
+            walletClient,
+          }),
+        { title: copy.notificationSettings, description: copy.transactionPrompt },
+      )
+      setEmailVerified(settings.emailVerified)
+      setMaskedEmail(settings.maskedEmail ?? null)
+      const campaignPreference = settings.preferences?.find(
+        (preference) => preference.channel === 'email' && preference.topic === 'campaign_status',
+      )
+      const opportunityPreference = settings.preferences?.find(
+        (preference) => preference.channel === 'email' && preference.topic === 'new_opportunities',
+      )
+      setCampaignStatus(campaignPreference?.enabled ?? true)
+      setNewOpportunities(opportunityPreference?.enabled ?? true)
+    } catch {
+      setError(copy.verificationUnavailable)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function saveSettings() {
+    if (!address || !walletClient || !emailVerified) {
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      await runWithSignaturePrompt(
+        () =>
+          updateNotificationSettings({
+            notificationsUrl,
+            chainId,
+            wallet: address as `0x${string}`,
+            walletClient,
+            preferences: [
+              { channel: 'email', topic: 'campaign_status', enabled: campaignStatus },
+              { channel: 'email', topic: 'new_opportunities', enabled: newOpportunities },
+            ],
+          }),
+        { title: copy.notificationSettings, description: copy.transactionPrompt },
+      )
+      setOpen(false)
+    } catch {
+      setError(copy.verificationUnavailable)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        aria-label={copy.notificationSettings}
+        onClick={() => void loadSettings()}
+      >
+        <BellIcon className="size-4" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{copy.notificationSettings}</DialogTitle>
+            <DialogDescription>{maskedEmail ?? copy.emailDescription}</DialogDescription>
+          </DialogHeader>
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+              <LoaderCircleIcon className="size-4 animate-spin" />
+              {copy.verifying}
+            </div>
+          ) : emailVerified ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="campaign-status-notifications">{copy.campaignsTab}</Label>
+                <Switch
+                  id="campaign-status-notifications"
+                  checked={campaignStatus}
+                  onCheckedChange={setCampaignStatus}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="opportunity-notifications">{copy.marketMaking}</Label>
+                <Switch
+                  id="opportunity-notifications"
+                  checked={newOpportunities}
+                  onCheckedChange={setNewOpportunities}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{copy.emailDescription}</p>
+          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" disabled={!emailVerified || loading || saving} onClick={() => void saveSettings()}>
+              {saving ? <LoaderCircleIcon className="size-4 animate-spin" /> : null}
+              {copy.saveChanges}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -1716,14 +2027,17 @@ export default function MarketMakingDiscovery({
   return (
     <section className="min-h-[calc(100dvh-6rem)] min-w-0">
       <Tabs defaultValue="sponsor">
-        <TabsList className="h-10">
-          <TabsTrigger value="sponsor" className="h-8 px-5">
-            {copy.sponsorTab}
-          </TabsTrigger>
-          <TabsTrigger value="campaigns" className="h-8 px-5">
-            {copy.campaignsTab}
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3">
+          <TabsList className="h-10">
+            <TabsTrigger value="sponsor" className="h-8 px-5">
+              {copy.sponsorTab}
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" className="h-8 px-5">
+              {copy.campaignsTab}
+            </TabsTrigger>
+          </TabsList>
+          <NotificationSettingsButton copy={copy} />
+        </div>
 
         <TabsContent value="sponsor" className="mt-5">
           <div className="relative rounded-3xl border bg-card px-5 py-10 sm:px-10 sm:py-14">

@@ -11,6 +11,7 @@ const RUNTIME_ENV_KEYS_BY_CONFIG_KEY = {
   escrowUrl: 'ESCROW_URL',
   gammaUrl: 'GAMMA_URL',
   geoblockUrl: 'GEOBLOCK_URL',
+  notificationsUrl: 'NOTIFICATIONS_URL',
   chainId: 'CHAIN_ID',
   polygonRpcUrl: 'POLYGON_RPC_URL',
   polymarketGammaUrl: 'POLYMARKET_GAMMA_URL',

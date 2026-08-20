@@ -86,6 +86,15 @@ export default async function AdminMarketMakingPage() {
         importFailed: t('The import paused before completion. Retry does not require another payment.'),
         importRefundable: t('The import could not be completed. Your payment is eligible for an operational refund.'),
         importPaymentPending: t('Confirm the import payment in your wallet.'),
+        notificationSettings: t('Notification Settings'),
+        emailAddress: t('Email address'),
+        emailDescription: t('Add your email to receive market and trading notifications.'),
+        continueToSign: t('Continue to sign'),
+        verify: t('Verify'),
+        verifying: t('Verifying...'),
+        verificationUnavailable: t('Verification is temporarily unavailable.'),
+        saveChanges: t('Save changes'),
+        marketMaking: t('Market Making'),
       }}
       campaignsCopy={{
         search: t('Search markets or events'),

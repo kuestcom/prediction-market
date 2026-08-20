@@ -10,6 +10,7 @@ export interface PublicRuntimeConfig {
   gammaUrl: string
   geoblockUrl: string
   isVercel: string
+  notificationsUrl: string
   chainId: number
   polygonRpcUrl: string
   polymarketGammaUrl: string
@@ -34,6 +35,7 @@ export const defaultPublicRuntimeConfig: PublicRuntimeConfig = {
   gammaUrl: 'https://gamma-api.kuest.com',
   geoblockUrl: 'https://geoblock.kuest.com',
   isVercel: 'false',
+  notificationsUrl: 'https://notifications.kuest.com',
   chainId: AMOY_CHAIN_ID,
   polygonRpcUrl: '',
   polymarketGammaUrl: 'https://gamma-api.polymarket.com',
@@ -65,6 +67,10 @@ export function resolvePublicRuntimeEnv(
     gammaUrl: normalizePublicRuntimeEnvValue(env.GAMMA_URL, defaultPublicRuntimeConfig.gammaUrl),
     geoblockUrl: normalizePublicRuntimeEnvValue(env.GEOBLOCK_URL, defaultPublicRuntimeConfig.geoblockUrl),
     isVercel: env.VERCEL_ENV ? 'true' : 'false',
+    notificationsUrl: normalizePublicRuntimeEnvValue(
+      env.NOTIFICATIONS_URL,
+      defaultPublicRuntimeConfig.notificationsUrl,
+    ),
     chainId: parseNetworkChainId(env.CHAIN_ID, defaultPublicRuntimeConfig.chainId),
     polygonRpcUrl: normalizePublicRuntimeEnvValue(env.POLYGON_RPC_URL),
     polymarketGammaUrl: normalizePublicRuntimeEnvValue(
