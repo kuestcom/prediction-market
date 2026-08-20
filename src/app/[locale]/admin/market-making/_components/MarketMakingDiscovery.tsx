@@ -159,6 +159,11 @@ interface MarketMakingCopy {
   verificationUnavailable: string
   saveChanges: string
   marketMaking: string
+  operatorEmailDescription: string
+  operatorEmailLinked: string
+  linkOperatorEmail: string
+  operatorVerificationPending: string
+  verifyOperatorEmail: string
 }
 
 interface MarketMakingDiscoveryProps {
@@ -1890,7 +1895,7 @@ function CampaignDialog({
   )
 }
 
-function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
+function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; locale: string }) {
   const { address, isConnected } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<RpcWalletProvider>('eip155')
   const { data: walletClient } = useWalletClient()
@@ -1905,6 +1910,10 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
   const [newOpportunities, setNewOpportunities] = useState(true)
   const [nonEmailPreferences, setNonEmailPreferences] = useState<NotificationPreference[]>([])
   const [settingsWallet, setSettingsWallet] = useState<string | null>(null)
+  const [sourceDomain, setSourceDomain] = useState<string | null>(null)
+  const [operatorEmail, setOperatorEmail] = useState('')
+  const [operatorLinking, setOperatorLinking] = useState(false)
+  const [operatorVerificationPending, setOperatorVerificationPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const settingsRequestId = useRef(0)
   const activeAddress = useRef(address)
@@ -1945,6 +1954,7 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
     setError(null)
     setEmailVerified(false)
     setMaskedEmail(null)
+    setSourceDomain(null)
     setNonEmailPreferences([])
     setSettingsWallet(null)
     setLoading(false)
@@ -1969,6 +1979,7 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
       }
       setEmailVerified(settings.emailVerified)
       setMaskedEmail(settings.maskedEmail ?? null)
+      setSourceDomain(settings.sourceDomain ?? null)
       const campaignPreference = settings.preferences?.find(
         (preference) => preference.channel === 'email' && preference.topic === 'campaign_status',
       )
@@ -2021,6 +2032,49 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
     }
   }
 
+  const operatorDomain = typeof window === 'undefined' ? '' : window.location.hostname.toLowerCase()
+  const needsOperatorEmail = Boolean(operatorDomain) && sourceDomain !== operatorDomain
+
+  async function linkOperatorEmail() {
+    if (!address || !signingWalletClient || !operatorDomain || !operatorEmail.trim()) {
+      setError(copy.walletNotReady)
+      return
+    }
+    setOperatorLinking(true)
+    setError(null)
+    try {
+      const result = await runWithSignaturePrompt(
+        () =>
+          linkSponsorEmail({
+            notificationsUrl,
+            wallet: address as `0x${string}`,
+            walletClient: signingWalletClient,
+            email: operatorEmail,
+            locale,
+            siteDomain: operatorDomain,
+          }),
+        { title: copy.linkOperatorEmail, description: copy.transactionPrompt },
+      )
+      if (result.alreadyVerified) {
+        setSourceDomain(operatorDomain)
+        setOperatorEmail('')
+        setOperatorVerificationPending(false)
+        toast.success(copy.operatorEmailLinked)
+      } else if (result.verificationPending) {
+        setOperatorVerificationPending(true)
+      }
+    } catch {
+      setError(copy.verificationUnavailable)
+    } finally {
+      setOperatorLinking(false)
+    }
+  }
+
+  async function confirmOperatorEmail() {
+    setOperatorVerificationPending(false)
+    await loadSettings()
+  }
+
   return (
     <>
       <Button
@@ -2064,6 +2118,42 @@ function NotificationSettingsButton({ copy }: { copy: MarketMakingCopy }) {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">{copy.emailDescription}</p>
+          )}
+          {needsOperatorEmail && (
+            <div className="space-y-3 rounded-xl border bg-muted/30 p-4">
+              <p className="text-sm text-muted-foreground">{copy.operatorEmailDescription}</p>
+              {operatorVerificationPending ? (
+                <>
+                  <p className="text-sm text-muted-foreground">{copy.operatorVerificationPending}</p>
+                  <Button
+                    type="button"
+                    disabled={loading || operatorLinking}
+                    onClick={() => void confirmOperatorEmail()}
+                  >
+                    {loading ? <LoaderCircleIcon className="size-4 animate-spin" /> : null}
+                    {copy.verifyOperatorEmail}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Input
+                    type="email"
+                    autoComplete="email"
+                    value={operatorEmail}
+                    placeholder={copy.emailAddress}
+                    onChange={(event) => setOperatorEmail(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    disabled={!operatorEmail.trim() || operatorLinking || loading}
+                    onClick={() => void linkOperatorEmail()}
+                  >
+                    {operatorLinking ? <LoaderCircleIcon className="size-4 animate-spin" /> : null}
+                    {copy.linkOperatorEmail}
+                  </Button>
+                </>
+              )}
+            </div>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
@@ -2130,7 +2220,7 @@ export default function MarketMakingDiscovery({
               {copy.campaignsTab}
             </TabsTrigger>
           </TabsList>
-          <NotificationSettingsButton copy={copy} />
+          <NotificationSettingsButton copy={copy} locale={locale} />
         </div>
 
         <TabsContent value="sponsor" className="mt-5">

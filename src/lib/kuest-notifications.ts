@@ -178,6 +178,7 @@ export async function readNotificationSettings(input: {
   return notificationJson<{
     emailVerified: boolean
     maskedEmail?: string | null
+    sourceDomain?: string | null
     preferences?: NotificationPreference[]
   }>(`${baseUrl(input.notificationsUrl)}/v1/me/contact-status?${params}`)
 }
