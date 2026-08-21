@@ -65,6 +65,7 @@ import {
   updateNotificationSettings,
 } from '@/lib/kuest-notifications'
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
+import { hasUsableUserEmail } from '@/lib/user-email'
 import { cn } from '@/lib/utils'
 import { resolveViemNetworkByChainId } from '@/lib/viem-network'
 import { isRecoverableWalletConnectorError, isUserRejectedRequestError } from '@/lib/wallet'
@@ -76,6 +77,7 @@ import {
   resolveWalletChainId,
   type RpcWalletProvider,
 } from '@/lib/wallet/eoa-transaction'
+import { useUser } from '@/stores/useUser'
 
 interface MarketMakingCopy {
   eyebrow: string
@@ -1896,6 +1898,7 @@ function CampaignDialog({
 }
 
 function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; locale: string }) {
+  const user = useUser()
   const { address, isConnected } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider<RpcWalletProvider>('eip155')
   const { data: walletClient } = useWalletClient()
@@ -1911,7 +1914,6 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
   const [nonEmailPreferences, setNonEmailPreferences] = useState<NotificationPreference[]>([])
   const [settingsWallet, setSettingsWallet] = useState<string | null>(null)
   const [sourceDomain, setSourceDomain] = useState<string | null>(null)
-  const [operatorEmail, setOperatorEmail] = useState('')
   const [operatorLinking, setOperatorLinking] = useState(false)
   const [operatorVerificationPending, setOperatorVerificationPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -1926,7 +1928,6 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
     setLoading(false)
     setSettingsWallet(null)
     setSourceDomain(null)
-    setOperatorEmail('')
     setOperatorLinking(false)
     setOperatorVerificationPending(false)
     return () => {
@@ -2044,10 +2045,12 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
   }
 
   const operatorDomain = typeof window === 'undefined' ? '' : window.location.hostname.toLowerCase()
+  const accountEmail = user?.email?.trim() ?? ''
+  const hasAccountEmail = hasUsableUserEmail(accountEmail)
   const needsOperatorEmail = hasLoadedSettings && Boolean(operatorDomain) && sourceDomain !== operatorDomain
 
   async function linkOperatorEmail() {
-    if (!address || !signingWalletClient || !operatorDomain || !operatorEmail.trim()) {
+    if (!address || !signingWalletClient || !operatorDomain || !hasAccountEmail) {
       setError(copy.walletNotReady)
       return
     }
@@ -2063,7 +2066,7 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
             notificationsUrl,
             wallet: address as `0x${string}`,
             walletClient: signingWalletClient,
-            email: operatorEmail,
+            email: accountEmail,
             locale,
             siteDomain: operatorDomain,
           }),
@@ -2074,7 +2077,6 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
       }
       if (result.alreadyVerified) {
         setSourceDomain(operatorDomain)
-        setOperatorEmail('')
         setOperatorVerificationPending(false)
         toast.success(copy.operatorEmailLinked)
       } else if (result.verificationPending) {
@@ -2157,23 +2159,14 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
                   </Button>
                 </>
               ) : (
-                <>
-                  <Input
-                    type="email"
-                    autoComplete="email"
-                    value={operatorEmail}
-                    placeholder={copy.emailAddress}
-                    onChange={(event) => setOperatorEmail(event.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    disabled={!operatorEmail.trim() || operatorLinking || loading}
-                    onClick={() => void linkOperatorEmail()}
-                  >
-                    {operatorLinking ? <LoaderCircleIcon className="size-4 animate-spin" /> : null}
-                    {copy.linkOperatorEmail}
-                  </Button>
-                </>
+                <Button
+                  type="button"
+                  disabled={!hasAccountEmail || operatorLinking || loading}
+                  onClick={() => void linkOperatorEmail()}
+                >
+                  {operatorLinking ? <LoaderCircleIcon className="size-4 animate-spin" /> : null}
+                  {copy.linkOperatorEmail}
+                </Button>
               )}
             </div>
           )}
