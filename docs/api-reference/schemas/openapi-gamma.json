@@ -97,6 +97,16 @@
                             "updatedAt": "2026-03-09T22:29:23.723738Z",
                             "requiresTranslation": false
                           }
+                        ],
+                        "markets": [
+                          {
+                            "id": "540900",
+                            "question": "Will the public beta launch before July 31?",
+                            "conditionId": "0x9c1a953fe92c8357f1b646ba25d983aa83e90c525992db14fb726fa895cb5763",
+                            "mirrorConditionId": "0x6f2785e2b184bc654c2925b97d606f4b3b8d0d9d8a7c812ea43689a7d5a0b621",
+                            "clobTokenIds": "[\"8501497159083948713316135768103773293754490207922884688769443031624417212426\", \"2527312495175492857904889758552137141356236738032676480522356889996545113869\"]",
+                            "mirrorClobTokenIds": "[\"73501925031906527019333480630149051764054215203433004184557289228116041007011\", \"34109248701156002295603169775253921334309011282830349017777218896811220437750\"]"
+                          }
                         ]
                       }
                     ]
@@ -214,6 +224,9 @@
             "$ref": "#/components/parameters/ConditionIdParam"
           },
           {
+            "$ref": "#/components/parameters/MirrorParam"
+          },
+          {
             "$ref": "#/components/parameters/SlugQueryParam"
           },
           {
@@ -244,6 +257,7 @@
                         "id": "540900",
                         "question": "Will the public beta launch before July 31?",
                         "conditionId": "0x9c1a953fe92c8357f1b646ba25d983aa83e90c525992db14fb726fa895cb5763",
+                        "mirrorConditionId": "0x6f2785e2b184bc654c2925b97d606f4b3b8d0d9d8a7c812ea43689a7d5a0b621",
                         "slug": "public-beta-before-july-31",
                         "resolutionSource": "",
                         "endDate": "2026-07-31T12:00:00Z",
@@ -253,6 +267,7 @@
                         "description": "This market resolves to \"Yes\" if the company makes its public beta generally available before July 31, 2026, according to its official release page.",
                         "outcomes": "[\"Yes\", \"No\"]",
                         "clobTokenIds": "[\"8501497159083948713316135768103773293754490207922884688769443031624417212426\", \"2527312495175492857904889758552137141356236738032676480522356889996545113869\"]",
+                        "mirrorClobTokenIds": "[\"73501925031906527019333480630149051764054215203433004184557289228116041007011\", \"34109248701156002295603169775253921334309011282830349017777218896811220437750\"]",
                         "active": true,
                         "closed": false,
                         "archived": false,
@@ -1317,6 +1332,14 @@
           "example": "0x9c1a953fe92c8357f1b646ba25d983aa83e90c525992db14fb726fa895cb5763"
         }
       },
+      "MirrorParam": {
+        "name": "mirror",
+        "in": "query",
+        "description": "Filter by Polymarket origin. `true` returns only mirror markets; `false` returns only markets without a Polymarket mirror.",
+        "schema": {
+          "type": "boolean"
+        }
+      },
       "SlugQueryParam": {
         "name": "slug",
         "in": "query",
@@ -1576,6 +1599,10 @@
           "conditionId": {
             "type": "string"
           },
+          "mirrorConditionId": {
+            "type": "string",
+            "description": "Polymarket condition identifier paired with `conditionId`. Omitted when the market is not a Polymarket mirror or the value is unavailable."
+          },
           "slug": {
             "type": "string"
           },
@@ -1604,6 +1631,10 @@
           },
           "clobTokenIds": {
             "type": "string"
+          },
+          "mirrorClobTokenIds": {
+            "type": "string",
+            "description": "JSON-encoded array of Polymarket token identifiers. Each item at index `i` is paired with `clobTokenIds[i]`. Omitted when the market is not a Polymarket mirror or a complete positional token mapping is unavailable."
           },
           "active": {
             "type": "boolean"

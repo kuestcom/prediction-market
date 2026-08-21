@@ -3900,6 +3900,10 @@
             "type": "string",
             "description": "Token identifier."
           },
+          "mirror_token_id": {
+            "type": "string",
+            "description": "Polymarket token identifier paired with `t`. Omitted when no mirror token exists."
+          },
           "o": {
             "type": "string",
             "description": "Outcome label."
@@ -3922,6 +3926,10 @@
           "c": {
             "type": "string",
             "description": "Condition identifier for the market."
+          },
+          "mirror_condition_id": {
+            "type": "string",
+            "description": "Polymarket condition identifier paired with `c`. Omitted when the market is not a Polymarket mirror."
           },
           "nr": {
             "type": "boolean",
@@ -5080,6 +5088,28 @@
           }
         }
       },
+      "MirroredSamplingMarketToken": {
+        "type": "object",
+        "required": ["token_id", "outcome", "price", "winner"],
+        "properties": {
+          "token_id": {
+            "type": "string"
+          },
+          "mirror_token_id": {
+            "type": "string",
+            "description": "Polymarket token identifier paired with `token_id`. Omitted when no mirror token exists."
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "winner": {
+            "type": "boolean"
+          }
+        }
+      },
       "SamplingMarketRewardRate": {
         "type": "object",
         "required": ["asset_address", "rewards_daily_rate"],
@@ -5170,6 +5200,10 @@
           "condition_id": {
             "type": "string"
           },
+          "mirror_condition_id": {
+            "type": "string",
+            "description": "Polymarket condition identifier paired with `condition_id`. Omitted when the market is not a Polymarket mirror."
+          },
           "question_id": {
             "type": "string",
             "description": "Condition identifier for the market (legacy field name)."
@@ -5230,7 +5264,7 @@
           "tokens": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SamplingMarketToken"
+              "$ref": "#/components/schemas/MirroredSamplingMarketToken"
             }
           },
           "tags": {
@@ -5285,6 +5319,10 @@
             "type": "string",
             "description": "Condition identifier for the market."
           },
+          "mirror_condition_id": {
+            "type": "string",
+            "description": "Polymarket condition identifier paired with `condition_id`. Omitted when the market is not a Polymarket mirror."
+          },
           "status": {
             "type": "string",
             "description": "Market status."
@@ -5322,7 +5360,7 @@
           "tokens": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SamplingMarketToken"
+              "$ref": "#/components/schemas/MirroredSamplingMarketToken"
             }
           },
           "rewards": {
@@ -5374,13 +5412,25 @@
             "type": "string",
             "description": "Condition identifier for the parent market."
           },
+          "mirror_condition_id": {
+            "type": "string",
+            "description": "Polymarket condition identifier paired with `condition_id`. Omitted when the market is not a Polymarket mirror."
+          },
           "primary_token_id": {
             "type": "string",
             "description": "First token identifier for the market."
           },
+          "mirror_primary_token_id": {
+            "type": "string",
+            "description": "Polymarket token identifier paired with `primary_token_id`. Omitted when no mirror token exists."
+          },
           "secondary_token_id": {
             "type": "string",
             "description": "Second token identifier for the market."
+          },
+          "mirror_secondary_token_id": {
+            "type": "string",
+            "description": "Polymarket token identifier paired with `secondary_token_id`. Omitted when no mirror token exists."
           }
         }
       },
