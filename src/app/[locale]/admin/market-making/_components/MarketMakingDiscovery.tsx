@@ -1923,6 +1923,10 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
     settingsRequestId.current += 1
     setLoading(false)
     setSettingsWallet(null)
+    setSourceDomain(null)
+    setOperatorEmail('')
+    setOperatorLinking(false)
+    setOperatorVerificationPending(false)
     return () => {
       settingsRequestId.current += 1
     }
@@ -1946,6 +1950,7 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
     })
   }, [address, chainId, walletClient, walletProvider])
   const hasCurrentSettings = Boolean(address) && emailVerified && settingsWallet === address?.toLowerCase()
+  const hasLoadedSettings = Boolean(address) && settingsWallet === address?.toLowerCase()
 
   async function loadSettings() {
     const requestId = ++settingsRequestId.current
@@ -2033,13 +2038,15 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
   }
 
   const operatorDomain = typeof window === 'undefined' ? '' : window.location.hostname.toLowerCase()
-  const needsOperatorEmail = Boolean(operatorDomain) && sourceDomain !== operatorDomain
+  const needsOperatorEmail = hasLoadedSettings && Boolean(operatorDomain) && sourceDomain !== operatorDomain
 
   async function linkOperatorEmail() {
     if (!address || !signingWalletClient || !operatorDomain || !operatorEmail.trim()) {
       setError(copy.walletNotReady)
       return
     }
+    const requestId = ++settingsRequestId.current
+    const requestWallet = address.toLowerCase()
     setOperatorLinking(true)
     setError(null)
     try {
@@ -2055,6 +2062,9 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
           }),
         { title: copy.linkOperatorEmail, description: copy.transactionPrompt },
       )
+      if (settingsRequestId.current !== requestId || activeAddress.current?.toLowerCase() !== requestWallet) {
+        return
+      }
       if (result.alreadyVerified) {
         setSourceDomain(operatorDomain)
         setOperatorEmail('')
@@ -2064,9 +2074,13 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
         setOperatorVerificationPending(true)
       }
     } catch {
-      setError(copy.verificationUnavailable)
+      if (settingsRequestId.current === requestId && activeAddress.current?.toLowerCase() === requestWallet) {
+        setError(copy.verificationUnavailable)
+      }
     } finally {
-      setOperatorLinking(false)
+      if (settingsRequestId.current === requestId && activeAddress.current?.toLowerCase() === requestWallet) {
+        setOperatorLinking(false)
+      }
     }
   }
 
