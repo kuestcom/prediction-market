@@ -56,6 +56,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { Link } from '@/i18n/navigation'
 import { COLLATERAL_TOKEN_ADDRESS, MARKET_MAKER_ESCROW_ADDRESS, POLY_SYNCER_CREATOR_ADDRESS } from '@/lib/contracts'
 import {
   linkSponsorEmail,
@@ -162,6 +163,7 @@ interface MarketMakingCopy {
   saveChanges: string
   marketMaking: string
   operatorVerificationPending: string
+  accountSettings: string
 }
 
 interface MarketMakingDiscoveryProps {
@@ -2086,7 +2088,19 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
           ) : (
             <p className="text-sm text-muted-foreground">{copy.emailDescription}</p>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive">
+              {error}
+              {error === copy.operatorVerificationPending ? (
+                <>
+                  {' '}
+                  <Link href="/settings/account" className="underline underline-offset-4">
+                    {copy.accountSettings}
+                  </Link>
+                </>
+              ) : null}
+            </p>
+          )}
           <DialogFooter>
             <Button
               type="button"
