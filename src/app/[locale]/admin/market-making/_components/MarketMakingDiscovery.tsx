@@ -1916,11 +1916,13 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
   const [operatorVerificationPending, setOperatorVerificationPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const settingsRequestId = useRef(0)
+  const operatorLinkInFlight = useRef(false)
   const activeAddress = useRef(address)
 
   useEffect(() => {
     activeAddress.current = address
     settingsRequestId.current += 1
+    operatorLinkInFlight.current = false
     setLoading(false)
     setSettingsWallet(null)
     setSourceDomain(null)
@@ -1953,6 +1955,10 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
   const hasLoadedSettings = Boolean(address) && settingsWallet === address?.toLowerCase()
 
   async function loadSettings() {
+    if (operatorLinkInFlight.current) {
+      setOpen(true)
+      return
+    }
     const requestId = ++settingsRequestId.current
     const requestWallet = address?.toLowerCase() ?? null
     setOpen(true)
@@ -1962,7 +1968,6 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
     setSourceDomain(null)
     setNonEmailPreferences([])
     setSettingsWallet(null)
-    setOperatorLinking(false)
     setLoading(false)
     if (!isConnected || !address || !signingWalletClient) {
       setError(copy.walletNotReady)
@@ -2048,6 +2053,7 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
     }
     const requestId = ++settingsRequestId.current
     const requestWallet = address.toLowerCase()
+    operatorLinkInFlight.current = true
     setOperatorLinking(true)
     setError(null)
     try {
@@ -2080,6 +2086,7 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
       }
     } finally {
       if (settingsRequestId.current === requestId && activeAddress.current?.toLowerCase() === requestWallet) {
+        operatorLinkInFlight.current = false
         setOperatorLinking(false)
       }
     }
