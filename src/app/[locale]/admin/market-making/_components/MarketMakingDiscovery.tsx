@@ -1962,6 +1962,7 @@ function NotificationSettingsButton({ copy, locale }: { copy: MarketMakingCopy; 
     setSourceDomain(null)
     setNonEmailPreferences([])
     setSettingsWallet(null)
+    setOperatorLinking(false)
     setLoading(false)
     if (!isConnected || !address || !signingWalletClient) {
       setError(copy.walletNotReady)
