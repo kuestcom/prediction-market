@@ -67,6 +67,11 @@ interface GammaEvent {
   showMarketImages?: boolean
   showMarketIcons?: boolean
   markets?: GammaMarket[]
+  seriesSlug?: string
+  series_slug?: string
+  seriesRecurrence?: string
+  series_recurrence?: string
+  series?: Array<{ slug?: string; recurrence?: string }>
 }
 
 interface GammaSearchResponse {
@@ -167,7 +172,14 @@ async function loadEligibilityWindows() {
   }
 }
 
-async function fetchPolymarketEvents(search: string, limit: number, minimumEnd: number) {
+function gammaSeries(event: GammaEvent) {
+  const slug = (event.seriesSlug ?? event.series_slug ?? event.series?.[0]?.slug)?.normalize('NFC').trim().toLowerCase()
+  const recurrence =
+    (event.seriesRecurrence ?? event.series_recurrence ?? event.series?.[0]?.recurrence)?.trim() || null
+  return { slug: slug || null, recurrence }
+}
+
+async function fetchPolymarketEvents(search: string, limit: number, minimumEnd: number, seriesMinimumEnd: number) {
   const { polymarketGammaUrl } = resolvePublicRuntimeEnv(process.env)
   const endpoint = new URL(search ? '/public-search' : '/events', polymarketGammaUrl)
   if (search) {
@@ -214,14 +226,23 @@ async function fetchPolymarketEvents(search: string, limit: number, minimumEnd: 
         return []
       }
       const openMarkets = (event.markets ?? []).filter((market) => isOpenGammaMarket(market, now))
-      return openMarkets.length > 0 && openMarkets.every((market) => marketEndsAfter(market, minimumEnd, event.endDate))
+      const recurring = Boolean(gammaSeries(event).slug)
+      const eligibleEnd = recurring ? seriesMinimumEnd : minimumEnd
+      return openMarkets.length > 0 &&
+        openMarkets.every((market) => marketEndsAfter(market, eligibleEnd, event.endDate))
         ? [{ ...event, markets: openMarkets }]
         : []
     })
     .slice(0, limit)
 }
 
-async function listKuestEvents(search: string, excludedCreatorAddresses: string[], limit: number, minimumEnd: Date) {
+async function listKuestEvents(
+  search: string,
+  excludedCreatorAddresses: string[],
+  limit: number,
+  minimumEnd: Date,
+  seriesMinimumEnd: Date,
+) {
   const searchTerm = search.trim()
   const searchCondition = searchTerm
     ? or(
@@ -242,7 +263,10 @@ async function listKuestEvents(search: string, excludedCreatorAddresses: string[
     eq(markets.is_active, true),
     eq(markets.is_resolved, false),
     eq(events.is_hidden, false),
-    gt(markets.end_time, minimumEnd),
+    or(
+      gt(markets.end_time, minimumEnd),
+      and(sql`TRIM(COALESCE(${events.series_slug}, '')) <> ''`, gt(markets.end_time, seriesMinimumEnd)),
+    ),
   )
 
   const eventRows = await db
@@ -254,6 +278,7 @@ async function listKuestEvents(search: string, excludedCreatorAddresses: string[
       endDate: events.end_date,
       creator: events.creator,
       showMarketIcons: events.show_market_icons,
+      seriesSlug: events.series_slug,
       storedVolume24h: sql<number>`COALESCE(SUM(${markets.volume_24h}), 0)`,
       storedVolume: sql<number>`COALESCE(SUM(${markets.volume}), 0)`,
     })
@@ -268,6 +293,7 @@ async function listKuestEvents(search: string, excludedCreatorAddresses: string[
       events.end_date,
       events.creator,
       events.show_market_icons,
+      events.series_slug,
     )
     .orderBy(desc(sql`COALESCE(SUM(${markets.volume_24h}), 0)`), desc(sql`COALESCE(SUM(${markets.volume}), 0)`))
     .limit(limit)
@@ -431,14 +457,21 @@ export async function GET(request: NextRequest) {
     const eligibility = await loadEligibilityWindows()
     const now = Date.now()
     const kuestMinimumEnd = new Date(now + eligibility.kuestSeconds * 1_000)
+    const seriesMinimumEnd = new Date(now + 10_800_000)
 
     const shouldLoadKuest = source !== 'polymarket'
     const shouldLoadPolymarket = source === 'all' || source === 'polymarket'
     const kuestPromise = shouldLoadKuest
-      ? listKuestEvents(search, source === 'mine' ? polySyncerCreatorAddresses : [], limit, kuestMinimumEnd)
+      ? listKuestEvents(
+          search,
+          source === 'mine' ? polySyncerCreatorAddresses : [],
+          limit,
+          kuestMinimumEnd,
+          seriesMinimumEnd,
+        )
       : Promise.resolve({ eventRows: [], marketRows: [] })
     const polymarketPromise = shouldLoadPolymarket
-      ? fetchPolymarketEvents(search, limit, now + eligibility.polymarketSeconds * 1_000)
+      ? fetchPolymarketEvents(search, limit, now + eligibility.polymarketSeconds * 1_000, seriesMinimumEnd.getTime())
       : Promise.resolve([])
     const [{ eventRows: kuestEventRows, marketRows: kuestMarketRows }, polymarketEvents] = await Promise.all([
       kuestPromise,
@@ -513,6 +546,9 @@ export async function GET(request: NextRequest) {
           needsDeployment: false,
           isNegRisk: false,
           showMarketIcons: event.showMarketIcons ?? true,
+          seriesSlug: event.seriesSlug?.normalize('NFC').trim().toLowerCase() || null,
+          seriesRecurrence: null,
+          creatorFilter: normalizeAddress(event.creator) || null,
         } satisfies MarketMakingDiscoveryItem,
       ]
     })
@@ -548,6 +584,7 @@ export async function GET(request: NextRequest) {
         return []
       }
       const isOnKuest = eventMarkets.every((market) => Boolean(market.kuestConditionId))
+      const series = gammaSeries(event)
       const eventKey = String(event.id ?? event.slug ?? eventMarkets[0]!.conditionId)
       return [
         {
@@ -574,6 +611,9 @@ export async function GET(request: NextRequest) {
           needsDeployment: !isOnKuest,
           isNegRisk: event.negRisk === true || (event.markets ?? []).some((market) => market.negRisk === true),
           showMarketIcons: event.showMarketImages ?? event.showMarketIcons ?? true,
+          seriesSlug: series.slug,
+          seriesRecurrence: series.recurrence,
+          creatorFilter: POLY_SYNCER_CREATOR_ADDRESS.toLowerCase(),
         } satisfies MarketMakingDiscoveryItem,
       ]
     })

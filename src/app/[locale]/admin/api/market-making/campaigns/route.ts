@@ -69,6 +69,14 @@ interface IndexedCampaign {
   statusCode: number
   terms?: EscrowTermsValue
   termsHash: string
+  scopeKind?: 'event' | 'series'
+  seriesSlug?: string | null
+  seriesRecurrence?: string | null
+  creatorFilter?: string | null
+  anchorEventSlug?: string | null
+  seriesLeaseStatus?: string | null
+  seriesLeaseEffectiveEnd?: number | null
+  links?: MarketMakingCampaignRecord['links']
 }
 
 interface IndexedCampaignsResponse {
@@ -264,6 +272,14 @@ export async function GET(request: Request) {
           conditionId: market.conditionId,
           title: eventByCondition.get(market.conditionId.toLowerCase())?.marketTitle ?? market.metadata?.title ?? null,
         })),
+        scopeKind: campaign.scopeKind === 'series' ? 'series' : 'event',
+        seriesSlug: campaign.seriesSlug ?? null,
+        seriesRecurrence: campaign.seriesRecurrence ?? null,
+        creatorFilter: campaign.creatorFilter ?? null,
+        anchorEventSlug: campaign.anchorEventSlug ?? null,
+        seriesLeaseStatus: campaign.seriesLeaseStatus ?? null,
+        seriesLeaseEffectiveEnd: campaign.seriesLeaseEffectiveEnd ?? null,
+        links: campaign.links ?? { campaignApi: `${escrowBaseUrl}/api/campaigns/${encodeURIComponent(campaign.id)}` },
       } satisfies MarketMakingCampaignRecord
     })
 

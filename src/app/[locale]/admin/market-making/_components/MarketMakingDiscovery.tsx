@@ -66,6 +66,7 @@ import {
   updateNotificationSettings,
 } from '@/lib/kuest-notifications'
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
+import { buildMarketMakerQuoteInput, requiredSponsorBalanceAtomic } from '@/lib/market-making-series'
 import { hasUsableUserEmail } from '@/lib/user-email'
 import { cn } from '@/lib/utils'
 import { resolveViemNetworkByChainId } from '@/lib/viem-network'
@@ -119,6 +120,7 @@ interface MarketMakingCopy {
   importEvent: string
   kuestFee: string
   total: string
+  estimated: string
   continue: string
   connectWallet: string
   calculating: string
@@ -165,6 +167,11 @@ interface MarketMakingCopy {
   operatorVerificationPending: string
   accountEmailRequired: string
   accountSettings: string
+  seriesBadge: string
+  seriesTooltip: string
+  sponsorSeries: string
+  sponsorSeriesDescription: string
+  allRenewals: string
 }
 
 interface MarketMakingDiscoveryProps {
@@ -181,12 +188,26 @@ interface EscrowPricingBreakdown {
   totalAtomic: string
 }
 
+interface EscrowCostBreakdown {
+  status: 'estimate' | 'partial' | 'final'
+  marketMakerPaymentAtomic: string | null
+  kuestFeeAtomic: string | null
+  campaignFundingTotalAtomic: string | null
+  initialDeploymentFeeAtomic: string | null
+  totalCostAtomic: string | null
+  initialDeploymentFeePaid: boolean
+  initialDeploymentFeeStatus: 'estimate' | 'final'
+  campaignFundingStatus: 'pending' | 'final'
+  totalCostStatus: 'pending' | 'estimate' | 'final'
+}
+
 interface EscrowPreviewResponse {
   status: 'priced'
   serviceStart: number
   serviceEnd: number
   claimableAt: number
   breakdown: EscrowPricingBreakdown
+  costs: EscrowCostBreakdown
 }
 
 interface EscrowConfigResponse {
@@ -198,8 +219,6 @@ interface EscrowConfigResponse {
   }
   importConfig: {
     minimumEventLeadTimeSeconds: number
-    normalMarketFeeAtomic: string
-    negRiskMarketFeeAtomic: string
   }
   importPayment: {
     chainId: number
@@ -232,6 +251,7 @@ interface EscrowIssuedQuoteResponse {
     }
   }
   breakdown: EscrowPricingBreakdown
+  costs: EscrowCostBreakdown
 }
 
 type ImportState =
@@ -278,6 +298,7 @@ interface EscrowImportResponse {
     confirmations: number | null
     rejected: boolean
   }
+  costs: EscrowCostBreakdown
   progress: { current: number; total: number }
   canRetry: boolean
   refundable: boolean
@@ -302,7 +323,7 @@ function formatUsdcString(value: string | undefined, locale: string) {
   return formatCompactCurrency(Number.isFinite(numeric) ? numeric : 0, locale)
 }
 
-function formatUsdcAtomic(value: string | undefined, locale: string) {
+function formatUsdcAtomic(value: string | null | undefined, locale: string) {
   try {
     return formatCompactCurrency(Number(BigInt(value ?? '0')) / Number(USDC_ATOMIC_SCALE), locale)
   } catch {
@@ -554,6 +575,17 @@ function MarketRow({
               <>
                 <span className="size-1 rounded-full bg-border" />
                 <span>{copy.hedgeAvailable}</span>
+              </>
+            )}
+            {item.seriesSlug && (
+              <>
+                <span className="size-1 rounded-full bg-border" />
+                <Tooltip>
+                  <TooltipTrigger render={<span className="cursor-help font-medium" />}>
+                    {copy.seriesBadge}
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-72 text-sm">{copy.seriesTooltip}</TooltipContent>
+                </Tooltip>
               </>
             )}
           </div>
@@ -1035,6 +1067,7 @@ function CampaignDialog({
   const [depth, setDepth] = useState(1000)
   const [spread, setSpread] = useState(300)
   const [serviceEnd, setServiceEnd] = useState(initialServiceEnd)
+  const [sponsorSeries, setSponsorSeries] = useState(false)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [issuedQuote, setIssuedQuote] = useState<EscrowIssuedQuoteResponse | null>(null)
   const [issueError, setIssueError] = useState<string | null>(null)
@@ -1067,15 +1100,31 @@ function CampaignDialog({
   }, [address])
 
   const quoteInput = useMemo(
-    () => ({
-      sponsor: address ?? '',
-      marketSource: item.needsDeployment ? ('polymarket' as const) : ('kuest' as const),
-      conditionIds: quoteConditionIds,
-      depthPerSideAtomic: (BigInt(depth) * USDC_ATOMIC_SCALE).toString(),
-      maxSpreadBps: spread,
-      serviceEnd: Math.floor(serviceEnd.getTime() / 1000),
-    }),
-    [address, depth, item.needsDeployment, quoteConditionIds, serviceEnd, spread],
+    () =>
+      buildMarketMakerQuoteInput({
+        sponsor: address ?? '',
+        importId,
+        marketSource: item.needsDeployment ? 'polymarket' : 'kuest',
+        conditionIds: quoteConditionIds,
+        depthPerSideAtomic: (BigInt(depth) * USDC_ATOMIC_SCALE).toString(),
+        maxSpreadBps: spread,
+        serviceEnd: Math.floor(serviceEnd.getTime() / 1000),
+        sponsorSeries,
+        seriesSlug: item.seriesSlug,
+        creatorFilter: item.creatorFilter,
+      }),
+    [
+      address,
+      depth,
+      item.creatorFilter,
+      importId,
+      item.needsDeployment,
+      item.seriesSlug,
+      quoteConditionIds,
+      serviceEnd,
+      sponsorSeries,
+      spread,
+    ],
   )
   const configQuery = useQuery({
     queryKey: ['market-making-escrow-config', escrowBaseUrl],
@@ -1085,7 +1134,9 @@ function CampaignDialog({
     queryFn: () => fetchEscrowJson<EscrowConfigResponse>(`${escrowBaseUrl}/api/config`),
   })
   const minimumServiceEndDate = getMinimumServiceEndDate(configQuery.data)
-  const hasSelectableServiceWindow = marketEndDate >= minimumServiceEndDate
+  const hasSelectableServiceWindow = sponsorSeries
+    ? Boolean(item.seriesSlug && item.creatorFilter)
+    : marketEndDate >= minimumServiceEndDate
   const canRequestQuote =
     open &&
     isConnected &&
@@ -1117,24 +1168,16 @@ function CampaignDialog({
     : null
   const marketCountLabel =
     item.markets.length > 1 ? formatCountTemplate(copy.marketCount, item.markets.length, locale) : null
-  const estimatedImportFeeAtomic = item.needsDeployment
-    ? BigInt(
-        item.isNegRisk
-          ? (configQuery.data?.importConfig.negRiskMarketFeeAtomic ?? '0')
-          : (configQuery.data?.importConfig.normalMarketFeeAtomic ?? '0'),
-      ) * BigInt(item.markets.length)
-    : 0n
-  const effectiveImportFeeAtomic = importValue ? BigInt(importValue.payment.amountAtomic) : estimatedImportFeeAtomic
   const importReady = importValue !== null && ['ready', 'activated'].includes(importValue.state)
-  const displayedTotal = breakdown
-    ? Number(breakdown.total) + Number(effectiveImportFeeAtomic) / Number(USDC_ATOMIC_SCALE)
-    : null
+  const costs = preview?.costs ?? null
+  const initialDeploymentFeeAtomic = importValue?.costs.initialDeploymentFeeAtomic ?? costs?.initialDeploymentFeeAtomic
+  const deploymentFeePending = item.needsDeployment && !(importValue?.costs.initialDeploymentFeePaid ?? false)
   const importPaymentRequired =
     item.needsDeployment &&
     !pendingImportPaymentHash &&
     (!importValue || importValue.state === 'awaiting_payment' || importValue.state === 'expired')
-  const requiredBalanceAtomic = breakdown
-    ? BigInt(breakdown.totalAtomic) + (importPaymentRequired ? effectiveImportFeeAtomic : 0n)
+  const requiredBalanceAtomic = costs
+    ? requiredSponsorBalanceAtomic(costs, importPaymentRequired && deploymentFeePending)
     : null
   const sponsorBalanceQuery = useQuery({
     queryKey: ['market-making-sponsor-usdc-balance', chainId, address?.toLowerCase()],
@@ -1443,7 +1486,8 @@ function CampaignDialog({
                         sponsor: address,
                         depthPerSideAtomic: quoteInput.depthPerSideAtomic,
                         maxSpreadBps: quoteInput.maxSpreadBps,
-                        serviceEnd: quoteInput.serviceEnd,
+                        ...('serviceEnd' in quoteInput ? { serviceEnd: quoteInput.serviceEnd } : {}),
+                        ...('series' in quoteInput ? { series: quoteInput.series } : {}),
                       }
                     : quoteInput,
                 ),
@@ -1683,7 +1727,12 @@ function CampaignDialog({
                   </span>
                 </span>
                 <span className="mt-0.5 block text-sm text-muted-foreground">
-                  {formatDateTemplate(copy.untilDate, formatEndDate(serviceEnd, locale))}
+                  {sponsorSeries && !preview
+                    ? copy.allRenewals
+                    : formatDateTemplate(
+                        copy.untilDate,
+                        formatEndDate(preview ? new Date(preview.serviceEnd * 1000) : serviceEnd, locale),
+                      )}
                 </span>
               </span>
             </PopoverTrigger>
@@ -1693,7 +1742,11 @@ function CampaignDialog({
                 selected={serviceEnd}
                 startMonth={hasSelectableServiceWindow ? minimumServiceEndDate : marketEndDate}
                 endMonth={marketEndDate}
-                disabled={hasSelectableServiceWindow ? { before: minimumServiceEndDate, after: marketEndDate } : true}
+                disabled={
+                  sponsorSeries || !hasSelectableServiceWindow
+                    ? true
+                    : { before: minimumServiceEndDate, after: marketEndDate }
+                }
                 onSelect={(date) => {
                   if (!date) {
                     return
@@ -1707,6 +1760,25 @@ function CampaignDialog({
             </PopoverContent>
           </Popover>
         </section>
+
+        {item.seriesSlug && item.creatorFilter && (
+          <section className="flex items-center justify-between gap-4 rounded-xl border p-3">
+            <div className="min-w-0">
+              <Label htmlFor="sponsor-series" className="font-semibold">
+                {copy.sponsorSeries}
+              </Label>
+              <p className="mt-0.5 text-sm text-muted-foreground">{copy.sponsorSeriesDescription}</p>
+            </div>
+            <Switch
+              id="sponsor-series"
+              checked={sponsorSeries}
+              onCheckedChange={(checked) => {
+                setSponsorSeries(checked)
+                clearIssuedQuote()
+              }}
+            />
+          </section>
+        )}
 
         <div className="min-h-[138px]">
           {!isConnected ? (
@@ -1722,7 +1794,7 @@ function CampaignDialog({
               <LoaderCircleIcon className="size-4 animate-spin" />
               {copy.calculating}
             </div>
-          ) : previewQuery.isError || !breakdown || displayedTotal === null ? (
+          ) : previewQuery.isError || !breakdown || !costs || costs.totalCostAtomic === null ? (
             <div className="flex min-h-[138px] items-center rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
               {copy.quoteUnavailable}
             </div>
@@ -1743,12 +1815,16 @@ function CampaignDialog({
                 {item.needsDeployment && (
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">{copy.importEvent}</span>
-                    <span className="font-medium">{formatUsdcAtomic(effectiveImportFeeAtomic.toString(), locale)}</span>
+                    <span className="font-medium">{formatUsdcAtomic(initialDeploymentFeeAtomic, locale)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between gap-4 border-t pt-3 text-base font-semibold">
-                  <span>{copy.total}</span>
-                  <span>{formatCompactCurrency(displayedTotal, locale)}</span>
+                  <span>
+                    {costs.totalCostStatus === 'estimate' || costs.totalCostStatus === 'pending'
+                      ? copy.estimated
+                      : copy.total}
+                  </span>
+                  <span>{formatUsdcAtomic(costs.totalCostAtomic, locale)}</span>
                 </div>
               </div>
             </section>

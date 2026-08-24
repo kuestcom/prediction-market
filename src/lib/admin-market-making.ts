@@ -30,6 +30,9 @@ export interface MarketMakingDiscoveryItem {
   needsDeployment: boolean
   isNegRisk: boolean
   showMarketIcons: boolean
+  seriesSlug: string | null
+  seriesRecurrence: string | null
+  creatorFilter: string | null
 }
 
 export interface MarketMakingDiscoveryResponse {

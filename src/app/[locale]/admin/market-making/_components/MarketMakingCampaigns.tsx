@@ -121,6 +121,12 @@ export interface MarketMakingCampaignsCopy {
   transactionRejected: string
   refundReadyToWithdraw: string
   close: string
+  seriesBadge: string
+  seriesTooltip: string
+  seriesScope: string
+  seriesSlug: string
+  campaignApi: string
+  seriesEventsApi: string
 }
 
 interface Props {
@@ -529,6 +535,14 @@ function CampaignDetail({
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <StatusBadge status={effectiveStatus} copy={copy} expired={isExpired} />
               <span className="font-mono">#{campaign.id}</span>
+              {campaign.scopeKind === 'series' && (
+                <Tooltip>
+                  <TooltipTrigger render={<span className="cursor-help font-medium text-primary" />}>
+                    {copy.seriesBadge}
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-72 text-sm">{copy.seriesTooltip}</TooltipContent>
+                </Tooltip>
+              )}
               {campaign.marketCount > 1 && (
                 <span>{replaceCount(copy.campaignNumber, campaign.marketCount, locale)}</span>
               )}
@@ -610,6 +624,36 @@ function CampaignDetail({
                 value={campaign.availabilityBps === null ? '—' : `${campaign.availabilityBps / 100}%`}
               />
             </div>
+            {campaign.scopeKind === 'series' && campaign.seriesSlug && (
+              <div className="mt-3 rounded-lg border bg-muted/20 p-3 text-sm">
+                <div className="font-medium">{copy.seriesScope}</div>
+                <div className="mt-1 break-all text-muted-foreground">
+                  {copy.seriesSlug}: <span className="font-mono">{campaign.seriesSlug}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    nativeButton={false}
+                    size="sm"
+                    variant="outline"
+                    render={<a href={campaign.links.campaignApi} target="_blank" rel="noreferrer" />}
+                  >
+                    {copy.campaignApi}
+                    <ExternalLinkIcon className="size-3.5" />
+                  </Button>
+                  {campaign.links.seriesEventsApi && (
+                    <Button
+                      nativeButton={false}
+                      size="sm"
+                      variant="outline"
+                      render={<a href={campaign.links.seriesEventsApi} target="_blank" rel="noreferrer" />}
+                    >
+                      {copy.seriesEventsApi}
+                      <ExternalLinkIcon className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </DetailSection>
 
           <DetailSection title={copy.timeline}>
@@ -1061,6 +1105,9 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
                           <div className="mt-1 text-xs text-muted-foreground">
                             {replaceCount(copy.campaignNumber, campaign.marketCount, locale)}
                           </div>
+                        )}
+                        {campaign.scopeKind === 'series' && (
+                          <div className="mt-1 text-xs font-medium text-primary">{copy.seriesBadge}</div>
                         )}
                       </div>
                     </div>

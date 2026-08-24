@@ -53,6 +53,7 @@ export default async function AdminMarketMakingPage() {
         importEvent: t('Import event (non-refundable)'),
         kuestFee: t('Kuest fee'),
         total: t('Total'),
+        estimated: t('Estimated'),
         continue: t('Continue'),
         connectWallet: t('Connect wallet to calculate'),
         calculating: t('Calculating live quote'),
@@ -98,6 +99,11 @@ export default async function AdminMarketMakingPage() {
         operatorVerificationPending: t('Check your inbox to verify your email.'),
         accountEmailRequired: t('An account email is required.'),
         accountSettings: t('Profile Settings'),
+        seriesBadge: t('30-day series'),
+        seriesTooltip: t('Sponsor every new market in this recurring series for 30 days.'),
+        sponsorSeries: t('Sponsor the 30-day series'),
+        sponsorSeriesDescription: t('Includes every new market created in this recurring series.'),
+        allRenewals: t('All renewals for 30 days'),
       }}
       campaignsCopy={{
         search: t('Search markets or events'),
@@ -184,6 +190,12 @@ export default async function AdminMarketMakingPage() {
         transactionRejected: t('You rejected the transaction.'),
         refundReadyToWithdraw: t('Refund ready to withdraw.'),
         close: t('Close'),
+        seriesBadge: t('30-day series'),
+        seriesTooltip: t('This campaign covers every new market in the recurring series for 30 days.'),
+        seriesScope: t('All eligible renewals through the service end are included.'),
+        seriesSlug: t('Series slug'),
+        campaignApi: t('Campaign API'),
+        seriesEventsApi: t('Series events API'),
       }}
       howItWorksCopy={{
         title: t('How sponsorship works'),

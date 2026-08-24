@@ -74,6 +74,19 @@ export interface MarketMakingCampaignRecord {
     conditionId: string
     title: string | null
   }>
+  scopeKind: 'event' | 'series'
+  seriesSlug: string | null
+  seriesRecurrence: string | null
+  creatorFilter: string | null
+  anchorEventSlug: string | null
+  seriesLeaseStatus: string | null
+  seriesLeaseEffectiveEnd: number | null
+  links: {
+    campaignApi: string
+    seriesEventsApi?: string
+    anchorMarketApi?: string | null
+    anchorMarketApis?: Array<{ conditionId: string; url: string }>
+  }
 }
 
 export interface MarketMakingCampaignsResponse {
