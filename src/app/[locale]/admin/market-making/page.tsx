@@ -102,8 +102,8 @@ export default async function AdminMarketMakingPage() {
         seriesBadge: t('30-day series'),
         seriesTooltip: t('Sponsor every new market in this recurring series for 30 days.'),
         sponsorSeries: t('Sponsor the 30-day series'),
-        sponsorSeriesDescription: t('Includes every new market created in this recurring series.'),
-        allRenewals: t('All renewals for 30 days'),
+        sponsorSeriesDescription: t('Includes all new markets in this series'),
+        allRenewals: t('All renewals included'),
       }}
       campaignsCopy={{
         search: t('Search markets or events'),
