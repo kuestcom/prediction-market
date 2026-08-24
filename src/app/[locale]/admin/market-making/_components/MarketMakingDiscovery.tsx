@@ -66,7 +66,11 @@ import {
   updateNotificationSettings,
 } from '@/lib/kuest-notifications'
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
-import { buildMarketMakerQuoteInput, requiredSponsorBalanceAtomic } from '@/lib/market-making-series'
+import {
+  buildMarketMakerQuoteInput,
+  requiredSponsorBalanceAtomic,
+  sponsorshipDurationSubtitle,
+} from '@/lib/market-making-series'
 import { hasUsableUserEmail } from '@/lib/user-email'
 import { cn } from '@/lib/utils'
 import { resolveViemNetworkByChainId } from '@/lib/viem-network'
@@ -1727,12 +1731,14 @@ function CampaignDialog({
                   </span>
                 </span>
                 <span className="mt-0.5 block text-sm text-muted-foreground">
-                  {sponsorSeries && !preview
-                    ? copy.allRenewals
-                    : formatDateTemplate(
-                        copy.untilDate,
-                        formatEndDate(preview ? new Date(preview.serviceEnd * 1000) : serviceEnd, locale),
-                      )}
+                  {sponsorshipDurationSubtitle({
+                    sponsorSeries,
+                    allRenewals: copy.allRenewals,
+                    dateLabel: formatDateTemplate(
+                      copy.untilDate,
+                      formatEndDate(preview ? new Date(preview.serviceEnd * 1000) : serviceEnd, locale),
+                    ),
+                  })}
                 </span>
               </span>
             </PopoverTrigger>

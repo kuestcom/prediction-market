@@ -48,6 +48,14 @@ export function displayedCostAtomic(costs: EscrowCostBreakdownLike): string | nu
   return costs.totalCostAtomic
 }
 
+export function sponsorshipDurationSubtitle(params: {
+  sponsorSeries: boolean
+  allRenewals: string
+  dateLabel: string
+}) {
+  return params.sponsorSeries ? params.allRenewals : params.dateLabel
+}
+
 export function requiredSponsorBalanceAtomic(
   costs: EscrowCostBreakdownLike,
   deploymentPaymentPending: boolean,
