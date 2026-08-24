@@ -13,6 +13,7 @@ import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/Event
 import EventIconImage from '@/components/EventIconImage'
 import { Link } from '@/i18n/navigation'
 import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
+import { resolveEventHeaderSubcategoryHref } from '@/lib/event-header-routing'
 import { isPlatformMainCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
@@ -79,7 +80,11 @@ function resolveEventHeaderTaxonomy({
     },
     subcategory: matchedSubcategory
       ? {
-          href: `/${resolvedMainSlug}/${normalizeTagSlug(matchedSubcategory.slug)}`,
+          href: resolveEventHeaderSubcategoryHref({
+            event,
+            mainSlug: resolvedMainSlug,
+            subcategorySlug: matchedSubcategory.slug,
+          }),
           label: matchedSubcategory.name.trim(),
         }
       : fallbackSubcategory

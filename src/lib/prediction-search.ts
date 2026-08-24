@@ -190,7 +190,8 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
   }
 
   for (const tag of tags) {
-    if (!isDynamicHomeCategorySlug(tag.slug)) {
+    const isDedicatedSportsCategory = tag.slug === 'sports' || tag.slug === 'esports'
+    if (!isDynamicHomeCategorySlug(tag.slug) && !isDedicatedSportsCategory) {
       continue
     }
 

@@ -23,6 +23,14 @@ const navigationTags = [
   },
 ] as const
 
+const sportsNavigationTags = [
+  {
+    slug: 'sports',
+    name: 'Sports',
+    childs: [{ slug: 'hcl', name: 'HCL' }],
+  },
+] as const
+
 describe('prediction search helpers', () => {
   it('builds a predictions route path from free-text input', () => {
     expect(buildPredictionResultsPath('Future Bets')).toBe('/predictions/future-bets')
@@ -45,6 +53,16 @@ describe('prediction search helpers', () => {
       mainTag: 'politics',
       query: '',
       tag: 'brazil',
+    })
+  })
+
+  it('resolves children of dedicated sports categories to prediction tag contexts', () => {
+    expect(resolvePredictionSearchContext(sportsNavigationTags as any, 'hcl')).toMatchObject({
+      kind: 'child-tag',
+      label: 'HCL',
+      mainTag: 'sports',
+      query: '',
+      tag: 'hcl',
     })
   })
 
