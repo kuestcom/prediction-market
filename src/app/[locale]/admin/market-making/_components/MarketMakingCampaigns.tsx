@@ -761,7 +761,12 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
   })
   const handledCampaignId = useRef<string | null>(null)
   useEffect(() => {
-    const latestCampaigns = [...(campaignsQuery.data?.data ?? []), ...(campaignLookupQuery.data?.data ?? [])]
+    if (lookupCampaignId) {
+      setSearch(lookupCampaignId)
+    }
+  }, [lookupCampaignId])
+  useEffect(() => {
+    const latestCampaigns = [...(campaignLookupQuery.data?.data ?? []), ...(campaignsQuery.data?.data ?? [])]
     const latestById = new Map(latestCampaigns.map((campaign) => [campaign.id, campaign]))
     setSelected((current) => (current ? (latestById.get(current.id) ?? null) : current))
     setCancelCampaign((current) => (current ? (latestById.get(current.id) ?? null) : current))
@@ -795,7 +800,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
   const campaigns = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
     const allCampaigns = new Map<string, MarketMakingCampaignRecord>()
-    for (const campaign of [...(campaignsQuery.data?.data ?? []), ...(campaignLookupQuery.data?.data ?? [])]) {
+    for (const campaign of [...(campaignLookupQuery.data?.data ?? []), ...(campaignsQuery.data?.data ?? [])]) {
       allCampaigns.set(campaign.id, campaign)
     }
     return [...allCampaigns.values()].filter((campaign) => {
@@ -824,11 +829,11 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
   ]
   const pendingWithdrawalAtomic = pendingWithdrawalsQuery.data ?? '0'
   const hasPendingWithdrawal = BigInt(pendingWithdrawalAtomic) > 0n
-  const lookupFoundInCampaigns = Boolean(
-    lookupCampaignId && campaignsQuery.data?.data.some((campaign) => campaign.id === lookupCampaignId),
-  )
-  const isLoading = campaignsQuery.isLoading || (campaignLookupQuery.isLoading && !lookupFoundInCampaigns)
-  const isError = campaignsQuery.isError || (campaignLookupQuery.isError && !lookupFoundInCampaigns)
+  const hasBulkCampaignData = (campaignsQuery.data?.data.length ?? 0) > 0
+  const hasLookupCampaignData = (campaignLookupQuery.data?.data.length ?? 0) > 0
+  const isLoading = campaignsQuery.isLoading || (campaignLookupQuery.isLoading && !hasBulkCampaignData)
+  const isError =
+    (campaignsQuery.isError && !hasLookupCampaignData) || (campaignLookupQuery.isError && !hasBulkCampaignData)
   const reasons: Array<{ id: DisputeReason; label: string }> = [
     { id: 'liquidity_unavailable', label: copy.liquidityUnavailable },
     { id: 'spread_exceeded', label: copy.spreadExceeded },
@@ -836,6 +841,25 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
     { id: 'maker_stopped', label: copy.makerStopped },
     { id: 'other', label: copy.other },
   ]
+
+  function resetCampaignLookup() {
+    handledCampaignId.current = null
+    setLookupId(null)
+    setLinkedCampaignId(null)
+  }
+
+  function closeCampaignDetail() {
+    setSelected(null)
+    resetCampaignLookup()
+  }
+
+  async function refreshCampaignData() {
+    await Promise.all([
+      campaignsQuery.refetch(),
+      pendingWithdrawalsQuery.refetch(),
+      ...(lookupCampaignId ? [campaignLookupQuery.refetch()] : []),
+    ])
+  }
 
   async function writeCampaign(functionName: 'cancelCampaign' | 'openDispute', campaign: MarketMakingCampaignRecord) {
     if (!isConnected || !address || !walletClient) {
@@ -872,7 +896,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
       if (receipt.status !== 'success') {
         throw new Error(copy.transactionFailed)
       }
-      await Promise.all([campaignsQuery.refetch(), pendingWithdrawalsQuery.refetch()])
+      await refreshCampaignData()
       toast.success(functionName === 'cancelCampaign' ? copy.refundReadyToWithdraw : copy.transactionConfirmed)
       return true
     } catch (error) {
@@ -914,7 +938,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
       if (receipt.status !== 'success') {
         throw new Error(copy.transactionFailed)
       }
-      await Promise.all([campaignsQuery.refetch(), pendingWithdrawalsQuery.refetch()])
+      await refreshCampaignData()
       toast.success(copy.transactionConfirmed)
     } catch (error) {
       if (isUserRejectedRequestError(error)) {
@@ -939,7 +963,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
               const value = event.target.value
               setSearch(value)
               if (!/^(0|[1-9][0-9]*)$/.test(value.trim())) {
-                setLookupId(null)
+                resetCampaignLookup()
               }
             }}
             onKeyDown={(event) => {
@@ -1063,7 +1087,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
           locale={locale}
           copy={copy}
           open
-          onOpenChange={(open) => !open && setSelected(null)}
+          onOpenChange={(open) => !open && closeCampaignDetail()}
           onCancel={() => setCancelCampaign(selected)}
           onDispute={() => {
             setDisputeReason(null)
@@ -1092,7 +1116,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
               onClick={async () => {
                 if (cancelCampaign && (await writeCampaign('cancelCampaign', cancelCampaign))) {
                   setCancelCampaign(null)
-                  setSelected(null)
+                  closeCampaignDetail()
                 }
               }}
             >
@@ -1142,7 +1166,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
               onClick={async () => {
                 if (disputeCampaign && disputeReason && (await writeCampaign('openDispute', disputeCampaign))) {
                   setDisputeCampaign(null)
-                  setSelected(null)
+                  closeCampaignDetail()
                 }
               }}
             >
