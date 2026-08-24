@@ -1,6 +1,6 @@
 import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 
-import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
+import { isDynamicHomeCategorySlug, PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS } from '@/lib/platform-routing'
 
 export interface SearchCategoryMatch {
   href: string
@@ -190,8 +190,9 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
   }
 
   for (const tag of tags) {
-    const isDedicatedSportsCategory = tag.slug === 'sports' || tag.slug === 'esports'
-    if (!isDynamicHomeCategorySlug(tag.slug) && !isDedicatedSportsCategory) {
+    const normalizedTagSlug = tag.slug.trim().toLowerCase()
+    const isDedicatedSportsCategory = PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS.has(normalizedTagSlug)
+    if (!isDynamicHomeCategorySlug(normalizedTagSlug) && !isDedicatedSportsCategory) {
       continue
     }
 
@@ -200,10 +201,10 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
         inputValue,
         kind: 'main-tag',
         label: tag.name,
-        mainTag: tag.slug,
+        mainTag: normalizedTagSlug,
         query: '',
         slug: normalizedSlug,
-        tag: tag.slug,
+        tag: normalizedTagSlug,
       }
     }
 
@@ -213,10 +214,10 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
         inputValue,
         kind: 'child-tag',
         label: matchingChild.name,
-        mainTag: tag.slug,
+        mainTag: normalizedTagSlug,
         query: '',
         slug: normalizedSlug,
-        tag: matchingChild.slug,
+        tag: slugifyPredictionSearchValue(matchingChild.slug),
       }
     }
   }

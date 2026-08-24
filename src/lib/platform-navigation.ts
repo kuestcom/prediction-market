@@ -1,3 +1,5 @@
+import { PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS } from '@/lib/platform-routing'
+
 export interface PlatformNavigationChild {
   name: string
   slug: string
@@ -144,8 +146,6 @@ export function parsePlatformPathname(
   const isHomePage = pathname === '/'
   const isMentionsPage = pathname === '/mentions'
   const isEventPathPage = pathname.startsWith('/event/')
-  const sportsLikeRootSlugs = new Set(['sports', 'esports'])
-
   if (pathSegments.length === 0) {
     return {
       isEventPathPage,
@@ -160,7 +160,7 @@ export function parsePlatformPathname(
   }
 
   const [candidate, subcategoryCandidate] = pathSegments
-  if (sportsLikeRootSlugs.has(candidate)) {
+  if (PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS.has(candidate)) {
     return {
       isEventPathPage,
       isHomeLikePage: true,

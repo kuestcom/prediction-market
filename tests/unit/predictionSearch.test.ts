@@ -25,9 +25,9 @@ const navigationTags = [
 
 const sportsNavigationTags = [
   {
-    slug: 'sports',
+    slug: ' Sports ',
     name: 'Sports',
-    childs: [{ slug: 'hcl', name: 'HCL' }],
+    childs: [{ slug: ' HCL ', name: 'HCL' }],
   },
 ] as const
 

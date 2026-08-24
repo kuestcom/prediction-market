@@ -19,7 +19,7 @@ const PLATFORM_RESERVED_ROOT_SLUGS = new Set([
 
 const PLATFORM_NON_CATEGORY_MAIN_TAG_SLUGS = new Set(['trending'])
 
-const PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS = new Set(['sports', 'esports'])
+export const PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS: ReadonlySet<string> = new Set(['sports', 'esports'])
 
 interface PlatformMainTagLike {
   slug: string

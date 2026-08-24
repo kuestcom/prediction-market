@@ -1,6 +1,6 @@
 import type { Event } from '@/types'
 
-const DEDICATED_SPORTS_ROOT_SLUGS = new Set(['sports', 'esports'])
+import { PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS } from '@/lib/platform-routing'
 
 function normalizeHeaderRouteSlug(value: string) {
   return value.trim().toLowerCase()
@@ -33,7 +33,7 @@ export function resolveEventHeaderSubcategoryHref({
     return null
   }
 
-  if (DEDICATED_SPORTS_ROOT_SLUGS.has(normalizedMainSlug) && !hasStructuredSportsMetadata(event)) {
+  if (PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS.has(normalizedMainSlug) && !hasStructuredSportsMetadata(event)) {
     return `/predictions/${normalizedSubcategorySlug}`
   }
 
