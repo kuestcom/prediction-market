@@ -11,6 +11,16 @@ export interface SeriesQuoteInputParams {
   creatorFilter?: string | null
 }
 
+export function marketImportStorageKey(params: {
+  chainId: number
+  wallet: string
+  eventSlug: string
+  sponsorSeries: boolean
+}) {
+  const legacyEventKey = `kuest-market-import:${params.chainId}:${params.wallet.toLowerCase()}:${params.eventSlug}`
+  return params.sponsorSeries ? `${legacyEventKey}:series` : legacyEventKey
+}
+
 export function buildMarketMakerQuoteInput(params: SeriesQuoteInputParams): Record<string, unknown> {
   const input: Record<string, unknown> = {
     sponsor: params.sponsor,

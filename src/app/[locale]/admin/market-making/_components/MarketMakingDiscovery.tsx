@@ -68,6 +68,7 @@ import {
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
 import {
   buildMarketMakerQuoteInput,
+  marketImportStorageKey,
   requiredSponsorBalanceAtomic,
   sponsorshipDurationSubtitle,
 } from '@/lib/market-making-series'
@@ -1102,7 +1103,12 @@ function CampaignDialog({
   const activeEmailWallet = useRef(address)
   const importStorageKey =
     address && item.slug
-      ? `kuest-market-import:${chainId}:${address.toLowerCase()}:${item.slug}:${sponsorSeries ? 'series' : 'event'}`
+      ? marketImportStorageKey({
+          chainId,
+          wallet: address,
+          eventSlug: item.slug,
+          sponsorSeries,
+        })
       : null
   const importPaymentStorageKey = importStorageKey ? `${importStorageKey}:payment` : null
   const [pendingImportPaymentHash, setPendingImportPaymentHash] = useState<string | null>(null)

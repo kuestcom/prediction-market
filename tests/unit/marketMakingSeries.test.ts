@@ -12,12 +12,28 @@ import {
 import {
   buildMarketMakerQuoteInput,
   displayedCostAtomic,
+  marketImportStorageKey,
   requiredSponsorBalanceAtomic,
   seriesMarketDataSummary,
   sponsorshipDurationSubtitle,
 } from '@/lib/market-making-series'
 
 describe('series market-making helpers', () => {
+  it('preserves legacy event import keys and isolates series imports', () => {
+    const params = {
+      chainId: 80002,
+      wallet: '0x00000000000000000000000000000000000000AB',
+      eventSlug: 'bitcoin-up-or-down',
+    }
+
+    expect(marketImportStorageKey({ ...params, sponsorSeries: false })).toBe(
+      'kuest-market-import:80002:0x00000000000000000000000000000000000000ab:bitcoin-up-or-down',
+    )
+    expect(marketImportStorageKey({ ...params, sponsorSeries: true })).toBe(
+      'kuest-market-import:80002:0x00000000000000000000000000000000000000ab:bitcoin-up-or-down:series',
+    )
+  })
+
   it('keeps the selected event end when series sponsorship is disabled', () => {
     expect(
       buildMarketMakerQuoteInput({
