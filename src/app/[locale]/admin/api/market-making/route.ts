@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server'
 
-import { and, desc, eq, gt, ilike, inArray, notInArray, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, ilike, inArray, isNotNull, notInArray, or, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
 import type {
@@ -203,6 +203,7 @@ async function fetchPolymarketEvents(search: string, limit: number, minimumEnd: 
 async function listKuestEvents(
   search: string,
   excludedCreatorAddresses: string[],
+  hiddenMirrorCreatorAddresses: string[],
   limit: number,
   minimumEnd: Date,
   seriesMinimumEnd: Date,
@@ -223,10 +224,23 @@ async function listKuestEvents(
           excludedCreatorAddresses.map((address) => address.toLowerCase()),
         )
       : undefined
+  const visibilityCondition =
+    hiddenMirrorCreatorAddresses.length > 0
+      ? or(
+          eq(events.is_hidden, false),
+          and(
+            inArray(
+              sql<string>`LOWER(COALESCE(${events.creator}, ''))`,
+              hiddenMirrorCreatorAddresses.map((address) => address.toLowerCase()),
+            ),
+            isNotNull(markets.polymarket_condition_id),
+          ),
+        )
+      : eq(events.is_hidden, false)
   const openMarketCondition = and(
     eq(markets.is_active, true),
     eq(markets.is_resolved, false),
-    eq(events.is_hidden, false),
+    visibilityCondition,
     or(
       gt(markets.end_time, minimumEnd),
       and(sql`TRIM(COALESCE(${events.series_slug}, '')) <> ''`, gt(markets.end_time, seriesMinimumEnd)),
@@ -444,6 +458,7 @@ export async function GET(request: NextRequest) {
       ? listKuestEvents(
           search,
           source === 'mine' ? polySyncerCreatorAddresses : [],
+          polySyncerCreatorAddresses,
           limit,
           kuestMinimumEnd,
           seriesMinimumEnd,
