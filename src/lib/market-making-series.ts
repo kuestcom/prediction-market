@@ -55,7 +55,7 @@ export interface EscrowCostBreakdownLike {
 }
 
 export function displayedCostAtomic(costs: EscrowCostBreakdownLike): string | null {
-  return costs.totalCostAtomic
+  return costs.initialDeploymentFeePaid ? costs.campaignFundingTotalAtomic : costs.totalCostAtomic
 }
 
 export function sponsorshipDurationSubtitle(params: {

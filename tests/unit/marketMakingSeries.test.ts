@@ -94,6 +94,7 @@ describe('series market-making helpers', () => {
       totalCostStatus: 'final' as const,
     }
     expect(displayedCostAtomic(costs)).toBe('905000000')
+    expect(displayedCostAtomic({ ...costs, initialDeploymentFeePaid: true })).toBe('900000000')
     expect(requiredSponsorBalanceAtomic(costs, true)).toBe(905000000n)
     expect(requiredSponsorBalanceAtomic({ ...costs, initialDeploymentFeePaid: true }, false)).toBe(900000000n)
   })

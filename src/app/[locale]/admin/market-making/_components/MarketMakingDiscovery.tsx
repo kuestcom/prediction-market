@@ -68,6 +68,7 @@ import {
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
 import {
   buildMarketMakerQuoteInput,
+  displayedCostAtomic,
   marketImportStorageKey,
   requiredSponsorBalanceAtomic,
   sponsorshipDurationSubtitle,
@@ -1199,7 +1200,9 @@ function CampaignDialog({
   const importReady = importValue !== null && ['ready', 'activated'].includes(importValue.state)
   const costs = preview?.costs ?? null
   const initialDeploymentFeeAtomic = importValue?.costs.initialDeploymentFeeAtomic ?? costs?.initialDeploymentFeeAtomic
-  const deploymentFeePending = usesImportFlow && !(importValue?.costs.initialDeploymentFeePaid ?? false)
+  const initialDeploymentFeePaid =
+    importValue?.costs.initialDeploymentFeePaid ?? costs?.initialDeploymentFeePaid ?? false
+  const deploymentFeePending = usesImportFlow && !initialDeploymentFeePaid
   const importPaymentRequired =
     usesImportFlow &&
     !pendingImportPaymentHash &&
@@ -1207,6 +1210,7 @@ function CampaignDialog({
   const requiredBalanceAtomic = costs
     ? requiredSponsorBalanceAtomic(costs, importPaymentRequired && deploymentFeePending)
     : null
+  const displayedTotalAtomic = costs ? displayedCostAtomic({ ...costs, initialDeploymentFeePaid }) : null
   const sponsorBalanceQuery = useQuery({
     queryKey: ['market-making-sponsor-usdc-balance', chainId, address?.toLowerCase()],
     enabled: open && Boolean(address && publicClient),
@@ -1835,7 +1839,7 @@ function CampaignDialog({
               <LoaderCircleIcon className="size-4 animate-spin" />
               {copy.calculating}
             </div>
-          ) : previewQuery.isError || !breakdown || !costs || costs.totalCostAtomic === null ? (
+          ) : previewQuery.isError || !breakdown || !costs || displayedTotalAtomic === null ? (
             <div className="flex min-h-[138px] items-center rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
               {copy.quoteUnavailable}
             </div>
@@ -1853,7 +1857,7 @@ function CampaignDialog({
                   <span className="text-muted-foreground">{copy.kuestFee}</span>
                   <span className="font-medium">{formatUsdcString(breakdown.protocolFee, locale)}</span>
                 </div>
-                {usesImportFlow && (
+                {deploymentFeePending && (
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">{copy.importEvent}</span>
                     <span className="font-medium">{formatUsdcAtomic(initialDeploymentFeeAtomic, locale)}</span>
@@ -1865,7 +1869,7 @@ function CampaignDialog({
                       ? copy.estimated
                       : copy.total}
                   </span>
-                  <span>{formatUsdcAtomic(costs.totalCostAtomic, locale)}</span>
+                  <span>{formatUsdcAtomic(displayedTotalAtomic, locale)}</span>
                 </div>
               </div>
             </section>
