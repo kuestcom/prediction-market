@@ -88,6 +88,25 @@ async function fetchIndexedCampaigns(url: string): Promise<IndexedCampaignsRespo
   }
 }
 
+async function fetchIndexedCampaign(url: string): Promise<IndexedCampaign | null | 'error'> {
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8_000),
+    })
+    if (response.status === 404) {
+      return null
+    }
+    if (!response.ok) {
+      return 'error'
+    }
+    return (await response.json()) as IndexedCampaign
+  } catch {
+    return 'error'
+  }
+}
+
 function resolveImageUrl(value: string | null | undefined) {
   const normalized = value?.trim()
   if (!normalized) {
@@ -115,7 +134,7 @@ function indexedTerms(value: EscrowTermsValue | undefined) {
   return (value && typeof value === 'object' && !Array.isArray(value) ? value : {}) as IndexedTerms
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const currentUser = await UserRepository.getCurrentUser({ minimal: true })
     if (!currentUser || !currentUser.is_admin) {
@@ -127,14 +146,31 @@ export async function GET() {
 
     const { escrowUrl } = resolvePublicRuntimeEnv(process.env)
     const escrowBaseUrl = escrowUrl.replace(/\/+$/, '')
-    const indexedResponse = await fetchIndexedCampaigns(
-      `${escrowBaseUrl}/api/campaigns?sponsor=${encodeURIComponent(currentUser.address)}&limit=100`,
-    )
-    if (!indexedResponse) {
-      return NextResponse.json({ error: 'Campaign index is unavailable.' }, { status: 502 })
+    const campaignId = new URL(request.url).searchParams.get('campaign')
+    let indexedCampaigns: IndexedCampaign[]
+    if (campaignId !== null) {
+      if (!/^(0|[1-9][0-9]*)$/.test(campaignId)) {
+        return NextResponse.json({ error: 'Campaign ID is invalid.' }, { status: 400 })
+      }
+      const indexedCampaign = await fetchIndexedCampaign(
+        `${escrowBaseUrl}/api/campaigns/${encodeURIComponent(campaignId)}`,
+      )
+      if (indexedCampaign === 'error') {
+        return NextResponse.json({ error: 'Campaign index is unavailable.' }, { status: 502 })
+      }
+      if (!indexedCampaign || indexedCampaign.sponsor.toLowerCase() !== currentUser.address.toLowerCase()) {
+        return NextResponse.json({ error: 'Campaign not found.' }, { status: 404 })
+      }
+      indexedCampaigns = [indexedCampaign]
+    } else {
+      const indexedResponse = await fetchIndexedCampaigns(
+        `${escrowBaseUrl}/api/campaigns?sponsor=${encodeURIComponent(currentUser.address)}&limit=100`,
+      )
+      if (!indexedResponse) {
+        return NextResponse.json({ error: 'Campaign index is unavailable.' }, { status: 502 })
+      }
+      indexedCampaigns = indexedResponse.data ?? []
     }
-
-    const indexedCampaigns = indexedResponse.data ?? []
     const conditionIds = [
       ...new Set(
         indexedCampaigns.flatMap((campaign) => campaign.markets.map((market) => market.conditionId.toLowerCase())),

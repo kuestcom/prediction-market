@@ -2122,10 +2122,21 @@ export default function MarketMakingDiscovery({
   campaignsCopy,
   howItWorksCopy,
 }: MarketMakingDiscoveryProps) {
+  const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<MarketMakingSourceFilter>('all')
+  const [activeTab, setActiveTab] = useState<'sponsor' | 'campaigns'>('sponsor')
   const [selectedMarket, setSelectedMarket] = useState<MarketMakingDiscoveryItem | null>(null)
   const [howItWorksOpen, setHowItWorksOpen] = useState(false)
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get('campaign')
+    setLinkedCampaignId(value && /^(0|[1-9][0-9]*)$/.test(value) ? value : null)
+  }, [])
+  useEffect(() => {
+    if (linkedCampaignId && /^(0|[1-9][0-9]*)$/.test(linkedCampaignId)) {
+      setActiveTab('campaigns')
+    }
+  }, [linkedCampaignId])
   const deferredQuery = useDeferredValue(query.trim())
   const filters = useMemo(
     () => [
@@ -2138,6 +2149,7 @@ export default function MarketMakingDiscovery({
   )
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: ['admin-market-making', source, deferredQuery],
+    enabled: activeTab === 'sponsor',
     staleTime: 60_000,
     queryFn: async () => {
       const params = new URLSearchParams({ source, limit: '18' })
@@ -2154,7 +2166,7 @@ export default function MarketMakingDiscovery({
 
   return (
     <section className="min-h-[calc(100dvh-6rem)] min-w-0">
-      <Tabs defaultValue="sponsor">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'sponsor' | 'campaigns')}>
         <div className="flex items-center justify-between gap-3">
           <TabsList className="h-10">
             <TabsTrigger value="sponsor" className="h-8 px-5">
