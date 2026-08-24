@@ -60,9 +60,18 @@ describe('prediction search helpers', () => {
     expect(resolvePredictionSearchContext(sportsNavigationTags as any, 'hcl')).toMatchObject({
       kind: 'child-tag',
       label: 'HCL',
-      mainTag: 'sports',
+      mainTag: ' Sports ',
       query: '',
-      tag: 'hcl',
+      tag: ' HCL ',
+    })
+  })
+
+  it('preserves stored parent slugs while matching normalized routes', () => {
+    expect(resolvePredictionSearchContext(sportsNavigationTags as any, 'sports')).toMatchObject({
+      kind: 'main-tag',
+      mainTag: ' Sports ',
+      query: '',
+      tag: ' Sports ',
     })
   })
 

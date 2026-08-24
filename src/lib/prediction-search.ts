@@ -201,10 +201,10 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
         inputValue,
         kind: 'main-tag',
         label: tag.name,
-        mainTag: normalizedTagSlug,
+        mainTag: tag.slug,
         query: '',
         slug: normalizedSlug,
-        tag: normalizedTagSlug,
+        tag: tag.slug,
       }
     }
 
@@ -214,10 +214,10 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
         inputValue,
         kind: 'child-tag',
         label: matchingChild.name,
-        mainTag: normalizedTagSlug,
+        mainTag: tag.slug,
         query: '',
         slug: normalizedSlug,
-        tag: slugifyPredictionSearchValue(matchingChild.slug),
+        tag: matchingChild.slug,
       }
     }
   }
