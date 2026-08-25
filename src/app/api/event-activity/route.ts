@@ -104,6 +104,7 @@ export async function GET(request: Request) {
   const parsedCursorTimestamp = Number.parseInt(cursorTimestampValue || '', 10)
   const cursorId = searchParams.get('cursorId')?.trim() || ''
   const cursorUser = searchParams.get('cursorUser')?.trim().toLowerCase() || ''
+  const parsedStart = Number.parseInt(searchParams.get('start') || '', 10)
 
   const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 50) : EVENT_ACTIVITY_PAGE_SIZE
   const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0
@@ -144,6 +145,9 @@ export async function GET(request: Request) {
       params.set('cursorTimestamp', parsedCursorTimestamp.toString())
       params.set('cursorId', cursorId)
       params.set('cursorUser', cursorUser)
+    }
+    if (Number.isFinite(parsedStart) && parsedStart > 0) {
+      params.set('start', parsedStart.toString())
     }
 
     const response = await fetch(`${dataApiUrl}/trades?${params.toString()}`)

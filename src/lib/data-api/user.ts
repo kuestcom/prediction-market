@@ -323,7 +323,7 @@ export async function fetchUserOtherBalance({
   }))
 }
 
-function mapDataApiPositionToUserPosition(position: DataApiPosition, status: 'active' | 'closed'): UserPosition {
+export function mapDataApiPositionToUserPosition(position: DataApiPosition, status: 'active' | 'closed'): UserPosition {
   const slug = position.slug || position.conditionId || 'unknown-market'
   const eventSlug = position.eventSlug || slug
   const timestampMs = typeof position.timestamp === 'number' ? position.timestamp * 1000 : Date.now()
@@ -334,11 +334,13 @@ function mapDataApiPositionToUserPosition(position: DataApiPosition, status: 'ac
   const realizedValue = Number.isFinite(position.realizedPnl) ? Number(position.realizedPnl) : currentValue
   const normalizedValue = status === 'closed' ? realizedValue : currentValue
   const derivedCostFromCash = Number.isFinite(position.cashPnl) ? normalizedValue - Number(position.cashPnl) : undefined
-  const baseCost = Number.isFinite(position.totalBought)
-    ? Number(position.totalBought)
-    : Number.isFinite(position.initialValue)
-      ? Number(position.initialValue)
-      : derivedCostFromCash
+  const baseCost = Number.isFinite(position.initialValue)
+    ? Number(position.initialValue)
+    : Number.isFinite(derivedCostFromCash)
+      ? Number(derivedCostFromCash)
+      : Number.isFinite(position.totalBought)
+        ? Number(position.totalBought) * avgPrice
+        : undefined
   const fallbackCost = size != null ? size * avgPrice : normalizedValue
   const normalizedCost = Math.max(0, Number.isFinite(baseCost) && baseCost != null ? Number(baseCost) : fallbackCost)
   const pnlValueRaw = Number.isFinite(position.cashPnl) ? Number(position.cashPnl) : normalizedValue - normalizedCost
@@ -348,11 +350,7 @@ function mapDataApiPositionToUserPosition(position: DataApiPosition, status: 'ac
     : normalizedCost > 0
       ? (pnlValueRaw / normalizedCost) * 100
       : 0
-  const normalizedPercent = Number.isFinite(percentPnlRaw)
-    ? hasPercentPnl && Math.abs(percentPnlRaw) <= 1
-      ? percentPnlRaw * 100
-      : percentPnlRaw
-    : 0
+  const normalizedPercent = Number.isFinite(percentPnlRaw) ? percentPnlRaw : 0
 
   const orderCount =
     typeof position.orderCount === 'number'

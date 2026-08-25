@@ -1,0 +1,71 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+import { fetchPortfolioSnapshot } from '@/lib/portfolio'
+
+describe('fetchPortfolioSnapshot', () => {
+  const originalDataUrl = process.env.DATA_URL
+  const originalUserPnlUrl = process.env.USER_PNL_URL
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    if (originalDataUrl === undefined) {
+      delete process.env.DATA_URL
+    } else {
+      process.env.DATA_URL = originalDataUrl
+    }
+    if (originalUserPnlUrl === undefined) {
+      delete process.env.USER_PNL_URL
+    } else {
+      process.env.USER_PNL_URL = originalUserPnlUrl
+    }
+  })
+
+  it('uses the one-day PnL change and requests only the biggest closed position', async () => {
+    process.env.DATA_URL = 'https://data-api.test'
+    process.env.USER_PNL_URL = 'https://user-pnl.test'
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : input instanceof URL ? input.toString() : input)
+      if (url.pathname === '/value') {
+        return Response.json([{ value: 25 }])
+      }
+      if (url.pathname === '/traded') {
+        return Response.json({ traded: 75 })
+      }
+      if (url.pathname === '/user-pnl') {
+        return Response.json([
+          { t: 200, p: 27.5 },
+          { t: 100, p: 20 },
+        ])
+      }
+      if (url.pathname === '/closed-positions') {
+        return Response.json([{ realizedPnl: 99 }])
+      }
+      return new Response(null, { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(fetchPortfolioSnapshot(`0x${'a'.repeat(40)}`)).resolves.toEqual({
+      positionsValue: 25,
+      profitLoss: 7.5,
+      predictions: 75,
+      biggestWin: 99,
+    })
+
+    const urls = fetchMock.mock.calls.map(
+      ([input]) => new URL(input instanceof Request ? input.url : input instanceof URL ? input.toString() : input),
+    )
+    const closedUrls = urls.filter((url) => url.pathname === '/closed-positions')
+    expect(closedUrls).toHaveLength(1)
+    expect(Object.fromEntries(closedUrls[0].searchParams)).toEqual({
+      limit: '1',
+      offset: '0',
+      sortBy: 'REALIZEDPNL',
+      sortDirection: 'DESC',
+      user: `0x${'a'.repeat(40)}`,
+    })
+    const pnlUrl = urls.find((url) => url.pathname === '/user-pnl')
+    expect(pnlUrl?.searchParams.get('interval')).toBe('1d')
+    expect(pnlUrl?.searchParams.get('fidelity')).toBe('1h')
+  })
+})

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
+import { mapDataApiActivityToActivityOrder, mapDataApiPositionToUserPosition } from '@/lib/data-api/user'
 
 describe('mapDataApiActivityToActivityOrder', () => {
   it('preserves the data-api event id for deterministic pagination', () => {
@@ -70,5 +70,28 @@ describe('mapDataApiActivityToActivityOrder', () => {
     expect(activity.type).toBe('loss')
     expect(activity.outcome.text).toBe('Outcome')
     expect(activity.total_value).toBe(0)
+  })
+})
+
+describe('mapDataApiPositionToUserPosition', () => {
+  it('keeps Polymarket percentage points and treats totalBought as shares', () => {
+    const position = mapDataApiPositionToUserPosition(
+      {
+        conditionId: 'condition-1',
+        size: 417.0593,
+        avgPrice: 0.6524,
+        initialValue: 272.1183,
+        currentValue: 264.8327,
+        cashPnl: -7.2856,
+        percentPnl: -0.9426,
+        totalBought: 1525.0593,
+        realizedPnl: 0,
+      },
+      'active',
+    )
+
+    expect(position.total_position_cost).toBe(272_118_300)
+    expect(position.profit_loss_percent).toBe(-0.9426)
+    expect(position.totalBought).toBe(1525.0593)
   })
 })

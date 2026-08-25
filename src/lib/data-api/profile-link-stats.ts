@@ -7,7 +7,7 @@ export interface ProfileLinkStats {
   positionsValue: number
 }
 
-const CACHE_TTL_MS = 5 * 60 * 1000
+const CACHE_TTL_MS = 2_000
 const CACHE_MAX_ENTRIES = 200
 
 interface ProfileLinkStatsRequestOptions {

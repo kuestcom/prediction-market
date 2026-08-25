@@ -70,6 +70,7 @@ describe('useEventActivityPolling', () => {
       pageParam: 0,
       pageSize: EVENT_ACTIVITY_REFRESH_SIZE,
       minAmountFilter: 'none',
+      start: expect.any(Number),
       signal: expect.any(AbortSignal),
     })
     expect(onActivities).toHaveBeenCalledWith(activities)

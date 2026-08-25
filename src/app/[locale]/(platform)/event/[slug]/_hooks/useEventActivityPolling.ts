@@ -53,6 +53,7 @@ export function useEventActivityPolling({
             pageParam: 0,
             pageSize: EVENT_ACTIVITY_REFRESH_SIZE,
             minAmountFilter,
+            start: Math.floor(Date.now() / 1000) - 30 * 60,
             signal: controller.signal,
           })
 

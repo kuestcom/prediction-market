@@ -15,11 +15,14 @@ interface FetchEventTradesParams {
   cursorId?: string
   cursorUser?: string
   minAmountFilter?: string
+  start?: number
   signal?: AbortSignal
 }
 
 export const EVENT_ACTIVITY_PAGE_SIZE = 10
 export const EVENT_ACTIVITY_REFRESH_SIZE = 50
+const EVENT_ACTIVITY_MARKETS_PER_REQUEST = 50
+const EVENT_ACTIVITY_BATCH_CONCURRENCY = 4
 
 export async function fetchEventTrades({
   marketIds,
@@ -29,6 +32,7 @@ export async function fetchEventTrades({
   cursorId,
   cursorUser,
   minAmountFilter,
+  start,
   signal,
 }: FetchEventTradesParams): Promise<ActivityOrder[]> {
   const markets = Array.from(new Set(marketIds.filter(Boolean)))
@@ -52,6 +56,86 @@ export async function fetchEventTrades({
     throw new Error('cursorTimestamp, cursorId, and cursorUser must be provided together.')
   }
 
+  const marketBatches = Array.from(
+    { length: Math.ceil(markets.length / EVENT_ACTIVITY_MARKETS_PER_REQUEST) },
+    (_, index) =>
+      markets.slice(index * EVENT_ACTIVITY_MARKETS_PER_REQUEST, (index + 1) * EVENT_ACTIVITY_MARKETS_PER_REQUEST),
+  )
+  const pages = await mapWithConcurrency(marketBatches, EVENT_ACTIVITY_BATCH_CONCURRENCY, (batch) =>
+    fetchEventTradesBatch({
+      markets: batch,
+      pageParam,
+      normalizedPageSize,
+      normalizedCursorTimestamp,
+      normalizedCursorId,
+      normalizedCursorUser,
+      hasFilterAmount,
+      parsedFilterAmount,
+      start,
+      signal,
+    }),
+  )
+  const deduped = new Map<string, ActivityOrder>()
+  for (const activity of pages.flat()) {
+    if (!deduped.has(activity.id)) {
+      deduped.set(activity.id, activity)
+    }
+  }
+  const merged = [...deduped.values()].sort((a, b) => {
+    const timestamp = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    if (timestamp !== 0) {
+      return timestamp
+    }
+    const eventId = String(b.event_id || b.id).localeCompare(String(a.event_id || a.id))
+    if (eventId !== 0) {
+      return eventId
+    }
+    return String(b.user.address || b.user.id).localeCompare(String(a.user.address || a.user.id))
+  })
+  return filterActivitiesByMinAmount(merged.slice(0, normalizedPageSize), minAmountMicro)
+}
+
+async function mapWithConcurrency<Input, Output>(
+  items: Input[],
+  concurrency: number,
+  mapper: (item: Input) => Promise<Output>,
+): Promise<Output[]> {
+  const results = Array.from({ length: items.length }) as Output[]
+  let nextIndex = 0
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex
+      nextIndex += 1
+      results[index] = await mapper(items[index])
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
+async function fetchEventTradesBatch({
+  markets,
+  pageParam,
+  normalizedPageSize,
+  normalizedCursorTimestamp,
+  normalizedCursorId,
+  normalizedCursorUser,
+  hasFilterAmount,
+  parsedFilterAmount,
+  start,
+  signal,
+}: {
+  markets: string[]
+  pageParam: number
+  normalizedPageSize: number
+  normalizedCursorTimestamp?: number
+  normalizedCursorId?: string
+  normalizedCursorUser?: string
+  hasFilterAmount: boolean
+  parsedFilterAmount: number
+  start?: number
+  signal?: AbortSignal
+}): Promise<ActivityOrder[]> {
   if (IS_BROWSER) {
     const params = new URLSearchParams({
       limit: normalizedPageSize.toString(),
@@ -62,6 +146,9 @@ export async function fetchEventTrades({
 
     if (hasFilterAmount) {
       params.set('filterAmount', parsedFilterAmount.toString())
+    }
+    if (Number.isFinite(start) && Number(start) > 0) {
+      params.set('start', Math.trunc(Number(start)).toString())
     }
     if (normalizedCursorTimestamp !== undefined && normalizedCursorId && normalizedCursorUser) {
       params.set('cursorTimestamp', normalizedCursorTimestamp.toString())
@@ -82,7 +169,7 @@ export async function fetchEventTrades({
       throw new TypeError('Unexpected response from event activity API.')
     }
 
-    return filterActivitiesByMinAmount(result as ActivityOrder[], minAmountMicro)
+    return result as ActivityOrder[]
   }
 
   const params = new URLSearchParams({
@@ -95,6 +182,9 @@ export async function fetchEventTrades({
   if (hasFilterAmount) {
     params.set('filterType', 'CASH')
     params.set('filterAmount', parsedFilterAmount.toString())
+  }
+  if (Number.isFinite(start) && Number(start) > 0) {
+    params.set('start', Math.trunc(Number(start)).toString())
   }
   if (normalizedCursorTimestamp !== undefined && normalizedCursorId && normalizedCursorUser) {
     params.set('cursorTimestamp', normalizedCursorTimestamp.toString())
@@ -116,5 +206,5 @@ export async function fetchEventTrades({
   }
 
   const activities = (result as DataApiActivity[]).map(mapDataApiActivityToActivityOrder)
-  return filterActivitiesByMinAmount(activities, minAmountMicro)
+  return activities
 }
