@@ -38,7 +38,13 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { Link } from '@/i18n/navigation'
 import { MARKET_MAKER_ESCROW_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
-import { ESCROW_CAMPAIGN_STATUS, getEffectiveCampaignStatus, MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
+import {
+  ESCROW_CAMPAIGN_STATUS,
+  getEffectiveCampaignStatus,
+  MARKET_MAKER_ESCROW_ABI,
+  resolutionDecisionForHash,
+  resolutionDecisionCodeForHash,
+} from '@/lib/market-maker-escrow'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError } from '@/lib/wallet'
 
@@ -121,6 +127,9 @@ export interface MarketMakingCampaignsCopy {
   close: string
   seriesBadge: string
   seriesTooltip: string
+  decision: string
+  resolutionDecisions: Record<string, string>
+  customDecision: string
 }
 
 interface Props {
@@ -432,6 +441,9 @@ function CampaignDetail({
   const earnedProtocolFee = reward === 0n ? 0n : (protocolFee * rewardToMaker) / reward
   const sponsorRefund = rewardRefund + BigInt(campaign.bondToSponsorAtomic) + (protocolFee - earnedProtocolFee)
   const submittedReason = disputeReasonLabel(campaign, copy)
+  const resolutionCode = resolutionDecisionCodeForHash(campaign.decisionHash)
+  const resolutionCanonical = resolutionDecisionForHash(campaign.decisionHash)
+  const resolutionDecision = resolutionCode ? (copy.resolutionDecisions[resolutionCode] ?? resolutionCanonical) : null
   const cancelledRefund = BigInt(campaign.refundableAtomic)
   const hasPendingWithdrawal = pendingWithdrawalAtomic !== null && BigInt(pendingWithdrawalAtomic) > 0n
   const isCompleted =
@@ -594,6 +606,15 @@ function CampaignDetail({
                 <div className="mt-1 font-semibold">{formatUsdc(sponsorRefund.toString(), locale)}</div>
               </div>
             </div>
+            {campaign.decisionHash && (
+              <div className="mt-3 text-sm">
+                <div className="text-muted-foreground">{copy.decision}</div>
+                <div className="mt-1 font-medium">{resolutionDecision ?? copy.customDecision}</div>
+                {!resolutionCode && (
+                  <code className="mt-1 block text-xs break-all text-muted-foreground">{campaign.decisionHash}</code>
+                )}
+              </div>
+            )}
           </div>
         )}
 

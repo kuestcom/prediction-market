@@ -190,6 +190,31 @@ export default async function AdminMarketMakingPage() {
         close: t('Close'),
         seriesBadge: t('30-day series'),
         seriesTooltip: t('This campaign covers every new market in the recurring series for 30 days.'),
+        decision: t('Decision'),
+        customDecision: t('Custom decision'),
+        resolutionDecisions: {
+          liquidity_unavailable_upheld: t('Liquidity was unavailable for a material part of the service period.'),
+          liquidity_unavailable_rejected: t('Liquidity availability remained within the agreed requirement.'),
+          spread_exceeded_upheld: t(
+            'The spread exceeded the agreed maximum for a material part of the service period.',
+          ),
+          spread_exceeded_rejected: t('The spread remained within the agreed maximum.'),
+          depth_too_low_upheld: t(
+            'Buy or sell depth remained below the agreed amount for a material part of the service period.',
+          ),
+          depth_too_low_rejected: t('Buy and sell depth remained within the agreed requirement.'),
+          maker_stopped_upheld: t('The market maker stopped providing liquidity before the service period ended.'),
+          maker_stopped_rejected: t('Liquidity was provided throughout the required service period.'),
+          material_breach_upheld: t('The evidence shows a material breach of the agreed terms.'),
+          insufficient_evidence: t('The dispute did not include convincing evidence of a material breach.'),
+          partial_period: t(
+            'The service was provided for only part of the agreed period; payment was allocated proportionally.',
+          ),
+          partial_compliance: t(
+            'The service was partially compliant; payment was reduced to reflect the measured shortfall.',
+          ),
+          custom: t('Custom decision'),
+        },
       }}
       howItWorksCopy={{
         title: t('How sponsorship works'),

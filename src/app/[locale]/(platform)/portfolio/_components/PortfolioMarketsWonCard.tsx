@@ -139,6 +139,7 @@ async function fetchDataApiPositions(address: string): Promise<DataApiPosition[]
       limit: limit.toString(),
       offset: offset.toString(),
       sizeThreshold: '0.01',
+      redeemable: 'true',
     })
 
     let response: Response
