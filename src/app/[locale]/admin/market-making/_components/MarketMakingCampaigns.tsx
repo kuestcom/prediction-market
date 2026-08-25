@@ -90,8 +90,6 @@ export interface MarketMakingCampaignsCopy {
   hoursLeft: string
   dayCount: string
   hourCount: string
-  serviceInProgress: string
-  progressDays: string
   waitingForMaker: string
   cancellationHelp: string
   cancelSponsorship: string
@@ -123,10 +121,6 @@ export interface MarketMakingCampaignsCopy {
   close: string
   seriesBadge: string
   seriesTooltip: string
-  seriesScope: string
-  seriesSlug: string
-  campaignApi: string
-  seriesEventsApi: string
 }
 
 interface Props {
@@ -331,10 +325,21 @@ function DetailItem({ label, value }: { label: string; value: React.ReactNode })
   )
 }
 
-function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+function DetailSection({
+  title,
+  aside,
+  children,
+}: {
+  title: string
+  aside?: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section className="rounded-xl border p-4">
-      <h3 className="mb-3 text-sm font-semibold">{title}</h3>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {aside && <span className="text-xs text-muted-foreground">{aside}</span>}
+      </div>
       {children}
     </section>
   )
@@ -420,8 +425,6 @@ function CampaignDetail({
     (campaign.status === ESCROW_CAMPAIGN_STATUS.active || campaign.status === ESCROW_CAMPAIGN_STATUS.review) &&
     now >= campaign.serviceStart &&
     now < campaign.claimableAt
-  const totalServiceDays = Math.max(1, Math.ceil((campaign.serviceEnd - campaign.serviceStart) / 86_400))
-  const elapsedServiceDays = Math.min(totalServiceDays, Math.max(0, Math.ceil((now - campaign.serviceStart) / 86_400)))
   const reward = BigInt(campaign.rewardAtomic)
   const rewardToMaker = BigInt(campaign.rewardToMakerAtomic)
   const protocolFee = BigInt(campaign.protocolFeeAtomic)
@@ -517,59 +520,45 @@ function CampaignDetail({
         <div className="flex items-center gap-3">
           <CampaignImage campaign={campaign} />
           <div className="min-w-0">
-            <div className="flex items-start gap-2">
-              <h2 className="line-clamp-2 text-xl font-semibold">{campaign.title}</h2>
+            <div className="flex items-start gap-1.5">
+              <h2 className="line-clamp-2 text-sm leading-5 font-semibold">{campaign.title}</h2>
               {campaign.eventSlug && (
-                <Button
-                  nativeButton={false}
-                  variant="ghost"
-                  size="icon"
-                  className="-mt-1 size-8 shrink-0 text-muted-foreground"
-                  render={<Link href={`/event/${campaign.eventSlug}`} />}
+                <Link
+                  href={`/event/${campaign.eventSlug}`}
+                  className="mt-0.5 inline-flex shrink-0 text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <ExternalLinkIcon className="size-4" />
+                  <ExternalLinkIcon className="size-3.5" />
                   <span className="sr-only">{campaign.title}</span>
-                </Button>
+                </Link>
               )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <StatusBadge status={effectiveStatus} copy={copy} expired={isExpired} />
               <span className="font-mono">#{campaign.id}</span>
-              {campaign.scopeKind === 'series' && (
+            </div>
+            {campaign.scopeKind === 'series' && (
+              <div className="mt-1.5 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
                 <Tooltip>
                   <TooltipTrigger render={<span className="cursor-help font-medium text-primary" />}>
                     {copy.seriesBadge}
                   </TooltipTrigger>
                   <TooltipContent className="max-w-72 text-sm">{copy.seriesTooltip}</TooltipContent>
                 </Tooltip>
-              )}
-              {campaign.marketCount > 1 && (
-                <span>{replaceCount(copy.campaignNumber, campaign.marketCount, locale)}</span>
-              )}
-            </div>
+                {campaign.seriesSlug && (
+                  <>
+                    <span>·</span>
+                    <span className="truncate font-mono" title={campaign.seriesSlug}>
+                      {campaign.seriesSlug}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        {effectiveStatus === ESCROW_CAMPAIGN_STATUS.active && (
-          <div className="mb-4 rounded-xl border bg-muted/30 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <span className="font-medium">{copy.serviceInProgress}</span>
-              <span className="text-sm text-muted-foreground">
-                {copy.progressDays
-                  .replace('__ELAPSED__', new Intl.NumberFormat(locale).format(elapsedServiceDays))
-                  .replace('__TOTAL__', new Intl.NumberFormat(locale).format(totalServiceDays))}
-              </span>
-            </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${Math.max(2, (elapsedServiceDays / totalServiceDays) * 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
         {effectiveStatus === ESCROW_CAMPAIGN_STATUS.review && (
           <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
             <p className="text-sm">{copy.reviewExplanation}</p>
@@ -624,39 +613,16 @@ function CampaignDetail({
                 value={campaign.availabilityBps === null ? '—' : `${campaign.availabilityBps / 100}%`}
               />
             </div>
-            {campaign.scopeKind === 'series' && campaign.seriesSlug && (
-              <div className="mt-3 rounded-lg border bg-muted/20 p-3 text-sm">
-                <div className="font-medium">{copy.seriesScope}</div>
-                <div className="mt-1 break-all text-muted-foreground">
-                  {copy.seriesSlug}: <span className="font-mono">{campaign.seriesSlug}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    nativeButton={false}
-                    size="sm"
-                    variant="outline"
-                    render={<a href={campaign.links.campaignApi} target="_blank" rel="noreferrer" />}
-                  >
-                    {copy.campaignApi}
-                    <ExternalLinkIcon className="size-3.5" />
-                  </Button>
-                  {campaign.links.seriesEventsApi && (
-                    <Button
-                      nativeButton={false}
-                      size="sm"
-                      variant="outline"
-                      render={<a href={campaign.links.seriesEventsApi} target="_blank" rel="noreferrer" />}
-                    >
-                      {copy.seriesEventsApi}
-                      <ExternalLinkIcon className="size-3.5" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
           </DetailSection>
 
-          <DetailSection title={copy.timeline}>
+          <DetailSection
+            title={copy.timeline}
+            aside={
+              effectiveStatus === ESCROW_CAMPAIGN_STATUS.active
+                ? remainingLabel(campaign, now, locale, copy)
+                : undefined
+            }
+          >
             <CampaignTimeline steps={timelineSteps} locale={locale} />
           </DetailSection>
 

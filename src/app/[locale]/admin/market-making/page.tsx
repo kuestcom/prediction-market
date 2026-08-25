@@ -119,7 +119,7 @@ export default async function AdminMarketMakingPage() {
         marketMaker: t('Market maker'),
         terms: t('Terms'),
         payment: t('Payment'),
-        marketMakerPayment: t('Market maker payment'),
+        marketMakerPayment: t('Market maker'),
         total: t('Total'),
         servicePeriod: t('Service period'),
         action: t('Action'),
@@ -153,8 +153,6 @@ export default async function AdminMarketMakingPage() {
         hoursLeft: t('{count} hours left', { count: '__COUNT__' }),
         dayCount: t('{count} days', { count: '__COUNT__' }),
         hourCount: t('{count} hours', { count: '__COUNT__' }),
-        serviceInProgress: t('Service in progress'),
-        progressDays: t('{elapsed} of {total} days', { elapsed: '__ELAPSED__', total: '__TOTAL__' }),
         waitingForMaker: t('Waiting for an approved market maker to accept this sponsorship.'),
         cancellationHelp: t('You can cancel and recover the campaign funds before a market maker accepts.'),
         cancelSponsorship: t('Cancel sponsorship'),
@@ -192,10 +190,6 @@ export default async function AdminMarketMakingPage() {
         close: t('Close'),
         seriesBadge: t('30-day series'),
         seriesTooltip: t('This campaign covers every new market in the recurring series for 30 days.'),
-        seriesScope: t('All eligible renewals through the service end are included.'),
-        seriesSlug: t('Series slug'),
-        campaignApi: t('Campaign API'),
-        seriesEventsApi: t('Series events API'),
       }}
       howItWorksCopy={{
         title: t('How sponsorship works'),
