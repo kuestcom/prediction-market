@@ -86,13 +86,23 @@ export async function fetchEventTrades({
     if (timestamp !== 0) {
       return timestamp
     }
-    const eventId = String(b.event_id || b.id).localeCompare(String(a.event_id || a.id))
+    const eventId = compareRawDescending(String(a.event_id || a.id), String(b.event_id || b.id))
     if (eventId !== 0) {
       return eventId
     }
-    return String(b.user.address || b.user.id).localeCompare(String(a.user.address || a.user.id))
+    return compareRawDescending(
+      String(a.user.address || a.user.id).toLowerCase(),
+      String(b.user.address || b.user.id).toLowerCase(),
+    )
   })
   return filterActivitiesByMinAmount(merged.slice(0, normalizedPageSize), minAmountMicro)
+}
+
+function compareRawDescending(left: string, right: string): number {
+  if (left === right) {
+    return 0
+  }
+  return left > right ? -1 : 1
 }
 
 async function mapWithConcurrency<Input, Output>(

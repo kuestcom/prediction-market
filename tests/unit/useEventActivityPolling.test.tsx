@@ -78,6 +78,72 @@ describe('useEventActivityPolling', () => {
     unmount()
   })
 
+  it('skips regular polling while the document is hidden', async () => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    const { unmount } = renderHook(() =>
+      useEventActivityPolling({
+        hasMarkets: true,
+        isActivityQueryFetching: false,
+        marketIds: ['condition-1'],
+        minAmountFilter: 'none',
+        onActivities: vi.fn(),
+      }),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
+    })
+
+    expect(fetchEventTradesMock).not.toHaveBeenCalled()
+    unmount()
+  })
+
+  it('refreshes immediately without start when the document becomes visible', async () => {
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true })
+    fetchEventTradesMock.mockResolvedValue([])
+    const { unmount } = renderHook(() =>
+      useEventActivityPolling({
+        hasMarkets: true,
+        isActivityQueryFetching: false,
+        marketIds: ['condition-1'],
+        minAmountFilter: 'none',
+        onActivities: vi.fn(),
+      }),
+    )
+
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await Promise.resolve()
+    })
+
+    expect(fetchEventTradesMock).toHaveBeenCalledOnce()
+    expect(fetchEventTradesMock.mock.calls[0]?.[0]).not.toHaveProperty('start')
+    unmount()
+  })
+
+  it('refreshes immediately without start after the browser comes online', async () => {
+    fetchEventTradesMock.mockResolvedValue([])
+    const { unmount } = renderHook(() =>
+      useEventActivityPolling({
+        hasMarkets: true,
+        isActivityQueryFetching: false,
+        marketIds: ['condition-1'],
+        minAmountFilter: 'none',
+        onActivities: vi.fn(),
+      }),
+    )
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'))
+      await Promise.resolve()
+    })
+
+    expect(fetchEventTradesMock).toHaveBeenCalledOnce()
+    expect(fetchEventTradesMock.mock.calls[0]?.[0]).not.toHaveProperty('start')
+    unmount()
+  })
+
   it('aborts its independent refresh request when unmounted', async () => {
     fetchEventTradesMock.mockImplementation(() => new Promise(() => undefined))
     const { unmount } = renderHook(() =>

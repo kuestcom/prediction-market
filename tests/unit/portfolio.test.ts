@@ -68,4 +68,40 @@ describe('fetchPortfolioSnapshot', () => {
     expect(pnlUrl?.searchParams.get('interval')).toBe('1d')
     expect(pnlUrl?.searchParams.get('fidelity')).toBe('1h')
   })
+
+  it('discards malformed PnL points before calculating the one-day change', async () => {
+    process.env.DATA_URL = 'https://data-api.test'
+    process.env.USER_PNL_URL = 'https://user-pnl.test'
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(input instanceof Request ? input.url : input instanceof URL ? input.toString() : input)
+      if (url.pathname === '/value') {
+        return Response.json([{ value: 0 }])
+      }
+      if (url.pathname === '/traded') {
+        return Response.json({ traded: 0 })
+      }
+      if (url.pathname === '/closed-positions') {
+        return Response.json([])
+      }
+      if (url.pathname === '/user-pnl') {
+        return Response.json([
+          { t: '300', p: '30' },
+          { t: 'not-a-timestamp', p: '1000' },
+          { t: 250, p: '20not-a-number' },
+          { t: null, p: 999 },
+          { t: 200, p: '20' },
+          { t: 100, p: 10 },
+          { t: Infinity, p: 500 },
+          { t: 50, p: '' },
+        ])
+      }
+      return new Response(null, { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(fetchPortfolioSnapshot(`0x${'b'.repeat(40)}`)).resolves.toMatchObject({
+      profitLoss: 20,
+    })
+  })
 })

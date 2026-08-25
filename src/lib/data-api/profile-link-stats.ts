@@ -19,14 +19,14 @@ interface ProfileLinkStatsRequestOptions {
 interface CacheEntry {
   value?: ProfileLinkStats | null
   promise?: Promise<ProfileLinkStats | null>
-  expiresAt: number
+  expiresAt?: number
 }
 
 const statsCache = new Map<string, CacheEntry>()
 
 function pruneCache(now: number) {
   for (const [key, entry] of statsCache.entries()) {
-    if (entry.expiresAt <= now) {
+    if (!entry.promise && entry.expiresAt !== undefined && entry.expiresAt <= now) {
       statsCache.delete(key)
     }
   }
@@ -226,23 +226,34 @@ export async function fetchProfileLinkStats(
   pruneCache(now)
   const cached = statsCache.get(cacheKey)
   if (cached) {
-    if (cached.expiresAt <= now) {
-      statsCache.delete(cacheKey)
-    } else if (cached.promise) {
+    if (cached.promise) {
       return await cached.promise
+    }
+    if (cached.expiresAt === undefined || cached.expiresAt <= now) {
+      statsCache.delete(cacheKey)
     } else if ('value' in cached) {
       return cached.value ?? null
     }
   }
 
   const request = loadProfileLinkStats(normalizedAddress, options)
+  const pendingEntry: CacheEntry = { promise: request }
 
-  statsCache.set(cacheKey, { promise: request, expiresAt: now + CACHE_TTL_MS })
-  const result = await request
-  if (options.signal?.aborted) {
-    statsCache.delete(cacheKey)
-    return null
+  statsCache.set(cacheKey, pendingEntry)
+  try {
+    const result = await request
+    if (statsCache.get(cacheKey) === pendingEntry) {
+      if (options.signal?.aborted) {
+        statsCache.delete(cacheKey)
+      } else {
+        statsCache.set(cacheKey, { value: result, expiresAt: Date.now() + CACHE_TTL_MS })
+      }
+    }
+    return options.signal?.aborted ? null : result
+  } catch (error) {
+    if (statsCache.get(cacheKey) === pendingEntry) {
+      statsCache.delete(cacheKey)
+    }
+    throw error
   }
-  statsCache.set(cacheKey, { value: result, expiresAt: Date.now() + CACHE_TTL_MS })
-  return result
 }

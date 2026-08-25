@@ -1,8 +1,11 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 
 describe('profileLinkStats', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.useRealTimers()
   })
 
   it('uses user-pnl for profit/loss and the reconciled volume aggregate', async () => {
@@ -40,5 +43,45 @@ describe('profileLinkStats', () => {
       volume: '103.792597',
     })
     expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('reuses a pending request after the freshness TTL has elapsed', async () => {
+    vi.useFakeTimers()
+    const address = '0x0000000000000000000000000000000000000002'
+    const responseResolvers: Array<(response: Response) => void> = []
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          responseResolvers.push(resolve)
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const options = {
+      dataApiUrl: 'https://data-api-delayed.test',
+      userPnlUrl: 'https://user-pnl-delayed.test',
+    }
+    const firstRequest = fetchProfileLinkStats(address, options)
+    await Promise.resolve()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    await vi.advanceTimersByTimeAsync(2_001)
+    const secondRequest = fetchProfileLinkStats(address, options)
+    await Promise.resolve()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    for (const resolveResponse of responseResolvers) {
+      resolveResponse(Response.json({ value: 10, volume: '20' }))
+    }
+    await expect(firstRequest).resolves.toEqual({
+      positionsValue: 10,
+      profitLoss: 0,
+      volume: '20',
+    })
+    await expect(secondRequest).resolves.toEqual({
+      positionsValue: 10,
+      profitLoss: 0,
+      volume: '20',
+    })
   })
 })

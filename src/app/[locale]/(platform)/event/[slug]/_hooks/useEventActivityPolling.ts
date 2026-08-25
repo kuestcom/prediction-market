@@ -38,8 +38,8 @@ export function useEventActivityPolling({
       let activeController: AbortController | null = null
       let isPolling = false
 
-      async function refreshLatestActivity() {
-        if (document.hidden || isActivityQueryFetchingRef.current || isPolling) {
+      async function refreshLatestActivity(catchUp = false) {
+        if ((!catchUp && document.hidden) || isActivityQueryFetchingRef.current || isPolling) {
           return
         }
 
@@ -48,14 +48,15 @@ export function useEventActivityPolling({
         activeController = controller
 
         try {
-          const latest = await fetchEventTrades({
+          const request = {
             marketIds,
             pageParam: 0,
             pageSize: EVENT_ACTIVITY_REFRESH_SIZE,
             minAmountFilter,
-            start: Math.floor(Date.now() / 1000) - 30 * 60,
             signal: controller.signal,
-          })
+            ...(catchUp ? {} : { start: Math.floor(Date.now() / 1000) - 30 * 60 }),
+          }
+          const latest = await fetchEventTrades(request)
 
           if (!controller.signal.aborted) {
             onActivities(latest)
@@ -76,8 +77,22 @@ export function useEventActivityPolling({
         void refreshLatestActivity()
       }, EVENT_ACTIVITY_POLL_INTERVAL_MS)
 
+      function handleVisibilityChange() {
+        if (!document.hidden) {
+          void refreshLatestActivity(true)
+        }
+      }
+      function handleOnline() {
+        void refreshLatestActivity(true)
+      }
+
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      window.addEventListener('online', handleOnline)
+
       return function stopLatestActivityPolling() {
         window.clearInterval(interval)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        window.removeEventListener('online', handleOnline)
         activeController?.abort()
       }
     },

@@ -61,12 +61,36 @@ function parsePnlChange(body: unknown): number {
   if (!Array.isArray(body)) {
     return 0
   }
+
+  function parseFiniteValue(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (!trimmed) {
+        return null
+      }
+      const parsed = Number(trimmed)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+
+    return null
+  }
+
   const points = body
-    .map((entry) => ({
-      t: toNumber((entry as { t?: unknown })?.t),
-      p: toNumber((entry as { p?: unknown })?.p),
-    }))
-    .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p))
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null
+      }
+
+      const point = entry as { t?: unknown; p?: unknown }
+      const timestamp = parseFiniteValue(point.t)
+      const value = parseFiniteValue(point.p)
+      return timestamp === null || value === null ? null : { t: timestamp, p: value }
+    })
+    .filter((point): point is { t: number; p: number } => point !== null)
     .sort((a, b) => a.t - b.t)
   if (points.length < 2) {
     return 0
