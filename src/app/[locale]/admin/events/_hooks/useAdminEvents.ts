@@ -7,6 +7,7 @@ import type {
   AdminEventsTableState,
   AdminEventsTableStatePatch,
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
+import type { NonDefaultLocale } from '@/i18n/locales'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { Event, SportsSegmentScore } from '@/types'
 
@@ -29,6 +30,7 @@ export interface AdminEventRow {
   volume: number
   volume_24h: number
   is_hidden: boolean
+  translations: Partial<Record<NonDefaultLocale, string>>
   sports_score: string | null
   sports_segment_scores: SportsSegmentScore[] | null
   sports_segment_count: number | null

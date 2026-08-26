@@ -2,8 +2,9 @@ import type { SQL } from 'drizzle-orm'
 
 import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 'drizzle-orm'
 import { cacheLife, cacheTag } from 'next/cache'
+import { createHash } from 'node:crypto'
 
-import type { SupportedLocale } from '@/i18n/locales'
+import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
@@ -17,7 +18,7 @@ import type {
   SportsSegmentScore,
 } from '@/types'
 
-import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { resolveClobUrl } from '@/lib/clob'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -523,6 +524,8 @@ interface ListAdminEventsParams {
   resolutionReportCountsByCondition?: ReadonlyMap<string, number>
 }
 
+export type EventTranslationsMap = Partial<Record<NonDefaultLocale, string>>
+
 interface AdminEventRow {
   id: string
   slug: string
@@ -535,6 +538,7 @@ interface AdminEventRow {
   volume: number
   volume_24h: number
   is_hidden: boolean
+  translations: EventTranslationsMap
   sports_score: string | null
   sports_live: boolean | null
   sports_ended: boolean | null
@@ -2676,8 +2680,29 @@ export const EventRepository = {
     >()
     const moneylineEventIds = new Set<string>()
     const resolutionReportCountByEventId = new Map<string, number>()
+    const translationsByEventId = new Map<string, EventTranslationsMap>()
 
     if (eventIds.length > 0) {
+      const translationRows = await db
+        .select({
+          event_id: event_translations.event_id,
+          locale: event_translations.locale,
+          title: event_translations.title,
+        })
+        .from(event_translations)
+        .where(inArray(event_translations.event_id, eventIds))
+
+      for (const row of translationRows) {
+        if (!NON_DEFAULT_LOCALES.includes(row.locale as NonDefaultLocale)) {
+          continue
+        }
+
+        const locale = row.locale as NonDefaultLocale
+        const translations = translationsByEventId.get(row.event_id) ?? {}
+        translations[locale] = row.title
+        translationsByEventId.set(row.event_id, translations)
+      }
+
       const volumeRows = await db
         .select({
           event_id: markets.event_id,
@@ -2859,6 +2884,7 @@ export const EventRepository = {
         volume: volumeData?.volume ?? 0,
         volume_24h: volumeData?.volume_24h ?? 0,
         is_hidden: Boolean(row.is_hidden),
+        translations: translationsByEventId.get(row.id) ?? {},
         sports_score: sportsData?.sports_score ?? null,
         sports_segment_scores: sportsData?.sports_segment_scores ?? null,
         sports_segment_count: sportsData?.sports_segment_count ?? null,
@@ -2933,6 +2959,106 @@ export const EventRepository = {
         error: null,
       }
     })
+  },
+
+  async updateEventTranslationsById(
+    eventId: string,
+    translations: EventTranslationsMap,
+  ): Promise<{
+    data: { slug: string; translations: EventTranslationsMap } | null
+    error: string | null
+  }> {
+    const normalizedEntries = NON_DEFAULT_LOCALES.map((locale) => {
+      const rawValue = translations[locale]
+      const value = typeof rawValue === 'string' ? rawValue.trim() : ''
+      return { locale, value }
+    })
+
+    const { data: eventRecord, error: eventCheckError } = await runQuery(async () => {
+      const result = await db
+        .select({ id: events.id, slug: events.slug, title: events.title })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1)
+
+      return { data: result[0] ?? null, error: null }
+    })
+
+    if (eventCheckError || !eventRecord) {
+      return { data: null, error: eventCheckError ?? 'Event not found.' }
+    }
+
+    const sourceHash = createHash('sha256').update(eventRecord.title).digest('hex')
+    const localesToDelete = normalizedEntries.filter((entry) => entry.value.length === 0).map((entry) => entry.locale)
+    const rowsToUpsert = normalizedEntries
+      .filter((entry) => entry.value.length > 0)
+      .map((entry) => ({
+        event_id: eventId,
+        locale: entry.locale,
+        title: entry.value,
+        source_hash: sourceHash,
+        is_manual: true,
+        updated_at: new Date(),
+      }))
+
+    const { error } = await runQuery(async () => {
+      await db.transaction(async (tx) => {
+        if (localesToDelete.length > 0) {
+          await tx
+            .delete(event_translations)
+            .where(and(eq(event_translations.event_id, eventId), inArray(event_translations.locale, localesToDelete)))
+        }
+
+        if (rowsToUpsert.length > 0) {
+          await tx
+            .insert(event_translations)
+            .values(rowsToUpsert)
+            .onConflictDoUpdate({
+              target: [event_translations.event_id, event_translations.locale],
+              set: {
+                title: sql`EXCLUDED.title`,
+                source_hash: sql`EXCLUDED.source_hash`,
+                is_manual: true,
+                updated_at: sql`EXCLUDED.updated_at`,
+              },
+            })
+        }
+      })
+
+      return { data: true, error: null }
+    })
+
+    if (error) {
+      return { data: null, error }
+    }
+
+    const { data: translationRows, error: translationError } = await runQuery(async () => {
+      const result = await db
+        .select({ locale: event_translations.locale, title: event_translations.title })
+        .from(event_translations)
+        .where(eq(event_translations.event_id, eventId))
+
+      return { data: result, error: null }
+    })
+
+    if (translationError || !translationRows) {
+      return { data: null, error: translationError ?? 'Failed to load event translations.' }
+    }
+
+    const nextTranslations: EventTranslationsMap = {}
+    for (const row of translationRows) {
+      if (NON_DEFAULT_LOCALES.includes(row.locale as NonDefaultLocale)) {
+        nextTranslations[row.locale as NonDefaultLocale] = row.title
+      }
+    }
+
+    return {
+      data: {
+        slug: eventRecord.slug,
+        translations: nextTranslations,
+      },
+      error: null,
+    }
   },
 
   async setEventLivestreamUrl(

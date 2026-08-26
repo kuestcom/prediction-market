@@ -5,6 +5,7 @@ import {
   BadgeInfoIcon,
   EyeIcon,
   EyeOffIcon,
+  LanguagesIcon,
   MessageSquareWarningIcon,
   RadioIcon,
   RepeatIcon,
@@ -28,6 +29,7 @@ import { shouldHighlightSportsFinalAction } from './sports-final-action-state'
 
 interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
+  onOpenTranslations: (event: AdminEventRow) => void
   onOpenAdditionalContextModal: (event: AdminEventRow) => void
   onOpenLivestreamModal: (event: AdminEventRow) => void
   onOpenResolutionReportsModal: (event: AdminEventRow) => void
@@ -63,6 +65,7 @@ function formatSeriesRecurrenceLabel(value: string | null | undefined) {
 
 export function useAdminEventsColumns({
   onToggleHidden,
+  onOpenTranslations,
   onOpenAdditionalContextModal,
   onOpenLivestreamModal,
   onOpenResolutionReportsModal,
@@ -328,6 +331,24 @@ export function useAdminEventsColumns({
                 <TooltipContent>{t('Add Additional Context')}</TooltipContent>
               </Tooltip>
             )}
+
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => onOpenTranslations(event)}
+                    aria-label={t('Edit translations')}
+                  >
+                    <LanguagesIcon className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>{t('Edit translations')}</TooltipContent>
+            </Tooltip>
 
             <Tooltip>
               <TooltipTrigger
