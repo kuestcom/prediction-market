@@ -62,9 +62,9 @@ export default function EventOrderBookRow({
         </div>
       </div>
       <div className="flex h-full items-center justify-center px-4">
-        <div className="flex items-center gap-1">
-          <div className="flex size-5 items-center justify-center">
-            {userOrder && (
+        <div className="relative inline-flex items-center">
+          {userOrder && (
+            <div className="absolute right-full mr-1 flex size-5 items-center justify-center">
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -122,8 +122,8 @@ export default function EventOrderBookRow({
                   </div>
                 </TooltipContent>
               </Tooltip>
-            )}
-          </div>
+            </div>
+          )}
           <span className={`text-sm font-medium ${priceClass}`}>
             {priceFormatter?.(level.priceCents) ?? formatOrderBookPrice(level.priceCents)}
           </span>

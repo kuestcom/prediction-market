@@ -28,7 +28,7 @@ import {
   getRoundedCents,
   microToUnit,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
-import { Spinner } from '@/components/ui/spinner'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -37,7 +37,7 @@ import { useMarketRewards } from '@/hooks/useMarketRewards'
 import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvalidation'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePolymarketOrderBooks } from '@/hooks/usePolymarketOrderBooks'
-import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
+import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { canProvideMarketLiquidity } from '@/lib/liquidity-ladder'
 import { formatOddsFromCents } from '@/lib/odds-format'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -54,6 +54,24 @@ export { useOrderBookSummaries }
 
 const orderBookHeaderLabelClass =
   'inline-flex -translate-y-px whitespace-nowrap text-[10px] leading-3 tracking-normal sm:text-xs sm:tracking-wide'
+const orderBookHeaderClass = 'py-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase'
+
+function EventOrderBookSkeletonRow() {
+  return (
+    <div className="grid h-9 grid-cols-[40%_20%_20%_20%] items-center pr-4 pl-0">
+      <div />
+      <div className="flex h-full items-center justify-center px-4">
+        <Skeleton className="h-5 w-12 rounded-sm" />
+      </div>
+      <div className="flex h-full items-center justify-center px-2 sm:px-3">
+        <Skeleton className="h-5 w-12 rounded-sm" />
+      </div>
+      <div className="flex h-full items-center justify-center px-2 sm:px-3">
+        <Skeleton className="h-5 w-12 rounded-sm" />
+      </div>
+    </div>
+  )
+}
 
 function useOrderBookRecenter(summary: unknown) {
   const orderBookScrollRef = useRef<HTMLDivElement | null>(null)
@@ -370,6 +388,32 @@ export default function EventOrderBook({
     isMarketOrderBookEmpty && currentTimestamp != null && canProvideMarketLiquidity(market, currentTimestamp),
   )
 
+  const orderBookCenterRow = (
+    <div
+      ref={centerRowRef}
+      className={cn(
+        `grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium text-muted-foreground transition-colors sm:px-3`,
+        isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
+        surfaceClass,
+        'hover:bg-muted',
+      )}
+      role="presentation"
+    >
+      <div className="flex h-full cursor-pointer items-center">
+        {t('Last')}
+        :&nbsp;
+        {lastPrice == null ? '--' : formatDisplayedPrice(lastPrice)}
+      </div>
+      <div className="flex h-full cursor-pointer items-center justify-center">
+        {t('Spread')}
+        :&nbsp;
+        {formatOrderBookPrice(spread)}
+      </div>
+      <div className="flex h-full items-center justify-center" />
+      <div className="flex h-full items-center justify-center" />
+    </div>
+  )
+
   const handleLevelSelect = useCallback(
     (level: OrderBookLevel) => {
       if (currentOrderType !== ORDER_TYPE.LIMIT) {
@@ -420,27 +464,18 @@ export default function EventOrderBook({
     )
   }
 
-  if (isLoadingSummaries) {
-    return (
-      <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground">
-        <Spinner className="size-4" />
-        {t('Loading order book...')}
-      </div>
-    )
-  }
-
   return (
     <div ref={orderBookScrollRef} className={cn('relative isolate max-h-90 overflow-y-auto', surfaceClass)}>
       <div className={cn(surfaceClass)}>
         <div
           className={cn(
-            tableHeaderClass,
-            'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b pr-4',
+            orderBookHeaderClass,
+            'grid h-9 grid-cols-[40%_20%_20%_20%] items-center border-b pr-4 pl-0',
             'sticky top-0 z-10',
             headerSurfaceClass,
           )}
         >
-          <div className="flex h-full min-w-0 items-center gap-1">
+          <div className="flex h-full min-w-0 items-center gap-1 pl-2 sm:pl-3">
             <span className={orderBookHeaderLabelClass}>{displayTradeLabel}</span>
             {onToggleOutcome && toggleOutcomeTooltip && (
               <Tooltip>
@@ -505,7 +540,19 @@ export default function EventOrderBook({
           </div>
         </div>
 
-        {showLiquidityAction ? (
+        {isLoadingSummaries ? (
+          <>
+            {Array.from({ length: 4 }, (_, index) => (
+              <EventOrderBookSkeletonRow key={`ask-skeleton-${index}`} />
+            ))}
+
+            {orderBookCenterRow}
+
+            {Array.from({ length: 4 }, (_, index) => (
+              <EventOrderBookSkeletonRow key={`bid-skeleton-${index}`} />
+            ))}
+          </>
+        ) : showLiquidityAction ? (
           <div className="flex min-h-44 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
             <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
               <DropletsIcon className="size-5" />
@@ -551,29 +598,7 @@ export default function EventOrderBook({
               <EventOrderBookEmptyRow label={t('No asks')} />
             )}
 
-            <div
-              ref={centerRowRef}
-              className={cn(
-                `grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium text-muted-foreground transition-colors sm:px-3`,
-                isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
-                surfaceClass,
-                'hover:bg-muted',
-              )}
-              role="presentation"
-            >
-              <div className="flex h-full cursor-pointer items-center">
-                {t('Last')}
-                :&nbsp;
-                {lastPrice == null ? '--' : formatDisplayedPrice(lastPrice)}
-              </div>
-              <div className="flex h-full cursor-pointer items-center justify-center">
-                {t('Spread')}
-                :&nbsp;
-                {formatOrderBookPrice(spread)}
-              </div>
-              <div className="flex h-full items-center justify-center" />
-              <div className="flex h-full items-center justify-center" />
-            </div>
+            {orderBookCenterRow}
 
             {bids.length > 0 ? (
               bids.map((level, index) => {
