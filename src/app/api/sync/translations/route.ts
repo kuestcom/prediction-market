@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, like, lte, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 
 import type { NonDefaultLocale } from '@/i18n/locales'
@@ -254,6 +254,10 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
 
   const localePredicates = locales.map((locale) => like(jobsTable.dedupe_key, `%:${locale}`))
   const localePredicate = localePredicates.length === 1 ? localePredicates[0] : or(...localePredicates)
+  const localePriority = sql<number>`CASE ${sql.join(
+    locales.map((locale, index) => sql`WHEN ${jobsTable.dedupe_key} LIKE ${`%:${locale}`} THEN ${index}`),
+    sql` `,
+  )} ELSE ${locales.length} END`
 
   const rows = await db
     .select({
@@ -275,7 +279,7 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
         localePredicate,
       ),
     )
-    .orderBy(asc(jobsTable.available_at), asc(jobsTable.updated_at))
+    .orderBy(asc(localePriority), asc(jobsTable.available_at), asc(jobsTable.updated_at))
     .limit(JOB_BATCH_SIZE)
 
   return rows as TranslationJobRow[]

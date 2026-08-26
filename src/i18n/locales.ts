@@ -47,11 +47,24 @@ export const LOOP_LABELS: Record<SupportedLocale, string> = {
 }
 
 export function normalizeEnabledLocales(locales: string[]): SupportedLocale[] {
-  const normalized = SUPPORTED_LOCALES.filter((locale) => locales.includes(locale))
-  if (!normalized.includes(DEFAULT_LOCALE)) {
-    return [DEFAULT_LOCALE, ...normalized]
+  const seen = new Set<SupportedLocale>()
+  const normalized: SupportedLocale[] = []
+
+  for (const locale of locales) {
+    if (!SUPPORTED_LOCALES.includes(locale as SupportedLocale)) {
+      continue
+    }
+
+    const supportedLocale = locale as SupportedLocale
+    if (seen.has(supportedLocale)) {
+      continue
+    }
+
+    seen.add(supportedLocale)
+    normalized.push(supportedLocale)
   }
-  return normalized
+
+  return [DEFAULT_LOCALE, ...normalized.filter((locale) => locale !== DEFAULT_LOCALE)]
 }
 
 export function parseEnabledLocales(value?: string | null): SupportedLocale[] {
