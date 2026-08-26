@@ -1849,11 +1849,7 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
       let retryAttempt = 0
 
       function scheduleRolloverRetry() {
-        if (
-          !isActive ||
-          isHomeFeaturedEventEnded(lastKnownEvent, Date.now()) ||
-          retryAttempt >= HOME_FEATURED_ROLLOVER_MAX_RETRIES
-        ) {
+        if (!isActive || retryAttempt >= HOME_FEATURED_ROLLOVER_MAX_RETRIES) {
           return
         }
 
