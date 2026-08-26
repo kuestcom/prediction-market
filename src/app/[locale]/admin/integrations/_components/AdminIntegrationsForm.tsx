@@ -373,64 +373,66 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="integration-openrouter-model">{t('Preferred OpenRouter model')}</Label>
-                <div className="flex gap-2">
-                  <Select
-                    items={[
-                      { label: t('Let OpenRouter decide'), value: AUTOMATIC_MODEL_VALUE },
-                      ...openRouterModelOptions.map((model) => ({ label: model.label, value: model.id })),
-                    ]}
-                    value={openRouterModel || AUTOMATIC_MODEL_VALUE}
-                    onValueChange={(value) =>
-                      value !== null && setOpenRouterModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
-                    }
-                    disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
-                  >
-                    <SelectTrigger id="integration-openrouter-model" className="h-12! w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Let OpenRouter decide')}</SelectItem>
-                      {openRouterModelOptions.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex h-8 items-center">
+                  <Label htmlFor="integration-openrouter-model">{t('Preferred OpenRouter model')}</Label>
+                </div>
+                <Select
+                  items={[
+                    { label: t('Let OpenRouter decide'), value: AUTOMATIC_MODEL_VALUE },
+                    ...openRouterModelOptions.map((model) => ({ label: model.label, value: model.id })),
+                  ]}
+                  value={openRouterModel || AUTOMATIC_MODEL_VALUE}
+                  onValueChange={(value) =>
+                    value !== null && setOpenRouterModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
+                  }
+                  disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
+                >
+                  <SelectTrigger id="integration-openrouter-model" className="h-12! w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Let OpenRouter decide')}</SelectItem>
+                    {openRouterModelOptions.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openRouterModelsError && <p className="text-xs text-destructive">{openRouterModelsError}</p>}
+              </div>
+              <div className="grid gap-2">
+                <div className="flex h-8 items-center justify-between gap-2">
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="integration-openrouter-translation-model">{t('Preferred translation model')}</Label>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="inline-flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            aria-label={t('Used only for automatic event and category translations.')}
+                          >
+                            <InfoIcon className="size-3.5" aria-hidden />
+                          </button>
+                        }
+                      />
+                      <TooltipContent className="max-w-72 text-left">
+                        {t('Used only for automatic event and category translations.')}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <Button
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="size-12 shrink-0"
+                    className="size-8 shrink-0"
                     disabled={!openRouterApiKey.trim() || isPending || isRefreshingOpenRouterModels}
                     onClick={refreshOpenRouterModels}
                     aria-label={t('Refresh models')}
                   >
                     <RefreshCwIcon className={cn('size-4', isRefreshingOpenRouterModels && 'animate-spin')} />
                   </Button>
-                </div>
-                {openRouterModelsError && <p className="text-xs text-destructive">{openRouterModelsError}</p>}
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="integration-openrouter-translation-model">{t('Preferred translation model')}</Label>
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <button
-                          type="button"
-                          className="inline-flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          aria-label={t('Used only for automatic event and category translations.')}
-                        >
-                          <InfoIcon className="size-3.5" aria-hidden />
-                        </button>
-                      }
-                    />
-                    <TooltipContent className="max-w-72 text-left">
-                      {t('Used only for automatic event and category translations.')}
-                    </TooltipContent>
-                  </Tooltip>
                 </div>
                 <Select
                   items={[
