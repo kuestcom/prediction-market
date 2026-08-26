@@ -444,6 +444,7 @@ function CampaignDetail({
   const resolutionCode = resolutionDecisionCodeForHash(campaign.decisionHash)
   const resolutionCanonical = resolutionDecisionForHash(campaign.decisionHash)
   const resolutionDecision = resolutionCode ? (copy.resolutionDecisions[resolutionCode] ?? resolutionCanonical) : null
+  const hasDecision = !!campaign.decisionHash && !/^0x0{64}$/i.test(campaign.decisionHash)
   const cancelledRefund = BigInt(campaign.refundableAtomic)
   const hasPendingWithdrawal = pendingWithdrawalAtomic !== null && BigInt(pendingWithdrawalAtomic) > 0n
   const isCompleted =
@@ -606,7 +607,7 @@ function CampaignDetail({
                 <div className="mt-1 font-semibold">{formatUsdc(sponsorRefund.toString(), locale)}</div>
               </div>
             </div>
-            {campaign.decisionHash && (
+            {hasDecision && (
               <div className="mt-3 text-sm">
                 <div className="text-muted-foreground">{copy.decision}</div>
                 <div className="mt-1 font-medium">{resolutionDecision ?? copy.customDecision}</div>
