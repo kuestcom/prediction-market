@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, like, lte, or } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 
 import type { NonDefaultLocale } from '@/i18n/locales'
@@ -252,37 +252,66 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
     return []
   }
 
-  const localePredicates = locales.map((locale) => like(jobsTable.dedupe_key, `%:${locale}`))
-  const localePredicate = localePredicates.length === 1 ? localePredicates[0] : or(...localePredicates)
-  const localePriority = sql<number>`CASE ${sql.join(
-    locales.map((locale, index) => sql`WHEN ${jobsTable.dedupe_key} LIKE ${`%:${locale}`} THEN ${index}`),
-    sql` `,
-  )} ELSE ${locales.length} END`
+  const rowsByLocale = await Promise.all(
+    locales.map(async (locale) => {
+      const rows = await db
+        .select({
+          id: jobsTable.id,
+          job_type: jobsTable.job_type,
+          dedupe_key: jobsTable.dedupe_key,
+          payload: jobsTable.payload,
+          status: jobsTable.status,
+          attempts: jobsTable.attempts,
+          max_attempts: jobsTable.max_attempts,
+          available_at: jobsTable.available_at,
+        })
+        .from(jobsTable)
+        .where(
+          and(
+            inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
+            eq(jobsTable.status, 'pending'),
+            lte(jobsTable.available_at, new Date(nowIso)),
+            like(jobsTable.dedupe_key, `%:${locale}`),
+          ),
+        )
+        .orderBy(asc(jobsTable.available_at), asc(jobsTable.updated_at))
+        .limit(JOB_BATCH_SIZE)
 
-  const rows = await db
-    .select({
-      id: jobsTable.id,
-      job_type: jobsTable.job_type,
-      dedupe_key: jobsTable.dedupe_key,
-      payload: jobsTable.payload,
-      status: jobsTable.status,
-      attempts: jobsTable.attempts,
-      max_attempts: jobsTable.max_attempts,
-      available_at: jobsTable.available_at,
-    })
-    .from(jobsTable)
-    .where(
-      and(
-        inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
-        eq(jobsTable.status, 'pending'),
-        lte(jobsTable.available_at, new Date(nowIso)),
-        localePredicate,
-      ),
-    )
-    .orderBy(asc(localePriority), asc(jobsTable.available_at), asc(jobsTable.updated_at))
-    .limit(JOB_BATCH_SIZE)
+      return rows as TranslationJobRow[]
+    }),
+  )
 
-  return rows as TranslationJobRow[]
+  const candidates: TranslationJobRow[] = []
+  const nextRowByLocale = rowsByLocale.map(() => 0)
+  let addedRowInCycle = true
+
+  while (candidates.length < JOB_BATCH_SIZE && addedRowInCycle) {
+    addedRowInCycle = false
+
+    for (let weight = rowsByLocale.length; weight >= 1 && candidates.length < JOB_BATCH_SIZE; weight -= 1) {
+      for (
+        let localeIndex = 0;
+        localeIndex < rowsByLocale.length && candidates.length < JOB_BATCH_SIZE;
+        localeIndex += 1
+      ) {
+        if (localeIndex >= weight) {
+          continue
+        }
+
+        const rowIndex = nextRowByLocale[localeIndex]!
+        const row = rowsByLocale[localeIndex]![rowIndex]
+        if (!row) {
+          continue
+        }
+
+        candidates.push(row)
+        nextRowByLocale[localeIndex] = rowIndex + 1
+        addedRowInCycle = true
+      }
+    }
+  }
+
+  return candidates
 }
 
 async function recoverStaleProcessingJobs(now: Date) {

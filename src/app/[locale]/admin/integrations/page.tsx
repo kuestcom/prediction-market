@@ -35,24 +35,29 @@ async function AdminIntegrationsContent() {
   let modelsError: string | undefined
   let translationModelsError: string | undefined
   if (openRouterSettings.apiKey) {
-    try {
-      const [models, translationModels] = await Promise.all([
-        fetchOpenRouterModels(openRouterSettings.apiKey),
-        fetchAllOpenRouterModels(openRouterSettings.apiKey),
-      ])
-      modelOptions = models.map((model) => ({
+    const [modelsResult, translationModelsResult] = await Promise.allSettled([
+      fetchOpenRouterModels(openRouterSettings.apiKey),
+      fetchAllOpenRouterModels(openRouterSettings.apiKey),
+    ])
+
+    if (modelsResult.status === 'fulfilled') {
+      modelOptions = modelsResult.value.map((model) => ({
         id: model.id,
         label: model.name,
         contextWindow: model.contextLength,
       }))
-      translationModelOptions = translationModels.map((model) => ({
-        id: model.id,
-        label: model.name,
-        contextWindow: model.contextLength,
-      }))
-    } catch {
+    } else {
       modelsError = t('Unable to load models from OpenRouter. Please try again later.')
-      translationModelsError = modelsError
+    }
+
+    if (translationModelsResult.status === 'fulfilled') {
+      translationModelOptions = translationModelsResult.value.map((model) => ({
+        id: model.id,
+        label: model.name,
+        contextWindow: model.contextLength,
+      }))
+    } else {
+      translationModelsError = t('Unable to load models from OpenRouter. Please try again later.')
     }
   }
 

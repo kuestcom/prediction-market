@@ -67,6 +67,39 @@ export function normalizeEnabledLocales(locales: string[]): SupportedLocale[] {
   return [DEFAULT_LOCALE, ...normalized.filter((locale) => locale !== DEFAULT_LOCALE)]
 }
 
+export function normalizeLocaleOrder(
+  locales: readonly string[],
+  supportedLocales: readonly SupportedLocale[] = SUPPORTED_LOCALES,
+): SupportedLocale[] {
+  const supportedSet = new Set(supportedLocales)
+  const seen = new Set<SupportedLocale>()
+  const normalized: SupportedLocale[] = []
+
+  function addLocale(locale: string) {
+    if (!supportedSet.has(locale as SupportedLocale)) {
+      return
+    }
+
+    const supportedLocale = locale as SupportedLocale
+    if (seen.has(supportedLocale)) {
+      return
+    }
+
+    seen.add(supportedLocale)
+    normalized.push(supportedLocale)
+  }
+
+  addLocale(DEFAULT_LOCALE)
+  for (const locale of locales) {
+    addLocale(locale)
+  }
+  for (const locale of supportedLocales) {
+    addLocale(locale)
+  }
+
+  return normalized
+}
+
 export function parseEnabledLocales(value?: string | null): SupportedLocale[] {
   if (!value) {
     return [...SUPPORTED_LOCALES]

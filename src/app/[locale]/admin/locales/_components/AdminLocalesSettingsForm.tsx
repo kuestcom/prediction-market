@@ -16,7 +16,7 @@ import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toast'
-import { DEFAULT_LOCALE, LOCALE_LABELS, normalizeEnabledLocales } from '@/i18n/locales'
+import { DEFAULT_LOCALE, LOCALE_LABELS, normalizeEnabledLocales, normalizeLocaleOrder } from '@/i18n/locales'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +27,7 @@ const initialState = {
 interface AdminLocalesSettingsFormProps {
   supportedLocales: readonly SupportedLocale[]
   enabledLocales: SupportedLocale[]
+  localeOrder?: SupportedLocale[]
   automaticTranslationsEnabled: boolean
   isOpenRouterConfigured: boolean
 }
@@ -42,7 +43,15 @@ function buildEnabledState(supportedLocales: readonly SupportedLocale[], enabled
   )
 }
 
-function buildLocaleOrder(supportedLocales: readonly SupportedLocale[], enabledLocales: SupportedLocale[]) {
+function buildLocaleOrder(
+  supportedLocales: readonly SupportedLocale[],
+  enabledLocales: SupportedLocale[],
+  localeOrder?: SupportedLocale[],
+) {
+  if (localeOrder) {
+    return normalizeLocaleOrder(localeOrder, supportedLocales)
+  }
+
   const normalizedEnabledLocales = normalizeEnabledLocales(enabledLocales)
   const enabledSet = new Set(normalizedEnabledLocales)
 
@@ -72,6 +81,7 @@ function moveLocale(locales: SupportedLocale[], sourceLocale: SupportedLocale, t
 function useLocalesSettingsForm(
   supportedLocales: readonly SupportedLocale[],
   enabledLocales: SupportedLocale[],
+  localeOrder: SupportedLocale[] | undefined,
   automaticTranslationsEnabled: boolean,
   isOpenRouterConfigured: boolean,
 ) {
@@ -82,7 +92,7 @@ function useLocalesSettingsForm(
     buildEnabledState(supportedLocales, enabledLocales),
   )
   const [orderedLocales, setOrderedLocales] = useState<SupportedLocale[]>(() =>
-    buildLocaleOrder(supportedLocales, enabledLocales),
+    buildLocaleOrder(supportedLocales, enabledLocales, localeOrder),
   )
   const [automaticTranslationsState, setAutomaticTranslationsState] = useState(
     () => isOpenRouterConfigured && automaticTranslationsEnabled,
@@ -119,6 +129,7 @@ function useLocalesSettingsForm(
 function AdminLocalesSettingsFormInner({
   supportedLocales,
   enabledLocales,
+  localeOrder,
   automaticTranslationsEnabled,
   isOpenRouterConfigured,
 }: AdminLocalesSettingsFormProps) {
@@ -133,7 +144,13 @@ function AdminLocalesSettingsFormInner({
     setOrderedLocales,
     automaticTranslationsState,
     setAutomaticTranslationsState,
-  } = useLocalesSettingsForm(supportedLocales, enabledLocales, automaticTranslationsEnabled, isOpenRouterConfigured)
+  } = useLocalesSettingsForm(
+    supportedLocales,
+    enabledLocales,
+    localeOrder,
+    automaticTranslationsEnabled,
+    isOpenRouterConfigured,
+  )
   const [draggedLocale, setDraggedLocale] = useState<SupportedLocale | null>(null)
 
   function handleToggle(locale: SupportedLocale, nextValue: boolean) {
@@ -279,6 +296,7 @@ function AdminLocalesSettingsFormInner({
             )
           })}
         </ul>
+        <input type="hidden" name="locale_order" value={JSON.stringify(orderedLocales)} />
       </section>
 
       <section className="grid gap-4 rounded-lg border p-6">
@@ -324,10 +342,17 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
       JSON.stringify({
         supportedLocales: props.supportedLocales,
         enabledLocales: props.enabledLocales,
+        localeOrder: props.localeOrder,
         automaticTranslationsEnabled: props.automaticTranslationsEnabled,
         isOpenRouterConfigured: props.isOpenRouterConfigured,
       }),
-    [props.supportedLocales, props.enabledLocales, props.automaticTranslationsEnabled, props.isOpenRouterConfigured],
+    [
+      props.supportedLocales,
+      props.enabledLocales,
+      props.localeOrder,
+      props.automaticTranslationsEnabled,
+      props.isOpenRouterConfigured,
+    ],
   )
 }
 

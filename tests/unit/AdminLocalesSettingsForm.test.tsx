@@ -42,6 +42,7 @@ vi.mock('@/i18n/navigation', () => ({
 const props = {
   supportedLocales: ['en', 'de', 'es', 'pt', 'fr'] as const,
   enabledLocales: ['en', 'fr', 'de'] as SupportedLocale[],
+  localeOrder: ['en', 'fr', 'de', 'pt', 'es'] as SupportedLocale[],
   automaticTranslationsEnabled: false,
   isOpenRouterConfigured: false,
 }
@@ -63,5 +64,20 @@ describe('adminLocalesSettingsForm', () => {
         input.getAttribute('value'),
       ),
     ).toEqual(['en', 'de', 'fr'])
+  })
+
+  it('persists the reordered position of disabled locales', () => {
+    const { container, getByRole } = render(<AdminLocalesSettingsForm {...props} />)
+
+    fireEvent.click(getByRole('button', { name: 'Move Português up' }))
+
+    expect(container.querySelector('input[name="locale_order"]')?.getAttribute('value')).toBe(
+      JSON.stringify(['en', 'fr', 'pt', 'de', 'es']),
+    )
+    expect(
+      Array.from(container.querySelectorAll('input[name="enabled_locales"]')).map((input) =>
+        input.getAttribute('value'),
+      ),
+    ).toEqual(['en', 'fr', 'de'])
   })
 })

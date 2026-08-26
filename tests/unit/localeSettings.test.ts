@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { getAutomaticTranslationsEnabledFromSettings, getEnabledLocalesFromSettings } from '@/i18n/locale-settings'
+import {
+  getAutomaticTranslationsEnabledFromSettings,
+  getEnabledLocalesFromSettings,
+  getLocaleOrderFromSettings,
+} from '@/i18n/locale-settings'
 import {
   DEFAULT_LOCALE,
   normalizeEnabledLocales,
@@ -34,6 +38,23 @@ describe('locale settings helpers', () => {
         },
       }),
     ).toEqual([DEFAULT_LOCALE, 'pt', 'de'])
+  })
+
+  it('uses the stored order for all locales', () => {
+    expect(
+      getLocaleOrderFromSettings({
+        i18n: {
+          locale_order: {
+            value: '["pt","en","de"]',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      }),
+    ).toEqual(['en', 'pt', 'de', 'es', 'fr', 'zh', 'ja', 'ar', 'ru', 'it', 'pl', 'ko'])
+  })
+
+  it('falls back to the enabled order when the full order is not stored', () => {
+    expect(getLocaleOrderFromSettings(undefined)).toBeNull()
   })
 
   it('falls back to supported locales on invalid JSON', () => {

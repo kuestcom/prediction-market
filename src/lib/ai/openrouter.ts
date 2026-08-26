@@ -34,6 +34,7 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODELS_API_URL = 'https://openrouter.ai/api/v1/models'
 const OPENROUTER_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
 const OPENROUTER_WEB_SEARCH_PARAMETER = 'web_search_options'
+const inFlightOpenRouterModelInfo = new Map<string, Promise<OpenRouterModelInfo[]>>()
 
 interface RequestCompletionOptions {
   temperature?: number
@@ -142,11 +143,7 @@ function supportsOpenRouterWebSearch(model: OpenRouterModelInfo) {
   )
 }
 
-async function fetchOpenRouterModelInfo(apiKey: string): Promise<OpenRouterModelInfo[]> {
-  if (!apiKey) {
-    return []
-  }
-
+async function fetchOpenRouterModelInfoUncached(apiKey: string): Promise<OpenRouterModelInfo[]> {
   const headers = await buildOpenRouterHeaders(apiKey)
   let payload: OpenRouterModelsResponse | null = null
   let lastError: Error | null = null
@@ -192,6 +189,35 @@ async function fetchOpenRouterModelInfo(apiKey: string): Promise<OpenRouterModel
   }
 
   return Array.isArray(payload.data) ? payload.data : []
+}
+
+function fetchOpenRouterModelInfo(apiKey: string): Promise<OpenRouterModelInfo[]> {
+  if (!apiKey) {
+    return Promise.resolve([])
+  }
+
+  const existingRequest = inFlightOpenRouterModelInfo.get(apiKey)
+  if (existingRequest) {
+    return existingRequest
+  }
+
+  const request = fetchOpenRouterModelInfoUncached(apiKey)
+  inFlightOpenRouterModelInfo.set(apiKey, request)
+
+  void request.then(
+    () => {
+      if (inFlightOpenRouterModelInfo.get(apiKey) === request) {
+        inFlightOpenRouterModelInfo.delete(apiKey)
+      }
+    },
+    () => {
+      if (inFlightOpenRouterModelInfo.get(apiKey) === request) {
+        inFlightOpenRouterModelInfo.delete(apiKey)
+      }
+    },
+  )
+
+  return request
 }
 
 function toOpenRouterModelSummary(model: OpenRouterModelInfo): OpenRouterModelSummary {
