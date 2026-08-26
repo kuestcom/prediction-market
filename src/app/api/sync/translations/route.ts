@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, like, lte, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, like, lte, or, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 
 import type { NonDefaultLocale } from '@/i18n/locales'
@@ -252,66 +252,46 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
     return []
   }
 
-  const rowsByLocale = await Promise.all(
-    locales.map(async (locale) => {
-      const rows = await db
-        .select({
-          id: jobsTable.id,
-          job_type: jobsTable.job_type,
-          dedupe_key: jobsTable.dedupe_key,
-          payload: jobsTable.payload,
-          status: jobsTable.status,
-          attempts: jobsTable.attempts,
-          max_attempts: jobsTable.max_attempts,
-          available_at: jobsTable.available_at,
-        })
-        .from(jobsTable)
-        .where(
-          and(
-            inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
-            eq(jobsTable.status, 'pending'),
-            lte(jobsTable.available_at, new Date(nowIso)),
-            like(jobsTable.dedupe_key, `%:${locale}`),
-          ),
-        )
-        .orderBy(asc(jobsTable.available_at), asc(jobsTable.updated_at))
-        .limit(JOB_BATCH_SIZE)
+  const localeExpression = sql<string>`split_part(${jobsTable.dedupe_key}, ':', 2)`
+  const localePriorityExpression = sql<number>`CASE ${localeExpression} ${sql.join(
+    locales.map((locale, index) => sql`WHEN ${locale} THEN ${index}`),
+    sql` `,
+  )} ELSE ${locales.length} END`
+  const localeRankExpression = sql<number>`row_number() OVER (
+    PARTITION BY ${localeExpression}
+    ORDER BY ${jobsTable.available_at}, ${jobsTable.updated_at}, ${jobsTable.id}
+  )`
 
-      return rows as TranslationJobRow[]
-    }),
-  )
+  const rows = await db
+    .select({
+      id: jobsTable.id,
+      job_type: jobsTable.job_type,
+      dedupe_key: jobsTable.dedupe_key,
+      payload: jobsTable.payload,
+      status: jobsTable.status,
+      attempts: jobsTable.attempts,
+      max_attempts: jobsTable.max_attempts,
+      available_at: jobsTable.available_at,
+    })
+    .from(jobsTable)
+    .where(
+      and(
+        inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
+        eq(jobsTable.status, 'pending'),
+        lte(jobsTable.available_at, new Date(nowIso)),
+        or(...locales.map((locale) => like(jobsTable.dedupe_key, `%:${locale}`))),
+      ),
+    )
+    .orderBy(
+      asc(localeRankExpression),
+      asc(localePriorityExpression),
+      asc(jobsTable.available_at),
+      asc(jobsTable.updated_at),
+      asc(jobsTable.id),
+    )
+    .limit(JOB_BATCH_SIZE)
 
-  const candidates: TranslationJobRow[] = []
-  const nextRowByLocale = rowsByLocale.map(() => 0)
-  let addedRowInCycle = true
-
-  while (candidates.length < JOB_BATCH_SIZE && addedRowInCycle) {
-    addedRowInCycle = false
-
-    for (let weight = rowsByLocale.length; weight >= 1 && candidates.length < JOB_BATCH_SIZE; weight -= 1) {
-      for (
-        let localeIndex = 0;
-        localeIndex < rowsByLocale.length && candidates.length < JOB_BATCH_SIZE;
-        localeIndex += 1
-      ) {
-        if (localeIndex >= weight) {
-          continue
-        }
-
-        const rowIndex = nextRowByLocale[localeIndex]!
-        const row = rowsByLocale[localeIndex]![rowIndex]
-        if (!row) {
-          continue
-        }
-
-        candidates.push(row)
-        nextRowByLocale[localeIndex] = rowIndex + 1
-        addedRowInCycle = true
-      }
-    }
-  }
-
-  return candidates
+  return rows as TranslationJobRow[]
 }
 
 async function recoverStaleProcessingJobs(now: Date) {
@@ -554,6 +534,7 @@ async function upsertAutoEventTranslation(
     .onConflictDoUpdate({
       target: [eventTranslationsTable.event_id, eventTranslationsTable.locale],
       set: payload,
+      setWhere: eq(eventTranslationsTable.is_manual, false),
     })
 }
 
@@ -572,6 +553,7 @@ async function upsertAutoTagTranslation(tagId: number, locale: NonDefaultLocale,
     .onConflictDoUpdate({
       target: [tagTranslationsTable.tag_id, tagTranslationsTable.locale],
       set: payload,
+      setWhere: eq(tagTranslationsTable.is_manual, false),
     })
 }
 function extractJsonObject(raw: string) {

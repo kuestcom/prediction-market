@@ -13,10 +13,10 @@ import { UserRepository } from '@/lib/db/queries/user'
 
 const updateEventTranslationsShape = NON_DEFAULT_LOCALES.reduce(
   (shape, locale) => {
-    shape[locale] = z.string().max(10_000).optional()
+    shape[locale] = z.string().max(10_000)
     return shape
   },
-  {} as Record<NonDefaultLocale, z.ZodOptional<z.ZodString>>,
+  {} as Record<NonDefaultLocale, z.ZodString>,
 )
 
 const UpdateEventTranslationsInputSchema = z.object(updateEventTranslationsShape)
@@ -27,9 +27,11 @@ export interface UpdateEventTranslationsResult {
   error?: string
 }
 
+export type EventTranslationsInput = Record<NonDefaultLocale, string>
+
 export async function updateEventTranslationsAction(
   eventId: string,
-  input: Partial<Record<NonDefaultLocale, string>>,
+  input: EventTranslationsInput,
 ): Promise<UpdateEventTranslationsResult> {
   try {
     const parsed = UpdateEventTranslationsInputSchema.safeParse(input)

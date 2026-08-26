@@ -49,7 +49,7 @@ const UpdateLocalesSettingsSchema = z
 
     return {
       enabledLocales,
-      localeOrder: ensureLocaleOrder(locale_order ?? enabledLocales),
+      localeOrder: locale_order === undefined ? null : ensureLocaleOrder(locale_order),
       automaticTranslationsEnabled: normalizeBoolean(automatic_translations_enabled, false),
     }
   })
@@ -91,21 +91,29 @@ export async function updateLocalesSettingsAction(
   }
 
   const value = serializeEnabledLocales(parsed.data.enabledLocales)
-  const localeOrderValue = serializeLocaleOrder(parsed.data.localeOrder)
   const openRouterSettings = await loadOpenRouterProviderSettings()
   const canEnableAutomaticTranslations = openRouterSettings.configured
   const normalizedAutomaticTranslationsEnabled =
     canEnableAutomaticTranslations && parsed.data.automaticTranslationsEnabled
 
-  const { error } = await SettingsRepository.updateSettings([
+  const settingsToUpdate = [
     { group: 'i18n', key: 'enabled_locales', value },
-    { group: 'i18n', key: 'locale_order', value: localeOrderValue },
     {
       group: 'i18n',
       key: 'automatic_translations_enabled',
       value: normalizedAutomaticTranslationsEnabled ? 'true' : 'false',
     },
-  ])
+  ]
+
+  if (parsed.data.localeOrder !== null) {
+    settingsToUpdate.splice(1, 0, {
+      group: 'i18n',
+      key: 'locale_order',
+      value: serializeLocaleOrder(parsed.data.localeOrder),
+    })
+  }
+
+  const { error } = await SettingsRepository.updateSettings(settingsToUpdate)
 
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }

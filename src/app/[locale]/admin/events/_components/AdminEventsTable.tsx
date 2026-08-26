@@ -5,6 +5,7 @@ import { ChevronDownIcon, FilterIcon, SearchIcon, SettingsIcon, XIcon } from 'lu
 import { useExtracted } from 'next-intl'
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 
+import type { EventTranslationsInput } from '@/app/[locale]/admin/events/_actions/update-event-translations'
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import type {
   AdminEventsTableState,
@@ -411,7 +412,7 @@ function useAdminEventsTableState(
 
   const [pendingHiddenId, setPendingHiddenId] = useState<string | null>(null)
   const [translationEvent, setTranslationEvent] = useState<AdminEventRow | null>(null)
-  const [translationValues, setTranslationValues] = useState<Partial<Record<NonDefaultLocale, string>>>({})
+  const [translationValues, setTranslationValues] = useState<EventTranslationsInput>({} as EventTranslationsInput)
   const [translationError, setTranslationError] = useState<string | null>(null)
   const [isSavingTranslations, setIsSavingTranslations] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -487,24 +488,39 @@ function useAdminEventsTableState(
     [queryClient, t],
   )
 
-  const handleOpenTranslations = useCallback((event: AdminEventRow) => {
-    setTranslationEvent(event)
+  const handleOpenTranslations = useCallback(
+    (event: AdminEventRow) => {
+      if (isSavingTranslations) {
+        return
+      }
+
+      setTranslationEvent(event)
+      setTranslationError(null)
+      setIsSavingTranslations(false)
+      setTranslationValues(
+        NON_DEFAULT_LOCALES.reduce<EventTranslationsInput>((acc, locale) => {
+          acc[locale] = event.translations?.[locale] ?? ''
+          return acc
+        }, {} as EventTranslationsInput),
+      )
+    },
+    [isSavingTranslations],
+  )
+
+  const resetTranslationsDialog = useCallback(() => {
+    setTranslationEvent(null)
+    setTranslationValues({} as EventTranslationsInput)
     setTranslationError(null)
     setIsSavingTranslations(false)
-    setTranslationValues(
-      NON_DEFAULT_LOCALES.reduce<Partial<Record<NonDefaultLocale, string>>>((acc, locale) => {
-        acc[locale] = event.translations?.[locale] ?? ''
-        return acc
-      }, {}),
-    )
   }, [])
 
   const closeTranslationsDialog = useCallback(() => {
-    setTranslationEvent(null)
-    setTranslationValues({})
-    setTranslationError(null)
-    setIsSavingTranslations(false)
-  }, [])
+    if (isSavingTranslations) {
+      return
+    }
+
+    resetTranslationsDialog()
+  }, [isSavingTranslations, resetTranslationsDialog])
 
   const handleTranslationChange = useCallback((locale: NonDefaultLocale, value: string) => {
     setTranslationValues((previous) => ({
@@ -521,7 +537,16 @@ function useAdminEventsTableState(
     setIsSavingTranslations(true)
     setTranslationError(null)
 
-    const result = await updateEventTranslationsAction(translationEvent.id, translationValues)
+    let result
+    try {
+      result = await updateEventTranslationsAction(translationEvent.id, translationValues)
+    } catch (error) {
+      console.error('Failed to update event translations', error)
+      setTranslationError(t('Failed to update event translations'))
+      setIsSavingTranslations(false)
+      return
+    }
+
     if (result.success) {
       queryClient.setQueriesData<{
         data: AdminEventRow[]
@@ -543,13 +568,13 @@ function useAdminEventsTableState(
 
       toast.success(t('Translations updated for {name}.', { name: translationEvent.title }))
       void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
-      closeTranslationsDialog()
+      resetTranslationsDialog()
       return
     }
 
     setTranslationError(result.error ?? t('Failed to update event translations'))
     setIsSavingTranslations(false)
-  }, [closeTranslationsDialog, queryClient, t, translationEvent, translationValues])
+  }, [queryClient, resetTranslationsDialog, t, translationEvent, translationValues])
 
   const handleOpenSettings = useCallback(() => {
     setDraftAutoDeployEnabled(savedAutoDeployEnabled)
@@ -1971,7 +1996,7 @@ export default function AdminEventsTable({
         <Drawer
           open={Boolean(translationEvent)}
           onOpenChange={(open) => {
-            if (!open) {
+            if (!open && !isSavingTranslations) {
               closeTranslationsDialog()
             }
           }}
@@ -2013,7 +2038,7 @@ export default function AdminEventsTable({
         <Dialog
           open={Boolean(translationEvent)}
           onOpenChange={(open) => {
-            if (!open) {
+            if (!open && !isSavingTranslations) {
               closeTranslationsDialog()
             }
           }}
