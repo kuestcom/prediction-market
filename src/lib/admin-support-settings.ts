@@ -7,7 +7,7 @@ export const ADMIN_ONBOARDING_SETTINGS_GROUP = 'admin_onboarding'
 export const ADMIN_SUPPORT_SETTINGS_GROUP = 'admin_support'
 export const ADMIN_SUPPORT_ANNOUNCEMENT_DISMISSED_AT_KEY = 'announcement_dismissed_at'
 
-const ADMIN_ONBOARDING_TASK_IDS = ['brand', 'fee-wallet', 'openrouter', 'endpoints'] as const
+const ADMIN_ONBOARDING_TASK_IDS = ['brand', 'fee-wallet', 'openrouter', 'translations', 'endpoints'] as const
 
 export type AdminOnboardingTaskId = (typeof ADMIN_ONBOARDING_TASK_IDS)[number]
 export type KuestSupportPosition = 'left' | 'right'

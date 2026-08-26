@@ -84,6 +84,12 @@ export default function AdminOnboardingSupportWidget({
         external: false,
       },
       {
+        id: 'translations' as const,
+        href: '/admin/locales' as Route,
+        label: t('Configure translations'),
+        external: false,
+      },
+      {
         id: 'endpoints' as const,
         href: 'https://docs.kuest.com/configuration/custom-domain',
         label: t('Customize endpoints (optional)'),

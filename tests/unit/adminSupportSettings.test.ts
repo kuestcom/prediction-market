@@ -33,6 +33,7 @@ describe('admin support settings', () => {
       getCompletedAdminOnboardingTasks({
         admin_onboarding: {
           endpoints: { value: 'true' },
+          translations: { value: 'true' },
         },
         ai: {
           openrouter_api_key: { value: 'encrypted-key' },
@@ -43,7 +44,7 @@ describe('admin support settings', () => {
           site_logo_svg: { value: '<svg viewBox="0 0 10 10"><path d="M0 0h10v10H0z"/></svg>' },
         },
       }),
-    ).toEqual(expect.arrayContaining(['brand', 'fee-wallet', 'openrouter', 'endpoints']))
+    ).toEqual(expect.arrayContaining(['brand', 'fee-wallet', 'openrouter', 'translations', 'endpoints']))
   })
 
   it('requires both a custom site name and custom logo to infer brand completion', () => {

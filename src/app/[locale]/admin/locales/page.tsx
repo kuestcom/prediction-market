@@ -34,7 +34,7 @@ async function AdminLocalesSettingsContent({ params }: PageProps<'/[locale]/admi
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">{t('Locales')}</h1>
         <p className="text-sm text-muted-foreground">
-          {t('Manage enabled locales and translation automation behavior.')}
+          {t('Order language preferences and disable unused locales to speed up translations.')}
         </p>
       </div>
 
