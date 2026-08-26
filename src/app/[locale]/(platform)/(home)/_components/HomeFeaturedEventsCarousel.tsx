@@ -71,6 +71,8 @@ const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
 const HOME_FEATURED_ROLLOVER_RETRY_MS = 5_000
+const HOME_FEATURED_ROLLOVER_MAX_RETRIES = 6
+const HOME_FEATURED_ROLLOVER_MAX_RETRY_DELAY_MS = 60_000
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
 
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
@@ -1844,6 +1846,24 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
       const controller = new AbortController()
       let retryTimeoutId: number | null = null
       let isActive = true
+      let retryAttempt = 0
+
+      function scheduleRolloverRetry() {
+        if (
+          !isActive ||
+          isHomeFeaturedEventEnded(lastKnownEvent, Date.now()) ||
+          retryAttempt >= HOME_FEATURED_ROLLOVER_MAX_RETRIES
+        ) {
+          return
+        }
+
+        const retryDelay = Math.min(
+          HOME_FEATURED_ROLLOVER_RETRY_MS * 2 ** retryAttempt,
+          HOME_FEATURED_ROLLOVER_MAX_RETRY_DELAY_MS,
+        )
+        retryAttempt += 1
+        retryTimeoutId = window.setTimeout(loadNextRolloverEvent, retryDelay)
+      }
 
       async function loadNextRolloverEvent() {
         try {
@@ -1866,7 +1886,7 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
           }
 
           if (!nextEvent) {
-            retryTimeoutId = window.setTimeout(loadNextRolloverEvent, HOME_FEATURED_ROLLOVER_RETRY_MS)
+            scheduleRolloverRetry()
             return
           }
 
@@ -1882,7 +1902,7 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
           })
         } catch {
           if (isActive && !controller.signal.aborted) {
-            retryTimeoutId = window.setTimeout(loadNextRolloverEvent, HOME_FEATURED_ROLLOVER_RETRY_MS)
+            scheduleRolloverRetry()
           }
         }
       }
