@@ -57,6 +57,9 @@ const LIVE_SERIES_PRICE_SNAPSHOT_STORE_TTL_MS = 10 * 60 * 1000
 const BINANCE_CLOSE_FIRST_REFRESH_DELAY_MS = 65 * 1000
 const BINANCE_CLOSE_REFRESH_INTERVAL_MS = 10 * 1000
 const BINANCE_CLOSE_REFRESH_WINDOW_MS = 5 * 60 * 1000
+const OPENING_PRICE_FIRST_REFRESH_DELAY_MS = 5 * 1000
+const OPENING_PRICE_REFRESH_INTERVAL_MS = 5 * 1000
+const OPENING_PRICE_REFRESH_WINDOW_MS = 2 * 60 * 1000
 const EMPTY_LIVE_SERIES_PRICE_SNAPSHOT: LiveSeriesPriceSnapshotStoreSnapshot = {
   referenceSnapshot: null,
   referenceSnapshotStatus: 'loading',
@@ -103,6 +106,28 @@ function buildLiveSeriesPriceSnapshotQuery({
 
 function buildPersistedLivePriceStorageKey(topic: string, symbol: string) {
   return `${liveSeriesPriceStorageKeyPrefix}:${topic.trim().toLowerCase()}:${symbol.trim().toUpperCase()}`
+}
+
+function resolveRequestedWindowStart(request: LiveSeriesPriceSnapshotRequest) {
+  if (request.startTimestamp != null && request.startTimestamp > 0) {
+    return request.startTimestamp
+  }
+
+  if (request.explicitEndTimestamp == null) {
+    return null
+  }
+
+  return request.explicitEndTimestamp - request.activeWindowMinutes * 60 * 1000
+}
+
+function hasRequestedOpeningPrice(snapshot: LiveSeriesPriceSnapshot | null, request: LiveSeriesPriceSnapshotRequest) {
+  const requestedWindowStart = resolveRequestedWindowStart(request)
+  const openingPrice = Number(snapshot?.opening_price)
+  if (!snapshot || !Number.isFinite(openingPrice) || openingPrice <= 0) {
+    return false
+  }
+
+  return requestedWindowStart == null || snapshot.event_window_start_ms === requestedWindowStart
 }
 
 function getLiveSeriesPriceSnapshotStoreEntry(storeKey: string) {
@@ -276,6 +301,7 @@ function subscribeToLiveSeriesPriceSnapshot(onStoreChange: () => void, request: 
   const entry = getLiveSeriesPriceSnapshotStoreEntry(storeKey)
   entry.listeners.add(onStoreChange)
   let binanceCloseRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  let openingPriceRefreshTimer: ReturnType<typeof setTimeout> | null = null
   let isSubscribed = true
 
   if (syncPersistedLivePriceSnapshot(storeKey, request)) {
@@ -312,6 +338,35 @@ function subscribeToLiveSeriesPriceSnapshot(onStoreChange: () => void, request: 
         Math.max(0, firstRefreshAtMs - Date.now()),
       )
     }
+  }
+
+  async function refreshOpeningPriceUntilAvailable() {
+    if (!isSubscribed || hasRequestedOpeningPrice(entry.snapshot.referenceSnapshot, request)) {
+      return
+    }
+
+    await fetchLiveSeriesPriceSnapshot(storeKey, request)
+    const requestedWindowStart = resolveRequestedWindowStart(request)
+    if (
+      !isSubscribed ||
+      hasRequestedOpeningPrice(entry.snapshot.referenceSnapshot, request) ||
+      requestedWindowStart == null ||
+      Date.now() >= requestedWindowStart + OPENING_PRICE_REFRESH_WINDOW_MS
+    ) {
+      return
+    }
+
+    openingPriceRefreshTimer = setTimeout(refreshOpeningPriceUntilAvailable, OPENING_PRICE_REFRESH_INTERVAL_MS)
+  }
+
+  const requestedWindowStart = resolveRequestedWindowStart(request)
+  if (
+    requestedWindowStart != null &&
+    Date.now() < requestedWindowStart + OPENING_PRICE_REFRESH_WINDOW_MS &&
+    !hasRequestedOpeningPrice(entry.snapshot.referenceSnapshot, request)
+  ) {
+    const firstRefreshAtMs = requestedWindowStart + OPENING_PRICE_FIRST_REFRESH_DELAY_MS
+    openingPriceRefreshTimer = setTimeout(refreshOpeningPriceUntilAvailable, Math.max(0, firstRefreshAtMs - Date.now()))
   }
 
   function refreshSnapshotAfterResume() {
@@ -358,6 +413,9 @@ function subscribeToLiveSeriesPriceSnapshot(onStoreChange: () => void, request: 
     isSubscribed = false
     if (binanceCloseRefreshTimer) {
       clearTimeout(binanceCloseRefreshTimer)
+    }
+    if (openingPriceRefreshTimer) {
+      clearTimeout(openingPriceRefreshTimer)
     }
     entry.listeners.delete(onStoreChange)
     if (entry.listeners.size === 0 && entry.abortController) {

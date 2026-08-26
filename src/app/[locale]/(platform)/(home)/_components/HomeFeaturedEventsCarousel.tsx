@@ -18,6 +18,7 @@ import type {
   HomeFeaturedEventCard,
   HomeFeaturedHotTopic,
   HomeFeaturedOutcomeSummary,
+  HomeFeaturedRolloverEvent,
   HomeFeaturedSideCardSettings,
   Market,
 } from '@/types'
@@ -49,7 +50,7 @@ import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
-import { resolveHomeFeaturedEventEndTimestamp } from '@/lib/home-featured-rollover'
+import { isHomeFeaturedEventEnded, resolveHomeFeaturedEventEndTimestamp } from '@/lib/home-featured-rollover'
 import { resolveHomeFeaturedSportsScoreboardContent } from '@/lib/home-featured-sports-score'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import {
@@ -69,6 +70,7 @@ interface HomeFeaturedEventsCarouselProps {
 const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
+const HOME_FEATURED_ROLLOVER_RETRY_MS = 5_000
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
 
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
@@ -169,6 +171,17 @@ function isNegativeOutcomeLabel(label: string) {
   return /\b(?:no|down|below|lower|under)\b/.test(normalized)
 }
 
+function shouldUseLiveFeaturedOutcomeColors(item: HomeFeaturedEventCard) {
+  if (!item.liveChartConfig || !shouldUseLiveSeriesChart(item.event, item.liveChartConfig)) {
+    return false
+  }
+
+  const [upOutcome, downOutcome] = item.topOutcomes
+  return Boolean(
+    upOutcome && downOutcome && !isNegativeOutcomeLabel(upOutcome.label) && isNegativeOutcomeLabel(downOutcome.label),
+  )
+}
+
 function resolveNeutralSportsButtonAppearance() {
   return {
     className: `
@@ -243,6 +256,43 @@ function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
     backgroundClassName: resolveSportsTeamFallbackClassName(market.tone === 'home' ? 'team1' : 'team2'),
     backgroundStyle: undefined,
   }
+}
+
+function resolveLiveFeaturedOutcomeAppearance(item: HomeFeaturedEventCard, index: number) {
+  if (!shouldUseLiveFeaturedOutcomeColors(item)) {
+    return null
+  }
+
+  if (index === 0) {
+    const color = item.liveChartConfig?.line_color?.trim()
+    if (!color) {
+      return null
+    }
+
+    const appearance = resolveSportsButtonAppearance({
+      key: 'featured-live-up',
+      conditionId: '',
+      label: 'Up',
+      tone: 'home',
+      color,
+    })
+
+    return {
+      ...appearance,
+      className: `!border-0 ${appearance.className}`,
+    }
+  }
+
+  if (index === 1) {
+    return {
+      className: '!border-0 !bg-secondary/75 text-muted-foreground hover:!bg-[#7A828C] hover:!text-foreground',
+      style: undefined,
+      backgroundClassName: undefined,
+      backgroundStyle: undefined,
+    }
+  }
+
+  return null
 }
 
 function toTitleCase(value: string) {
@@ -492,22 +542,41 @@ function StandardActions({
     return null
   }
 
+  const shouldUseLiveOutcomeColors = shouldUseLiveFeaturedOutcomeColors(item)
+
   return (
     <div className={cn('grid gap-2', stacked ? 'grid-cols-1' : 'grid-cols-2')}>
       {outcomes.slice(0, 2).map((outcome, index) => {
         const isNegative = isNegativeOutcomeLabel(outcome.label) || index === 1
+        const liveOutcomeAppearance = resolveLiveFeaturedOutcomeAppearance(item, index)
 
         return (
           <Button
-            key={outcome.key}
-            variant={isNegative ? 'no' : 'yes'}
+            key={`featured-action-${index}`}
+            variant={liveOutcomeAppearance ? 'outline' : isNegative ? 'no' : 'yes'}
             className={cn(
               `inline-flex h-16 min-w-0 items-center justify-center rounded-lg px-4 text-center text-base font-semibold transition duration-150 active:scale-[98%] md:h-14 md:px-4 md:text-base`,
+              shouldUseLiveOutcomeColors && 'shadow-none',
+              shouldUseLiveOutcomeColors && 'uppercase',
+              liveOutcomeAppearance?.className,
             )}
+            style={liveOutcomeAppearance?.style}
             nativeButton={false}
             render={
-              <Link href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}>
-                <span className="truncate">{outcome.label}</span>
+              <Link
+                href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
+                className="relative inline-flex size-full items-center justify-center"
+              >
+                {liveOutcomeAppearance?.backgroundClassName || liveOutcomeAppearance?.backgroundStyle ? (
+                  <span
+                    className={cn(
+                      'pointer-events-none absolute inset-0 z-0 rounded-lg opacity-[0.15] transition-opacity group-hover/team-button:opacity-100',
+                      liveOutcomeAppearance.backgroundClassName,
+                    )}
+                    style={liveOutcomeAppearance.backgroundStyle}
+                  />
+                ) : null}
+                <span className="relative z-1 truncate">{outcome.label}</span>
               </Link>
             }
           />
@@ -1737,32 +1806,139 @@ function FeaturedRightRailAction() {
   )
 }
 
+interface HomeFeaturedRolloverQueueState {
+  activeIndex: number
+  events: HomeFeaturedRolloverEvent[]
+}
+
+function buildHomeFeaturedRolloverQueueState(item: HomeFeaturedEventCard): HomeFeaturedRolloverQueueState {
+  return {
+    activeIndex: -1,
+    events: item.targetType === 'series' && item.nextSeriesEvent ? [item.nextSeriesEvent] : [],
+  }
+}
+
 function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
-  const [rolloverState, setRolloverState] = useState<{ featuredId: string; eventId: string } | null>(null)
-  const nextSeriesEvent = item.targetType === 'series' ? item.nextSeriesEvent : null
+  const locale = useLocale()
+  const [queueState, setQueueState] = useState<HomeFeaturedRolloverQueueState>(() =>
+    buildHomeFeaturedRolloverQueueState(item),
+  )
+  const activeIndex = queueState.activeIndex
+  const rolloverEvents = queueState.events
+  const activeRolloverEvent = activeIndex >= 0 ? (rolloverEvents[activeIndex] ?? null) : null
+  const activeEvent = activeRolloverEvent?.event ?? item.event
+  const nextRolloverEvent = rolloverEvents[activeIndex + 1] ?? null
 
   useEffect(
-    function scheduleFeaturedSeriesRollover() {
-      if (!nextSeriesEvent) {
+    function preloadFutureFeaturedSeriesEvents() {
+      if (item.targetType !== 'series') {
         return
       }
 
-      const endTimestamp = resolveHomeFeaturedEventEndTimestamp(item.event)
+      const futureEventCount = rolloverEvents.length - (activeIndex + 1)
+      if (futureEventCount >= 2) {
+        return
+      }
+
+      const lastKnownEvent = rolloverEvents.at(-1)?.event ?? activeEvent
+      const controller = new AbortController()
+      let retryTimeoutId: number | null = null
+      let isActive = true
+
+      async function loadNextRolloverEvent() {
+        try {
+          const query = new URLSearchParams({
+            currentEventSlug: lastKnownEvent.slug,
+            locale,
+          })
+          const response = await fetch(`/api/home-featured/series-rollover?${query.toString()}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+          })
+          if (!response.ok) {
+            throw new Error(`Featured rollover request failed with ${response.status}`)
+          }
+
+          const payload = (await response.json()) as { nextEvent?: HomeFeaturedRolloverEvent | null }
+          const nextEvent = payload.nextEvent ?? null
+          if (!isActive) {
+            return
+          }
+
+          if (!nextEvent) {
+            retryTimeoutId = window.setTimeout(loadNextRolloverEvent, HOME_FEATURED_ROLLOVER_RETRY_MS)
+            return
+          }
+
+          setQueueState((current) => {
+            if (current.events.some((event) => event.event.id === nextEvent.event.id)) {
+              return current
+            }
+
+            return {
+              ...current,
+              events: [...current.events, nextEvent],
+            }
+          })
+        } catch {
+          if (isActive && !controller.signal.aborted) {
+            retryTimeoutId = window.setTimeout(loadNextRolloverEvent, HOME_FEATURED_ROLLOVER_RETRY_MS)
+          }
+        }
+      }
+
+      void loadNextRolloverEvent()
+
+      return function cancelFutureFeaturedSeriesEventPreload() {
+        isActive = false
+        controller.abort()
+        if (retryTimeoutId != null) {
+          window.clearTimeout(retryTimeoutId)
+        }
+      }
+    },
+    [activeEvent, activeIndex, item.targetType, locale, rolloverEvents],
+  )
+
+  /* oxlint-disable react-you-might-not-need-an-effect/no-external-store-subscription -- The rollover owns an exact market-end timer and a tab-resume listener. */
+  useEffect(
+    function scheduleFeaturedSeriesRollover() {
+      if (!nextRolloverEvent) {
+        return
+      }
+
+      const endTimestamp = resolveHomeFeaturedEventEndTimestamp(activeEvent)
       if (endTimestamp == null) {
         return
       }
-      const scheduledEndTimestamp = endTimestamp
-      const rolloverEvent = nextSeriesEvent
 
       let timeoutId: number | null = null
       function activateNextEvent() {
-        if (Date.now() < scheduledEndTimestamp) {
+        if (!isHomeFeaturedEventEnded(activeEvent, Date.now())) {
           return
         }
-        setRolloverState({ featuredId: item.featuredId, eventId: rolloverEvent.event.id })
+
+        setQueueState((current) => {
+          const currentNextEvent = current.events[current.activeIndex + 1]
+          if (!currentNextEvent || currentNextEvent.event.id !== nextRolloverEvent.event.id) {
+            return current
+          }
+
+          if (current.activeIndex < 0) {
+            return { ...current, activeIndex: 0 }
+          }
+
+          const promotedIndex = current.activeIndex + 1
+          return {
+            ...current,
+            activeIndex: 0,
+            events: current.events.slice(promotedIndex),
+          }
+        })
       }
 
-      timeoutId = window.setTimeout(activateNextEvent, Math.max(0, scheduledEndTimestamp - Date.now()))
+      activateNextEvent()
+      timeoutId = window.setTimeout(activateNextEvent, Math.max(0, endTimestamp - Date.now()))
       document.addEventListener('visibilitychange', activateNextEvent)
 
       return function cancelFeaturedSeriesRollover() {
@@ -1772,25 +1948,22 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
         document.removeEventListener('visibilitychange', activateNextEvent)
       }
     },
-    [item.event, item.featuredId, nextSeriesEvent],
+    [activeEvent, nextRolloverEvent],
   )
-
-  const shouldUseNextEvent =
-    nextSeriesEvent &&
-    rolloverState?.featuredId === item.featuredId &&
-    rolloverState.eventId === nextSeriesEvent.event.id
+  /* oxlint-enable react-you-might-not-need-an-effect/no-external-store-subscription */
 
   return useMemo<HomeFeaturedEventCard>(() => {
-    if (!shouldUseNextEvent) {
+    if (!activeRolloverEvent) {
       return item
     }
 
     return {
       ...item,
-      ...nextSeriesEvent,
+      ...activeRolloverEvent,
       contextItems: [],
+      nextSeriesEvent: nextRolloverEvent,
     }
-  }, [item, nextSeriesEvent, shouldUseNextEvent])
+  }, [activeRolloverEvent, item, nextRolloverEvent])
 }
 
 function FeaturedSlide({
@@ -1858,6 +2031,7 @@ function FeaturedSlide({
               showCurrentPriceGuide={false}
               compactBitcoinHeaderPrices
               preserveSeriesContinuity
+              showLiveMarketLink={false}
             />
           ) : item.kind === 'sports' && sportsGraphCard && sportsGraphSelection ? (
             <HomeSportsGameGraph
@@ -2047,7 +2221,7 @@ export default function HomeFeaturedEventsCarousel({
           >
             {items.map((item, index) => (
               <FeaturedSlide
-                key={item.featuredId}
+                key={`${item.featuredId}:${item.event.id}`}
                 item={item}
                 currentTimestamp={currentTimestamp}
                 isActive={index === activeIndex}

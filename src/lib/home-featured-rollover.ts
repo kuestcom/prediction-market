@@ -1,5 +1,7 @@
 import type { Event, EventSeriesEntry } from '@/types'
 
+import { isEventResolvedLike } from '@/lib/home-events'
+
 function parseFeaturedTimestamp(value: string | null | undefined) {
   if (!value) {
     return null
@@ -21,12 +23,26 @@ export function resolveHomeFeaturedEventEndTimestamp(event: Event) {
   return timestamps.length > 0 ? Math.max(...timestamps) : null
 }
 
-export function findNextHomeFeaturedSeriesEvent(seriesEvents: EventSeriesEntry[], currentEvent: Event) {
+export function isHomeFeaturedEventEnded(event: Event, nowTimestamp: number | null) {
+  if (event.status === 'resolved' || event.status === 'archived' || event.resolved_at || isEventResolvedLike(event)) {
+    return true
+  }
+
+  const endTimestamp = resolveHomeFeaturedEventEndTimestamp(event)
+  return endTimestamp != null && nowTimestamp != null && nowTimestamp >= endTimestamp
+}
+
+export function findNextHomeFeaturedSeriesEvent(
+  seriesEvents: EventSeriesEntry[],
+  currentEvent: Event,
+  nowTimestamp: number | null = null,
+) {
   const currentEndTimestamp = resolveHomeFeaturedEventEndTimestamp(currentEvent)
   if (currentEndTimestamp == null) {
     return null
   }
 
+  const minimumEndTimestamp = nowTimestamp == null ? currentEndTimestamp : Math.max(currentEndTimestamp, nowTimestamp)
   let nextEvent: EventSeriesEntry | null = null
   let nextEndTimestamp = Number.POSITIVE_INFINITY
 
@@ -40,7 +56,7 @@ export function findNextHomeFeaturedSeriesEvent(seriesEvents: EventSeriesEntry[]
     }
 
     const endTimestamp = parseFeaturedTimestamp(seriesEvent.end_date)
-    if (endTimestamp == null || endTimestamp <= currentEndTimestamp || endTimestamp >= nextEndTimestamp) {
+    if (endTimestamp == null || endTimestamp <= minimumEndTimestamp || endTimestamp >= nextEndTimestamp) {
       continue
     }
 

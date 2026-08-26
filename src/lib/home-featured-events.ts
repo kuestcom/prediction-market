@@ -346,6 +346,50 @@ function buildHomeFeaturedRolloverEvent(event: Event, locale: SupportedLocale): 
   }
 }
 
+export async function getNextHomeFeaturedSeriesRolloverEvent(
+  currentEventSlug: string,
+  locale: SupportedLocale = DEFAULT_LOCALE,
+) {
+  const { data: currentEvent, error: currentEventError } = await EventRepository.getEventBySlug(
+    currentEventSlug,
+    '',
+    locale,
+  )
+  if (currentEventError) {
+    throw currentEventError
+  }
+  if (!currentEvent?.series_slug) {
+    return null
+  }
+
+  const { data: seriesEvents, error: seriesEventsError } = await EventRepository.getSeriesEventsBySeriesSlug(
+    currentEvent.series_slug,
+  )
+  if (seriesEventsError) {
+    throw seriesEventsError
+  }
+
+  const nextSeriesEntry = findNextHomeFeaturedSeriesEvent(seriesEvents ?? [], currentEvent, Date.now())
+  if (!nextSeriesEntry) {
+    return null
+  }
+
+  const { data: nextEvent, error: nextEventError } = await EventRepository.getEventBySlug(
+    nextSeriesEntry.slug,
+    '',
+    locale,
+  )
+  if (nextEventError) {
+    throw nextEventError
+  }
+  if (!nextEvent) {
+    return null
+  }
+
+  const resolvedNextEvent = await resolveFeaturedSportsEventPayload(nextEvent, locale)
+  return buildHomeFeaturedRolloverEvent(resolvedNextEvent, locale)
+}
+
 async function loadHomeFeaturedContextItems(
   featuredEventIds: string[],
   locale: SupportedLocale,

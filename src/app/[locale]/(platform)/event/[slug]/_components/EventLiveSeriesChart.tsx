@@ -260,6 +260,7 @@ interface EventLiveSeriesChartProps {
   showCurrentPriceGuide?: boolean
   compactBitcoinHeaderPrices?: boolean
   preserveSeriesContinuity?: boolean
+  showLiveMarketLink?: boolean
 }
 
 export default function EventLiveSeriesChart({
@@ -274,6 +275,7 @@ export default function EventLiveSeriesChart({
   showCurrentPriceGuide = true,
   compactBitcoinHeaderPrices = false,
   preserveSeriesContinuity = false,
+  showLiveMarketLink = true,
 }: EventLiveSeriesChartProps) {
   const subscriptionSymbol = useMemo(
     () => normalizeSubscriptionSymbol(config.topic, config.symbol),
@@ -297,6 +299,8 @@ export default function EventLiveSeriesChart({
       showAreaFill={showAreaFill}
       showCurrentPriceGuide={showCurrentPriceGuide}
       compactBitcoinHeaderPrices={compactBitcoinHeaderPrices}
+      preserveSeriesContinuity={preserveSeriesContinuity}
+      showLiveMarketLink={showLiveMarketLink}
     />
   )
 }
@@ -313,6 +317,8 @@ interface EventLiveSeriesChartContentProps {
   showAreaFill: boolean
   showCurrentPriceGuide: boolean
   compactBitcoinHeaderPrices: boolean
+  preserveSeriesContinuity: boolean
+  showLiveMarketLink: boolean
 }
 
 function EventLiveSeriesChartContent({
@@ -327,6 +333,8 @@ function EventLiveSeriesChartContent({
   showAreaFill,
   showCurrentPriceGuide,
   compactBitcoinHeaderPrices,
+  preserveSeriesContinuity,
+  showLiveMarketLink,
 }: EventLiveSeriesChartContentProps) {
   const site = useSiteIdentity()
   const { width: windowWidth } = useWindowSize()
@@ -381,6 +389,7 @@ function EventLiveSeriesChartContent({
     startTimestamp,
   })
   const isEventClosed =
+    !preserveSeriesContinuity &&
     hasExplicitEndTimestamp &&
     (hasResolvedState || Boolean(referenceSnapshot?.is_event_closed) || nowMs >= endTimestamp)
   const chartNowMs = isEventClosed ? endTimestamp : nowMs
@@ -435,10 +444,22 @@ function EventLiveSeriesChartContent({
       ? Math.max(1, Math.round(providedChartWidth))
       : fallbackChartWidth
 
-  const referenceOpeningPrice = useMemo(
+  const snapshotOpeningPrice = useMemo(
     () => normalizeReferencePrice(referenceSnapshot?.opening_price, realtimeTopic),
     [realtimeTopic, referenceSnapshot?.opening_price],
   )
+  const [retainedOpeningPrice, setRetainedOpeningPrice] = useState<number | null>(snapshotOpeningPrice)
+  /* oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-event-handler -- Keep the last confirmed market opening visible while the next exact opening snapshot is still being published. */
+  useEffect(() => {
+    if (!preserveSeriesContinuity || snapshotOpeningPrice == null) {
+      return
+    }
+
+    setRetainedOpeningPrice((current) => (current === snapshotOpeningPrice ? current : snapshotOpeningPrice))
+  }, [preserveSeriesContinuity, snapshotOpeningPrice])
+  /* oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-event-handler */
+  const referenceOpeningPrice =
+    snapshotOpeningPrice ?? (preserveSeriesContinuity ? retainedOpeningPrice : snapshotOpeningPrice)
   const referenceClosingPrice = useMemo(
     () => normalizeReferencePrice(referenceSnapshot?.closing_price, realtimeTopic),
     [realtimeTopic, referenceSnapshot?.closing_price],
@@ -544,7 +565,8 @@ function EventLiveSeriesChartContent({
     () => findLiveSeriesEvent(seriesEvents, event.slug, nowMs, tradingWindowMs),
     [event.slug, nowMs, seriesEvents, tradingWindowMs],
   )
-  const liveMarketHref = isEventClosed && liveSeriesEvent ? resolveEventPagePath(liveSeriesEvent) : null
+  const liveMarketHref =
+    showLiveMarketLink && isEventClosed && liveSeriesEvent ? resolveEventPagePath(liveSeriesEvent) : null
   const closedFallbackData = useMemo(
     () =>
       buildClosedLiveSeriesData({
@@ -730,10 +752,10 @@ function EventLiveSeriesChartContent({
   }, [axisCurrentPrice, axisPriceDisplayDigits, dataSource])
   const axisInitializationPhase =
     data.length > 0 ? 'realtime-ready' : dataSource.length > 0 ? 'reference-ready' : 'empty'
-  const axisValues = useStableLiveChartAxis(
-    candidateAxisValues,
-    `${event.id}:${realtimeTopic}:${subscriptionSymbol}:${axisInitializationPhase}`,
-  )
+  const chartScopeKey = preserveSeriesContinuity
+    ? `${config.series_slug}:${config.topic}:${config.event_type}:${subscriptionSymbol}`
+    : `${event.id}:${realtimeTopic}:${subscriptionSymbol}`
+  const axisValues = useStableLiveChartAxis(candidateAxisValues, `${chartScopeKey}:${axisInitializationPhase}`)
 
   const currentLineTop = (() => {
     if (currentPrice == null) {
@@ -899,7 +921,7 @@ function EventLiveSeriesChartContent({
                   bottom: LIVE_CHART_MARGIN_BOTTOM,
                   left: LIVE_CHART_MARGIN_LEFT,
                 }}
-                dataSignature={`${event.id}:${realtimeTopic}:${subscriptionSymbol}`}
+                dataSignature={chartScopeKey}
                 xAxisTickCount={isMobile ? 2 : 4}
                 xDomain={liveXAxisDomain}
                 xAxisTickValues={xAxisTickValues}

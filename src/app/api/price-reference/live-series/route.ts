@@ -317,8 +317,9 @@ export async function GET(request: Request) {
     )
 
     const openingRow =
-      selectMostRecentRowAtOrBefore(openingHistoryRows, eventWindowStartMs) ??
-      selectMostRecentRowAtOrBefore(openingFallbackRows, eventWindowStartMs)
+      openingHistoryRows.find((row) => row.window_end_ms === eventWindowStartMs) ??
+      openingFallbackRows.find((row) => row.window_end_ms === eventWindowStartMs) ??
+      null
     const windowRow = selectClosingRow(
       closingHistoryRows,
       closingHistoryTargetMs,
@@ -331,10 +332,7 @@ export async function GET(request: Request) {
       if (!latestOpeningMarket?.next_window) {
         return null
       }
-      if (
-        eventWindowStartMs >= latestOpeningMarket.next_window.window_start_ms &&
-        eventWindowStartMs < latestOpeningMarket.next_window.window_end_ms
-      ) {
+      if (eventWindowStartMs === latestOpeningMarket.next_window.window_start_ms) {
         return toFiniteNumber(latestOpeningMarket.next_window.opening_reference_price)
       }
       return null
@@ -343,10 +341,7 @@ export async function GET(request: Request) {
       if (!latestMarket?.next_window) {
         return null
       }
-      if (
-        eventWindowStartMs >= latestMarket.next_window.window_start_ms &&
-        eventWindowStartMs < latestMarket.next_window.window_end_ms
-      ) {
+      if (eventWindowStartMs === latestMarket.next_window.window_start_ms) {
         return toFiniteNumber(latestMarket.next_window.opening_reference_price)
       }
       return null

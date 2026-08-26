@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import type { Event, EventSeriesEntry } from '@/types'
 
-import { findNextHomeFeaturedSeriesEvent, resolveHomeFeaturedEventEndTimestamp } from '@/lib/home-featured-rollover'
+import {
+  findNextHomeFeaturedSeriesEvent,
+  isHomeFeaturedEventEnded,
+  resolveHomeFeaturedEventEndTimestamp,
+} from '@/lib/home-featured-rollover'
 
 function createEvent(): Event {
   return {
@@ -30,6 +34,20 @@ describe('homeFeaturedRollover', () => {
     expect(resolveHomeFeaturedEventEndTimestamp(createEvent())).toBe(Date.parse('2026-08-13T16:05:00.000Z'))
   })
 
+  it('allows rollover as soon as the current event is resolved', () => {
+    expect(
+      isHomeFeaturedEventEnded(
+        createEventWithOverrides({ status: 'resolved', resolved_at: '2026-08-13T16:01:00.000Z' }),
+        Date.parse('2026-08-13T16:02:00.000Z'),
+      ),
+    ).toBe(true)
+  })
+
+  it('treats an active event as ended after its latest market cutoff', () => {
+    expect(isHomeFeaturedEventEnded(createEvent(), Date.parse('2026-08-13T16:05:00.000Z'))).toBe(true)
+    expect(isHomeFeaturedEventEnded(createEvent(), Date.parse('2026-08-13T16:04:59.000Z'))).toBe(false)
+  })
+
   it('selects the nearest active event after the current market', () => {
     const next = findNextHomeFeaturedSeriesEvent(
       [
@@ -42,4 +60,21 @@ describe('homeFeaturedRollover', () => {
 
     expect(next?.id).toBe('next')
   })
+
+  it('skips already expired successors when catching a stale featured card up to live', () => {
+    const next = findNextHomeFeaturedSeriesEvent(
+      [
+        createSeriesEvent('expired-next', '2026-08-13T16:10:00.000Z'),
+        createSeriesEvent('live-next', '2026-08-13T16:15:00.000Z'),
+      ],
+      createEvent(),
+      Date.parse('2026-08-13T16:11:00.000Z'),
+    )
+
+    expect(next?.id).toBe('live-next')
+  })
 })
+
+function createEventWithOverrides(overrides: Partial<Event>): Event {
+  return { ...createEvent(), ...overrides }
+}

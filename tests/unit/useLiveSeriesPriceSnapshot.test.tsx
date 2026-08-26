@@ -27,6 +27,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
 
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
@@ -106,5 +107,61 @@ describe('useLiveSeriesPriceSnapshot', () => {
 
     await waitFor(() => expect(result.current.referenceSnapshotStatus).toBe('unavailable'))
     expect(result.current.referenceSnapshot).toBeNull()
+  })
+
+  it('retries five seconds after a new window starts until its opening price is available', async () => {
+    vi.useFakeTimers()
+    const eventStartTimestamp = now
+    const eventEndTimestamp = eventStartTimestamp + 5 * 60 * 1000
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          opening_price: null,
+          event_window_start_ms: eventStartTimestamp,
+          event_window_end_ms: eventEndTimestamp,
+        }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          opening_price: 123,
+          latest_price: 124,
+          latest_source_timestamp_ms: eventStartTimestamp + 5_000,
+          event_window_start_ms: eventStartTimestamp,
+          event_window_end_ms: eventEndTimestamp,
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const config = {
+      series_slug: 'snapshot-opening-retry-test',
+      topic: 'crypto_prices_chainlink',
+      active_window_minutes: 5,
+    } as EventLiveChartConfig
+
+    const { result } = renderHook(() =>
+      useLiveSeriesPriceSnapshot({
+        config,
+        subscriptionSymbol: 'BTC',
+        explicitEndTimestamp: eventEndTimestamp,
+        startTimestamp: eventStartTimestamp,
+      }),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.current.referenceSnapshot?.opening_price).toBeNull()
+
+    now += 5_000
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000)
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(result.current.referenceSnapshot?.opening_price).toBe(123)
   })
 })
