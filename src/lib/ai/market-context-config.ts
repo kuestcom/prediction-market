@@ -12,6 +12,7 @@ interface SettingsMap {
 
 export interface OpenRouterProviderSettings {
   model?: string
+  translationModel?: string
   apiKey?: string
   configured: boolean
   allSettings?: SettingsMap
@@ -78,6 +79,7 @@ export function validateMarketContextSettingsInput(input: { prompt: string; enab
 function parseOpenRouterProviderSettingsFromMap(allSettings?: SettingsMap): OpenRouterProviderSettings {
   const aiSettings = allSettings?.ai
   const model = aiSettings?.openrouter_model?.value?.trim() || undefined
+  const translationModel = aiSettings?.openrouter_translation_model?.value?.trim() || undefined
   const encryptedApiKey = aiSettings?.openrouter_api_key?.value
   const decryptedApiKey = encryptedApiKey ? decryptSecret(encryptedApiKey) : ''
   const apiKey = decryptedApiKey.trim() || undefined
@@ -85,6 +87,7 @@ function parseOpenRouterProviderSettingsFromMap(allSettings?: SettingsMap): Open
 
   return {
     model,
+    translationModel,
     apiKey,
     configured,
     allSettings,

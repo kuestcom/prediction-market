@@ -49,9 +49,12 @@ export interface AdminIntegrationsFormProps {
   lifiApiKeyConfigured: boolean
   openRouterSettings: {
     defaultModel?: string
+    translationModel?: string
     isApiKeyConfigured: boolean
     modelOptions: ModelOption[]
+    translationModelOptions: ModelOption[]
     modelsError?: string
+    translationModelsError?: string
   }
   sportsSourceSettings: {
     isPandaScoreTokenConfigured: boolean
@@ -130,8 +133,17 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
   const [googleAnalyticsId, setGoogleAnalyticsId] = useState(props.googleAnalyticsId)
   const [openRouterApiKey, setOpenRouterApiKey] = useState('')
   const [openRouterModel, setOpenRouterModel] = useState(props.openRouterSettings.defaultModel ?? '')
+  const [openRouterTranslationModel, setOpenRouterTranslationModel] = useState(
+    props.openRouterSettings.translationModel ?? '',
+  )
   const [openRouterModelOptions, setOpenRouterModelOptions] = useState(props.openRouterSettings.modelOptions)
+  const [openRouterTranslationModelOptions, setOpenRouterTranslationModelOptions] = useState(
+    props.openRouterSettings.translationModelOptions,
+  )
   const [openRouterModelsError, setOpenRouterModelsError] = useState(props.openRouterSettings.modelsError)
+  const [openRouterTranslationModelsError, setOpenRouterTranslationModelsError] = useState(
+    props.openRouterSettings.translationModelsError,
+  )
   const [isRefreshingOpenRouterModels, setIsRefreshingOpenRouterModels] = useState(false)
   const [theSportsDbApiKey, setTheSportsDbApiKey] = useState('')
   const [pandaScoreToken, setPandaScoreToken] = useState('')
@@ -208,22 +220,35 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
     }
     setIsRefreshingOpenRouterModels(true)
     setOpenRouterModelsError(undefined)
+    setOpenRouterTranslationModelsError(undefined)
     try {
-      const response = await fetch(`/${props.locale}/admin/api/openrouter-models`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: openRouterApiKey.trim() }),
-      })
-      const payload = (await response.json()) as { models?: ModelOption[]; error?: string }
-      if (!response.ok || !payload.models) {
-        throw new Error(payload.error ?? t('Unable to load models. Please verify the API key.'))
+      async function loadModelOptions(includeAllModels = false) {
+        const response = await fetch(`/${props.locale}/admin/api/openrouter-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey: openRouterApiKey.trim(), includeAllModels }),
+        })
+        const payload = (await response.json()) as { models?: ModelOption[]; error?: string }
+        if (!response.ok || !payload.models) {
+          throw new Error(payload.error ?? t('Unable to load models. Please verify the API key.'))
+        }
+        return payload.models
       }
-      setOpenRouterModelOptions(payload.models)
-      if (!payload.models.some((model) => model.id === openRouterModel)) {
+
+      const [models, translationModels] = await Promise.all([loadModelOptions(), loadModelOptions(true)])
+      setOpenRouterModelOptions(models)
+      setOpenRouterTranslationModelOptions(translationModels)
+      if (!models.some((model) => model.id === openRouterModel)) {
         setOpenRouterModel('')
+      }
+      if (!translationModels.some((model) => model.id === openRouterTranslationModel)) {
+        setOpenRouterTranslationModel('')
       }
     } catch (error) {
       setOpenRouterModelsError(
+        error instanceof Error ? error.message : t('Unable to load models. Please verify the API key.'),
+      )
+      setOpenRouterTranslationModelsError(
         error instanceof Error ? error.message : t('Unable to load models. Please verify the API key.'),
       )
     } finally {
@@ -271,6 +296,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
   return (
     <form action={formAction} className="grid max-w-full min-w-0 gap-6">
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
+      <input type="hidden" name="openrouter_translation_model" value={openRouterTranslationModel} />
       <input type="hidden" name="arbitrage_enabled" value={String(arbitrageEnabled)} />
       <input type="hidden" name="arbitrage_multi_wallet_enabled" value={String(arbitrageMultiWalletEnabled)} />
       <input type="hidden" name="kuest_support_enabled" value={String(kuestSupportEnabled)} />
@@ -379,6 +405,38 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                 </Button>
               </div>
               {openRouterModelsError && <p className="text-xs text-destructive">{openRouterModelsError}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="integration-openrouter-translation-model">{t('Preferred translation model')}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t('Used only for automatic event and category translations.')}
+              </p>
+              <Select
+                items={[
+                  { label: t('Use the preferred OpenRouter model'), value: AUTOMATIC_MODEL_VALUE },
+                  ...openRouterTranslationModelOptions.map((model) => ({ label: model.label, value: model.id })),
+                ]}
+                value={openRouterTranslationModel || AUTOMATIC_MODEL_VALUE}
+                onValueChange={(value) =>
+                  value !== null && setOpenRouterTranslationModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
+                }
+                disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
+              >
+                <SelectTrigger id="integration-openrouter-translation-model" className="h-12! w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Use the preferred OpenRouter model')}</SelectItem>
+                  {openRouterTranslationModelOptions.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {openRouterTranslationModelsError && (
+                <p className="text-xs text-destructive">{openRouterTranslationModelsError}</p>
+              )}
             </div>
             <OfficialLink href="https://openrouter.ai/settings/keys">
               {t('Create an API key on the official OpenRouter site')}

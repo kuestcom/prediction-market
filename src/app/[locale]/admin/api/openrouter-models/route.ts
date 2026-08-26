@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
+import { fetchAllOpenRouterModels, fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 
 const RequestSchema = z.object({
   apiKey: z.string().min(16, 'API key is required.'),
+  includeAllModels: z.boolean().optional(),
 })
 
 export async function POST(request: Request) {
@@ -23,7 +24,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request.' }, { status: 400 })
     }
 
-    const models = await fetchOpenRouterModels(parsed.data.apiKey)
+    const models = parsed.data.includeAllModels
+      ? await fetchAllOpenRouterModels(parsed.data.apiKey)
+      : await fetchOpenRouterModels(parsed.data.apiKey)
 
     return NextResponse.json({
       models: models.map((model) => ({

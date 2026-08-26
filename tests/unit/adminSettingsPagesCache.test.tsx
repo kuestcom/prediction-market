@@ -29,6 +29,7 @@ vi.mock('@/lib/db/queries/settings', () => ({
 }))
 
 vi.mock('@/lib/ai/openrouter', () => ({
+  fetchAllOpenRouterModels: vi.fn(),
   fetchOpenRouterModels: vi.fn(),
 }))
 

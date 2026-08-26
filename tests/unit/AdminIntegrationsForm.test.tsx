@@ -29,8 +29,10 @@ const props = {
   lifiApiKeyConfigured: false,
   openRouterSettings: {
     defaultModel: '',
+    translationModel: '',
     isApiKeyConfigured: false,
     modelOptions: [],
+    translationModelOptions: [],
   },
   sportsSourceSettings: {
     isPandaScoreTokenConfigured: false,

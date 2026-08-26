@@ -142,7 +142,7 @@ function supportsOpenRouterWebSearch(model: OpenRouterModelInfo) {
   )
 }
 
-export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
+async function fetchOpenRouterModelInfo(apiKey: string): Promise<OpenRouterModelInfo[]> {
   if (!apiKey) {
     return []
   }
@@ -191,22 +191,36 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterM
     throw new Error('OpenRouter models request failed: empty response')
   }
 
-  const models = Array.isArray(payload.data) ? payload.data : []
+  return Array.isArray(payload.data) ? payload.data : []
+}
 
-  return models
-    .filter(supportsOpenRouterWebSearch)
-    .map<OpenRouterModelSummary>((model) => {
-      const contextLength =
-        typeof model.context_length === 'number'
-          ? model.context_length
-          : typeof model.context_window === 'number'
-            ? model.context_window
-            : undefined
-      return {
-        id: model.id,
-        name: model.name || model.id,
-        contextLength,
-      }
-    })
-    .sort((a, b) => a.name.localeCompare(b.name))
+function toOpenRouterModelSummary(model: OpenRouterModelInfo): OpenRouterModelSummary {
+  const contextLength =
+    typeof model.context_length === 'number'
+      ? model.context_length
+      : typeof model.context_window === 'number'
+        ? model.context_window
+        : undefined
+
+  return {
+    id: model.id,
+    name: model.name || model.id,
+    contextLength,
+  }
+}
+
+function sortOpenRouterModels(models: OpenRouterModelSummary[]) {
+  return models.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
+  const models = await fetchOpenRouterModelInfo(apiKey)
+
+  return sortOpenRouterModels(models.filter(supportsOpenRouterWebSearch).map(toOpenRouterModelSummary))
+}
+
+export async function fetchAllOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
+  const models = await fetchOpenRouterModelInfo(apiKey)
+
+  return sortOpenRouterModels(models.map(toOpenRouterModelSummary))
 }

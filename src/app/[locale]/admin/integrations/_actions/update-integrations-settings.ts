@@ -53,6 +53,7 @@ export async function updateIntegrationsSettingsAction(
     const googleAnalyticsId = getString(formData, 'google_analytics_id')
     const openRouterApiKey = getString(formData, 'openrouter_api_key')
     const openRouterModel = getString(formData, 'openrouter_model')
+    const openRouterTranslationModel = getString(formData, 'openrouter_translation_model')
     const theSportsDbApiKey = getString(formData, 'sports_thesportsdb_api_key')
     const pandaScoreToken = getString(formData, 'sports_pandascore_token')
     const lifiIntegrator = getString(formData, 'lifi_integrator')
@@ -60,7 +61,7 @@ export async function updateIntegrationsSettingsAction(
     const customJavascriptCodesJson = getString(formData, 'custom_javascript_codes_json')
     const kuestSupportPositionRaw = getString(formData, 'kuest_support_position')
 
-    if (openRouterApiKey.length > 256 || openRouterModel.length > 160) {
+    if (openRouterApiKey.length > 256 || openRouterModel.length > 160 || openRouterTranslationModel.length > 160) {
       return { error: 'OpenRouter settings are too long.' }
     }
     if (theSportsDbApiKey.length > 512) {
@@ -161,6 +162,7 @@ export async function updateIntegrationsSettingsAction(
       { group: 'general', key: 'lifi_integrator', value: validatedThemeSettings.data.lifiIntegratorValue },
       { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
       { group: 'ai', key: 'openrouter_model', value: openRouterModel },
+      { group: 'ai', key: 'openrouter_translation_model', value: openRouterTranslationModel },
       { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
       { group: 'ai', key: 'sports_thesportsdb_api_key', value: encryptedTheSportsDbApiKey },
       { group: 'ai', key: 'sports_pandascore_token', value: encryptedPandaScoreToken },

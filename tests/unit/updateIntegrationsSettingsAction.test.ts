@@ -34,6 +34,7 @@ function formData() {
   data.set('google_analytics_id', 'G-ABC123')
   data.set('openrouter_api_key', 'openrouter-key')
   data.set('openrouter_model', 'model-1')
+  data.set('openrouter_translation_model', 'translation-model-1')
   data.set('sports_thesportsdb_api_key', 'sports-key')
   data.set('sports_pandascore_token', 'panda-token')
   data.set('lifi_integrator', 'kuest')
@@ -84,6 +85,7 @@ describe('updateIntegrationsSettingsAction', () => {
         { group: 'general', key: 'site_google_analytics', value: 'G-ABC123' },
         { group: 'general', key: 'lifi_api_key', value: 'encrypted:lifi-key' },
         { group: 'ai', key: 'openrouter_api_key', value: 'encrypted:openrouter-key' },
+        { group: 'ai', key: 'openrouter_translation_model', value: 'translation-model-1' },
         { group: 'ai', key: 'sports_thesportsdb_api_key', value: 'encrypted:sports-key' },
         { group: 'ai', key: 'sports_pandascore_token', value: 'encrypted:panda-token' },
         { group: 'integrations', key: 'arbitrage_enabled', value: 'true' },

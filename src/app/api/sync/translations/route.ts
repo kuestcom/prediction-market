@@ -999,7 +999,7 @@ export async function GET(request: Request) {
         loadEnabledLocales(),
       ])
       const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
-      const providerSignature = buildProviderSignature(openRouterSettings.model)
+      const providerSignature = buildProviderSignature(openRouterSettings.translationModel || openRouterSettings.model)
 
       if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
         return {
@@ -1111,7 +1111,7 @@ export async function GET(request: Request) {
         )
         await processPendingTranslationJobs(
           pendingTranslations,
-          openRouterSettings.model,
+          openRouterSettings.translationModel || openRouterSettings.model,
           openRouterSettings.apiKey,
           stats,
           startedAt,

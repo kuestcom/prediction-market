@@ -183,7 +183,7 @@ export async function GET(request: Request) {
         }
       }
 
-      const providerSignature = buildProviderSignature(openRouterSettings.model)
+      const providerSignature = buildProviderSignature(openRouterSettings.translationModel || openRouterSettings.model)
       const discovery = await enqueueMissingOrOutdatedTranslationJobs(
         startedAt,
         enabledTranslationLocales,

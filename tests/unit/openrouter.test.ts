@@ -112,4 +112,42 @@ describe('openrouter helpers', () => {
     expect(headers['HTTP-Referer']).toBe('https://kuest.test')
     expect(headers['X-Title']).toBe('Kuest Runtime')
   })
+
+  it('loads all available models for translation selection', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: 'anthropic/claude-sonnet',
+              name: 'Claude Sonnet',
+              supported_parameters: ['max_tokens'],
+            },
+            {
+              id: 'openai/gpt-4o-mini',
+              name: 'GPT-4o mini',
+              supported_parameters: ['max_tokens', 'web_search_options'],
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    const { fetchAllOpenRouterModels } = await import('@/lib/ai/openrouter')
+    await expect(fetchAllOpenRouterModels('openrouter-key')).resolves.toEqual([
+      {
+        id: 'anthropic/claude-sonnet',
+        name: 'Claude Sonnet',
+      },
+      {
+        id: 'openai/gpt-4o-mini',
+        name: 'GPT-4o mini',
+      },
+    ])
+  })
 })
