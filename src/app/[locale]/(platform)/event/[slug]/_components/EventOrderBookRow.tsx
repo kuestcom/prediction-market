@@ -61,73 +61,69 @@ export default function EventOrderBookRow({
           <div className={`absolute inset-0 left-0 ${backgroundClass}`} style={{ width: `${barWidth}%` }} />
         </div>
       </div>
-      <div className="flex h-full items-center justify-center px-4">
-        <div className="relative inline-flex items-center">
+      <div className="grid h-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center overflow-hidden px-4">
+        <div className="flex min-w-0 justify-end pr-1">
           {userOrder && (
-            <div className="absolute right-full mr-1 flex size-5 items-center justify-center">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        if (!isCancelling) {
-                          onCancelUserOrder?.(userOrder.id)
-                        }
-                      }}
-                      disabled={isCancelling}
-                      className={cn(
-                        'group inline-flex size-5 items-center justify-center text-base transition-colors',
-                        userOrder.side === 'ask' ? 'text-no' : 'text-yes',
-                        { 'cursor-not-allowed opacity-60': isCancelling },
-                      )}
-                    >
-                      {isCancelling ? (
-                        <Spinner className="size-3" />
-                      ) : (
-                        <>
-                          <Clock4Icon className="size-3 group-hover:hidden" />
-                          <CircleXIcon className="hidden size-3 group-hover:block" />
-                        </>
-                      )}
-                    </button>
-                  }
-                />
-                <TooltipContent side="left" className="w-48 p-3 text-left">
-                  <div className="flex items-center justify-between text-sm font-semibold">
-                    <span>{t('Filled')}</span>
-                    <span>
-                      {formatTooltipShares(userOrder.filledShares)} / {formatTooltipShares(userOrder.totalShares)}
-                    </span>
-                  </div>
-                  <div
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      if (!isCancelling) {
+                        onCancelUserOrder?.(userOrder.id)
+                      }
+                    }}
+                    disabled={isCancelling}
                     className={cn(
-                      'mt-2 h-1.5 w-full overflow-hidden rounded-full',
-                      userOrder.side === 'ask' ? 'bg-no/10' : 'bg-yes/10',
+                      'group inline-flex size-5 items-center justify-center text-base transition-colors',
+                      userOrder.side === 'ask' ? 'text-no' : 'text-yes',
+                      { 'cursor-not-allowed opacity-60': isCancelling },
                     )}
                   >
-                    <div
-                      className={cn(
-                        'h-full rounded-full transition-all',
-                        userOrder.side === 'ask' ? 'bg-no' : 'bg-yes',
-                      )}
-                      style={{
-                        width: `${Math.min(100, Math.max(0, (userOrder.filledShares / userOrder.totalShares) * 100))}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="mt-2 text-xs font-medium text-muted-foreground">
-                    {formatTooltipShares(Math.max(userOrder.totalShares - userOrder.filledShares, 0))} {t('remaining')}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+                    {isCancelling ? (
+                      <Spinner className="size-3" />
+                    ) : (
+                      <>
+                        <Clock4Icon className="size-3 group-hover:hidden" />
+                        <CircleXIcon className="hidden size-3 group-hover:block" />
+                      </>
+                    )}
+                  </button>
+                }
+              />
+              <TooltipContent side="left" className="w-48 p-3 text-left">
+                <div className="flex items-center justify-between text-sm font-semibold">
+                  <span>{t('Filled')}</span>
+                  <span>
+                    {formatTooltipShares(userOrder.filledShares)} / {formatTooltipShares(userOrder.totalShares)}
+                  </span>
+                </div>
+                <div
+                  className={cn(
+                    'mt-2 h-1.5 w-full overflow-hidden rounded-full',
+                    userOrder.side === 'ask' ? 'bg-no/10' : 'bg-yes/10',
+                  )}
+                >
+                  <div
+                    className={cn('h-full rounded-full transition-all', userOrder.side === 'ask' ? 'bg-no' : 'bg-yes')}
+                    style={{
+                      width: `${Math.min(100, Math.max(0, (userOrder.filledShares / userOrder.totalShares) * 100))}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-2 text-xs font-medium text-muted-foreground">
+                  {formatTooltipShares(Math.max(userOrder.totalShares - userOrder.filledShares, 0))} {t('remaining')}
+                </div>
+              </TooltipContent>
+            </Tooltip>
           )}
-          <span className={`text-sm font-medium ${priceClass}`}>
-            {priceFormatter?.(level.priceCents) ?? formatOrderBookPrice(level.priceCents)}
-          </span>
         </div>
+        <span className={`text-sm font-medium ${priceClass}`}>
+          {priceFormatter?.(level.priceCents) ?? formatOrderBookPrice(level.priceCents)}
+        </span>
+        <div />
       </div>
       <div className="flex h-full items-center justify-center px-2 sm:px-3">
         <span className="text-sm font-medium text-foreground">{formatSharesLabel(level.shares)}</span>
