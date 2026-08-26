@@ -199,13 +199,13 @@ export function useAdminCategoryColumns({
                     size="icon"
                     className="size-8 text-muted-foreground hover:text-foreground"
                     onClick={() => onOpenEventPageNote(category)}
-                    aria-label={t('Open event note for {name}', { name: category.name })}
+                    aria-label={t('Open event note')}
                   >
                     <SquarePenIcon className="size-4" />
                   </Button>
                 }
               />
-              <TooltipContent>{t('Open event note for {name}', { name: category.name })}</TooltipContent>
+              <TooltipContent>{t('Open event note')}</TooltipContent>
             </Tooltip>
           </div>
         )

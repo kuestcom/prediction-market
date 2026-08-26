@@ -7,7 +7,6 @@ import { UserRepository } from '@/lib/db/queries/user'
 
 const RequestSchema = z.object({
   apiKey: z.string().min(16, 'API key is required.'),
-  includeAllModels: z.boolean().optional(),
 })
 
 export async function POST(request: Request) {
@@ -24,12 +23,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request.' }, { status: 400 })
     }
 
-    const models = parsed.data.includeAllModels
-      ? await fetchAllOpenRouterModels(parsed.data.apiKey)
-      : await fetchOpenRouterModels(parsed.data.apiKey)
+    const [models, allModels] = await Promise.all([
+      fetchOpenRouterModels(parsed.data.apiKey),
+      fetchAllOpenRouterModels(parsed.data.apiKey),
+    ])
 
     return NextResponse.json({
       models: models.map((model) => ({
+        id: model.id,
+        label: model.name,
+        contextWindow: model.contextLength,
+      })),
+      allModels: allModels.map((model) => ({
         id: model.id,
         label: model.name,
         contextWindow: model.contextLength,

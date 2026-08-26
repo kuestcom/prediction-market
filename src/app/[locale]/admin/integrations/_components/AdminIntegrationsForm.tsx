@@ -1,6 +1,6 @@
 'use client'
 
-import { FileBracesIcon, RefreshCwIcon } from 'lucide-react'
+import { FileBracesIcon, InfoIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useActionState, useCallback, useMemo, useState } from 'react'
@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
 import {
   MAX_CUSTOM_JAVASCRIPT_CODE_NAME_LENGTH,
@@ -222,20 +223,24 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
     setOpenRouterModelsError(undefined)
     setOpenRouterTranslationModelsError(undefined)
     try {
-      async function loadModelOptions(includeAllModels = false) {
+      async function loadModelOptions(): Promise<{ models: ModelOption[]; allModels: ModelOption[] }> {
         const response = await fetch(`/${props.locale}/admin/api/openrouter-models`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apiKey: openRouterApiKey.trim(), includeAllModels }),
+          body: JSON.stringify({ apiKey: openRouterApiKey.trim() }),
         })
-        const payload = (await response.json()) as { models?: ModelOption[]; error?: string }
-        if (!response.ok || !payload.models) {
+        const payload = (await response.json()) as {
+          models?: ModelOption[]
+          allModels?: ModelOption[]
+          error?: string
+        }
+        if (!response.ok || !payload.models || !payload.allModels) {
           throw new Error(payload.error ?? t('Unable to load models. Please verify the API key.'))
         }
-        return payload.models
+        return { models: payload.models, allModels: payload.allModels }
       }
 
-      const [models, translationModels] = await Promise.all([loadModelOptions(), loadModelOptions(true)])
+      const { models, allModels: translationModels } = await loadModelOptions()
       setOpenRouterModelOptions(models)
       setOpenRouterTranslationModelOptions(translationModels)
       if (!models.some((model) => model.id === openRouterModel)) {
@@ -366,77 +371,94 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                 }
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="integration-openrouter-model">{t('Preferred OpenRouter model')}</Label>
-              <div className="flex gap-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="integration-openrouter-model">{t('Preferred OpenRouter model')}</Label>
+                <div className="flex gap-2">
+                  <Select
+                    items={[
+                      { label: t('Let OpenRouter decide'), value: AUTOMATIC_MODEL_VALUE },
+                      ...openRouterModelOptions.map((model) => ({ label: model.label, value: model.id })),
+                    ]}
+                    value={openRouterModel || AUTOMATIC_MODEL_VALUE}
+                    onValueChange={(value) =>
+                      value !== null && setOpenRouterModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
+                    }
+                    disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
+                  >
+                    <SelectTrigger id="integration-openrouter-model" className="h-12! w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Let OpenRouter decide')}</SelectItem>
+                      {openRouterModelOptions.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="size-12 shrink-0"
+                    disabled={!openRouterApiKey.trim() || isPending || isRefreshingOpenRouterModels}
+                    onClick={refreshOpenRouterModels}
+                    aria-label={t('Refresh models')}
+                  >
+                    <RefreshCwIcon className={cn('size-4', isRefreshingOpenRouterModels && 'animate-spin')} />
+                  </Button>
+                </div>
+                {openRouterModelsError && <p className="text-xs text-destructive">{openRouterModelsError}</p>}
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="integration-openrouter-translation-model">{t('Preferred translation model')}</Label>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <button
+                          type="button"
+                          className="inline-flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          aria-label={t('Used only for automatic event and category translations.')}
+                        >
+                          <InfoIcon className="size-3.5" aria-hidden />
+                        </button>
+                      }
+                    />
+                    <TooltipContent className="max-w-72 text-left">
+                      {t('Used only for automatic event and category translations.')}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Select
                   items={[
-                    { label: t('Let OpenRouter decide'), value: AUTOMATIC_MODEL_VALUE },
-                    ...openRouterModelOptions.map((model) => ({ label: model.label, value: model.id })),
+                    { label: t('Use the preferred OpenRouter model'), value: AUTOMATIC_MODEL_VALUE },
+                    ...openRouterTranslationModelOptions.map((model) => ({ label: model.label, value: model.id })),
                   ]}
-                  value={openRouterModel || AUTOMATIC_MODEL_VALUE}
+                  value={openRouterTranslationModel || AUTOMATIC_MODEL_VALUE}
                   onValueChange={(value) =>
-                    value !== null && setOpenRouterModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
+                    value !== null && setOpenRouterTranslationModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
                   }
                   disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
                 >
-                  <SelectTrigger id="integration-openrouter-model" className="h-12! w-full">
+                  <SelectTrigger id="integration-openrouter-translation-model" className="h-12! w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Let OpenRouter decide')}</SelectItem>
-                    {openRouterModelOptions.map((model) => (
+                    <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Use the preferred OpenRouter model')}</SelectItem>
+                    {openRouterTranslationModelOptions.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
                         {model.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="size-12 shrink-0"
-                  disabled={!openRouterApiKey.trim() || isPending || isRefreshingOpenRouterModels}
-                  onClick={refreshOpenRouterModels}
-                  aria-label={t('Refresh models')}
-                >
-                  <RefreshCwIcon className={cn('size-4', isRefreshingOpenRouterModels && 'animate-spin')} />
-                </Button>
+                {openRouterTranslationModelsError && (
+                  <p className="text-xs text-destructive">{openRouterTranslationModelsError}</p>
+                )}
               </div>
-              {openRouterModelsError && <p className="text-xs text-destructive">{openRouterModelsError}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="integration-openrouter-translation-model">{t('Preferred translation model')}</Label>
-              <p className="text-xs text-muted-foreground">
-                {t('Used only for automatic event and category translations.')}
-              </p>
-              <Select
-                items={[
-                  { label: t('Use the preferred OpenRouter model'), value: AUTOMATIC_MODEL_VALUE },
-                  ...openRouterTranslationModelOptions.map((model) => ({ label: model.label, value: model.id })),
-                ]}
-                value={openRouterTranslationModel || AUTOMATIC_MODEL_VALUE}
-                onValueChange={(value) =>
-                  value !== null && setOpenRouterTranslationModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
-                }
-                disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
-              >
-                <SelectTrigger id="integration-openrouter-translation-model" className="h-12! w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Use the preferred OpenRouter model')}</SelectItem>
-                  {openRouterTranslationModelOptions.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {openRouterTranslationModelsError && (
-                <p className="text-xs text-destructive">{openRouterTranslationModelsError}</p>
-              )}
             </div>
             <OfficialLink href="https://openrouter.ai/settings/keys">
               {t('Create an API key on the official OpenRouter site')}
