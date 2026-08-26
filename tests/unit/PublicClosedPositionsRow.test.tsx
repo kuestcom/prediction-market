@@ -73,6 +73,29 @@ function renderCustomOutcomeRow(outcome: string, outcomeIndex: number) {
   )
 }
 
+function renderFallbackOutcomeRow() {
+  const position: PublicPosition = {
+    id: 'position-fallback',
+    title: 'Closed market',
+    slug: 'closed-market',
+    eventSlug: 'closed-event',
+    avgPrice: 0.5,
+    currentValue: -5,
+    initialValue: 5,
+    realizedPnl: -5,
+    timestamp: 1,
+    status: 'closed',
+  }
+
+  render(
+    <table>
+      <tbody>
+        <PublicClosedPositionsRow position={position} onShareClick={() => {}} />
+      </tbody>
+    </table>,
+  )
+}
+
 describe('publicClosedPositionsRow', () => {
   it.each([
     { outcomeIndex: 0, label: 'Yes', colorClass: 'text-yes' },
@@ -87,5 +110,11 @@ describe('publicClosedPositionsRow', () => {
     renderCustomOutcomeRow('Up', 0)
 
     expect(screen.getByText(/^Up 50/)).toHaveClass('text-yes')
+  })
+
+  it('keeps the fallback Yes label green when outcome data is missing', () => {
+    renderFallbackOutcomeRow()
+
+    expect(screen.getByText(/^Yes 50/)).toHaveClass('text-yes')
   })
 })

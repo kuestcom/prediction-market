@@ -82,6 +82,10 @@ export function getOutcomeBadgeColorClassName(position: Pick<PublicPosition, 'ou
   }
 
   const normalizedOutcome = position.outcome?.trim().toLowerCase()
+  if (!normalizedOutcome) {
+    return 'bg-yes/15 text-yes'
+  }
+
   return normalizedOutcome === 'yes' || normalizedOutcome === 'up' || normalizedOutcome === 'true'
     ? 'bg-yes/15 text-yes'
     : 'bg-no/15 text-no'
