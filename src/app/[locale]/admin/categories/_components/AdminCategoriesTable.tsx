@@ -15,6 +15,7 @@ import { useAdminCategoryColumns } from '@/app/[locale]/admin/categories/_compon
 import MainCategorySortDialog from '@/app/[locale]/admin/categories/_components/MainCategorySortDialog'
 import SportsSidebarCategoriesManager from '@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager'
 import { useAdminCategoriesTable } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
+import LocaleFlag from '@/components/LocaleFlag'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -469,7 +470,10 @@ export default function AdminCategoriesTable() {
   const translationFormFields = (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
-        <Label htmlFor="translation-en">{t('English (source)')}</Label>
+        <Label htmlFor="translation-en" className="flex items-center gap-2">
+          <LocaleFlag locale="en" />
+          {t('English (source)')}
+        </Label>
         <Input id="translation-en" value={translationCategory?.name ?? ''} readOnly disabled />
       </div>
 
@@ -477,7 +481,10 @@ export default function AdminCategoriesTable() {
         const fieldId = `translation-${locale}`
         return (
           <div key={locale} className="grid gap-2">
-            <Label htmlFor={fieldId}>{LOCALE_LABELS[locale]}</Label>
+            <Label htmlFor={fieldId} className="flex items-center gap-2">
+              <LocaleFlag locale={locale} />
+              {LOCALE_LABELS[locale]}
+            </Label>
             <Input
               id={fieldId}
               value={translationValues[locale] ?? ''}

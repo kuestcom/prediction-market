@@ -9,6 +9,7 @@ import type { DataTableColumnDef } from '@/lib/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface CategoryColumnOptions {
   onToggleMain: (category: AdminCategoryRow, nextValue: boolean) => void
@@ -164,32 +165,48 @@ export function useAdminCategoryColumns({
     },
     {
       id: 'actions',
-      header: () => null,
+      header: () => (
+        <div className="w-full text-right text-xs font-medium text-muted-foreground uppercase">{t('Actions')}</div>
+      ),
       cell: ({ row }) => {
         const category = row.original
         return (
-          <div className="flex items-center justify-center gap-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-8"
-              onClick={() => onOpenTranslations(category)}
-            >
-              <LanguagesIcon className="size-4" />
-              <span className="sr-only">{t('Open translations for {name}', { name: category.name })}</span>
-            </Button>
+          <div className="flex w-full items-center justify-end gap-1">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => onOpenTranslations(category)}
+                    aria-label={t('Edit translations')}
+                  >
+                    <LanguagesIcon className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>{t('Edit translations')}</TooltipContent>
+            </Tooltip>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="size-8"
-              onClick={() => onOpenEventPageNote(category)}
-            >
-              <SquarePenIcon className="size-4" />
-              <span className="sr-only">{`Open event note for ${category.name}`}</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => onOpenEventPageNote(category)}
+                    aria-label={`Open event note for ${category.name}`}
+                  >
+                    <SquarePenIcon className="size-4" />
+                  </Button>
+                }
+              />
+              <TooltipContent>{`Open event note for ${category.name}`}</TooltipContent>
+            </Tooltip>
           </div>
         )
       },
