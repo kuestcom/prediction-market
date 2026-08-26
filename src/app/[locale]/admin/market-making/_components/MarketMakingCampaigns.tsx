@@ -1089,13 +1089,16 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
                       <CampaignImage campaign={campaign} size="sm" />
                       <div className="min-w-0">
                         <div className="line-clamp-2 font-medium">{campaign.title}</div>
-                        {campaign.marketCount > 1 && (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {replaceCount(copy.campaignNumber, campaign.marketCount, locale)}
+                        {(campaign.marketCount > 1 || campaign.scopeKind === 'series') && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                            {campaign.marketCount > 1 && (
+                              <span>{replaceCount(copy.campaignNumber, campaign.marketCount, locale)}</span>
+                            )}
+                            {campaign.marketCount > 1 && campaign.scopeKind === 'series' && <span>·</span>}
+                            {campaign.scopeKind === 'series' && (
+                              <span className="font-semibold text-primary">{copy.seriesBadge}</span>
+                            )}
                           </div>
-                        )}
-                        {campaign.scopeKind === 'series' && (
-                          <div className="mt-1 text-xs font-medium text-primary">{copy.seriesBadge}</div>
                         )}
                       </div>
                     </div>

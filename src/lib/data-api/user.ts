@@ -84,6 +84,14 @@ function normalizeValue(value: number | undefined | null): number {
   return numeric
 }
 
+function normalizeTransactionHash(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) {
+    return undefined
+  }
+  return normalized.startsWith('\\x') ? `0x${normalized.slice(2)}` : normalized
+}
+
 function normalizeShares(value?: number | null): number {
   if (!Number.isFinite(value)) {
     return 0
@@ -215,7 +223,7 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
   const address = activity.proxyWallet || ''
   const displayName = activity.pseudonym || activity.name || address || 'Trader'
   const avatarUrl = activity.profileImageOptimized || activity.profileImage || ''
-  const txHash = activity.transactionHash || undefined
+  const txHash = normalizeTransactionHash(activity.transactionHash)
   const eventId = resolveActivityEventId(activity)
 
   return {

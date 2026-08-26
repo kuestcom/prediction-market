@@ -5,6 +5,7 @@ import { useExtracted } from 'next-intl'
 
 import {
   getClosedPositionMetrics,
+  getOutcomeBadgeColorClassName,
   getOutcomeLabel,
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import EventIconImage from '@/components/EventIconImage'
@@ -25,7 +26,7 @@ export default function PublicClosedPositionsRow({ position, onShareClick }: Pub
   const t = useExtracted()
   const imageSrc = position.icon ? `https://gateway.irys.xyz/${position.icon}` : null
   const outcomeLabel = getOutcomeLabel(position)
-  const outcomeColor = outcomeLabel.toLowerCase().includes('yes') ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
+  const outcomeColor = getOutcomeBadgeColorClassName(position)
   const eventSlug = position.eventSlug || position.slug
   const marketSlug = position.eventSlug && position.slug ? position.slug : null
   const eventHref = (marketSlug ? `/event/${eventSlug}/${marketSlug}` : `/event/${eventSlug}`) as Route

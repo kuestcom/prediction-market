@@ -40,6 +40,16 @@ describe('mapDataApiActivityToActivityOrder', () => {
     expect(activity.side).toBe('sell')
   })
 
+  it('normalizes PostgreSQL bytea-style transaction hashes', () => {
+    const activity = mapDataApiActivityToActivityOrder({
+      conditionId: 'condition-1',
+      timestamp: 1_786_017_600,
+      transactionHash: '\\x8646bf02263e6a7edc7dd7d01274779df93c83c66cfb07be23d26b9c6d137ed9',
+    })
+
+    expect(activity.tx_hash).toBe('0x8646bf02263e6a7edc7dd7d01274779df93c83c66cfb07be23d26b9c6d137ed9')
+  })
+
   it('prefers the external profile pseudonym over proxyWallet for display name', () => {
     const activity = mapDataApiActivityToActivityOrder({
       proxyWallet: '0xa6a0413f8fa248df51a49bfc759ff190d24fe25b',

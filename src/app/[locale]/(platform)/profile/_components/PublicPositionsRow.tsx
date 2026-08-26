@@ -5,6 +5,7 @@ import { useExtracted } from 'next-intl'
 
 import {
   formatCurrencyValue,
+  getOutcomeBadgeColorClassName,
   getLatestPrice,
   getValue,
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
@@ -35,7 +36,7 @@ export default function PublicPositionsRow({ position, onShareClick, onSellClick
   const pnlDiff = currentValue - tradeValue
   const pnlPct = tradeValue > 0 ? (pnlDiff / tradeValue) * 100 : 0
   const outcomeLabel = position.outcome ?? '—'
-  const outcomeColor = outcomeLabel.toLowerCase().includes('yes') ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
+  const outcomeColor = getOutcomeBadgeColorClassName(position)
   const eventSlug = position.eventSlug || position.slug
   const marketSlug = position.eventSlug && position.slug ? position.slug : null
   const eventHref = (marketSlug ? `/event/${eventSlug}/${marketSlug}` : `/event/${eventSlug}`) as Route

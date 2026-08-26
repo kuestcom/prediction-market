@@ -76,6 +76,17 @@ export function getOutcomeLabel(position: PublicPosition) {
   return position.outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes'
 }
 
+export function getOutcomeBadgeColorClassName(position: Pick<PublicPosition, 'outcome' | 'outcomeIndex'>) {
+  if (typeof position.outcomeIndex === 'number' && Number.isFinite(position.outcomeIndex)) {
+    return position.outcomeIndex === OUTCOME_INDEX.YES ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
+  }
+
+  const normalizedOutcome = position.outcome?.trim().toLowerCase()
+  return normalizedOutcome === 'yes' || normalizedOutcome === 'up' || normalizedOutcome === 'true'
+    ? 'bg-yes/15 text-yes'
+    : 'bg-no/15 text-no'
+}
+
 function getTradeValue(position: PublicPosition) {
   const avgPrice = normalizePositionPrice(position.avgPrice)
   return (position.size ?? 0) * (avgPrice ?? 0)

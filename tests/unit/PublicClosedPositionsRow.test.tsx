@@ -48,6 +48,31 @@ function renderRow(outcomeIndex: number) {
   )
 }
 
+function renderCustomOutcomeRow(outcome: string, outcomeIndex: number) {
+  const position: PublicPosition = {
+    id: `position-${outcome}`,
+    title: 'Closed market',
+    slug: 'closed-market',
+    eventSlug: 'closed-event',
+    avgPrice: 0.5,
+    currentValue: -5,
+    initialValue: 5,
+    realizedPnl: -5,
+    timestamp: 1,
+    status: 'closed',
+    outcome,
+    outcomeIndex,
+  }
+
+  render(
+    <table>
+      <tbody>
+        <PublicClosedPositionsRow position={position} onShareClick={() => {}} />
+      </tbody>
+    </table>,
+  )
+}
+
 describe('publicClosedPositionsRow', () => {
   it.each([
     { outcomeIndex: 0, label: 'Yes', colorClass: 'text-yes' },
@@ -56,5 +81,11 @@ describe('publicClosedPositionsRow', () => {
     renderRow(outcomeIndex)
 
     expect(screen.getByText(new RegExp(`^${label} 50`))).toHaveClass(colorClass)
+  })
+
+  it('uses the outcome index for custom outcome labels', () => {
+    renderCustomOutcomeRow('Up', 0)
+
+    expect(screen.getByText(/^Up 50/)).toHaveClass('text-yes')
   })
 })
