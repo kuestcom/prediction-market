@@ -22,12 +22,15 @@ class MockWebSocket {
   onmessage: ((event: MessageEvent<string>) => void) | null = null
   onerror: ((event: Event) => void) | null = null
   onclose: ((event: CloseEvent) => void) | null = null
+  sentMessages: string[] = []
 
   constructor(readonly url: string | URL) {
     MockWebSocket.instances.push(this)
   }
 
-  send() {}
+  send(payload: string) {
+    this.sentMessages.push(payload)
+  }
 
   close() {
     this.readyState = MockWebSocket.CLOSED
@@ -47,6 +50,7 @@ describe('useLiveCommentsChannel', () => {
 
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
@@ -66,5 +70,33 @@ describe('useLiveCommentsChannel', () => {
     act(() => MockWebSocket.instances[0]?.emitOpen())
 
     expect(result.current.status).toBe('live')
+  })
+
+  it('reconnects a stale socket while the page remains visible', () => {
+    vi.useFakeTimers()
+    const queryClient = new QueryClient()
+
+    function QueryClientWrapper({ children }: { children: ReactNode }) {
+      return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    }
+
+    const { result } = renderHook(() => useLiveCommentsChannel({ eventSlug: 'event-slug', user: null }), {
+      wrapper: QueryClientWrapper,
+    })
+    const socket = MockWebSocket.instances[0]!
+
+    act(() => socket.emitOpen())
+    act(() => {
+      vi.advanceTimersByTime(75_000)
+    })
+
+    expect(socket.sentMessages).toContain('PING')
+    expect(socket.readyState).toBe(MockWebSocket.CLOSED)
+    expect(result.current.status).toBe('offline')
+
+    act(() => {
+      vi.advanceTimersByTime(2_000)
+    })
+    expect(MockWebSocket.instances).toHaveLength(2)
   })
 })

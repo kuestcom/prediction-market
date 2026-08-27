@@ -32,6 +32,9 @@ import {
 import { useTradeAlertsStore } from '@/stores/useTradeAlerts'
 import { useUser } from '@/stores/useUser'
 
+const WEBSOCKET_PING_INTERVAL_MS = 25_000
+const WEBSOCKET_STALE_TIMEOUT_MS = 70_000
+
 function extractTradeAlertPayload(value: unknown) {
   if (!value || typeof value !== 'object') {
     return value
@@ -251,6 +254,8 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
       navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage)
 
       let socket: WebSocket | null = null
+      let lastMessageAt = Date.now()
+      let heartbeatHandle: number | null = null
       let wsUrl: URL
       try {
         wsUrl = new URL(wsLiveDataUrl)
@@ -262,6 +267,43 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
       // with the Community bearer token and verifies that its profile matches.
       wsUrl.searchParams.set('following_profile_id', profileId)
 
+      function clearHeartbeat() {
+        if (heartbeatHandle !== null) {
+          window.clearInterval(heartbeatHandle)
+          heartbeatHandle = null
+        }
+      }
+
+      function startHeartbeat() {
+        clearHeartbeat()
+        heartbeatHandle = window.setInterval(() => {
+          if (!activeRef.current || !socket) {
+            return
+          }
+
+          if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
+            const staleSocket = socket
+            socket = null
+            clearHeartbeat()
+            closeWebSocketWhenReady(staleSocket)
+            reconnectController.scheduleReconnect()
+            return
+          }
+
+          if (socket.readyState === WebSocket.OPEN) {
+            try {
+              socket.send('PING')
+            } catch {
+              const staleSocket = socket
+              socket = null
+              clearHeartbeat()
+              closeWebSocketWhenReady(staleSocket)
+              reconnectController.scheduleReconnect()
+            }
+          }
+        }, WEBSOCKET_PING_INTERVAL_MS)
+      }
+
       function connect() {
         if (!activeRef.current || socket) {
           return
@@ -269,7 +311,12 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         const nextSocket = new WebSocket(wsUrl)
         socket = nextSocket
         nextSocket.onopen = () => {
+          if (socket !== nextSocket) {
+            return
+          }
+          lastMessageAt = Date.now()
           reconnectController.markConnected()
+          startHeartbeat()
           nextSocket.send(
             JSON.stringify({
               action: 'subscribe',
@@ -285,6 +332,10 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
           )
         }
         nextSocket.onmessage = (event) => {
+          if (socket !== nextSocket) {
+            return
+          }
+          lastMessageAt = Date.now()
           try {
             void handlePayload(JSON.parse(String(event.data))).catch((error) =>
               console.error('Failed to store WebSocket trade alert', error),
@@ -295,10 +346,14 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         }
         nextSocket.onerror = () => nextSocket.close()
         nextSocket.onclose = () => {
-          if (socket === nextSocket) {
-            socket = null
+          if (socket !== nextSocket) {
+            return
           }
-          reconnectController.scheduleReconnect()
+          clearHeartbeat()
+          socket = null
+          if (activeRef.current) {
+            reconnectController.scheduleReconnect()
+          }
         }
       }
 
@@ -308,6 +363,7 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         isActive: () => activeRef.current,
         probeWebSocket: probeWebSocketWithPong,
         resetWebSocket: () => {
+          clearHeartbeat()
           socket = null
         },
       })
@@ -319,6 +375,7 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage)
         document.removeEventListener('visibilitychange', reconnectController.handleVisibilityChange)
         reconnectController.clearReconnect()
+        clearHeartbeat()
         if (socket) {
           closeWebSocketWhenReady(socket)
           socket = null

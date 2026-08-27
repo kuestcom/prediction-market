@@ -125,6 +125,9 @@ interface LiveCommentsChannelParams {
   enabled?: boolean
 }
 
+const WEBSOCKET_PING_INTERVAL_MS = 25_000
+const WEBSOCKET_STALE_TIMEOUT_MS = 70_000
+
 export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveCommentsChannelParams) {
   const queryClient = useQueryClient()
   const { wsLiveDataUrl } = usePublicRuntimeConfig()
@@ -148,6 +151,47 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
 
     let isActive = true
     let ws: WebSocket | null = null
+    let lastMessageAt = Date.now()
+    let heartbeatHandle: number | null = null
+
+    function clearHeartbeat() {
+      if (heartbeatHandle !== null) {
+        window.clearInterval(heartbeatHandle)
+        heartbeatHandle = null
+      }
+    }
+
+    function startHeartbeat() {
+      clearHeartbeat()
+      heartbeatHandle = window.setInterval(() => {
+        if (!isActive || !ws) {
+          return
+        }
+
+        if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
+          const staleSocket = ws
+          ws = null
+          clearHeartbeat()
+          setStatus('offline')
+          closeWebSocketWhenReady(staleSocket)
+          scheduleReconnect()
+          return
+        }
+
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send('PING')
+          } catch {
+            const staleSocket = ws
+            ws = null
+            clearHeartbeat()
+            setStatus('offline')
+            closeWebSocketWhenReady(staleSocket)
+            scheduleReconnect()
+          }
+        }
+      }, WEBSOCKET_PING_INTERVAL_MS)
+    }
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       return JSON.stringify({
@@ -162,12 +206,14 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       })
     }
 
-    function handleOpen() {
-      if (!ws) {
+    function handleOpen(socket: WebSocket) {
+      if (socket !== ws) {
         return
       }
+      lastMessageAt = Date.now()
       reconnectController?.markConnected()
-      ws.send(buildSubscriptionPayload('subscribe'))
+      startHeartbeat()
+      socket.send(buildSubscriptionPayload('subscribe'))
       setStatus('live')
     }
 
@@ -289,10 +335,11 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       }
     }
 
-    function handleMessage(eventMessage: MessageEvent<string>) {
-      if (!isActive) {
+    function handleMessage(socket: WebSocket, eventMessage: MessageEvent<string>) {
+      if (!isActive || socket !== ws) {
         return
       }
+      lastMessageAt = Date.now()
       setStatus('live')
 
       let payload: LiveCommentsMessage | null = null
@@ -316,8 +363,8 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       }
     }
 
-    function handleError() {
-      if (isActive) {
+    function handleError(socket: WebSocket) {
+      if (isActive && socket === ws) {
         setStatus('offline')
       }
     }
@@ -336,7 +383,12 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       reconnectController?.scheduleReconnect()
     }
 
-    function handleClose() {
+    function handleClose(socket: WebSocket) {
+      if (socket !== ws) {
+        return
+      }
+      clearHeartbeat()
+      ws = null
       if (!isActive) {
         return
       }
@@ -350,10 +402,10 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       }
       setStatus('connecting')
       const socket = new WebSocket(wsUrl)
-      socket.onopen = handleOpen
-      socket.onmessage = handleMessage
-      socket.onerror = handleError
-      socket.onclose = handleClose
+      socket.onopen = () => handleOpen(socket)
+      socket.onmessage = (eventMessage) => handleMessage(socket, eventMessage)
+      socket.onerror = () => handleError(socket)
+      socket.onclose = () => handleClose(socket)
       ws = socket
     }
 
@@ -363,6 +415,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       isActive: () => isActive,
       probeWebSocket: probeWebSocketWithPong,
       resetWebSocket: () => {
+        clearHeartbeat()
         ws = null
       },
     })
@@ -374,6 +427,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       isActive = false
       setStatus('offline')
       clearReconnect()
+      clearHeartbeat()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       const socket = ws
       if (socket) {

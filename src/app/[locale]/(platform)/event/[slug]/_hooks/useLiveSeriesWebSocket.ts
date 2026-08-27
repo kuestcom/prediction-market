@@ -31,6 +31,7 @@ interface UseLiveSeriesWebSocketOptions {
 }
 
 const LIVE_DATA_HEARTBEAT_INTERVAL_MS = 25_000
+const LIVE_DATA_STALE_TIMEOUT_MS = 70_000
 
 export function useLiveSeriesWebSocket({
   topic,
@@ -61,6 +62,7 @@ export function useLiveSeriesWebSocket({
       let isActive = true
       let ws: WebSocket | null = null
       let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+      let lastMessageAt = Date.now()
       let previousPriceMessageTimestamp: number | null = null
 
       function stopHeartbeat() {
@@ -91,13 +93,33 @@ export function useLiveSeriesWebSocket({
         if (ws !== socket) {
           return
         }
+        lastMessageAt = Date.now()
         reconnectController?.markConnected()
         setStatus('connecting')
         socket.send(buildSubscriptionPayload('subscribe'))
         stopHeartbeat()
         heartbeatInterval = setInterval(() => {
-          if (ws === socket && socket.readyState === WebSocket.OPEN) {
-            socket.send('PING')
+          if (ws !== socket) {
+            return
+          }
+          if (Date.now() - lastMessageAt > LIVE_DATA_STALE_TIMEOUT_MS) {
+            ws = null
+            stopHeartbeat()
+            setStatus('offline')
+            closeWebSocketWhenReady(socket)
+            scheduleReconnect()
+            return
+          }
+          if (socket.readyState === WebSocket.OPEN) {
+            try {
+              socket.send('PING')
+            } catch {
+              ws = null
+              stopHeartbeat()
+              setStatus('offline')
+              closeWebSocketWhenReady(socket)
+              scheduleReconnect()
+            }
           }
         }, LIVE_DATA_HEARTBEAT_INTERVAL_MS)
       }
@@ -106,6 +128,8 @@ export function useLiveSeriesWebSocket({
         if (!isActive || ws !== socket) {
           return
         }
+        const arrivalTimestamp = Date.now()
+        lastMessageAt = arrivalTimestamp
 
         let payload: any
         try {
@@ -114,7 +138,6 @@ export function useLiveSeriesWebSocket({
           return
         }
 
-        const arrivalTimestamp = Date.now()
         const activeEventEndTimestamp = eventEndTimestampRef.current
         const updates = extractLivePriceUpdates(payload, topic, subscriptionSymbol, arrivalTimestamp)
         const normalizedUpdates = updates

@@ -17,6 +17,7 @@ class MockWebSocket {
   onerror: ((event: Event) => void) | null = null
   onclose: ((event: CloseEvent) => void) | null = null
   send = vi.fn()
+  private listeners = new Map<string, Set<EventListener>>()
 
   constructor(url: string) {
     this.url = url
@@ -30,6 +31,16 @@ class MockWebSocket {
 
   receive(payload: unknown) {
     this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(payload) }))
+  }
+
+  addEventListener(type: string, listener: EventListener) {
+    const listeners = this.listeners.get(type) ?? new Set<EventListener>()
+    listeners.add(listener)
+    this.listeners.set(type, listeners)
+  }
+
+  removeEventListener(type: string, listener: EventListener) {
+    this.listeners.get(type)?.delete(listener)
   }
 
   close() {
@@ -47,12 +58,43 @@ describe('useEventActivityWebSocket', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     if (hiddenDescriptor) {
       Object.defineProperty(document, 'hidden', hiddenDescriptor)
     } else {
       Reflect.deleteProperty(document, 'hidden')
     }
+  })
+
+  it('clears the heartbeat before replacing a socket that fails a visibility probe', async () => {
+    vi.useFakeTimers()
+    const { unmount } = renderHook(() =>
+      useEventActivityWebSocket({
+        eventSlug: 'My-Event',
+        onActivities: vi.fn(),
+        wsUrl: 'wss://ws-live-data.example',
+      }),
+    )
+    const socket = MockWebSocket.instances[0]!
+
+    act(() => socket.open())
+    expect(vi.getTimerCount()).toBe(2)
+
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    expect(vi.getTimerCount()).toBe(3)
+
+    await act(async () => vi.advanceTimersByTime(5_000))
+    expect(socket.readyState).toBe(MockWebSocket.CLOSED)
+    expect(vi.getTimerCount()).toBe(1)
+
+    act(() => {
+      vi.advanceTimersByTime(2_000)
+    })
+    expect(MockWebSocket.instances).toHaveLength(2)
+    unmount()
   })
 
   it('subscribes by event slug and forwards matched activity payloads', () => {

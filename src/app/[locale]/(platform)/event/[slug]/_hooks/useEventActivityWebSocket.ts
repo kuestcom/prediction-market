@@ -178,6 +178,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
         isActive: () => isActive,
         probeWebSocket: probeWebSocketWithPong,
         resetWebSocket: () => {
+          clearHeartbeat()
           ws = null
         },
       })

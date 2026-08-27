@@ -511,6 +511,7 @@ function createLiveActivityStore() {
       isActive: () => isActive,
       probeWebSocket: probeWebSocketWithPong,
       resetWebSocket: () => {
+        clearHeartbeat()
         ws = null
       },
     })

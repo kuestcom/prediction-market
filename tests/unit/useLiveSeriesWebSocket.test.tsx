@@ -134,6 +134,26 @@ describe('useLiveSeriesWebSocket', () => {
     vi.useRealTimers()
   })
 
+  it('reconnects a stale RTDS socket while the page remains visible', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    const { result, socket, unmount } = mountHook()
+
+    act(() => {
+      vi.advanceTimersByTime(75_000)
+    })
+
+    expect(socket.readyState).toBe(MockWebSocket.CLOSED)
+    expect(result.current.status).toBe('offline')
+
+    act(() => {
+      vi.advanceTimersByTime(2_000)
+    })
+    expect(MockWebSocket.instances).toHaveLength(2)
+    unmount()
+    vi.useRealTimers()
+  })
+
   it('keeps the heartbeat and socket when a healthy stream becomes visible again', () => {
     vi.useFakeTimers()
     const { socket, unmount } = mountHook()
