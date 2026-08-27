@@ -257,10 +257,22 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
     locales.map((locale, index) => sql`WHEN ${locale} THEN ${index}`),
     sql` `,
   )} ELSE ${locales.length} END`
+  const localeWeightExpression = sql<number>`${locales.length} - ${localePriorityExpression}`
   const localeRankExpression = sql<number>`row_number() OVER (
     PARTITION BY ${localeExpression}
     ORDER BY ${jobsTable.available_at}, ${jobsTable.updated_at}, ${jobsTable.id}
   )`
+  // Preserve the weighted merge sequence in SQL: locale i gets n - i slots per cycle.
+  const weightedCycleSize = (locales.length * (locales.length + 1)) / 2
+  const weightedPositionExpression = sql<number>`
+    floor((${localeRankExpression} - 1) / ${localeWeightExpression}) * ${weightedCycleSize}
+    + ${weightedCycleSize}
+    - (
+      (${locales.length} - ((${localeRankExpression} - 1) % ${localeWeightExpression}))
+      * ((${locales.length} - ((${localeRankExpression} - 1) % ${localeWeightExpression})) + 1) / 2
+    )
+    + ${localePriorityExpression}
+  `
 
   const rows = await db
     .select({
@@ -283,7 +295,7 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
       ),
     )
     .orderBy(
-      asc(localeRankExpression),
+      asc(weightedPositionExpression),
       asc(localePriorityExpression),
       asc(jobsTable.available_at),
       asc(jobsTable.updated_at),
