@@ -52,6 +52,8 @@ export interface PredictionChartCanvasFrame {
   xAxisTickFontSize: number
   yAxisTickFontSize: number
   centerXAxisTickLabels: boolean
+  clipXAxisLabelsToPlot: boolean
+  xAxisLabelsRightClipRatio: number | null
   xAxisLabelsRightInset: number
   gridLineStyle: 'dashed' | 'solid'
   gridLineColor: string
@@ -553,14 +555,27 @@ function drawAxes(context: CanvasRenderingContext2D, frame: PredictionChartCanva
     context.font = `${frame.xAxisTickFontSize}px Arial, sans-serif`
     context.textBaseline = 'top'
     const labelWidth = Math.max(1, innerWidth - frame.xAxisLabelsRightInset)
+    if (frame.clipXAxisLabelsToPlot) {
+      context.save()
+      context.beginPath()
+      const rightClipRatio =
+        frame.xAxisLabelsRightClipRatio == null ? 1 : Math.max(0, Math.min(1, frame.xAxisLabelsRightClipRatio))
+      context.rect(frame.margin.left, 0, Math.max(1, innerWidth * rightClipRatio), frame.height)
+      context.clip()
+    }
+
     frame.xTicks.forEach((tick, index) => {
       const ratio = (tick.getTime() - frame.domainStart) / Math.max(1, frame.domainEnd - frame.domainStart)
-      const x = frame.margin.left + Math.max(0, Math.min(1, ratio)) * labelWidth
+      const x = frame.margin.left + ratio * labelWidth
       const isFirst = index === 0
       const isLast = index === frame.xTicks.length - 1
       context.textAlign = frame.centerXAxisTickLabels ? 'center' : isFirst ? 'left' : isLast ? 'right' : 'center'
       context.fillText(frame.formatXTick(tick), x, plotBottom + (frame.showXAxisTopRuleFullWidth ? 9 : 7))
     })
+
+    if (frame.clipXAxisLabelsToPlot) {
+      context.restore()
+    }
   }
 
   context.restore()

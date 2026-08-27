@@ -47,6 +47,8 @@ export interface PredictionChartProps {
   xAxisTickFontSize?: number
   yAxisTickFontSize?: number
   centerXAxisTickLabels?: boolean
+  clipXAxisLabelsToPlot?: boolean
+  xAxisLabelsRightClipRatio?: number
   xAxisLabelsRightInset?: number
   alignYAxisLabelsToChartEdge?: boolean
   fadeYAxisEdges?: boolean

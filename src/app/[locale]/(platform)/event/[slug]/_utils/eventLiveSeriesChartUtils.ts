@@ -38,13 +38,18 @@ export interface LiveSeriesPriceHistoryPoint {
   price: number
 }
 
-export function buildLiveSeriesFallbackData(price: number | null, chartEndTimestamp: number) {
+export function buildLiveSeriesFallbackData(
+  price: number | null,
+  chartEndTimestamp: number,
+  windowMs = LIVE_WINDOW_MS,
+) {
   if (price == null || !Number.isFinite(price) || price <= 0 || !Number.isFinite(chartEndTimestamp)) {
     return []
   }
 
   const domainEnd = Math.max(0, chartEndTimestamp)
-  const domainStart = Math.max(0, domainEnd - LIVE_WINDOW_MS)
+  const resolvedWindowMs = Number.isFinite(windowMs) && windowMs > 0 ? windowMs : LIVE_WINDOW_MS
+  const domainStart = Math.max(0, domainEnd - resolvedWindowMs)
 
   return [
     {
@@ -65,6 +70,7 @@ export function resolveLiveChartPaddedDomainEnd({
   marginLeft,
   marginRight,
   rightInset,
+  dataEndRatio,
 }: {
   startTimestamp: number
   endTimestamp: number
@@ -72,9 +78,15 @@ export function resolveLiveChartPaddedDomainEnd({
   marginLeft: number
   marginRight: number
   rightInset: number
+  dataEndRatio?: number
 }) {
   const duration = Math.max(1, endTimestamp - startTimestamp)
   const plotWidth = Math.max(1, chartWidth - marginLeft - marginRight)
+
+  if (dataEndRatio != null && Number.isFinite(dataEndRatio) && dataEndRatio > 0 && dataEndRatio <= 1) {
+    return startTimestamp + duration / dataEndRatio
+  }
+
   const visibleWidth = Math.max(1, plotWidth - Math.max(0, rightInset))
 
   return startTimestamp + (duration * plotWidth) / visibleWidth

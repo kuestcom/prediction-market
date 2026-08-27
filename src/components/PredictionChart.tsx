@@ -190,6 +190,8 @@ export default function PredictionChart({
   xAxisTickFontSize = 11,
   yAxisTickFontSize = 11,
   centerXAxisTickLabels = false,
+  clipXAxisLabelsToPlot = false,
+  xAxisLabelsRightClipRatio,
   xAxisLabelsRightInset = 0,
   alignYAxisLabelsToChartEdge = false,
   fadeYAxisEdges: _fadeYAxisEdges = false,
@@ -401,7 +403,10 @@ export default function PredictionChart({
     const explicitTicks = xAxisTickValues
       ?.filter((tick) => {
         const timestamp = tick.getTime()
-        return Number.isFinite(timestamp) && timestamp >= domainBounds.start && timestamp <= domainBounds.end
+        return (
+          Number.isFinite(timestamp) &&
+          (clipXAxisLabelsToPlot || (timestamp >= domainBounds.start && timestamp <= domainBounds.end))
+        )
       })
       .sort((left, right) => left.getTime() - right.getTime())
 
@@ -414,7 +419,7 @@ export default function PredictionChart({
       const progress = count === 1 ? 0 : index / (count - 1)
       return new Date(domainBounds.start + (domainBounds.end - domainBounds.start) * progress)
     })
-  }, [domainBounds.end, domainBounds.start, xAxisTickCount, xAxisTickValues])
+  }, [clipXAxisLabelsToPlot, domainBounds.end, domainBounds.start, xAxisTickCount, xAxisTickValues])
 
   const totalDurationHours = (domainBounds.end - domainBounds.start) / 36e5
   const formatXAxisTick = useCallback(
@@ -536,6 +541,8 @@ export default function PredictionChart({
       xAxisTickFontSize,
       yAxisTickFontSize,
       centerXAxisTickLabels,
+      clipXAxisLabelsToPlot,
+      xAxisLabelsRightClipRatio: xAxisLabelsRightClipRatio ?? null,
       xAxisLabelsRightInset,
       gridLineStyle,
       gridLineColor,
@@ -594,6 +601,8 @@ export default function PredictionChart({
       axisLabelColor,
       axisLabelOpacity,
       centerXAxisTickLabels,
+      clipXAxisLabelsToPlot,
+      xAxisLabelsRightClipRatio,
       resolvedCursor,
       cursorGuideColor,
       cursorGuideTop,

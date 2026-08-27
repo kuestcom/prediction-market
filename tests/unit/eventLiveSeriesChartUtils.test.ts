@@ -213,6 +213,26 @@ describe('event live series chart utils', () => {
     expect(renderedEndX).toBeCloseTo(plotWidth - rightInset, 8)
   })
 
+  it('supports positioning the live data endpoint at a requested plot ratio', () => {
+    const startTimestamp = 10_000
+    const endTimestamp = 50_000
+    const chartWidth = 900
+    const marginRight = 52
+    const plotWidth = chartWidth - marginRight
+    const paddedEndTimestamp = resolveLiveChartPaddedDomainEnd({
+      startTimestamp,
+      endTimestamp,
+      chartWidth,
+      marginLeft: 0,
+      marginRight,
+      rightInset: 34,
+      dataEndRatio: 0.6,
+    })
+    const renderedEndX = ((endTimestamp - startTimestamp) / (paddedEndTimestamp - startTimestamp)) * plotWidth
+
+    expect(renderedEndX).toBeCloseTo(plotWidth * 0.6, 8)
+  })
+
   it('builds closed-event history across the event window with canonical endpoints', () => {
     const startTimestamp = Date.parse('2026-08-13T08:00:00.000Z')
     const endTimestamp = Date.parse('2026-08-13T12:00:00.000Z')
@@ -259,6 +279,21 @@ describe('event live series chart utils', () => {
     expect(buildLiveSeriesFallbackData(63_800, chartEndTimestamp)).toEqual([
       {
         date: new Date(chartEndTimestamp - 40_000),
+        [SERIES_KEY]: 63_800,
+      },
+      {
+        date: new Date(chartEndTimestamp),
+        [SERIES_KEY]: 63_800,
+      },
+    ])
+  })
+
+  it('supports a shorter fallback window for compact live charts', () => {
+    const chartEndTimestamp = Date.parse('2026-08-13T15:00:00.000Z')
+
+    expect(buildLiveSeriesFallbackData(63_800, chartEndTimestamp, 20_000)).toEqual([
+      {
+        date: new Date(chartEndTimestamp - 20_000),
         [SERIES_KEY]: 63_800,
       },
       {

@@ -46,6 +46,8 @@ const FONT_SIZE_PATTERN = /(\d+(?:\.\d+)?)px/
 const WHITESPACE_PATTERN = /\s/
 const NARROW_CHARACTER_PATTERN = /[ilI1|.,'`]/
 const WIDE_CHARACTER_PATTERN = /[mw@%&]/i
+const SPORTS_LEGEND_CURSOR_RESPONSE_MS = 280
+const SPORTS_LEGEND_CURSOR_MAX_ANIMATION_MS = 800
 
 interface SportsLegendTextMeasurements {
   nameWidthsByKey: Map<string, number>
@@ -148,6 +150,147 @@ function createSportsLegendTextMeasurementStore({
     getSnapshot,
     subscribe,
   }
+}
+
+function interpolateSportsLegendCursor(
+  current: PredictionChartCursorSnapshot,
+  target: PredictionChartCursorSnapshot,
+  progress: number,
+) {
+  const values: Record<string, number> = {}
+  const keys = new Set([...Object.keys(current.values), ...Object.keys(target.values)])
+
+  keys.forEach((key) => {
+    const currentValue = current.values[key]
+    const targetValue = target.values[key]
+
+    if (typeof currentValue === 'number' && typeof targetValue === 'number') {
+      values[key] = currentValue + (targetValue - currentValue) * progress
+    } else if (typeof targetValue === 'number') {
+      values[key] = targetValue
+    } else if (typeof currentValue === 'number') {
+      values[key] = currentValue
+    }
+  })
+
+  return {
+    date: new Date(current.date.getTime() + (target.date.getTime() - current.date.getTime()) * progress),
+    values,
+  } satisfies PredictionChartCursorSnapshot
+}
+
+function useLaggedSportsLegendCursor({
+  cursorSnapshot,
+  latestSnapshot,
+  latestTimestamp,
+}: {
+  cursorSnapshot: PredictionChartCursorSnapshot | null
+  latestSnapshot: Record<string, number>
+  latestTimestamp: number | null
+}) {
+  const [displayedSnapshot, setDisplayedSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
+  const targetRef = useRef<PredictionChartCursorSnapshot | null>(cursorSnapshot)
+  const displayedRef = useRef<PredictionChartCursorSnapshot | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const lastFrameTimestampRef = useRef<number | null>(null)
+  const animationStartTimestampRef = useRef<number | null>(null)
+  const baselineSnapshot = useMemo<PredictionChartCursorSnapshot | null>(() => {
+    if (latestTimestamp == null || !Number.isFinite(latestTimestamp)) {
+      return null
+    }
+
+    return {
+      date: new Date(latestTimestamp),
+      values: latestSnapshot,
+    }
+  }, [latestSnapshot, latestTimestamp])
+
+  useEffect(() => {
+    targetRef.current = cursorSnapshot
+
+    if (!cursorSnapshot) {
+      displayedRef.current = null
+      setDisplayedSnapshot(null)
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+      lastFrameTimestampRef.current = null
+      animationStartTimestampRef.current = null
+      return
+    }
+
+    if (!displayedRef.current) {
+      displayedRef.current = baselineSnapshot ?? cursorSnapshot
+      setDisplayedSnapshot(displayedRef.current)
+    }
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      displayedRef.current = cursorSnapshot
+      setDisplayedSnapshot(cursorSnapshot)
+      animationStartTimestampRef.current = null
+      return
+    }
+
+    if (animationFrameRef.current != null) {
+      return
+    }
+
+    function animate(timestamp: number) {
+      const current = displayedRef.current
+      const target = targetRef.current
+      if (!current || !target) {
+        animationFrameRef.current = null
+        lastFrameTimestampRef.current = null
+        animationStartTimestampRef.current = null
+        return
+      }
+
+      animationStartTimestampRef.current ??= timestamp
+      const previousTimestamp = lastFrameTimestampRef.current ?? timestamp
+      const elapsedMs = Math.min(64, Math.max(0, timestamp - previousTimestamp))
+      lastFrameTimestampRef.current = timestamp
+      const progress = 1 - Math.exp(-elapsedMs / SPORTS_LEGEND_CURSOR_RESPONSE_MS)
+      const next = interpolateSportsLegendCursor(current, target, progress)
+      const remainingDateMs = Math.abs(target.date.getTime() - next.date.getTime())
+      const remainingValue = Math.max(
+        0,
+        ...Object.keys(target.values).map((key) => Math.abs((target.values[key] ?? 0) - (next.values[key] ?? 0))),
+      )
+      const animationElapsedMs = timestamp - animationStartTimestampRef.current
+
+      if (
+        animationElapsedMs >= SPORTS_LEGEND_CURSOR_MAX_ANIMATION_MS ||
+        (remainingDateMs <= 1 && remainingValue <= 0.01)
+      ) {
+        displayedRef.current = target
+        setDisplayedSnapshot(target)
+        animationFrameRef.current = null
+        lastFrameTimestampRef.current = null
+        animationStartTimestampRef.current = null
+        return
+      }
+
+      displayedRef.current = next
+      setDisplayedSnapshot(next)
+      animationFrameRef.current = window.requestAnimationFrame(animate)
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(animate)
+  }, [baselineSnapshot, cursorSnapshot])
+
+  useEffect(
+    () => () => {
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current)
+      }
+      animationStartTimestampRef.current = null
+      lastFrameTimestampRef.current = null
+    },
+    [],
+  )
+
+  return displayedSnapshot
 }
 
 export function useSportsGameGraphChartSettings() {
@@ -551,6 +694,12 @@ export function useSportsGameGraphHeroLegend({
   positionedLegendLayout: SportsPositionedLegendLayout
   usesPositionedSeriesLegend: boolean
 }) {
+  const latestTimestamp = chartData.at(-1)?.date.getTime() ?? null
+  const legendCursorSnapshot = useLaggedSportsLegendCursor({
+    cursorSnapshot,
+    latestSnapshot,
+    latestTimestamp,
+  })
   const heroLegendSeriesWithValues = useMemo(() => {
     if (!canRenderPositionedSeriesLegend) {
       return []
@@ -558,7 +707,7 @@ export function useSportsGameGraphHeroLegend({
 
     return chartSeries
       .map((seriesItem) => {
-        const hoveredValue = cursorSnapshot?.values?.[seriesItem.key]
+        const hoveredValue = legendCursorSnapshot?.values?.[seriesItem.key]
         const value =
           typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
             ? hoveredValue
@@ -570,7 +719,7 @@ export function useSportsGameGraphHeroLegend({
         return { ...seriesItem, value }
       })
       .filter((entry): entry is { key: string; name: string; color: string; value: number } => entry !== null)
-  }, [canRenderPositionedSeriesLegend, chartSeries, cursorSnapshot, latestSnapshot])
+  }, [canRenderPositionedSeriesLegend, chartSeries, latestSnapshot, legendCursorSnapshot])
 
   const legendTextMeasurementStore = useMemo(
     () =>
@@ -669,7 +818,7 @@ export function useSportsGameGraphHeroLegend({
     const domainStart = Number.isFinite(explicitStart) ? explicitStart : firstTimestamp
     const domainEndCandidate = Number.isFinite(explicitEnd) ? explicitEnd : lastTimestamp
     const domainEnd = Math.max(domainStart + 1, domainEndCandidate)
-    const hoveredTimestampRaw = cursorSnapshot?.date.getTime() ?? lastTimestamp
+    const hoveredTimestampRaw = legendCursorSnapshot?.date.getTime() ?? lastTimestamp
     const hoveredTimestamp = Math.max(firstTimestamp, Math.min(lastTimestamp, hoveredTimestampRaw))
 
     const xSpan = Math.max(1, domainEnd - domainStart)
@@ -752,9 +901,9 @@ export function useSportsGameGraphHeroLegend({
     chartSeries,
     chartWidth,
     chartXDomain,
-    cursorSnapshot?.date,
     heroLegendSeriesWithValues,
     canRenderPositionedSeriesLegend,
+    legendCursorSnapshot?.date,
     positionedLegendLayout,
   ])
 
@@ -762,7 +911,7 @@ export function useSportsGameGraphHeroLegend({
     () =>
       chartSeries
         .map((seriesItem) => {
-          const hoveredValue = cursorSnapshot?.values?.[seriesItem.key]
+          const hoveredValue = legendCursorSnapshot?.values?.[seriesItem.key]
           const value =
             typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
               ? hoveredValue
@@ -775,7 +924,7 @@ export function useSportsGameGraphHeroLegend({
           return { ...seriesItem, value }
         })
         .filter((entry): entry is { key: string; name: string; color: string; value: number } => entry !== null),
-    [chartSeries, cursorSnapshot, latestSnapshot],
+    [chartSeries, latestSnapshot, legendCursorSnapshot],
   )
 
   return {

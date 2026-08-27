@@ -1989,19 +1989,21 @@ function FeaturedSlide({
   item: sourceItem,
   currentTimestamp,
   isActive,
+  isPrevious,
   isNext,
   isChartEnabled,
 }: {
   item: HomeFeaturedEventCard
   currentTimestamp: number | null
   isActive: boolean
+  isPrevious: boolean
   isNext: boolean
   isChartEnabled: boolean
 }) {
   const item = useHomeFeaturedRolloverItem(sourceItem)
   const isMobile = useIsMobile()
   const linkedHref = resolveEventPagePath(item.event)
-  const shouldRenderChart = isChartEnabled && (isActive || isNext)
+  const shouldRenderChart = isChartEnabled && (isPrevious || isActive || isNext)
   const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>(shouldRenderChart)
   const isSingleMarket = item.event.total_markets_count === 1 || item.event.markets.length === 1
   const shouldRenderLiveSeriesChart = Boolean(
@@ -2051,6 +2053,7 @@ function FeaturedSlide({
               compactBitcoinHeaderPrices
               preserveSeriesContinuity
               showLiveMarketLink={false}
+              featuredChartLayout
             />
           ) : item.kind === 'sports' && sportsGraphCard && sportsGraphSelection ? (
             <HomeSportsGameGraph
@@ -2186,6 +2189,7 @@ export default function HomeFeaturedEventsCarousel({
   const [isAutoAdvancePaused, setIsAutoAdvancePaused] = useState(false)
   const hasMultipleItems = items.length > 1
   const activeItem = items[activeIndex]
+  const previousIndex = items.length === 0 ? 0 : (activeIndex - 1 + items.length) % items.length
   const nextIndex = items.length === 0 ? 0 : (activeIndex + 1) % items.length
 
   useEffect(
@@ -2306,6 +2310,7 @@ export default function HomeFeaturedEventsCarousel({
                 item={item}
                 currentTimestamp={currentTimestamp}
                 isActive={index === activeIndex}
+                isPrevious={index === previousIndex}
                 isNext={index === nextIndex}
                 isChartEnabled={isChartNearViewport}
               />
