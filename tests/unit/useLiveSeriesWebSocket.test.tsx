@@ -20,6 +20,7 @@ class MockWebSocket {
   onerror: ((event: Event) => void) | null = null
   onclose: ((event: CloseEvent) => void) | null = null
   sentMessages: string[] = []
+  private listeners = new Map<string, Set<(event: Event) => void>>()
 
   constructor(readonly url: string | URL) {
     MockWebSocket.instances.push(this)
@@ -27,6 +28,20 @@ class MockWebSocket {
 
   send(payload: string) {
     this.sentMessages.push(payload)
+  }
+
+  addEventListener(type: string, listener: EventListener) {
+    const eventListeners = this.listeners.get(type) ?? new Set<(event: Event) => void>()
+    eventListeners.add(listener)
+    this.listeners.set(type, eventListeners)
+  }
+
+  removeEventListener(type: string, listener: EventListener) {
+    this.listeners.get(type)?.delete(listener)
+  }
+
+  private emitEvent(type: string, event: Event) {
+    this.listeners.get(type)?.forEach((listener) => listener(event))
   }
 
   close() {
@@ -40,6 +55,11 @@ class MockWebSocket {
 
   emitMessage(payload: unknown) {
     this.onmessage?.({ data: JSON.stringify(payload) } as MessageEvent<string>)
+  }
+
+  emitRawMessage(data: string) {
+    this.onmessage?.({ data } as MessageEvent<string>)
+    this.emitEvent('message', new MessageEvent('message', { data }))
   }
 }
 
@@ -106,7 +126,7 @@ describe('useLiveSeriesWebSocket', () => {
     const { socket, unmount } = mountHook()
 
     act(() => {
-      vi.advanceTimersByTime(5_000)
+      vi.advanceTimersByTime(25_000)
     })
 
     expect(socket.sentMessages.at(-1)).toBe('PING')
@@ -114,17 +134,18 @@ describe('useLiveSeriesWebSocket', () => {
     vi.useRealTimers()
   })
 
-  it('clears the old heartbeat before replacing a visible-tab socket', () => {
+  it('keeps the heartbeat and socket when a healthy stream becomes visible again', () => {
     vi.useFakeTimers()
-    const { unmount } = mountHook()
+    const { socket, unmount } = mountHook()
 
-    expect(vi.getTimerCount()).toBe(1)
+    expect(vi.getTimerCount()).toBe(2)
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
 
-    expect(MockWebSocket.instances).toHaveLength(2)
-    expect(vi.getTimerCount()).toBe(0)
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(vi.getTimerCount()).toBe(3)
+    act(() => socket.emitRawMessage('PONG'))
     unmount()
     vi.useRealTimers()
   })
@@ -284,7 +305,7 @@ describe('useLiveSeriesWebSocket', () => {
     expect(result.current.data.some((point) => point[SERIES_KEY] === 100)).toBe(true)
   })
 
-  it('replaces an apparently open socket when the tab becomes visible again', () => {
+  it('does not replace an apparently open socket when the tab becomes visible again', () => {
     const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
     const { socket } = mountHook()
 
@@ -292,19 +313,17 @@ describe('useLiveSeriesWebSocket', () => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
 
-    expect(socket.readyState).toBe(MockWebSocket.CLOSED)
-    expect(MockWebSocket.instances).toHaveLength(2)
-
-    const resumedSocket = MockWebSocket.instances[1]!
-    act(() => resumedSocket.emitOpen())
-
-    expect(JSON.parse(resumedSocket.sentMessages[0]!)).toMatchObject({
+    expect(socket.readyState).toBe(MockWebSocket.OPEN)
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(JSON.parse(socket.sentMessages[0]!)).toMatchObject({
       action: 'subscribe',
     })
+    expect(socket.sentMessages.at(-1)).toBe('PING')
+    act(() => socket.emitRawMessage('PONG'))
     hiddenSpy.mockRestore()
   })
 
-  it('retains rendered history while replacing the socket after focus returns', () => {
+  it('retains rendered history when the tab becomes visible again', () => {
     const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
     const { result, socket } = mountHook()
 

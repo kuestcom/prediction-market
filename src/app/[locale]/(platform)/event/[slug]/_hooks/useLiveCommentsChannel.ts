@@ -7,7 +7,11 @@ import type { Comment, User } from '@/types'
 
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
-import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import {
+  closeWebSocketWhenReady,
+  createWebSocketReconnectController,
+  probeWebSocketWithPong,
+} from '@/lib/websocket-reconnect'
 
 interface LiveCommentProfile {
   baseAddress?: string
@@ -162,6 +166,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       if (!ws) {
         return
       }
+      reconnectController?.markConnected()
       ws.send(buildSubscriptionPayload('subscribe'))
       setStatus('live')
     }
@@ -356,6 +361,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       connect,
       getWebSocket: () => ws,
       isActive: () => isActive,
+      probeWebSocket: probeWebSocketWithPong,
       resetWebSocket: () => {
         ws = null
       },

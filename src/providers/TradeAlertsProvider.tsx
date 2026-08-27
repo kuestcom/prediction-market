@@ -24,7 +24,11 @@ import {
   putTradeAlert,
   setTradeAlertsNeedsSync,
 } from '@/lib/trade-alerts-idb'
-import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import {
+  closeWebSocketWhenReady,
+  createWebSocketReconnectController,
+  probeWebSocketWithPong,
+} from '@/lib/websocket-reconnect'
 import { useTradeAlertsStore } from '@/stores/useTradeAlerts'
 import { useUser } from '@/stores/useUser'
 
@@ -265,6 +269,7 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         const nextSocket = new WebSocket(wsUrl)
         socket = nextSocket
         nextSocket.onopen = () => {
+          reconnectController.markConnected()
           nextSocket.send(
             JSON.stringify({
               action: 'subscribe',
@@ -301,10 +306,10 @@ export default function TradeAlertsProvider({ children }: { children: ReactNode 
         connect,
         getWebSocket: () => socket,
         isActive: () => activeRef.current,
+        probeWebSocket: probeWebSocketWithPong,
         resetWebSocket: () => {
           socket = null
         },
-        reconnectOnVisible: true,
       })
       document.addEventListener('visibilitychange', reconnectController.handleVisibilityChange)
       connect()

@@ -4,7 +4,11 @@ import { useEffect, useRef } from 'react'
 
 import type { DataApiActivity } from '@/lib/data-api/user'
 
-import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import {
+  closeWebSocketWhenReady,
+  createWebSocketReconnectController,
+  probeWebSocketWithPong,
+} from '@/lib/websocket-reconnect'
 
 interface LiveActivityMessage {
   payload?: DataApiActivity | DataApiActivity[]
@@ -99,6 +103,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
         }
 
         lastMessageAt = Date.now()
+        reconnectController?.markConnected()
         startHeartbeat()
         socket.send(buildSubscriptionPayload('subscribe', normalizedEventSlug))
       }
@@ -171,6 +176,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
         connect,
         getWebSocket: () => ws,
         isActive: () => isActive,
+        probeWebSocket: probeWebSocketWithPong,
         resetWebSocket: () => {
           ws = null
         },

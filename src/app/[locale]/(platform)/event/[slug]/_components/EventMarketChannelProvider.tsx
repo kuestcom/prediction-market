@@ -345,6 +345,7 @@ function useMarketChannelConnection({
           return
         }
         lastMessageAt = Date.now()
+        reconnectController?.markConnected()
         startHeartbeat()
         setConnectionStatus('connecting')
         socket.send(
@@ -452,10 +453,8 @@ function useMarketChannelConnection({
 
       reconnectController = createWebSocketReconnectController({
         connect,
-        disconnectWebSocket: disconnectSocket,
         getWebSocket: () => ws,
         isActive: () => isActive,
-        reconnectOnVisible: true,
         resetWebSocket: () => {
           ws = null
         },

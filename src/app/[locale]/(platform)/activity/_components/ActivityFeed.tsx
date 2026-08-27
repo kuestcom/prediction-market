@@ -27,7 +27,11 @@ import { formatDollarValueLabel, formatSharePriceLabel, formatTimeAgo, toMicro }
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { buildPublicProfilePath, isPlatformMainCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
-import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import {
+  closeWebSocketWhenReady,
+  createWebSocketReconnectController,
+  probeWebSocketWithPong,
+} from '@/lib/websocket-reconnect'
 
 type LiveActivityPayload = DataApiActivity & {
   category?: string
@@ -364,6 +368,7 @@ function createLiveActivityStore() {
         return
       }
       lastMessageAt = Date.now()
+      reconnectController?.markConnected()
       startHeartbeat()
       socket.send(buildSubscriptionPayload('subscribe'))
     }
@@ -504,6 +509,7 @@ function createLiveActivityStore() {
       connect,
       getWebSocket: () => ws,
       isActive: () => isActive,
+      probeWebSocket: probeWebSocketWithPong,
       resetWebSocket: () => {
         ws = null
       },

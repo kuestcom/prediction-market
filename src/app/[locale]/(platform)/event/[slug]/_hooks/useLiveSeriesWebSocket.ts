@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { DataPoint } from '@/types/PredictionChartTypes'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
-import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
+import {
+  closeWebSocketWhenReady,
+  createWebSocketReconnectController,
+  probeWebSocketWithPong,
+} from '@/lib/websocket-reconnect'
 
 import {
   appendLivePriceTransition,
@@ -26,7 +30,7 @@ interface UseLiveSeriesWebSocketOptions {
   isLiveView: boolean
 }
 
-const LIVE_DATA_HEARTBEAT_INTERVAL_MS = 5_000
+const LIVE_DATA_HEARTBEAT_INTERVAL_MS = 25_000
 
 export function useLiveSeriesWebSocket({
   topic,
@@ -87,6 +91,7 @@ export function useLiveSeriesWebSocket({
         if (ws !== socket) {
           return
         }
+        reconnectController?.markConnected()
         setStatus('connecting')
         socket.send(buildSubscriptionPayload('subscribe'))
         stopHeartbeat()
@@ -252,7 +257,7 @@ export function useLiveSeriesWebSocket({
         connect,
         getWebSocket: () => ws,
         isActive: () => isActive,
-        reconnectOnVisible: true,
+        probeWebSocket: probeWebSocketWithPong,
         resetWebSocket: () => {
           stopHeartbeat()
           ws = null
