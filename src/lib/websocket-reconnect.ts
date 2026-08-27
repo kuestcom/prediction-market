@@ -2,6 +2,9 @@ const DEFAULT_RECONNECT_DELAY_MS = 1500
 const MAX_RECONNECT_DELAY_MS = 30_000
 const RECONNECT_JITTER_RATIO = 0.2
 const CONNECTION_STABLE_MS = 30_000
+const DEFAULT_PING_INTERVAL_MS = 25_000
+const DEFAULT_STALE_TIMEOUT_MS = 70_000
+const DEFAULT_OPEN_TIMEOUT_MS = 10_000
 
 interface CreateWebSocketReconnectControllerOptions {
   connect: () => void
@@ -10,6 +13,112 @@ interface CreateWebSocketReconnectControllerOptions {
   isActive: () => boolean
   probeWebSocket?: (ws: WebSocket) => Promise<boolean>
   resetWebSocket: () => void
+}
+
+interface CreateWebSocketHeartbeatControllerOptions {
+  getWebSocket: () => WebSocket | null
+  isActive: () => boolean
+  onConnectionLost: (ws: WebSocket) => void
+  openTimeoutMs?: number
+  pingIntervalMs?: number
+  staleTimeoutMs?: number
+}
+
+export function createWebSocketHeartbeatController({
+  getWebSocket,
+  isActive,
+  onConnectionLost,
+  openTimeoutMs = DEFAULT_OPEN_TIMEOUT_MS,
+  pingIntervalMs = DEFAULT_PING_INTERVAL_MS,
+  staleTimeoutMs = DEFAULT_STALE_TIMEOUT_MS,
+}: CreateWebSocketHeartbeatControllerOptions) {
+  let heartbeatInterval: number | null = null
+  let openingTimeout: number | null = null
+  let lastActivityAt = Date.now()
+
+  function clearHeartbeat() {
+    if (heartbeatInterval !== null) {
+      window.clearInterval(heartbeatInterval)
+      heartbeatInterval = null
+    }
+  }
+
+  function clearOpeningTimeout() {
+    if (openingTimeout !== null) {
+      window.clearTimeout(openingTimeout)
+      openingTimeout = null
+    }
+  }
+
+  function clear() {
+    clearHeartbeat()
+    clearOpeningTimeout()
+  }
+
+  function loseConnection(ws: WebSocket) {
+    if (!isActive() || getWebSocket() !== ws) {
+      return
+    }
+    clear()
+    onConnectionLost(ws)
+  }
+
+  function markConnecting(ws: WebSocket) {
+    clear()
+    openingTimeout = window.setTimeout(
+      () => {
+        openingTimeout = null
+        if (ws.readyState === WebSocket.CONNECTING) {
+          loseConnection(ws)
+        }
+      },
+      Math.max(1, openTimeoutMs),
+    )
+  }
+
+  function markOpen(ws: WebSocket) {
+    if (!isActive() || getWebSocket() !== ws) {
+      return
+    }
+    clearOpeningTimeout()
+    clearHeartbeat()
+    lastActivityAt = Date.now()
+    heartbeatInterval = window.setInterval(
+      () => {
+        if (!isActive() || getWebSocket() !== ws) {
+          clearHeartbeat()
+          return
+        }
+        if (Date.now() - lastActivityAt > staleTimeoutMs) {
+          loseConnection(ws)
+          return
+        }
+        if (ws.readyState !== WebSocket.OPEN) {
+          loseConnection(ws)
+          return
+        }
+        try {
+          ws.send('PING')
+        } catch {
+          loseConnection(ws)
+        }
+      },
+      Math.max(1, pingIntervalMs),
+    )
+  }
+
+  function markActivity(ws: WebSocket, activityAt = Date.now()) {
+    if (isActive() && getWebSocket() === ws) {
+      lastActivityAt = activityAt
+    }
+  }
+
+  return {
+    clear,
+    markActivity,
+    markConnecting,
+    markOpen,
+  }
 }
 
 export function createWebSocketReconnectController({

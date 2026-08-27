@@ -6,6 +6,7 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 
 import {
   closeWebSocketWhenReady,
+  createWebSocketHeartbeatController,
   createWebSocketReconnectController,
   probeWebSocketWithPong,
 } from '@/lib/websocket-reconnect'
@@ -21,9 +22,6 @@ interface UseEventActivityWebSocketOptions {
   onActivities: (activities: DataApiActivity[]) => void
   wsUrl: string | undefined
 }
-
-const WEBSOCKET_PING_INTERVAL_MS = 25000
-const WEBSOCKET_STALE_TIMEOUT_MS = 70000
 
 function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe', eventSlug: string) {
   return JSON.stringify({
@@ -57,54 +55,14 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
       const activeWsUrl = wsUrl
       let isActive = true
       let ws: WebSocket | null = null
-      let lastMessageAt = Date.now()
-      let heartbeatHandle: number | null = null
-
-      function clearHeartbeat() {
-        if (heartbeatHandle !== null) {
-          window.clearInterval(heartbeatHandle)
-          heartbeatHandle = null
-        }
-      }
-
-      function startHeartbeat() {
-        clearHeartbeat()
-        heartbeatHandle = window.setInterval(() => {
-          if (!isActive || !ws) {
-            return
-          }
-
-          if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
-            const staleSocket = ws
-            ws = null
-            clearHeartbeat()
-            closeWebSocketWhenReady(staleSocket)
-            scheduleReconnect()
-            return
-          }
-
-          if (ws.readyState === WebSocket.OPEN) {
-            try {
-              ws.send('PING')
-            } catch {
-              const staleSocket = ws
-              ws = null
-              clearHeartbeat()
-              closeWebSocketWhenReady(staleSocket)
-              scheduleReconnect()
-            }
-          }
-        }, WEBSOCKET_PING_INTERVAL_MS)
-      }
 
       function handleOpen(socket: WebSocket) {
         if (socket !== ws) {
           return
         }
 
-        lastMessageAt = Date.now()
         reconnectController?.markConnected()
-        startHeartbeat()
+        heartbeatController?.markOpen(socket)
         socket.send(buildSubscriptionPayload('subscribe', normalizedEventSlug))
       }
 
@@ -113,7 +71,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
           return
         }
 
-        lastMessageAt = Date.now()
+        heartbeatController?.markActivity(socket)
 
         let message: LiveActivityMessage
         try {
@@ -133,6 +91,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
       }
 
       let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+      let heartbeatController: ReturnType<typeof createWebSocketHeartbeatController> | null = null
 
       function clearReconnect() {
         reconnectController?.clearReconnect()
@@ -151,7 +110,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
           return
         }
 
-        clearHeartbeat()
+        heartbeatController?.clear()
         if (!isActive) {
           return
         }
@@ -170,6 +129,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
         socket.onmessage = (eventMessage) => handleMessage(socket, eventMessage)
         socket.onclose = () => handleClose(socket)
         ws = socket
+        heartbeatController?.markConnecting(socket)
       }
 
       reconnectController = createWebSocketReconnectController({
@@ -178,8 +138,17 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
         isActive: () => isActive,
         probeWebSocket: probeWebSocketWithPong,
         resetWebSocket: () => {
-          clearHeartbeat()
+          heartbeatController?.clear()
           ws = null
+        },
+      })
+      heartbeatController = createWebSocketHeartbeatController({
+        getWebSocket: () => ws,
+        isActive: () => isActive,
+        onConnectionLost: (socket) => {
+          ws = null
+          closeWebSocketWhenReady(socket)
+          scheduleReconnect()
         },
       })
 
@@ -189,7 +158,7 @@ export function useEventActivityWebSocket({ eventSlug, onActivities, wsUrl }: Us
       return function unsubscribeFromEventActivity() {
         isActive = false
         clearReconnect()
-        clearHeartbeat()
+        heartbeatController.clear()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
 
         const socket = ws

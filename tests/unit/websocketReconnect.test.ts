@@ -1,5 +1,6 @@
 import {
   closeWebSocketWhenReady,
+  createWebSocketHeartbeatController,
   createWebSocketReconnectController,
   probeWebSocketWithPong,
 } from '@/lib/websocket-reconnect'
@@ -84,6 +85,57 @@ describe('closeWebSocketWhenReady', () => {
     expect(closingClose).not.toHaveBeenCalled()
     expect(closedClose).not.toHaveBeenCalled()
     expect(closeOpenSocket).not.toHaveBeenCalled()
+  })
+})
+
+describe('createWebSocketHeartbeatController', () => {
+  it('abandons a socket whose opening handshake stalls', () => {
+    vi.useFakeTimers()
+    const socket = {
+      readyState: WebSocket.CONNECTING,
+      send: vi.fn(),
+    } as unknown as WebSocket
+    const onConnectionLost = vi.fn()
+    const controller = createWebSocketHeartbeatController({
+      getWebSocket: () => socket,
+      isActive: () => true,
+      onConnectionLost,
+    })
+
+    controller.markConnecting(socket)
+    vi.advanceTimersByTime(9_999)
+    expect(onConnectionLost).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(1)
+    expect(onConnectionLost).toHaveBeenCalledOnce()
+    expect(onConnectionLost).toHaveBeenCalledWith(socket)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('uses only explicitly marked activity to refresh staleness', () => {
+    vi.useFakeTimers()
+    const send = vi.fn()
+    const socket = {
+      readyState: WebSocket.OPEN,
+      send,
+    } as unknown as WebSocket
+    const onConnectionLost = vi.fn()
+    const controller = createWebSocketHeartbeatController({
+      getWebSocket: () => socket,
+      isActive: () => true,
+      onConnectionLost,
+    })
+
+    controller.markOpen(socket)
+    vi.advanceTimersByTime(25_000)
+    expect(send).toHaveBeenLastCalledWith('PING')
+
+    controller.markActivity(socket)
+    vi.advanceTimersByTime(50_000)
+    expect(onConnectionLost).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(25_000)
+    expect(onConnectionLost).toHaveBeenCalledWith(socket)
   })
 })
 

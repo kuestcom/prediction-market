@@ -134,13 +134,17 @@ describe('useLiveSeriesWebSocket', () => {
     vi.useRealTimers()
   })
 
-  it('reconnects a stale RTDS socket while the page remains visible', () => {
+  it('reconnects a stale RTDS stream even when the socket still answers PONG', () => {
     vi.useFakeTimers()
     vi.setSystemTime(now)
     const { result, socket, unmount } = mountHook()
 
     act(() => {
-      vi.advanceTimersByTime(75_000)
+      vi.advanceTimersByTime(25_000)
+    })
+    act(() => socket.emitRawMessage('PONG'))
+    act(() => {
+      vi.advanceTimersByTime(50_000)
     })
 
     expect(socket.readyState).toBe(MockWebSocket.CLOSED)

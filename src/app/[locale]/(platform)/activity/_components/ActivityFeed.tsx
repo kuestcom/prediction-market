@@ -29,6 +29,7 @@ import { buildPublicProfilePath, isPlatformMainCategorySlug } from '@/lib/platfo
 import { cn } from '@/lib/utils'
 import {
   closeWebSocketWhenReady,
+  createWebSocketHeartbeatController,
   createWebSocketReconnectController,
   probeWebSocketWithPong,
 } from '@/lib/websocket-reconnect'
@@ -86,8 +87,6 @@ const ROW_HEIGHT_ESTIMATE = 64
 const MIN_VISIBLE_ITEMS = 12
 const MAX_VISIBLE_ITEMS = 28
 const DEFAULT_VIEWPORT_HEIGHT = 800
-const WEBSOCKET_PING_INTERVAL_MS = 25000
-const WEBSOCKET_STALE_TIMEOUT_MS = 70000
 
 function clampBaseVisibleCount(viewportHeight: number) {
   const estimate = Math.ceil(viewportHeight / ROW_HEIGHT_ESTIMATE) + 6
@@ -313,8 +312,6 @@ function createLiveActivityStore() {
 
     let isActive = true
     let ws: WebSocket | null = null
-    let lastMessageAt = Date.now()
-    let heartbeatHandle: number | null = null
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       return JSON.stringify({
@@ -328,48 +325,12 @@ function createLiveActivityStore() {
       })
     }
 
-    function clearHeartbeat() {
-      if (heartbeatHandle != null) {
-        window.clearInterval(heartbeatHandle)
-        heartbeatHandle = null
-      }
-    }
-
-    function startHeartbeat() {
-      clearHeartbeat()
-      heartbeatHandle = window.setInterval(() => {
-        if (!isActive || !ws) {
-          return
-        }
-        if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
-          const staleSocket = ws
-          ws = null
-          clearHeartbeat()
-          closeWebSocketWhenReady(staleSocket)
-          scheduleReconnect()
-          return
-        }
-        if (ws.readyState === WebSocket.OPEN) {
-          try {
-            ws.send('PING')
-          } catch {
-            const staleSocket = ws
-            ws = null
-            clearHeartbeat()
-            closeWebSocketWhenReady(staleSocket)
-            scheduleReconnect()
-          }
-        }
-      }, WEBSOCKET_PING_INTERVAL_MS)
-    }
-
     function handleOpen(socket: WebSocket) {
       if (socket !== ws) {
         return
       }
-      lastMessageAt = Date.now()
       reconnectController?.markConnected()
-      startHeartbeat()
+      heartbeatController?.markOpen(socket)
       socket.send(buildSubscriptionPayload('subscribe'))
     }
 
@@ -377,7 +338,7 @@ function createLiveActivityStore() {
       if (!isActive || socket !== ws) {
         return
       }
-      lastMessageAt = Date.now()
+      heartbeatController?.markActivity(socket)
 
       let payload: LiveActivityMessage | null = null
       try {
@@ -468,6 +429,7 @@ function createLiveActivityStore() {
     }
 
     let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+    let heartbeatController: ReturnType<typeof createWebSocketHeartbeatController> | null = null
 
     function clearReconnect() {
       reconnectController?.clearReconnect()
@@ -485,7 +447,7 @@ function createLiveActivityStore() {
       if (socket !== ws) {
         return
       }
-      clearHeartbeat()
+      heartbeatController?.clear()
       if (!isActive) {
         return
       }
@@ -503,6 +465,7 @@ function createLiveActivityStore() {
       socket.onerror = handleError
       socket.onclose = () => handleClose(socket)
       ws = socket
+      heartbeatController?.markConnecting(socket)
     }
 
     reconnectController = createWebSocketReconnectController({
@@ -511,8 +474,17 @@ function createLiveActivityStore() {
       isActive: () => isActive,
       probeWebSocket: probeWebSocketWithPong,
       resetWebSocket: () => {
-        clearHeartbeat()
+        heartbeatController?.clear()
         ws = null
+      },
+    })
+    heartbeatController = createWebSocketHeartbeatController({
+      getWebSocket: () => ws,
+      isActive: () => isActive,
+      onConnectionLost: (socket) => {
+        ws = null
+        closeWebSocketWhenReady(socket)
+        scheduleReconnect()
       },
     })
 
@@ -522,7 +494,7 @@ function createLiveActivityStore() {
     return function teardownLiveActivityStream() {
       isActive = false
       clearReconnect()
-      clearHeartbeat()
+      heartbeatController.clear()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       const socket = ws
       if (socket) {
