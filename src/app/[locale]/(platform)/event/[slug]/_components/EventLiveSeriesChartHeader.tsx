@@ -51,7 +51,7 @@ interface EventLiveSeriesChartHeaderProps {
   utcTimeLabel: string
   status: 'connecting' | 'live' | 'offline'
   watermark: Watermark
-  showCountdownLogo: boolean
+  showCountdownLogo?: boolean
 }
 
 const ROLLING_DIGITS = Array.from({ length: 10 }, (_, digit) => digit)
@@ -113,7 +113,7 @@ export default function EventLiveSeriesChartHeader({
   utcTimeLabel,
   status,
   watermark,
-  showCountdownLogo,
+  showCountdownLogo = true,
 }: EventLiveSeriesChartHeaderProps) {
   const t = useExtracted()
   const liveMarketLabel = isMobile ? t('Live') : t('Go to live market')
