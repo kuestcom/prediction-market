@@ -24,6 +24,7 @@ import {
   resolveTranslationSourceFingerprint,
 } from '@/lib/translations/batch'
 import { isNonDefaultLocale, parseEventJobPayload, parseTagJobPayload } from '@/lib/translations/jobs'
+import { buildTranslationLocaleSchedulingExpressions } from '@/lib/translations/scheduling'
 
 export const maxDuration = 60
 
@@ -253,11 +254,10 @@ async function fetchCandidateJobs(nowIso: string, locales: NonDefaultLocale[]): 
   }
 
   const localeExpression = sql<string>`split_part(${jobsTable.dedupe_key}, ':', 2)`
-  const localePriorityExpression = sql<number>`CASE ${localeExpression} ${sql.join(
-    locales.map((locale, index) => sql`WHEN ${locale} THEN ${index}`),
-    sql` `,
-  )} ELSE ${locales.length} END`
-  const localeWeightExpression = sql<number>`${locales.length} - ${localePriorityExpression}`
+  const { localePriorityExpression, localeWeightExpression } = buildTranslationLocaleSchedulingExpressions(
+    localeExpression,
+    locales,
+  )
   const localeRankExpression = sql<number>`row_number() OVER (
     PARTITION BY ${localeExpression}
     ORDER BY ${jobsTable.available_at}, ${jobsTable.updated_at}, ${jobsTable.id}
