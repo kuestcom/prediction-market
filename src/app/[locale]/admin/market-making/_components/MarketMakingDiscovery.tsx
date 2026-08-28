@@ -34,6 +34,7 @@ import type {
   MarketMakingSourceFilter,
 } from '@/lib/admin-market-making'
 
+import { resolveCampaignsInstanceKey } from '@/app/[locale]/admin/market-making/_components/market-making-campaign-lookup'
 import MarketMakingCampaigns from '@/app/[locale]/admin/market-making/_components/MarketMakingCampaigns'
 import MarketMakingHowItWorks from '@/app/[locale]/admin/market-making/_components/MarketMakingHowItWorks'
 import { Button } from '@/components/ui/button'
@@ -2386,7 +2387,12 @@ export default function MarketMakingDiscovery({
         </TabsContent>
 
         <TabsContent value="campaigns" className="mt-5">
-          <MarketMakingCampaigns linkedCampaignId={linkedCampaignId} locale={locale} copy={campaignsCopy} />
+          <MarketMakingCampaigns
+            key={resolveCampaignsInstanceKey(linkedCampaignId)}
+            linkedCampaignId={linkedCampaignId}
+            locale={locale}
+            copy={campaignsCopy}
+          />
         </TabsContent>
       </Tabs>
 

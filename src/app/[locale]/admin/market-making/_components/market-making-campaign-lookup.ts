@@ -13,3 +13,7 @@ export function resolveCampaignLookupId({
 
   return linkedCampaignId === dismissedLinkedCampaignId ? null : linkedCampaignId
 }
+
+export function resolveCampaignsInstanceKey(linkedCampaignId: string | null) {
+  return linkedCampaignId ? `linked-campaign:${linkedCampaignId}` : 'campaigns'
+}
