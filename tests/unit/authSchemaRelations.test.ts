@@ -23,4 +23,11 @@ describe('auth schema relations', () => {
     expect(columns.locked_until.name).toBe('locked_until')
     expect(columns.locked_until.notNull).toBe(false)
   })
+
+  it('exposes the Better Auth account issuer field', () => {
+    const columns = getTableColumns(schema.accounts)
+
+    expect(columns.issuer.name).toBe('issuer')
+    expect(columns.issuer.notNull).toBe(true)
+  })
 })
