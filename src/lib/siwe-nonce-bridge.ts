@@ -19,8 +19,8 @@ function pendingIdentifier(nonce: string) {
   return `${PENDING_SIWE_NONCE_PREFIX}${nonce}`
 }
 
-function walletIdentifier(walletAddress: string, chainId: number) {
-  return `siwe:${walletAddress}:${chainId}`
+function siweIdentifier(nonce: string) {
+  return `siwe:${nonce}`
 }
 
 function createExpiry() {
@@ -76,7 +76,7 @@ export async function bindPendingSiweNonce({
 
     await tx.insert(verifications).values({
       id: generateRandomString(VERIFICATION_ID_LENGTH),
-      identifier: walletIdentifier(normalizedWalletAddress, chainId),
+      identifier: siweIdentifier(nonce),
       value: nonce,
       expires_at: pendingNonce.expires_at,
       created_at: now,

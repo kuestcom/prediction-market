@@ -23,6 +23,7 @@ import {
   createInitialForm,
   isBigIntSerializationError,
   mapSignatureFlowErrorForUser,
+  resolveCustomSportsSlugMode,
 } from '@/app/[locale]/admin/events/calendar/_components/admin-create-event-form-utils'
 import { buildStepErrors } from '@/app/[locale]/admin/events/calendar/_components/admin-create-event-form-validation'
 import { createInitialAdminSportsForm } from '@/lib/admin-sports-create'
@@ -85,6 +86,27 @@ function buildValidationArgs(
 }
 
 describe('admin create event form utils', () => {
+  describe('resolveCustomSportsSlugMode', () => {
+    it('restores custom mode for a saved slug missing from the catalog', () => {
+      expect(
+        resolveCustomSportsSlugMode({
+          explicitlyCustom: false,
+          isKnownSlug: false,
+          normalizedSlug: 'custom-sport',
+        }),
+      ).toBe(true)
+    })
+
+    it('keeps empty and catalog slugs in select mode', () => {
+      expect(resolveCustomSportsSlugMode({ explicitlyCustom: false, isKnownSlug: false, normalizedSlug: '' })).toBe(
+        false,
+      )
+      expect(
+        resolveCustomSportsSlugMode({ explicitlyCustom: false, isKnownSlug: true, normalizedSlug: 'soccer' }),
+      ).toBe(false)
+    })
+  })
+
   describe('isBigIntSerializationError', () => {
     it('detects provider bigint serialization failures', () => {
       expect(isBigIntSerializationError('Do not know how to serialize a BigInt')).toBe(true)

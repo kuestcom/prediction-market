@@ -142,6 +142,7 @@ import {
   readApiError,
   readResponseBody,
   readResponseErrorMessage,
+  resolveCustomSportsSlugMode,
   resolveStoredAssetFile,
   shortenAddress,
   shouldRetryFinalizeRequest,
@@ -483,20 +484,30 @@ export function useAdminCreateEventForm({
     () => availableLeagueOptions.some((option) => option.value === normalizedLeagueSlug),
     [availableLeagueOptions, normalizedLeagueSlug],
   )
+  const usesCustomSportSlug = resolveCustomSportsSlugMode({
+    explicitlyCustom: isCustomSportSlug,
+    isKnownSlug: isKnownSportSlug,
+    normalizedSlug: normalizedSportSlug,
+  })
+  const usesCustomLeagueSlug = resolveCustomSportsSlugMode({
+    explicitlyCustom: isCustomLeagueSlug,
+    isKnownSlug: isKnownLeagueSlug,
+    normalizedSlug: normalizedLeagueSlug,
+  })
   const sportSlugSelectValue = useMemo(() => {
-    if (isCustomSportSlug) {
+    if (usesCustomSportSlug) {
       return CUSTOM_SPORTS_SLUG_SELECT_VALUE
     }
 
     return isKnownSportSlug ? normalizedSportSlug : undefined
-  }, [isCustomSportSlug, isKnownSportSlug, normalizedSportSlug])
+  }, [isKnownSportSlug, normalizedSportSlug, usesCustomSportSlug])
   const leagueSlugSelectValue = useMemo(() => {
-    if (isCustomLeagueSlug) {
+    if (usesCustomLeagueSlug) {
       return CUSTOM_SPORTS_SLUG_SELECT_VALUE
     }
 
     return isKnownLeagueSlug ? normalizedLeagueSlug : undefined
-  }, [isCustomLeagueSlug, isKnownLeagueSlug, normalizedLeagueSlug])
+  }, [isKnownLeagueSlug, normalizedLeagueSlug, usesCustomLeagueSlug])
   const selectedCreatorAddress = useMemo(() => {
     const candidate = automaticWalletAddress.trim() || eoaAddress || ''
     if (!candidate || !isAddress(candidate)) {
@@ -4231,8 +4242,8 @@ export function useAdminCreateEventForm({
     setIsBinaryOutcomesEditable,
     areMultiOutcomesEditable,
     setAreMultiOutcomesEditable,
-    isCustomSportSlug,
-    isCustomLeagueSlug,
+    isCustomSportSlug: usesCustomSportSlug,
+    isCustomLeagueSlug: usesCustomLeagueSlug,
     eventEndDateInputRef,
     sportsStartTimeInputRef,
     eventImagePreviewUrl,

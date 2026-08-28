@@ -54,6 +54,18 @@ export function readApiError(payload: unknown): string | null {
   return null
 }
 
+export function resolveCustomSportsSlugMode({
+  explicitlyCustom,
+  isKnownSlug,
+  normalizedSlug,
+}: {
+  explicitlyCustom: boolean
+  isKnownSlug: boolean
+  normalizedSlug: string
+}) {
+  return explicitlyCustom || Boolean(normalizedSlug && !isKnownSlug)
+}
+
 export function formatEventScheduleLabel(value: Date | null) {
   if (!value || Number.isNaN(value.getTime())) {
     return ''

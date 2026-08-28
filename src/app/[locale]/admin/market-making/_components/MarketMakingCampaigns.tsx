@@ -49,6 +49,8 @@ import {
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError } from '@/lib/wallet'
 
+import { resolveCampaignLookupId } from './market-making-campaign-lookup'
+
 export interface MarketMakingCampaignsCopy {
   search: string
   all: string
@@ -756,13 +758,14 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
   const [filter, setFilter] = useState<EscrowCampaignStatusFilter>('all')
   const [search, setSearch] = useState(linkedCampaignId ?? '')
   const [lookupId, setLookupId] = useState<string | null>(null)
+  const [dismissedLinkedCampaignId, setDismissedLinkedCampaignId] = useState<string | null>(null)
   const [selected, setSelected] = useState<MarketMakingCampaignRecord | null>(null)
   const [cancelCampaign, setCancelCampaign] = useState<MarketMakingCampaignRecord | null>(null)
   const [disputeCampaign, setDisputeCampaign] = useState<MarketMakingCampaignRecord | null>(null)
   const [disputeReason, setDisputeReason] = useState<DisputeReason | null>(null)
   const [isMutating, setIsMutating] = useState(false)
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
-  const lookupCampaignId = lookupId ?? linkedCampaignId
+  const lookupCampaignId = resolveCampaignLookupId({ dismissedLinkedCampaignId, linkedCampaignId, lookupId })
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 30_000)
     return () => window.clearInterval(interval)
@@ -877,6 +880,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
 
   function resetCampaignLookup() {
     handledCampaignId.current = null
+    setDismissedLinkedCampaignId(linkedCampaignId)
     setLookupId(null)
   }
 
