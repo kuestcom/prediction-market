@@ -187,7 +187,7 @@ describe('openrouter helpers', () => {
     expect(allModels.map((model) => model.id)).toEqual(['anthropic/claude-sonnet', 'openai/gpt-4o-mini'])
   })
 
-  it('omits incompatible characters from the runtime site title header', async () => {
+  it('uses an ASCII fallback when the runtime site title has no compatible characters', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('测试站点名称')
@@ -204,6 +204,6 @@ describe('openrouter helpers', () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     const headers = init.headers as Record<string, string>
-    expect(headers['X-OpenRouter-Title']).toBeUndefined()
+    expect(headers['X-OpenRouter-Title']).toBe('Prediction Market')
   })
 })

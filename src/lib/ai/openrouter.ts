@@ -34,11 +34,12 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODELS_API_URL = 'https://openrouter.ai/api/v1/models'
 const OPENROUTER_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
 const OPENROUTER_WEB_SEARCH_PARAMETER = 'web_search_options'
+const OPENROUTER_TITLE_FALLBACK = 'Prediction Market'
 const inFlightOpenRouterModelInfo = new Map<string, Promise<OpenRouterModelInfo[]>>()
 
 function sanitizeOpenRouterTitle(value: string) {
   const withoutDiacritics = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-  return withoutDiacritics.replace(/[^\x20-\x7e]/g, '').trim()
+  return withoutDiacritics.replace(/[^\x20-\x7e]/g, '').trim() || OPENROUTER_TITLE_FALLBACK
 }
 
 interface RequestCompletionOptions {
