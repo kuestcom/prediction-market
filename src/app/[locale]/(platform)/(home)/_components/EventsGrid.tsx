@@ -440,7 +440,6 @@ function useInfiniteScrollLoadMore({
 }: UseInfiniteScrollLoadMoreParams) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
-  const previousLoadMoreStateKeyRef = useRef(loadMoreStateKey)
   const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{
     key: string
     value: string | null
@@ -450,13 +449,12 @@ function useInfiniteScrollLoadMore({
   })
   const infiniteScrollError = infiniteScrollErrorState.key === loadMoreStateKey ? infiniteScrollErrorState.value : null
 
-  if (previousLoadMoreStateKeyRef.current !== loadMoreStateKey) {
-    previousLoadMoreStateKeyRef.current = loadMoreStateKey
-    canRetryLoadMoreAfterErrorRef.current = true
-  }
-
   useEffect(
     function observeLoadMoreSentinelForFetch() {
+      if (infiniteScrollErrorState.key !== loadMoreStateKey) {
+        canRetryLoadMoreAfterErrorRef.current = true
+      }
+
       if (!enabled || !loadMoreRef.current || !hasNextPage || typeof IntersectionObserver === 'undefined') {
         return
       }
@@ -504,12 +502,20 @@ function useInfiniteScrollLoadMore({
         observer.disconnect()
       }
     },
-    [enabled, fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey],
+    [
+      enabled,
+      fetchNextPage,
+      hasNextPage,
+      infiniteScrollError,
+      infiniteScrollErrorState.key,
+      isFetching,
+      isFetchingNextPage,
+      loadMoreStateKey,
+    ],
   )
 
   return { loadMoreRef, infiniteScrollError }
 }
-
 export default function EventsGrid({
   filters,
   initialEvents,

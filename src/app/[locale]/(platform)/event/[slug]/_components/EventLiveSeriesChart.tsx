@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
 import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
@@ -214,7 +214,6 @@ function useStableLiveChartAxis(candidate: LiveChartAxis, scopeKey: string) {
     }
 
     targetRef.current = { scopeKey, axis: candidate }
-    // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- Starts a local canvas-axis animation; it does not subscribe to an external store.
     startAxisAnimation()
     return undefined
   }, [candidate, candidateKey, scopeKey, startAxisAnimation])
@@ -465,15 +464,22 @@ function EventLiveSeriesChartContent({
     [realtimeTopic, referenceSnapshot?.opening_price],
   )
   const [retainedOpeningPrice, setRetainedOpeningPrice] = useState<number | null>(snapshotOpeningPrice)
-  /* oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-event-handler -- Keep the last confirmed market opening visible while the next exact opening snapshot is still being published. */
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!preserveSeriesContinuity || snapshotOpeningPrice == null) {
       return
     }
 
-    setRetainedOpeningPrice((current) => (current === snapshotOpeningPrice ? current : snapshotOpeningPrice))
+    let isActive = true
+    queueMicrotask(() => {
+      if (!isActive) {
+        return
+      }
+      setRetainedOpeningPrice((current) => (current === snapshotOpeningPrice ? current : snapshotOpeningPrice))
+    })
+    return function cancelRetainedOpeningPriceSync() {
+      isActive = false
+    }
   }, [preserveSeriesContinuity, snapshotOpeningPrice])
-  /* oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-event-handler */
   const referenceOpeningPrice =
     snapshotOpeningPrice ?? (preserveSeriesContinuity ? retainedOpeningPrice : snapshotOpeningPrice)
   const referenceClosingPrice = useMemo(

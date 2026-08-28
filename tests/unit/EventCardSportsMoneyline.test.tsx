@@ -1,8 +1,5 @@
-/* oxlint-disable next/no-img-element -- The next/image test double intentionally renders a native image element. */
-
-import type { AnchorHTMLAttributes } from 'react'
-
 import { render, screen } from '@testing-library/react'
+import { createElement, type AnchorHTMLAttributes } from 'react'
 
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 
@@ -18,7 +15,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('next/image', () => ({
   default: function MockImage({ fill: _fill, ...props }: any) {
-    return <img {...props} />
+    return createElement('img', props)
   },
 }))
 

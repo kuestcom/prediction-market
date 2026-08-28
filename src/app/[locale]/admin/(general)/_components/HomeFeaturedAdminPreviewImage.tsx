@@ -33,14 +33,17 @@ export default function HomeFeaturedAdminPreviewImage({
   }
 
   return (
-    // oxlint-disable-next-line next/no-img-element -- Admin previews accept transient and external sources that bypass Next image optimization.
-    <img
+    <Image
       src={normalizedSrc}
       alt={alt}
+      width={1}
+      height={1}
       loading="lazy"
       decoding="async"
       referrerPolicy="no-referrer"
       className={className}
+      unoptimized
     />
   )
 }
+import Image from 'next/image'

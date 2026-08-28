@@ -279,11 +279,7 @@ function initializeAppKitSingleton(
               return await createPendingSiweNonce()
             }
 
-            const walletAddress = normalizeSiweWalletAddress(address)
-            const { data, error } = await authClient.siwe.nonce({
-              walletAddress,
-              chainId: defaultNetwork.id,
-            })
+            const { data, error } = await authClient.siwe.nonce()
 
             if (!data?.nonce) {
               throw new Error(getSiweNonceErrorMessage(error))
@@ -328,12 +324,7 @@ function initializeAppKitSingleton(
               message,
             })
 
-            const { data, error } = await authClient.siwe.verify({
-              message,
-              signature,
-              walletAddress: address,
-              chainId: defaultNetwork.id,
-            })
+            const { data, error } = await authClient.siwe.verify({ message, signature })
 
             if (error) {
               return false

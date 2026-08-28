@@ -6,7 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon, FlameIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 import type {
   LinePickerMarketType,
@@ -74,6 +74,110 @@ const HOME_FEATURED_ROLLOVER_RETRY_MS = 5_000
 const HOME_FEATURED_ROLLOVER_MAX_RETRIES = 6
 const HOME_FEATURED_ROLLOVER_MAX_RETRY_DELAY_MS = 60_000
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
+
+interface FeaturedViewportStore {
+  getServerSnapshot: () => boolean
+  getSnapshot: () => boolean
+  setNode: (node: HTMLElement | null) => void
+  subscribe: (listener: () => void) => () => void
+}
+
+function createFeaturedViewportStore(): FeaturedViewportStore {
+  let node: HTMLElement | null = null
+  let snapshot = false
+  let observer: IntersectionObserver | null = null
+  let mediaQuery: MediaQueryList | null = null
+  const listeners = new Set<() => void>()
+
+  function notify() {
+    listeners.forEach((listener) => listener())
+  }
+
+  function setSnapshot(nextSnapshot: boolean) {
+    if (snapshot === nextSnapshot) {
+      return
+    }
+
+    snapshot = nextSnapshot
+    notify()
+  }
+
+  function disconnect() {
+    observer?.disconnect()
+    observer = null
+    mediaQuery?.removeEventListener('change', observe)
+    mediaQuery = null
+  }
+
+  function observe() {
+    disconnect()
+
+    if (!node || typeof window === 'undefined') {
+      setSnapshot(false)
+      return
+    }
+
+    mediaQuery = window.matchMedia?.('(min-width: 768px)') ?? null
+    if (mediaQuery && !mediaQuery.matches) {
+      setSnapshot(false)
+      mediaQuery.addEventListener('change', observe)
+      return
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setSnapshot(true)
+      mediaQuery?.addEventListener('change', observe)
+      return
+    }
+
+    setSnapshot(false)
+    observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) {
+          return
+        }
+
+        setSnapshot(true)
+        observer?.disconnect()
+        observer = null
+      },
+      { rootMargin: '480px 0px' },
+    )
+    observer.observe(node)
+    mediaQuery?.addEventListener('change', observe)
+  }
+
+  function subscribe(listener: () => void) {
+    listeners.add(listener)
+    if (listeners.size === 1) {
+      observe()
+    }
+
+    return function unsubscribe() {
+      listeners.delete(listener)
+      if (listeners.size === 0) {
+        disconnect()
+      }
+    }
+  }
+
+  function setNode(nextNode: HTMLElement | null) {
+    node = nextNode
+    if (listeners.size > 0) {
+      observe()
+    }
+  }
+
+  function getSnapshot() {
+    return snapshot
+  }
+
+  function getServerSnapshot() {
+    return false
+  }
+
+  return { getServerSnapshot, getSnapshot, setNode, subscribe }
+}
 
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
 interface FeaturedSportsButtonMarket {
@@ -1920,7 +2024,6 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
     [activeEvent, activeIndex, item.targetType, locale, rolloverEvents],
   )
 
-  /* oxlint-disable react-you-might-not-need-an-effect/no-external-store-subscription -- The rollover owns an exact market-end timer and a tab-resume listener. */
   useEffect(
     function scheduleFeaturedSeriesRollover() {
       if (!nextRolloverEvent) {
@@ -1957,7 +2060,6 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
         })
       }
 
-      activateNextEvent()
       timeoutId = window.setTimeout(activateNextEvent, Math.max(0, endTimestamp - Date.now()))
       document.addEventListener('visibilitychange', activateNextEvent)
 
@@ -1970,7 +2072,6 @@ function useHomeFeaturedRolloverItem(item: HomeFeaturedEventCard) {
     },
     [activeEvent, nextRolloverEvent],
   )
-  /* oxlint-enable react-you-might-not-need-an-effect/no-external-store-subscription */
 
   return useMemo<HomeFeaturedEventCard>(() => {
     if (!activeRolloverEvent) {
@@ -2183,9 +2284,17 @@ export default function HomeFeaturedEventsCarousel({
   sideCard,
 }: HomeFeaturedEventsCarouselProps) {
   const t = useExtracted()
-  const sectionRef = useRef<HTMLElement | null>(null)
+  const [featuredViewportStore] = useState(createFeaturedViewportStore)
+  const sectionRef = useCallback(
+    (node: HTMLElement | null) => featuredViewportStore.setNode(node),
+    [featuredViewportStore],
+  )
   const [activeIndex, setActiveIndex] = useState(0)
-  const [isChartNearViewport, setIsChartNearViewport] = useState(false)
+  const isChartNearViewport = useSyncExternalStore(
+    featuredViewportStore.subscribe,
+    featuredViewportStore.getSnapshot,
+    featuredViewportStore.getServerSnapshot,
+  )
   const [isAutoAdvancePaused, setIsAutoAdvancePaused] = useState(false)
   const hasMultipleItems = items.length > 1
   const activeItem = items[activeIndex]
@@ -2227,54 +2336,6 @@ export default function HomeFeaturedEventsCarousel({
     },
     [items],
   )
-
-  useEffect(function observeFeaturedCarousel() {
-    const observedNode = sectionRef.current
-    if (!observedNode || typeof window === 'undefined') {
-      return
-    }
-
-    const mediaQuery = window.matchMedia?.('(min-width: 768px)')
-    let observer: IntersectionObserver | null = null
-
-    function observeChartViewport() {
-      observer?.disconnect()
-      observer = null
-
-      if (mediaQuery && !mediaQuery.matches) {
-        setIsChartNearViewport(false)
-        return
-      }
-
-      if (typeof IntersectionObserver === 'undefined') {
-        setIsChartNearViewport(true)
-        return
-      }
-
-      observer = new IntersectionObserver(
-        ([entry]) => {
-          if (!entry?.isIntersecting) {
-            return
-          }
-
-          setIsChartNearViewport(true)
-          observer?.disconnect()
-          observer = null
-        },
-        { rootMargin: '480px 0px' },
-      )
-
-      observer.observe(observedNode!)
-    }
-
-    observeChartViewport()
-
-    mediaQuery?.addEventListener('change', observeChartViewport)
-    return () => {
-      mediaQuery?.removeEventListener('change', observeChartViewport)
-      observer?.disconnect()
-    }
-  }, [])
 
   if (!activeItem) {
     return null

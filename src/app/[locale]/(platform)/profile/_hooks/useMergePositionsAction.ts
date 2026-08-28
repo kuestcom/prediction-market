@@ -1,6 +1,6 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
 
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
@@ -294,7 +294,12 @@ export function useMergePositionsAction({
     viemRpcUrls,
   ])
 
-  handleMergeAllRef.current = handleMergeAll
+  useEffect(
+    function syncHandleMergeAllRef() {
+      handleMergeAllRef.current = handleMergeAll
+    },
+    [handleMergeAll],
+  )
 
   return {
     isMergeProcessing,

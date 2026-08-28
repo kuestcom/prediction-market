@@ -49,6 +49,8 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
 
   const refreshClaimable = useCallback(async () => {
     const requestId = ++claimableRequestIdRef.current
+    await Promise.resolve()
+
     if (!publicClient || !depositWalletAddress) {
       setClaimable(null)
       setIsLoading(false)
@@ -78,7 +80,7 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
   }, [depositWalletAddress, publicClient])
 
   useEffect(() => {
-    void refreshClaimable()
+    queueMicrotask(() => void refreshClaimable())
   }, [refreshClaimable])
 
   useEffect(() => {

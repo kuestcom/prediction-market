@@ -1,11 +1,10 @@
 'use client'
 
-/* oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-event-handler -- The synchronized effects replace prior render-time state updates and preserve draft/signature recovery behavior. */
 import type { ChangeEvent } from 'react'
 
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   createPublicClient,
   createWalletClient,
@@ -164,6 +163,10 @@ import { useSportsMatchSearch } from './useSportsMatchSearch'
 
 const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
 const NEW_RECURRING_SERIES_VALUE = '__new_recurring_series__'
+
+function addCompletedSignatureHash(completedById: Record<string, string>, id: string, hash: string) {
+  return { ...completedById, [id]: hash }
+}
 
 export function useAdminCreateEventForm({
   sportsSlugCatalog,
@@ -572,31 +575,6 @@ export function useAdminCreateEventForm({
     [baseEventSlug, sportsForm],
   )
 
-  useEffect(
-    function syncCustomSportsSlugFlags() {
-      if (sportsForm.sportSlug.trim()) {
-        const nextCustomSportSlug = !isKnownSportSlug
-        if (nextCustomSportSlug !== isCustomSportSlug) {
-          setIsCustomSportSlug(nextCustomSportSlug)
-        }
-      }
-
-      if (sportsForm.leagueSlug.trim()) {
-        const nextCustomLeagueSlug = !isKnownLeagueSlug
-        if (nextCustomLeagueSlug !== isCustomLeagueSlug) {
-          setIsCustomLeagueSlug(nextCustomLeagueSlug)
-        }
-      }
-    },
-    [
-      isCustomLeagueSlug,
-      isCustomSportSlug,
-      isKnownLeagueSlug,
-      isKnownSportSlug,
-      sportsForm.leagueSlug,
-      sportsForm.sportSlug,
-    ],
-  )
   const marketCount = useMemo(() => {
     if (form.marketMode === 'binary') {
       return 1
@@ -881,14 +859,7 @@ export function useAdminCreateEventForm({
     }
   }, [])
 
-  useEffect(
-    function closeFinalPreviewWhenLeavingPreSignStep() {
-      if (currentStep !== 4 && finalPreviewDialogOpen) {
-        setFinalPreviewDialogOpen(false)
-      }
-    },
-    [currentStep, finalPreviewDialogOpen],
-  )
+  const visibleFinalPreviewDialogOpen = currentStep === 4 && finalPreviewDialogOpen
 
   const contentCheckResetFingerprint = useMemo(
     () =>
@@ -1043,33 +1014,35 @@ export function useAdminCreateEventForm({
       }
 
       preSignChecksAutoFingerprintRef.current = preSignChecksAutoFingerprint
-      setExpandedPreSignChecks((previous) => {
-        const next = { ...previous }
-        let changed = false
+      queueMicrotask(() => {
+        setExpandedPreSignChecks((previous) => {
+          const next = { ...previous }
+          let changed = false
 
-        function apply(key: PreSignCheckKey, hasIssue: boolean, resolved: boolean) {
-          let desired = previous[key]
-          if (hasIssue) {
-            desired = true
-          } else if (resolved) {
-            desired = false
+          function apply(key: PreSignCheckKey, hasIssue: boolean, resolved: boolean) {
+            let desired = previous[key]
+            if (hasIssue) {
+              desired = true
+            } else if (resolved) {
+              desired = false
+            }
+
+            if (desired !== previous[key]) {
+              next[key] = desired
+              changed = true
+            }
           }
 
-          if (desired !== previous[key]) {
-            next[key] = desired
-            changed = true
-          }
-        }
+          apply('funding', fundingHasIssue, fundingCheckState === 'ok')
+          apply('nativeGas', nativeGasHasIssue, nativeGasCheckState === 'ok')
+          apply('allowedCreator', allowedCreatorHasIssue, allowedCreatorCheckState === 'ok')
+          apply('proposerWhitelist', proposerWhitelistHasIssue, proposerWhitelistCheckState === 'ok')
+          apply('slug', slugHasIssue, slugValidationState === 'unique')
+          apply('openRouter', openRouterHasIssue, openRouterCheckState === 'ok')
+          apply('content', contentHasIssue, contentIndicatorState === 'ok')
 
-        apply('funding', fundingHasIssue, fundingCheckState === 'ok')
-        apply('nativeGas', nativeGasHasIssue, nativeGasCheckState === 'ok')
-        apply('allowedCreator', allowedCreatorHasIssue, allowedCreatorCheckState === 'ok')
-        apply('proposerWhitelist', proposerWhitelistHasIssue, proposerWhitelistCheckState === 'ok')
-        apply('slug', slugHasIssue, slugValidationState === 'unique')
-        apply('openRouter', openRouterHasIssue, openRouterCheckState === 'ok')
-        apply('content', contentHasIssue, contentIndicatorState === 'ok')
-
-        return changed ? next : previous
+          return changed ? next : previous
+        })
       })
     },
     [
@@ -1109,12 +1082,12 @@ export function useAdminCreateEventForm({
         }
       }
 
-      void loadMainCategories()
+      queueMicrotask(() => void loadMainCategories())
     },
     [t],
   )
 
-  useEffect(
+  useLayoutEffect(
     function loadSignerWalletsOnMount() {
       async function loadSignerWallets() {
         try {
@@ -1129,7 +1102,11 @@ export function useAdminCreateEventForm({
           }
 
           const payload = (await response.json().catch(() => null)) as { data?: SignerOption[] } | null
-          setSigners(Array.isArray(payload?.data) ? payload.data : [])
+          const nextSigners = Array.isArray(payload?.data) ? payload.data : []
+          setSigners(nextSigners)
+          if (!automaticWalletAddress && nextSigners.length === 1 && (creationMode === 'recurring' || !eoaAddress)) {
+            setAutomaticWalletAddress(nextSigners[0]!.address)
+          }
         } catch (error) {
           console.error('Failed to load event creation signers', error)
           toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
@@ -1138,18 +1115,9 @@ export function useAdminCreateEventForm({
         }
       }
 
-      void loadSignerWallets()
+      queueMicrotask(() => void loadSignerWallets())
     },
-    [t],
-  )
-
-  useEffect(
-    function selectOnlyAvailableSignerWhenNeeded() {
-      if (!automaticWalletAddress && signers.length === 1 && (creationMode === 'recurring' || !eoaAddress)) {
-        setAutomaticWalletAddress(signers[0]!.address)
-      }
-    },
-    [automaticWalletAddress, creationMode, eoaAddress, signers],
+    [automaticWalletAddress, creationMode, eoaAddress, t],
   )
 
   const initialSlugSeed = Math.floor(clientNowMs / 1000).toString()
@@ -1189,309 +1157,320 @@ export function useAdminCreateEventForm({
         serverDraftPayload,
       }
 
-      const source = serverDraftPayload
+      let isActive = true
+      queueMicrotask(() => {
+        if (!isActive) {
+          return
+        }
 
-      if (!source) {
-        setSlugSeed(initialSlugSeed)
-        setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
-      } else {
-        try {
-          const parsed = (typeof source === 'string' ? JSON.parse(source) : source) as {
-            form?: Partial<FormState>
-            sportsForm?: Partial<AdminSportsFormState>
-            titleTemplate?: unknown
-            slugTemplate?: unknown
-            walletAddress?: unknown
-            recurrenceUnit?: unknown
-            recurrenceInterval?: unknown
-            recurringSeriesSelection?: unknown
-            recurringSeriesName?: unknown
-            currentStep?: number
-            maxVisitedStep?: number
-            slugSeed?: string
-            isBinaryOutcomesEditable?: boolean
-            areMultiOutcomesEditable?: boolean
-          }
+        const source = serverDraftPayload
+
+        if (!source) {
+          setSlugSeed(initialSlugSeed)
           setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
+        } else {
+          try {
+            const parsed = (typeof source === 'string' ? JSON.parse(source) : source) as {
+              form?: Partial<FormState>
+              sportsForm?: Partial<AdminSportsFormState>
+              titleTemplate?: unknown
+              slugTemplate?: unknown
+              walletAddress?: unknown
+              recurrenceUnit?: unknown
+              recurrenceInterval?: unknown
+              recurringSeriesSelection?: unknown
+              recurringSeriesName?: unknown
+              currentStep?: number
+              maxVisitedStep?: number
+              slugSeed?: string
+              isBinaryOutcomesEditable?: boolean
+              areMultiOutcomesEditable?: boolean
+            }
+            setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
 
-          setSlugSeed(
-            typeof parsed.slugSeed === 'string' && parsed.slugSeed.trim() ? parsed.slugSeed.trim() : initialSlugSeed,
-          )
-          setTitleTemplate(typeof parsed.titleTemplate === 'string' ? parsed.titleTemplate : initialTitleTemplate)
-          setSlugTemplate(typeof parsed.slugTemplate === 'string' ? parsed.slugTemplate : initialSlugTemplate)
-          setAutomaticWalletAddress(
-            typeof parsed.walletAddress === 'string' ? parsed.walletAddress : initialWalletAddress,
-          )
-          setRecurrenceUnit(
-            isEventCreationRecurrenceUnit(parsed.recurrenceUnit) ? parsed.recurrenceUnit : initialRecurrenceUnit,
-          )
-          setRecurrenceInterval(
-            typeof parsed.recurrenceInterval === 'string' && parsed.recurrenceInterval.trim()
-              ? parsed.recurrenceInterval.replace(/\D/g, '') || '1'
-              : typeof parsed.recurrenceInterval === 'number' && Number.isFinite(parsed.recurrenceInterval)
-                ? String(Math.max(1, Math.floor(parsed.recurrenceInterval)))
-                : initialRecurrenceInterval,
-          )
-          setRecurringSeriesSelection(
-            typeof parsed.recurringSeriesSelection === 'string' && parsed.recurringSeriesSelection.trim()
-              ? parsed.recurringSeriesSelection.trim()
-              : NEW_RECURRING_SERIES_VALUE,
-          )
-          setRecurringSeriesName(typeof parsed.recurringSeriesName === 'string' ? parsed.recurringSeriesName : '')
+            setSlugSeed(
+              typeof parsed.slugSeed === 'string' && parsed.slugSeed.trim() ? parsed.slugSeed.trim() : initialSlugSeed,
+            )
+            setTitleTemplate(typeof parsed.titleTemplate === 'string' ? parsed.titleTemplate : initialTitleTemplate)
+            setSlugTemplate(typeof parsed.slugTemplate === 'string' ? parsed.slugTemplate : initialSlugTemplate)
+            setAutomaticWalletAddress(
+              typeof parsed.walletAddress === 'string' ? parsed.walletAddress : initialWalletAddress,
+            )
+            setRecurrenceUnit(
+              isEventCreationRecurrenceUnit(parsed.recurrenceUnit) ? parsed.recurrenceUnit : initialRecurrenceUnit,
+            )
+            setRecurrenceInterval(
+              typeof parsed.recurrenceInterval === 'string' && parsed.recurrenceInterval.trim()
+                ? parsed.recurrenceInterval.replace(/\D/g, '') || '1'
+                : typeof parsed.recurrenceInterval === 'number' && Number.isFinite(parsed.recurrenceInterval)
+                  ? String(Math.max(1, Math.floor(parsed.recurrenceInterval)))
+                  : initialRecurrenceInterval,
+            )
+            setRecurringSeriesSelection(
+              typeof parsed.recurringSeriesSelection === 'string' && parsed.recurringSeriesSelection.trim()
+                ? parsed.recurringSeriesSelection.trim()
+                : NEW_RECURRING_SERIES_VALUE,
+            )
+            setRecurringSeriesName(typeof parsed.recurringSeriesName === 'string' ? parsed.recurringSeriesName : '')
 
-          if (parsed.form && typeof parsed.form === 'object') {
-            const fallback = createInitialForm({
-              title: normalizedInitialTitle,
-              slug: normalizedInitialSlug,
-              endDateIso: normalizedInitialEndDateIso,
-            })
-            const parsedOptions = Array.isArray(parsed.form.options)
-              ? parsed.form.options
-                  .map((item, optionIndex) => {
-                    if (!item || typeof item !== 'object') {
-                      return null
-                    }
-                    const candidate = item as Partial<OptionItem>
-                    return {
-                      id:
-                        typeof candidate.id === 'string' && candidate.id.trim()
-                          ? candidate.id
-                          : `opt-loaded-${optionIndex + 1}`,
-                      question: typeof candidate.question === 'string' ? candidate.question : '',
-                      title: typeof candidate.title === 'string' ? candidate.title : '',
-                      shortName: typeof candidate.shortName === 'string' ? candidate.shortName : '',
-                      slug: typeof candidate.slug === 'string' ? candidate.slug : '',
-                      outcomeYes:
-                        typeof candidate.outcomeYes === 'string' && candidate.outcomeYes.trim()
-                          ? candidate.outcomeYes
-                          : 'Yes',
-                      outcomeNo:
-                        typeof candidate.outcomeNo === 'string' && candidate.outcomeNo.trim()
-                          ? candidate.outcomeNo
-                          : 'No',
-                    } satisfies OptionItem
-                  })
-                  .filter((item): item is OptionItem => Boolean(item))
-              : []
-
-            setForm({
-              title: typeof parsed.form.title === 'string' ? parsed.form.title : fallback.title,
-              slug: typeof parsed.form.slug === 'string' ? parsed.form.slug : fallback.slug,
-              endDateIso:
-                creationMode === 'recurring' && normalizedInitialEndDateIso
-                  ? normalizedInitialEndDateIso
-                  : typeof parsed.form.endDateIso === 'string'
-                    ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
-                    : fallback.endDateIso,
-              mainCategorySlug:
-                typeof parsed.form.mainCategorySlug === 'string'
-                  ? parsed.form.mainCategorySlug
-                  : fallback.mainCategorySlug,
-              categories: Array.isArray(parsed.form.categories)
-                ? parsed.form.categories
-                    .map((item) => {
+            if (parsed.form && typeof parsed.form === 'object') {
+              const fallback = createInitialForm({
+                title: normalizedInitialTitle,
+                slug: normalizedInitialSlug,
+                endDateIso: normalizedInitialEndDateIso,
+              })
+              const parsedOptions = Array.isArray(parsed.form.options)
+                ? parsed.form.options
+                    .map((item, optionIndex) => {
                       if (!item || typeof item !== 'object') {
                         return null
                       }
-                      const category = item as Partial<CategoryItem>
-                      const label = typeof category.label === 'string' ? category.label.trim() : ''
-                      const slug = typeof category.slug === 'string' ? category.slug.trim() : ''
-                      if (!label || !slug) {
+                      const candidate = item as Partial<OptionItem>
+                      return {
+                        id:
+                          typeof candidate.id === 'string' && candidate.id.trim()
+                            ? candidate.id
+                            : `opt-loaded-${optionIndex + 1}`,
+                        question: typeof candidate.question === 'string' ? candidate.question : '',
+                        title: typeof candidate.title === 'string' ? candidate.title : '',
+                        shortName: typeof candidate.shortName === 'string' ? candidate.shortName : '',
+                        slug: typeof candidate.slug === 'string' ? candidate.slug : '',
+                        outcomeYes:
+                          typeof candidate.outcomeYes === 'string' && candidate.outcomeYes.trim()
+                            ? candidate.outcomeYes
+                            : 'Yes',
+                        outcomeNo:
+                          typeof candidate.outcomeNo === 'string' && candidate.outcomeNo.trim()
+                            ? candidate.outcomeNo
+                            : 'No',
+                      } satisfies OptionItem
+                    })
+                    .filter((item): item is OptionItem => Boolean(item))
+                : []
+
+              setForm({
+                title: typeof parsed.form.title === 'string' ? parsed.form.title : fallback.title,
+                slug: typeof parsed.form.slug === 'string' ? parsed.form.slug : fallback.slug,
+                endDateIso:
+                  creationMode === 'recurring' && normalizedInitialEndDateIso
+                    ? normalizedInitialEndDateIso
+                    : typeof parsed.form.endDateIso === 'string'
+                      ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
+                      : fallback.endDateIso,
+                mainCategorySlug:
+                  typeof parsed.form.mainCategorySlug === 'string'
+                    ? parsed.form.mainCategorySlug
+                    : fallback.mainCategorySlug,
+                categories: Array.isArray(parsed.form.categories)
+                  ? parsed.form.categories
+                      .map((item) => {
+                        if (!item || typeof item !== 'object') {
+                          return null
+                        }
+                        const category = item as Partial<CategoryItem>
+                        const label = typeof category.label === 'string' ? category.label.trim() : ''
+                        const slug = typeof category.slug === 'string' ? category.slug.trim() : ''
+                        if (!label || !slug) {
+                          return null
+                        }
+                        return { label, slug } satisfies CategoryItem
+                      })
+                      .filter((item): item is CategoryItem => Boolean(item))
+                  : fallback.categories,
+                marketMode:
+                  parsed.form.marketMode === 'binary' ||
+                  parsed.form.marketMode === 'multi_multiple' ||
+                  parsed.form.marketMode === 'multi_unique'
+                    ? parsed.form.marketMode
+                    : fallback.marketMode,
+                binaryQuestion:
+                  typeof parsed.form.binaryQuestion === 'string' ? parsed.form.binaryQuestion : fallback.binaryQuestion,
+                binaryOutcomeYes:
+                  typeof parsed.form.binaryOutcomeYes === 'string' && parsed.form.binaryOutcomeYes.trim()
+                    ? parsed.form.binaryOutcomeYes
+                    : fallback.binaryOutcomeYes,
+                binaryOutcomeNo:
+                  typeof parsed.form.binaryOutcomeNo === 'string' && parsed.form.binaryOutcomeNo.trim()
+                    ? parsed.form.binaryOutcomeNo
+                    : fallback.binaryOutcomeNo,
+                options: parsedOptions.length > 0 ? parsedOptions : fallback.options,
+                resolutionSource:
+                  typeof parsed.form.resolutionSource === 'string'
+                    ? parsed.form.resolutionSource
+                    : fallback.resolutionSource,
+                resolutionRules:
+                  typeof parsed.form.resolutionRules === 'string'
+                    ? parsed.form.resolutionRules
+                    : fallback.resolutionRules,
+              })
+            }
+
+            if (parsed.sportsForm && typeof parsed.sportsForm === 'object') {
+              const fallbackSports = createInitialAdminSportsForm()
+              const candidateTeams = Array.isArray(parsed.sportsForm.teams)
+                ? parsed.sportsForm.teams
+                    .map((team, index) => {
+                      if (!team || typeof team !== 'object') {
                         return null
                       }
-                      return { label, slug } satisfies CategoryItem
+
+                      const item = team as Partial<AdminSportsFormState['teams'][number]>
+                      const hostStatus = index === 0 ? 'home' : 'away'
+                      return {
+                        hostStatus,
+                        name: typeof item.name === 'string' ? item.name : '',
+                        abbreviation: typeof item.abbreviation === 'string' ? item.abbreviation : '',
+                      }
                     })
-                    .filter((item): item is CategoryItem => Boolean(item))
-                : fallback.categories,
-              marketMode:
-                parsed.form.marketMode === 'binary' ||
-                parsed.form.marketMode === 'multi_multiple' ||
-                parsed.form.marketMode === 'multi_unique'
-                  ? parsed.form.marketMode
-                  : fallback.marketMode,
-              binaryQuestion:
-                typeof parsed.form.binaryQuestion === 'string' ? parsed.form.binaryQuestion : fallback.binaryQuestion,
-              binaryOutcomeYes:
-                typeof parsed.form.binaryOutcomeYes === 'string' && parsed.form.binaryOutcomeYes.trim()
-                  ? parsed.form.binaryOutcomeYes
-                  : fallback.binaryOutcomeYes,
-              binaryOutcomeNo:
-                typeof parsed.form.binaryOutcomeNo === 'string' && parsed.form.binaryOutcomeNo.trim()
-                  ? parsed.form.binaryOutcomeNo
-                  : fallback.binaryOutcomeNo,
-              options: parsedOptions.length > 0 ? parsedOptions : fallback.options,
-              resolutionSource:
-                typeof parsed.form.resolutionSource === 'string'
-                  ? parsed.form.resolutionSource
-                  : fallback.resolutionSource,
-              resolutionRules:
-                typeof parsed.form.resolutionRules === 'string'
-                  ? parsed.form.resolutionRules
-                  : fallback.resolutionRules,
-            })
+                    .filter((item): item is AdminSportsFormState['teams'][number] => Boolean(item))
+                : []
+              const candidateProps = Array.isArray(parsed.sportsForm.props)
+                ? parsed.sportsForm.props
+                    .map((prop, index) => {
+                      if (!prop || typeof prop !== 'object') {
+                        return null
+                      }
+
+                      const item = prop as Partial<AdminSportsPropState>
+                      return {
+                        id: typeof item.id === 'string' && item.id.trim() ? item.id : `prop-loaded-${index + 1}`,
+                        playerName: typeof item.playerName === 'string' ? item.playerName : '',
+                        statType:
+                          item.statType === 'points' ||
+                          item.statType === 'rebounds' ||
+                          item.statType === 'assists' ||
+                          item.statType === 'receiving_yards' ||
+                          item.statType === 'rushing_yards'
+                            ? item.statType
+                            : '',
+                        line: typeof item.line === 'string' ? item.line : '',
+                        teamHostStatus:
+                          item.teamHostStatus === 'home' || item.teamHostStatus === 'away' ? item.teamHostStatus : '',
+                      } satisfies AdminSportsPropState
+                    })
+                    .filter((item): item is AdminSportsPropState => Boolean(item))
+                : []
+              const candidateCustomMarkets = Array.isArray(parsed.sportsForm.customMarkets)
+                ? parsed.sportsForm.customMarkets
+                    .map((market, index) => {
+                      if (!market || typeof market !== 'object') {
+                        return null
+                      }
+
+                      const item = market as Partial<AdminSportsCustomMarketState>
+                      return {
+                        id: typeof item.id === 'string' && item.id.trim() ? item.id : `market-loaded-${index + 1}`,
+                        sportsMarketType: typeof item.sportsMarketType === 'string' ? item.sportsMarketType : '',
+                        question: typeof item.question === 'string' ? item.question : '',
+                        title: typeof item.title === 'string' ? item.title : '',
+                        shortName: typeof item.shortName === 'string' ? item.shortName : '',
+                        slug: typeof item.slug === 'string' ? item.slug : '',
+                        outcomeOne: typeof item.outcomeOne === 'string' ? item.outcomeOne : '',
+                        outcomeTwo: typeof item.outcomeTwo === 'string' ? item.outcomeTwo : '',
+                        line: typeof item.line === 'string' ? item.line : '',
+                        groupItemTitle: typeof item.groupItemTitle === 'string' ? item.groupItemTitle : '',
+                        iconAssetKey:
+                          item.iconAssetKey === 'home' || item.iconAssetKey === 'away' ? item.iconAssetKey : '',
+                      } satisfies AdminSportsCustomMarketState
+                    })
+                    .filter((item): item is AdminSportsCustomMarketState => Boolean(item))
+                : []
+
+              setSportsForm({
+                section:
+                  parsed.sportsForm.section === 'games' || parsed.sportsForm.section === 'props'
+                    ? parsed.sportsForm.section
+                    : fallbackSports.section,
+                eventVariant:
+                  parsed.sportsForm.eventVariant === 'standard' ||
+                  parsed.sportsForm.eventVariant === 'more_markets' ||
+                  parsed.sportsForm.eventVariant === 'exact_score' ||
+                  parsed.sportsForm.eventVariant === 'halftime_result' ||
+                  parsed.sportsForm.eventVariant === 'custom'
+                    ? parsed.sportsForm.eventVariant
+                    : fallbackSports.eventVariant,
+                sportSlug:
+                  typeof parsed.sportsForm.sportSlug === 'string'
+                    ? parsed.sportsForm.sportSlug
+                    : fallbackSports.sportSlug,
+                leagueSlug:
+                  typeof parsed.sportsForm.leagueSlug === 'string'
+                    ? parsed.sportsForm.leagueSlug
+                    : fallbackSports.leagueSlug,
+                startTime:
+                  typeof parsed.sportsForm.startTime === 'string'
+                    ? normalizeDateTimeLocalValue(parsed.sportsForm.startTime)
+                    : fallbackSports.startTime,
+                sourceProvider:
+                  typeof parsed.sportsForm.sourceProvider === 'string'
+                    ? parsed.sportsForm.sourceProvider
+                    : fallbackSports.sourceProvider,
+                sourceEventId:
+                  typeof parsed.sportsForm.sourceEventId === 'string'
+                    ? parsed.sportsForm.sourceEventId
+                    : fallbackSports.sourceEventId,
+                sourceGameId:
+                  typeof parsed.sportsForm.sourceGameId === 'string'
+                    ? parsed.sportsForm.sourceGameId
+                    : fallbackSports.sourceGameId,
+                sourceLeagueId:
+                  typeof parsed.sportsForm.sourceLeagueId === 'string'
+                    ? parsed.sportsForm.sourceLeagueId
+                    : fallbackSports.sourceLeagueId,
+                sourceLeagueLabel:
+                  typeof parsed.sportsForm.sourceLeagueLabel === 'string'
+                    ? parsed.sportsForm.sourceLeagueLabel
+                    : fallbackSports.sourceLeagueLabel,
+                sourceMatchConfidence:
+                  typeof parsed.sportsForm.sourceMatchConfidence === 'string'
+                    ? parsed.sportsForm.sourceMatchConfidence
+                    : fallbackSports.sourceMatchConfidence,
+                livestreamUrl:
+                  typeof parsed.sportsForm.livestreamUrl === 'string'
+                    ? parsed.sportsForm.livestreamUrl
+                    : fallbackSports.livestreamUrl,
+                includeDraw: Boolean(parsed.sportsForm.includeDraw),
+                includeBothTeamsToScore: parsed.sportsForm.includeBothTeamsToScore !== false,
+                includeSpreads: parsed.sportsForm.includeSpreads !== false,
+                includeTotals: parsed.sportsForm.includeTotals !== false,
+                teams: candidateTeams.length === 2 ? [candidateTeams[0], candidateTeams[1]] : fallbackSports.teams,
+                props: candidateProps.length > 0 ? candidateProps : fallbackSports.props,
+                customMarkets:
+                  candidateCustomMarkets.length > 0 ? candidateCustomMarkets : fallbackSports.customMarkets,
+              })
+            }
+
+            const parsedCurrentStep = Number(parsed.currentStep ?? 1)
+            const parsedMaxVisitedStep = Number(parsed.maxVisitedStep ?? 1)
+            const nextCurrentStep = Number.isFinite(parsedCurrentStep)
+              ? Math.min(TOTAL_STEPS, Math.max(1, Math.floor(parsedCurrentStep)))
+              : 1
+            const nextMaxVisitedStep = Number.isFinite(parsedMaxVisitedStep)
+              ? Math.min(TOTAL_STEPS, Math.max(nextCurrentStep, Math.floor(parsedMaxVisitedStep)))
+              : nextCurrentStep
+
+            setCurrentStep(nextCurrentStep)
+            setMaxVisitedStep(nextMaxVisitedStep)
+            setIsBinaryOutcomesEditable(Boolean(parsed.isBinaryOutcomesEditable))
+            setAreMultiOutcomesEditable(Boolean(parsed.areMultiOutcomesEditable))
+          } catch (error) {
+            const draftLoadErrorMessage =
+              error instanceof Error && error.message.trim()
+                ? error.message.trim()
+                : t('The saved draft could not be parsed.')
+            if (lastDraftLoadErrorMessageRef.current !== draftLoadErrorMessage) {
+              lastDraftLoadErrorMessageRef.current = draftLoadErrorMessage
+              toast.error(t('Failed to load saved draft.'), {
+                id: 'admin-create-event-draft-load-error',
+                description: draftLoadErrorMessage,
+              })
+            }
+            setSlugSeed(initialSlugSeed)
           }
-
-          if (parsed.sportsForm && typeof parsed.sportsForm === 'object') {
-            const fallbackSports = createInitialAdminSportsForm()
-            const candidateTeams = Array.isArray(parsed.sportsForm.teams)
-              ? parsed.sportsForm.teams
-                  .map((team, index) => {
-                    if (!team || typeof team !== 'object') {
-                      return null
-                    }
-
-                    const item = team as Partial<AdminSportsFormState['teams'][number]>
-                    const hostStatus = index === 0 ? 'home' : 'away'
-                    return {
-                      hostStatus,
-                      name: typeof item.name === 'string' ? item.name : '',
-                      abbreviation: typeof item.abbreviation === 'string' ? item.abbreviation : '',
-                    }
-                  })
-                  .filter((item): item is AdminSportsFormState['teams'][number] => Boolean(item))
-              : []
-            const candidateProps = Array.isArray(parsed.sportsForm.props)
-              ? parsed.sportsForm.props
-                  .map((prop, index) => {
-                    if (!prop || typeof prop !== 'object') {
-                      return null
-                    }
-
-                    const item = prop as Partial<AdminSportsPropState>
-                    return {
-                      id: typeof item.id === 'string' && item.id.trim() ? item.id : `prop-loaded-${index + 1}`,
-                      playerName: typeof item.playerName === 'string' ? item.playerName : '',
-                      statType:
-                        item.statType === 'points' ||
-                        item.statType === 'rebounds' ||
-                        item.statType === 'assists' ||
-                        item.statType === 'receiving_yards' ||
-                        item.statType === 'rushing_yards'
-                          ? item.statType
-                          : '',
-                      line: typeof item.line === 'string' ? item.line : '',
-                      teamHostStatus:
-                        item.teamHostStatus === 'home' || item.teamHostStatus === 'away' ? item.teamHostStatus : '',
-                    } satisfies AdminSportsPropState
-                  })
-                  .filter((item): item is AdminSportsPropState => Boolean(item))
-              : []
-            const candidateCustomMarkets = Array.isArray(parsed.sportsForm.customMarkets)
-              ? parsed.sportsForm.customMarkets
-                  .map((market, index) => {
-                    if (!market || typeof market !== 'object') {
-                      return null
-                    }
-
-                    const item = market as Partial<AdminSportsCustomMarketState>
-                    return {
-                      id: typeof item.id === 'string' && item.id.trim() ? item.id : `market-loaded-${index + 1}`,
-                      sportsMarketType: typeof item.sportsMarketType === 'string' ? item.sportsMarketType : '',
-                      question: typeof item.question === 'string' ? item.question : '',
-                      title: typeof item.title === 'string' ? item.title : '',
-                      shortName: typeof item.shortName === 'string' ? item.shortName : '',
-                      slug: typeof item.slug === 'string' ? item.slug : '',
-                      outcomeOne: typeof item.outcomeOne === 'string' ? item.outcomeOne : '',
-                      outcomeTwo: typeof item.outcomeTwo === 'string' ? item.outcomeTwo : '',
-                      line: typeof item.line === 'string' ? item.line : '',
-                      groupItemTitle: typeof item.groupItemTitle === 'string' ? item.groupItemTitle : '',
-                      iconAssetKey:
-                        item.iconAssetKey === 'home' || item.iconAssetKey === 'away' ? item.iconAssetKey : '',
-                    } satisfies AdminSportsCustomMarketState
-                  })
-                  .filter((item): item is AdminSportsCustomMarketState => Boolean(item))
-              : []
-
-            setSportsForm({
-              section:
-                parsed.sportsForm.section === 'games' || parsed.sportsForm.section === 'props'
-                  ? parsed.sportsForm.section
-                  : fallbackSports.section,
-              eventVariant:
-                parsed.sportsForm.eventVariant === 'standard' ||
-                parsed.sportsForm.eventVariant === 'more_markets' ||
-                parsed.sportsForm.eventVariant === 'exact_score' ||
-                parsed.sportsForm.eventVariant === 'halftime_result' ||
-                parsed.sportsForm.eventVariant === 'custom'
-                  ? parsed.sportsForm.eventVariant
-                  : fallbackSports.eventVariant,
-              sportSlug:
-                typeof parsed.sportsForm.sportSlug === 'string'
-                  ? parsed.sportsForm.sportSlug
-                  : fallbackSports.sportSlug,
-              leagueSlug:
-                typeof parsed.sportsForm.leagueSlug === 'string'
-                  ? parsed.sportsForm.leagueSlug
-                  : fallbackSports.leagueSlug,
-              startTime:
-                typeof parsed.sportsForm.startTime === 'string'
-                  ? normalizeDateTimeLocalValue(parsed.sportsForm.startTime)
-                  : fallbackSports.startTime,
-              sourceProvider:
-                typeof parsed.sportsForm.sourceProvider === 'string'
-                  ? parsed.sportsForm.sourceProvider
-                  : fallbackSports.sourceProvider,
-              sourceEventId:
-                typeof parsed.sportsForm.sourceEventId === 'string'
-                  ? parsed.sportsForm.sourceEventId
-                  : fallbackSports.sourceEventId,
-              sourceGameId:
-                typeof parsed.sportsForm.sourceGameId === 'string'
-                  ? parsed.sportsForm.sourceGameId
-                  : fallbackSports.sourceGameId,
-              sourceLeagueId:
-                typeof parsed.sportsForm.sourceLeagueId === 'string'
-                  ? parsed.sportsForm.sourceLeagueId
-                  : fallbackSports.sourceLeagueId,
-              sourceLeagueLabel:
-                typeof parsed.sportsForm.sourceLeagueLabel === 'string'
-                  ? parsed.sportsForm.sourceLeagueLabel
-                  : fallbackSports.sourceLeagueLabel,
-              sourceMatchConfidence:
-                typeof parsed.sportsForm.sourceMatchConfidence === 'string'
-                  ? parsed.sportsForm.sourceMatchConfidence
-                  : fallbackSports.sourceMatchConfidence,
-              livestreamUrl:
-                typeof parsed.sportsForm.livestreamUrl === 'string'
-                  ? parsed.sportsForm.livestreamUrl
-                  : fallbackSports.livestreamUrl,
-              includeDraw: Boolean(parsed.sportsForm.includeDraw),
-              includeBothTeamsToScore: parsed.sportsForm.includeBothTeamsToScore !== false,
-              includeSpreads: parsed.sportsForm.includeSpreads !== false,
-              includeTotals: parsed.sportsForm.includeTotals !== false,
-              teams: candidateTeams.length === 2 ? [candidateTeams[0], candidateTeams[1]] : fallbackSports.teams,
-              props: candidateProps.length > 0 ? candidateProps : fallbackSports.props,
-              customMarkets: candidateCustomMarkets.length > 0 ? candidateCustomMarkets : fallbackSports.customMarkets,
-            })
-          }
-
-          const parsedCurrentStep = Number(parsed.currentStep ?? 1)
-          const parsedMaxVisitedStep = Number(parsed.maxVisitedStep ?? 1)
-          const nextCurrentStep = Number.isFinite(parsedCurrentStep)
-            ? Math.min(TOTAL_STEPS, Math.max(1, Math.floor(parsedCurrentStep)))
-            : 1
-          const nextMaxVisitedStep = Number.isFinite(parsedMaxVisitedStep)
-            ? Math.min(TOTAL_STEPS, Math.max(nextCurrentStep, Math.floor(parsedMaxVisitedStep)))
-            : nextCurrentStep
-
-          setCurrentStep(nextCurrentStep)
-          setMaxVisitedStep(nextMaxVisitedStep)
-          setIsBinaryOutcomesEditable(Boolean(parsed.isBinaryOutcomesEditable))
-          setAreMultiOutcomesEditable(Boolean(parsed.areMultiOutcomesEditable))
-        } catch (error) {
-          const draftLoadErrorMessage =
-            error instanceof Error && error.message.trim()
-              ? error.message.trim()
-              : t('The saved draft could not be parsed.')
-          if (lastDraftLoadErrorMessageRef.current !== draftLoadErrorMessage) {
-            lastDraftLoadErrorMessageRef.current = draftLoadErrorMessage
-            toast.error(t('Failed to load saved draft.'), {
-              id: 'admin-create-event-draft-load-error',
-              description: draftLoadErrorMessage,
-            })
-          }
-          setSlugSeed(initialSlugSeed)
         }
+      })
+      return function cancelServerDraftSync() {
+        isActive = false
       }
     },
     [
@@ -1645,7 +1624,7 @@ export function useAdminCreateEventForm({
     [authChallengeExpiresAtMs, preparedSignaturePlan, signatureFlowDone, signatureFlowError, signatureTxs],
   )
 
-  useEffect(
+  useLayoutEffect(
     function persistSignatureStorageFingerprint() {
       if (signatureStorageFingerprintRef.current === signatureStorageFingerprint) {
         return
@@ -1666,7 +1645,7 @@ export function useAdminCreateEventForm({
     [preparedSignaturePlan, signatureStorageFingerprint],
   )
 
-  useEffect(
+  useLayoutEffect(
     function syncRecurringResolvedFormFields() {
       if (creationMode !== 'recurring' || isSportsEvent) {
         return
@@ -1678,16 +1657,18 @@ export function useAdminCreateEventForm({
         return
       }
 
-      setForm((previous) => ({
-        ...previous,
-        title: nextTitle,
-        slug: nextSlug,
-      }))
+      queueMicrotask(() => {
+        setForm((previous) => ({
+          ...previous,
+          title: nextTitle,
+          slug: nextSlug,
+        }))
+      })
     },
     [creationMode, form.slug, form.title, isSportsEvent, recurringResolvedSlug, recurringResolvedTitle],
   )
 
-  useEffect(
+  useLayoutEffect(
     function syncSportsDerivedFormFields() {
       if (!isSportsEvent) {
         if (sportsGeneratedCategorySlugsRef.current.size > 0) {
@@ -1711,23 +1692,25 @@ export function useAdminCreateEventForm({
         form.binaryOutcomeNo !== 'No'
 
       if (shouldSyncSportsDerivedForm) {
-        setForm((prev) => ({
-          ...prev,
-          slug: sportsDerivedContent.eventSlug,
-          marketMode: 'multi_multiple',
-          categories: mergeCategoryItems(
-            sportsDerivedContent.categories,
-            removeGeneratedCategoryItems(prev.categories, previousGeneratedCategorySlugs),
-          ),
-          options: sportsDerivedContent.options,
-          binaryQuestion: '',
-          binaryOutcomeYes: 'Yes',
-          binaryOutcomeNo: 'No',
-        }))
+        queueMicrotask(() => {
+          setForm((prev) => ({
+            ...prev,
+            slug: sportsDerivedContent.eventSlug,
+            marketMode: 'multi_multiple',
+            categories: mergeCategoryItems(
+              sportsDerivedContent.categories,
+              removeGeneratedCategoryItems(prev.categories, previousGeneratedCategorySlugs),
+            ),
+            options: sportsDerivedContent.options,
+            binaryQuestion: '',
+            binaryOutcomeYes: 'Yes',
+            binaryOutcomeNo: 'No',
+          }))
+        })
       }
 
       if (Object.keys(optionImageFiles).length > 0) {
-        setOptionImageFiles({})
+        queueMicrotask(() => setOptionImageFiles({}))
       }
 
       if (sportsGeneratedCategorySlugsRef.current !== sportsGeneratedCategorySlugs) {
@@ -1753,7 +1736,7 @@ export function useAdminCreateEventForm({
   )
 
   const autoSlugFingerprint = `${creationMode}:${isSportsEvent ? 'sports' : 'default'}:${slugSuffix}:${sportsDerivedContent.eventSlug}:${form.title}`
-  useEffect(
+  useLayoutEffect(
     function syncAutoSlug() {
       if (autoSlugFingerprintRef.current === null) {
         autoSlugFingerprintRef.current = autoSlugFingerprint
@@ -1769,19 +1752,21 @@ export function useAdminCreateEventForm({
       }
 
       const nextSlug = form.title.trim() ? appendEventCreationSlugSuffix(slugify(form.title), slugSuffix) : ''
-      setForm((prev) =>
-        prev.slug === nextSlug
-          ? prev
-          : {
-              ...prev,
-              slug: nextSlug,
-            },
+      queueMicrotask(() =>
+        setForm((prev) =>
+          prev.slug === nextSlug
+            ? prev
+            : {
+                ...prev,
+                slug: nextSlug,
+              },
+        ),
       )
     },
     [autoSlugFingerprint, creationMode, form.title, isSportsEvent, slugSuffix],
   )
 
-  useEffect(
+  useLayoutEffect(
     function resetSlugValidationWhenSlugChanges() {
       if (slugResetValueRef.current === null) {
         slugResetValueRef.current = form.slug
@@ -1792,17 +1777,19 @@ export function useAdminCreateEventForm({
       }
 
       slugResetValueRef.current = form.slug
-      if (slugValidationState !== 'idle') {
-        setSlugValidationState('idle')
-      }
-      if (slugCheckError) {
-        setSlugCheckError('')
-      }
+      queueMicrotask(() => {
+        if (slugValidationState !== 'idle') {
+          setSlugValidationState('idle')
+        }
+        if (slugCheckError) {
+          setSlugCheckError('')
+        }
+      })
     },
     [form.slug, slugCheckError, slugValidationState],
   )
 
-  useEffect(
+  useLayoutEffect(
     function syncBinaryMarketFields() {
       if (form.marketMode !== 'binary') {
         return
@@ -1819,12 +1806,14 @@ export function useAdminCreateEventForm({
         return
       }
 
-      setForm((previous) => ({
-        ...previous,
-        binaryQuestion: nextBinaryQuestion,
-        binaryOutcomeYes: nextOutcomeYes,
-        binaryOutcomeNo: nextOutcomeNo,
-      }))
+      queueMicrotask(() => {
+        setForm((previous) => ({
+          ...previous,
+          binaryQuestion: nextBinaryQuestion,
+          binaryOutcomeYes: nextOutcomeYes,
+          binaryOutcomeNo: nextOutcomeNo,
+        }))
+      })
     },
     [form.binaryOutcomeNo, form.binaryOutcomeYes, form.binaryQuestion, form.marketMode, form.title],
   )
@@ -3343,12 +3332,12 @@ export function useAdminCreateEventForm({
       setSignatureFlowDone(false)
 
       try {
-        const completedById = new Map<string, string>()
+        let completedById: Record<string, string> = {}
         for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
           const planned = activePreparedSignaturePlan.txPlan[index]
           const existing = activeSignatureTxs[index]
           if (existing?.status === 'success' && existing.hash) {
-            completedById.set(planned.id, existing.hash)
+            completedById = addCompletedSignatureHash(completedById, planned.id, existing.hash)
           }
         }
 
@@ -3430,8 +3419,8 @@ export function useAdminCreateEventForm({
                 }
               }),
             )
-            completedById.set(tx.id, existingTx.hash)
-            const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
+            completedById = addCompletedSignatureHash(completedById, tx.id, existingTx.hash)
+            const completedTxs = Object.entries(completedById).map(([id, hash]) => ({ id, hash }))
             try {
               await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
             } catch (persistError) {
@@ -3617,8 +3606,8 @@ export function useAdminCreateEventForm({
               }
             }),
           )
-          completedById.set(tx.id, hash)
-          const completedTxs = Array.from(completedById.entries()).map(([id, confirmedHash]) => ({
+          completedById = addCompletedSignatureHash(completedById, tx.id, hash)
+          const completedTxs = Object.entries(completedById).map(([id, confirmedHash]) => ({
             id,
             hash: confirmedHash,
           }))
@@ -3629,7 +3618,7 @@ export function useAdminCreateEventForm({
           }
         }
 
-        const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
+        const completedTxs = Object.entries(completedById).map(([id, hash]) => ({ id, hash }))
         if (completedTxs.length > 0) {
           try {
             await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
@@ -4233,7 +4222,7 @@ export function useAdminCreateEventForm({
     expandedPreSignChecks,
     rulesGeneratorDialogOpen,
     setRulesGeneratorDialogOpen,
-    finalPreviewDialogOpen,
+    finalPreviewDialogOpen: visibleFinalPreviewDialogOpen,
     setFinalPreviewDialogOpen,
     resetFormDialogOpen,
     setResetFormDialogOpen,

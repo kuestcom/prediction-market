@@ -1,5 +1,3 @@
-import type { NextRequest } from 'next/server'
-
 import { NextResponse } from 'next/server'
 
 const COOKIE_NAMES = [
@@ -29,7 +27,7 @@ function expireCookie(response: NextResponse, name: string) {
   })
 }
 
-export async function POST(_: NextRequest) {
+export async function POST() {
   const response = NextResponse.json({ success: true }, { status: 200 })
 
   COOKIE_NAMES.forEach((name) => {

@@ -5,13 +5,25 @@ import { getRootLocale } from '@/i18n/root-locale'
 
 export const instant = false
 
-export default async function AdminMarketMakingPage() {
+interface AdminMarketMakingPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+function resolveCampaignId(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value
+  return candidate && /^(0|[1-9][0-9]*)$/.test(candidate) ? candidate : null
+}
+
+export default async function AdminMarketMakingPage({ searchParams }: AdminMarketMakingPageProps) {
   const locale = await getRootLocale()
+  const resolvedSearchParams = await searchParams
+  const linkedCampaignId = resolveCampaignId(resolvedSearchParams.campaign)
   setRequestLocale(locale)
   const t = await getExtracted()
 
   return (
     <MarketMakingDiscovery
+      linkedCampaignId={linkedCampaignId}
       locale={locale}
       copy={{
         eyebrow: t('Liquidity sponsorship'),

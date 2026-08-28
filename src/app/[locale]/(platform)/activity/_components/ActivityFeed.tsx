@@ -522,11 +522,7 @@ function useLiveActivityStream({
   allowedCreatorWallets: ReadonlySet<string> | null
   categoryValues: ReadonlySet<string>
 }) {
-  const storeRef = useRef<ReturnType<typeof createLiveActivityStore> | null>(null)
-  if (!storeRef.current) {
-    storeRef.current = createLiveActivityStore()
-  }
-  const store = storeRef.current
+  const [store] = useState(createLiveActivityStore)
   const categoryValuesKey = Array.from(categoryValues).sort().join('\0')
   const stableCategoryValues = useMemo(
     () => new Set(categoryValuesKey ? categoryValuesKey.split('\0') : []),

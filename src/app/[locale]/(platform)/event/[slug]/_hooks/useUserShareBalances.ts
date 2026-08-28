@@ -1,7 +1,7 @@
 import type { PublicClient } from 'viem'
 
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { erc1155Abi } from 'viem'
 
 import type { Event } from '@/types'
@@ -28,17 +28,10 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
   const { polygonRpcUrl } = usePublicRuntimeConfig()
   const rpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const rpcUrlsKey = rpcUrls.join(',')
-  const clientRef = useRef<PublicClient | null>(null)
-  const clientRpcUrlsKeyRef = useRef<string | null>(null)
-  if (clientRef.current === null && typeof window !== 'undefined') {
-    clientRef.current = createConditionalTokenBalanceClient(rpcUrls)
-    clientRpcUrlsKeyRef.current = rpcUrlsKey
-  }
-  if (clientRef.current && clientRpcUrlsKeyRef.current !== rpcUrlsKey) {
-    clientRef.current = createConditionalTokenBalanceClient(rpcUrls)
-    clientRpcUrlsKeyRef.current = rpcUrlsKey
-  }
-  const client = clientRef.current
+  const client = useMemo<PublicClient | null>(
+    () => (typeof window !== 'undefined' ? createConditionalTokenBalanceClient(rpcUrls) : null),
+    [rpcUrls],
+  )
 
   const outcomeDescriptors = useMemo(() => {
     if (!event?.markets?.length) {

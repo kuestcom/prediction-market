@@ -88,6 +88,7 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
 
   const refreshClaimable = useCallback(async () => {
     const requestId = ++requestIdRef.current
+    await Promise.resolve()
 
     if (!publicClient || !normalizedFeeRecipientWallet) {
       setClaimableByExchange({})
@@ -148,7 +149,7 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
   }, [normalizedFeeRecipientWallet, publicClient])
 
   useEffect(() => {
-    void refreshClaimable()
+    queueMicrotask(() => void refreshClaimable())
   }, [refreshClaimable])
 
   const totalClaimable = useMemo(() => {

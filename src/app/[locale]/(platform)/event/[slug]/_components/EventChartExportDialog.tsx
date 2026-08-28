@@ -246,7 +246,7 @@ function EventChartExportDialogBody({
   const t = useExtracted()
   const optionsListId = useId()
   const eventStartDate = useMemo(() => new Date(eventCreatedAt), [eventCreatedAt])
-  const openedAt = useMemo(() => new Date(Date.now()), [])
+  const [openedAt] = useState(() => new Date())
   const {
     frequency,
     fromDate,

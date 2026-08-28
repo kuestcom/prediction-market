@@ -116,7 +116,7 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
         }))
 
         toast.error(errorMessage)
-      } else {
+      } else if (result.method === 'totp') {
         setState((prev) => ({
           ...prev,
           isLoading: false,
@@ -126,6 +126,12 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           },
           error: null,
         }))
+      } else {
+        const errorMessage = t(
+          'An unexpected error occurred while enabling two-factor authentication. Please try again.',
+        )
+        setState((prev) => ({ ...prev, isLoading: false, error: errorMessage }))
+        toast.error(errorMessage)
       }
     } catch {
       const errorMessage = t('An unexpected error occurred while enabling two-factor authentication. Please try again.')

@@ -43,6 +43,17 @@ function resolveDraftExpirationFromNow() {
   return nextDate
 }
 
+function resolveInitialDraftExpiration(limitExpirationTimestamp: number | null) {
+  if (limitExpirationTimestamp) {
+    const currentExpiration = new Date(limitExpirationTimestamp * 1000)
+    if (currentExpiration.getTime() > Date.now()) {
+      return currentExpiration
+    }
+  }
+
+  return resolveDraftExpirationFromNow()
+}
+
 interface EventOrderPanelLimitControlsProps {
   side: OrderSide
   limitPrice: string
@@ -282,19 +293,8 @@ export default function EventOrderPanelLimitControls({
     small: 'text-sm',
   })
 
-  function resolveInitialDraftExpiration() {
-    if (limitExpirationTimestamp) {
-      const currentExpiration = new Date(limitExpirationTimestamp * 1000)
-      if (currentExpiration.getTime() > Date.now()) {
-        return currentExpiration
-      }
-    }
-
-    return resolveDraftExpirationFromNow()
-  }
-
   function openExpirationModal() {
-    setDraftExpiration(resolveInitialDraftExpiration())
+    setDraftExpiration(resolveInitialDraftExpiration(limitExpirationTimestamp))
     setIsExpirationModalOpen(true)
   }
 

@@ -65,6 +65,8 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
   const claimAddress = depositWalletAddress
 
   const refreshClaimable = useCallback(async () => {
+    await Promise.resolve()
+
     if (!publicClient || !claimAddress) {
       setClaimableByExchange({})
       setClaimableReadFailures(new Set())
@@ -114,7 +116,7 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
   }, [claimAddress, publicClient])
 
   useEffect(() => {
-    void refreshClaimable()
+    queueMicrotask(() => void refreshClaimable())
   }, [refreshClaimable])
 
   const totalClaimable = useMemo(() => {

@@ -15,7 +15,8 @@ import {
   ShieldAlertIcon,
   XIcon,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { formatUnits, keccak256, stringToHex } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 
@@ -133,6 +134,7 @@ export interface MarketMakingCampaignsCopy {
 }
 
 interface Props {
+  linkedCampaignId: string | null
   locale: string
   copy: MarketMakingCampaignsCopy
 }
@@ -178,9 +180,15 @@ function CampaignImage({ campaign, size = 'md' }: { campaign: MarketMakingCampai
   const sizeClass = size === 'sm' ? 'size-10 rounded-lg' : 'size-14 rounded-xl'
   if (imageUrl) {
     return (
-      <span className={cn('shrink-0 overflow-hidden border bg-muted', sizeClass)}>
-        {/* oxlint-disable-next-line next/no-img-element -- Campaign images can come from runtime-defined hosts. */}
-        <img src={imageUrl} alt="" className="size-full object-cover" />
+      <span className={cn('relative shrink-0 overflow-hidden border bg-muted', sizeClass)}>
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes={size === 'sm' ? '40px' : '56px'}
+          className="size-full object-cover"
+          unoptimized
+        />
       </span>
     )
   }
@@ -404,6 +412,7 @@ function CampaignDetail({
   campaign,
   locale,
   copy,
+  now,
   open,
   onOpenChange,
   onCancel,
@@ -415,6 +424,7 @@ function CampaignDetail({
   campaign: MarketMakingCampaignRecord
   locale: string
   copy: MarketMakingCampaignsCopy
+  now: number
   open: boolean
   onOpenChange: (open: boolean) => void
   onCancel: () => void
@@ -424,7 +434,6 @@ function CampaignDetail({
   isMutating: boolean
 }) {
   const isMobile = useIsMobile()
-  const now = Math.floor(Date.now() / 1000)
   const effectiveStatus = getEffectiveCampaignStatus(campaign.status, campaign.serviceEnd, now)
   const isExpired =
     campaign.status === ESCROW_CAMPAIGN_STATUS.open &&
@@ -738,15 +747,14 @@ function CampaignDetail({
   )
 }
 
-export default function MarketMakingCampaigns({ locale, copy }: Props) {
+export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }: Props) {
   const { open: openAppKit } = useAppKit()
   const { address, isConnected } = useAppKitAccount()
   const { chainId } = usePublicRuntimeConfig()
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient({ chainId })
   const [filter, setFilter] = useState<EscrowCampaignStatusFilter>('all')
-  const [search, setSearch] = useState('')
-  const [linkedCampaignId, setLinkedCampaignId] = useState<string | null>(null)
+  const [search, setSearch] = useState(linkedCampaignId ?? '')
   const [lookupId, setLookupId] = useState<string | null>(null)
   const [selected, setSelected] = useState<MarketMakingCampaignRecord | null>(null)
   const [cancelCampaign, setCancelCampaign] = useState<MarketMakingCampaignRecord | null>(null)
@@ -754,12 +762,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
   const [disputeReason, setDisputeReason] = useState<DisputeReason | null>(null)
   const [isMutating, setIsMutating] = useState(false)
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
-  useEffect(() => {
-    const value = new URLSearchParams(window.location.search).get('campaign')
-    setLinkedCampaignId(value && /^(0|[1-9][0-9]*)$/.test(value) ? value : null)
-  }, [])
-  const validLinkedCampaignId = linkedCampaignId && /^(0|[1-9][0-9]*)$/.test(linkedCampaignId) ? linkedCampaignId : null
-  const lookupCampaignId = lookupId ?? validLinkedCampaignId
+  const lookupCampaignId = lookupId ?? linkedCampaignId
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 30_000)
     return () => window.clearInterval(interval)
@@ -792,25 +795,23 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
     },
   })
   const handledCampaignId = useRef<string | null>(null)
-  useEffect(() => {
-    if (lookupCampaignId) {
-      setSearch(lookupCampaignId)
-    }
-  }, [lookupCampaignId])
-  useEffect(() => {
+  useLayoutEffect(() => {
     const latestCampaigns = [...(campaignLookupQuery.data?.data ?? []), ...(campaignsQuery.data?.data ?? [])]
     const latestById = new Map(latestCampaigns.map((campaign) => [campaign.id, campaign]))
-    setSelected((current) => (current ? (latestById.get(current.id) ?? null) : current))
-    setCancelCampaign((current) => (current ? (latestById.get(current.id) ?? null) : current))
-    setDisputeCampaign((current) => (current ? (latestById.get(current.id) ?? null) : current))
     if (lookupCampaignId && handledCampaignId.current !== lookupCampaignId) {
       const linkedCampaign = latestById.get(lookupCampaignId)
       if (linkedCampaign) {
         handledCampaignId.current = lookupCampaignId
-        setSearch(lookupCampaignId)
-        setSelected(linkedCampaign)
+        queueMicrotask(() => {
+          setSelected(linkedCampaign)
+        })
       }
     }
+    queueMicrotask(() => {
+      setSelected((current) => (current ? (latestById.get(current.id) ?? null) : current))
+      setCancelCampaign((current) => (current ? (latestById.get(current.id) ?? null) : current))
+      setDisputeCampaign((current) => (current ? (latestById.get(current.id) ?? null) : current))
+    })
   }, [campaignLookupQuery.data?.data, campaignsQuery.data?.data, lookupCampaignId])
   const pendingWithdrawalsQuery = useQuery({
     queryKey: ['market-making-pending-withdrawals', address?.toLowerCase()],
@@ -877,7 +878,6 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
   function resetCampaignLookup() {
     handledCampaignId.current = null
     setLookupId(null)
-    setLinkedCampaignId(null)
   }
 
   function closeCampaignDetail() {
@@ -1128,6 +1128,7 @@ export default function MarketMakingCampaigns({ locale, copy }: Props) {
           campaign={selected}
           locale={locale}
           copy={copy}
+          now={now}
           open
           onOpenChange={(open) => !open && closeCampaignDetail()}
           onCancel={() => setCancelCampaign(selected)}

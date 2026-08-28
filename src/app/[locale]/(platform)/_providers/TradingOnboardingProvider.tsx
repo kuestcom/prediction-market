@@ -932,7 +932,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     } catch {
       setFundModalOpen(true)
     }
-  }, [user?.deposit_wallet_address, viemRpcUrls])
+  }, [user, viemRpcUrls])
 
   const handleModalOpenChange = useCallback(
     (modal: Exclude<OnboardingModal, null>, open: boolean) => {
@@ -1101,8 +1101,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       status,
       handleWalletActionError,
       t,
-      user?.address,
-      user?.deposit_wallet_address,
+      user,
       allowsRouteTradingAuthPrompt,
       needsSumsubForFlow,
       runPendingTradingReadyAction,
@@ -1262,7 +1261,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     await refreshSessionUserState()
     setRequiresTradingAuthRefresh(false)
     setDismissedModal(null)
-  }, [refreshSessionUserState, runWithSignaturePrompt, signTypedDataAsync, user?.address])
+  }, [refreshSessionUserState, runWithSignaturePrompt, signTypedDataAsync, user])
 
   const handleCreateDepositWallet = useCallback(async () => {
     if (!user?.address || enableTradingStep === 'enabling') {
@@ -1856,7 +1855,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       walletAddressLocked: user.deposit_wallet_address,
     })
     return `https://meldcrypto.com/?${params.toString()}`
-  }, [status.hasDeployedDepositWallet, user?.deposit_wallet_address])
+  }, [status.hasDeployedDepositWallet, user])
 
   return (
     <TradingOnboardingContext value={contextValue}>

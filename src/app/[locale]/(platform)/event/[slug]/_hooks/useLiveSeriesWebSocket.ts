@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { DataPoint } from '@/types/PredictionChartTypes'
 
@@ -41,11 +41,17 @@ export function useLiveSeriesWebSocket({
   const { wsLiveDataUrl } = usePublicRuntimeConfig()
   const wsUrl = wsLiveDataUrl
   const eventEndTimestampRef = useRef(eventEndTimestamp)
-  eventEndTimestampRef.current = eventEndTimestamp
   const [data, setData] = useState<DataPoint[]>([])
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(() => (wsUrl ? 'connecting' : 'offline'))
 
   useEffect(
+    function syncEventEndTimestampRef() {
+      eventEndTimestampRef.current = eventEndTimestamp
+    },
+    [eventEndTimestamp],
+  )
+
+  useLayoutEffect(
     function connectLiveSeriesWebSocket() {
       if (!isLiveView) {
         return
@@ -263,7 +269,6 @@ export function useLiveSeriesWebSocket({
         },
       })
 
-      // oxlint-disable-next-line react-you-might-not-need-an-effect/no-external-store-subscription -- A WebSocket is an external system, not a store; this effect owns its lifecycle.
       connect()
       document.addEventListener('visibilitychange', handleVisibilityChange)
 

@@ -92,6 +92,8 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
   const [isRemoving, setIsRemoving] = useState(false)
 
   const loadItems = useCallback(async () => {
+    await Promise.resolve()
+
     setIsLoading(true)
 
     try {
@@ -118,7 +120,7 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
 
   useEffect(
     function loadItemsOnMount() {
-      void loadItems()
+      queueMicrotask(() => void loadItems())
     },
     [loadItems],
   )

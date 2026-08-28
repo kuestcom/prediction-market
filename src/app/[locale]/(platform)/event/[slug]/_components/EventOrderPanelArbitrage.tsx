@@ -4,7 +4,7 @@ import { useAppKit, useAppKitAccount, useAppKitConnection, useAppKitState } from
 import { InfoIcon, TriangleAlertIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatedCounter } from 'react-animated-counter'
 import { useAccount, useConnections } from 'wagmi'
 
@@ -464,8 +464,7 @@ function EventOrderPanelPolymarketArbitrage({
     previousMarketOpportunityRef.current = hasMarketOpportunity
   }, [hasMarketOpportunity])
 
-  /* oxlint-disable react-you-might-not-need-an-effect/no-event-handler -- External wallet state arrives through provider events. */
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!multiWalletEnabled) {
       appKitModalWasOpenRef.current = false
       return
@@ -483,7 +482,7 @@ function EventOrderPanelPolymarketArbitrage({
     }
   }, [appKitState.open, multiWalletEnabled, walletStatus])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (multiWalletEnabled || isEmbeddedSiteWallet || !primaryAddress || !primaryConnection) {
       return
     }
@@ -523,7 +522,7 @@ function EventOrderPanelPolymarketArbitrage({
       })
   }, [isEmbeddedSiteWallet, multiWalletEnabled, primaryAddress, primaryConnection])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const connectingWallet = appKitState.connectingWallet
     if (!multiWalletEnabled || walletStatus !== 'connecting' || !appKitState.open || !connectingWallet?.isInjected) {
       injectedPermissionRequestRef.current = null
@@ -615,7 +614,7 @@ function EventOrderPanelPolymarketArbitrage({
     walletStatus,
   ])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       !multiWalletEnabled ||
       walletStatus !== 'connecting' ||
@@ -667,7 +666,6 @@ function EventOrderPanelPolymarketArbitrage({
     user?.address,
     walletStatus,
   ])
-  /* oxlint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   async function handleConnect() {
     dismissIntro()

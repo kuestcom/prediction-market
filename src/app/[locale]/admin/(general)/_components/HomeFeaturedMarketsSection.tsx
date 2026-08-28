@@ -257,7 +257,7 @@ function HomeFeaturedSelectionDialog({
   const [loadingRequestId, setLoadingRequestId] = useState<number | null>(null)
   const [candidates, setCandidates] = useState<AdminEventCandidate[]>([])
   const searchRequestIdRef = useRef(0)
-  const isLoading = loadingRequestId === searchRequestIdRef.current
+  const isLoading = loadingRequestId !== null
   const selectedKeys = useMemo(() => new Set(selectedItems.map(buildFeaturedKey)), [selectedItems])
 
   useEffect(

@@ -6,7 +6,7 @@ import type { Address, Hash, Hex } from 'viem'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { CheckCircle2Icon, CircleIcon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
+import { useCallback, useEffectEvent, useLayoutEffect, useMemo, useState } from 'react'
 import {
   createWalletClient,
   custom,
@@ -527,18 +527,16 @@ export default function AdminProposersDialog({
     await loadStatus(preferred, nextSigners)
   })
 
-  /* oxlint-disable react-you-might-not-need-an-effect/no-event-handler -- Opening the controlled dialog triggers an external API refresh. */
-  useEffect(
+  useLayoutEffect(
     function loadOnOpen() {
       if (!open) {
         return
       }
 
-      void bootstrapDialog()
+      queueMicrotask(() => void bootstrapDialog())
     },
     [open],
   )
-  /* oxlint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   async function runServerMutation(action: 'create' | 'add' | 'remove', proposers: Address[]) {
     if (!selectedCreator) {

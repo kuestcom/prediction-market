@@ -1,6 +1,7 @@
 'use client'
 
 import { XIcon } from 'lucide-react'
+import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -33,12 +34,14 @@ export default function MarketMakingHowItWorks({
   const content = (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
       <div className="overflow-hidden rounded-xl border bg-muted/15 p-3 sm:p-4">
-        {/* oxlint-disable-next-line next/no-img-element -- Static explanatory SVG is served from public assets. */}
-        <img
+        <Image
           src="/images/how-it-works/escrow.svg"
           alt=""
+          width={1394}
+          height={425}
           className="mx-auto block h-auto w-full max-w-[920px]"
           aria-hidden="true"
+          unoptimized
         />
       </div>
 

@@ -113,7 +113,7 @@ const EXACT_SCORE_REG_TIME_TOOLTIP =
 const MAX_SPORTS_EVENT_START_TIMEOUT_MS = 2_147_483_647
 
 function SportsEventCountdown({ startTimestamp }: { startTimestamp: number }) {
-  const currentTimestamp = useCurrentTimestamp({ initialTimestamp: Date.now(), intervalMs: 1_000 })
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 1_000 })
   const countdownLabel =
     currentTimestamp !== null && startTimestamp > currentTimestamp
       ? formatSportsEventCountdown(startTimestamp, currentTimestamp)
@@ -638,8 +638,8 @@ export default function SportsEventCenter({
     return null
   }, [
     activeCard,
-    activeTradeContext?.market,
-    activeTradeHeaderContext?.market,
+    activeTradeContext,
+    activeTradeHeaderContext,
     marketSlugToButtonKey,
     moneylineButtonKey,
     openAuxiliaryConditionId,

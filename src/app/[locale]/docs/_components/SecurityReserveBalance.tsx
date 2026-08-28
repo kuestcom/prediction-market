@@ -35,6 +35,8 @@ export function SecurityReserveBalance() {
   )
 
   const loadBalance = useCallback(async () => {
+    await Promise.resolve()
+
     try {
       const [walletBalance, unclaimedBalance] = await Promise.all([
         client.readContract({
@@ -59,7 +61,7 @@ export function SecurityReserveBalance() {
   }, [client])
 
   useEffect(() => {
-    void loadBalance()
+    queueMicrotask(() => void loadBalance())
     const interval = window.setInterval(() => void loadBalance(), REFRESH_INTERVAL_MS)
     return () => window.clearInterval(interval)
   }, [loadBalance])

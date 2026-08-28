@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { encodeFunctionData, erc20Abi, formatUnits, getAddress, isAddress } from 'viem'
 import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 
@@ -691,7 +691,6 @@ export default function DirectResolutionButton({
   const rulesConfirmationRef = useRef<HTMLLabelElement>(null)
   const sourceConfirmationRef = useRef<HTMLLabelElement>(null)
   const resolutionRewardAmountChangeRef = useRef(onResolutionRewardAmountChange)
-  resolutionRewardAmountChangeRef.current = onResolutionRewardAmountChange
   const activeReportSummaryScopeKeyRef = useRef(reportSummaryScopeKey)
   const reportSummaryRequestRef = useRef<ResolutionReportSummaryRequest | null>(null)
   const reportSummaryRequestIdRef = useRef(0)
@@ -703,14 +702,12 @@ export default function DirectResolutionButton({
   const [sourceConfirmed, setSourceConfirmed] = useState(false)
   const [state, setState] = useState<DirectResolutionState>('idle')
   const [message, setMessage] = useState('')
-  const [resolutionAccess, setResolutionAccess] = useState<boolean | null>(null)
   const [reportSummaryLoading, setReportSummaryLoading] = useState(false)
   const [reportSummaryState, setReportSummary] = useState<ResolutionReportSummary>(createEmptyResolutionReportSummary)
   const [reportSummaryStateScopeKey, setReportSummaryStateScopeKey] = useState(reportSummaryScopeKey)
   const reportSummary =
     reportSummaryStateScopeKey === reportSummaryScopeKey ? reportSummaryState : createEmptyResolutionReportSummary()
   const reportSummaryRef = useRef(reportSummary)
-  reportSummaryRef.current = reportSummary
 
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
@@ -738,9 +735,24 @@ export default function DirectResolutionButton({
   const resolutionActorAddress = resolveResolutionActorAddress(connectedAddress, authenticatedAddress)
   const resolutionAccessScopeKey = `${reportSummaryScopeKey}:${connectedAddress ?? ''}:${event.creator}`
   const activeResolutionAccessScopeKeyRef = useRef(resolutionAccessScopeKey)
-  activeResolutionAccessScopeKeyRef.current = resolutionAccessScopeKey
   const checkedResolutionAccessScopeKeyRef = useRef<string | null>(null)
-  const settledResolutionAccessScopeKeyRef = useRef<string | null>(null)
+  const [resolutionAccessState, setResolutionAccessState] = useState<{
+    scopeKey: string | null
+    value: boolean | null
+  }>({ scopeKey: null, value: null })
+
+  useEffect(
+    function syncResolutionRewardAmountChangeRef() {
+      resolutionRewardAmountChangeRef.current = onResolutionRewardAmountChange
+    },
+    [onResolutionRewardAmountChange],
+  )
+  useEffect(
+    function syncActiveResolutionAccessScopeKeyRef() {
+      activeResolutionAccessScopeKeyRef.current = resolutionAccessScopeKey
+    },
+    [resolutionAccessScopeKey],
+  )
   const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user.deposit_wallet_status === 'deployed')
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const resolvedWinningOutcomeIndex = isResolved ? resolveWinningOutcomeIndex(market) : null
@@ -752,7 +764,7 @@ export default function DirectResolutionButton({
         : null
   const isResolvedInconclusive = isResolved && isUnknownFiftyFiftyResolvedMarket(market)
   const scopedResolutionAccess =
-    settledResolutionAccessScopeKeyRef.current === resolutionAccessScopeKey ? resolutionAccess : null
+    resolutionAccessState.scopeKey === resolutionAccessScopeKey ? resolutionAccessState.value : null
   const isProposalOnly = scopedResolutionAccess === false
   const {
     balance: depositWalletBalance,
@@ -938,21 +950,19 @@ export default function DirectResolutionButton({
   const checkWhitelist = useCallback(async () => {
     const accessScopeKey = resolutionAccessScopeKey
     if (!resolutionActorAddress) {
-      settledResolutionAccessScopeKeyRef.current = accessScopeKey
-      setResolutionAccess(false)
+      setResolutionAccessState({ scopeKey: accessScopeKey, value: false })
       setState('not_whitelisted')
       setMessage('')
       return false
     }
     if (!isAddress(event.creator)) {
-      settledResolutionAccessScopeKeyRef.current = accessScopeKey
-      setResolutionAccess(false)
+      setResolutionAccessState({ scopeKey: accessScopeKey, value: false })
       setState('not_whitelisted')
       setMessage('')
       return false
     }
 
-    setResolutionAccess(null)
+    setResolutionAccessState({ scopeKey: accessScopeKey, value: null })
     setState('checking')
     setMessage('')
     try {
@@ -967,14 +977,12 @@ export default function DirectResolutionButton({
         (proposer) => proposer.toLowerCase() === resolutionActorAddress.toLowerCase(),
       )
       if (!status.whitelistAddress || !isAllowed) {
-        settledResolutionAccessScopeKeyRef.current = accessScopeKey
-        setResolutionAccess(false)
+        setResolutionAccessState({ scopeKey: accessScopeKey, value: false })
         setState('not_whitelisted')
         setMessage('')
         return false
       }
-      settledResolutionAccessScopeKeyRef.current = accessScopeKey
-      setResolutionAccess(true)
+      setResolutionAccessState({ scopeKey: accessScopeKey, value: true })
       setState('idle')
       return true
     } catch (error) {
@@ -982,8 +990,7 @@ export default function DirectResolutionButton({
         return null
       }
       console.error('Direct resolution whitelist check failed:', error)
-      settledResolutionAccessScopeKeyRef.current = accessScopeKey
-      setResolutionAccess(null)
+      setResolutionAccessState({ scopeKey: accessScopeKey, value: null })
       setState('permission_check_error')
       setMessage(t('Could not check your resolution permission. Try again.'))
       return null
@@ -1122,7 +1129,6 @@ export default function DirectResolutionButton({
   )
 
   // Market/account scope changes invalidate async external state and its in-flight request as one lifecycle.
-  // oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
   useEffect(() => {
     const scopeChanged = activeReportSummaryScopeKeyRef.current !== reportSummaryScopeKey
     activeReportSummaryScopeKeyRef.current = reportSummaryScopeKey
@@ -1138,14 +1144,16 @@ export default function DirectResolutionButton({
     if (scopeChanged) {
       const emptySummary = createEmptyResolutionReportSummary()
       reportSummaryRef.current = emptySummary
-      setReportSummaryStateScopeKey(reportSummaryScopeKey)
-      setReportSummary(emptySummary)
-      setReportSummaryLoading(false)
-      setSelectedOutcome(null)
-      setRulesConfirmed(false)
-      setRulesAcceptancePrompted(false)
-      setSourceConfirmed(false)
-      setReviewOpen(false)
+      queueMicrotask(() => {
+        setReportSummaryStateScopeKey(reportSummaryScopeKey)
+        setReportSummary(emptySummary)
+        setReportSummaryLoading(false)
+        setSelectedOutcome(null)
+        setRulesConfirmed(false)
+        setRulesAcceptancePrompted(false)
+        setSourceConfirmed(false)
+        setReviewOpen(false)
+      })
     }
 
     resolutionRewardAmountChangeRef.current?.(null)
@@ -1158,25 +1166,24 @@ export default function DirectResolutionButton({
       }
     }
   }, [reportSummaryScopeKey])
-  // oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
 
   // A confirmed proposal may precede Data API indexing. Restore it across refreshes until
   // the authoritative summary includes the reporter.
-  // oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
   useEffect(() => {
     const pendingReport = readPendingResolutionReport(reportSummaryScopeKey)
     if (!pendingReport) {
       return
     }
 
-    setSelectedOutcome(pendingReport.outcome)
-    setReportSummary((current) => {
-      const nextSummary = mergePendingResolutionReport(current, pendingReport)
-      reportSummaryRef.current = nextSummary
-      return nextSummary
+    queueMicrotask(() => {
+      setSelectedOutcome(pendingReport.outcome)
+      setReportSummary((current) => {
+        const nextSummary = mergePendingResolutionReport(current, pendingReport)
+        reportSummaryRef.current = nextSummary
+        return nextSummary
+      })
     })
   }, [reportSummaryScopeKey])
-  // oxlint-enable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change
 
   useEffect(() => {
     if (!isDirect || !publicClient) {
@@ -1196,15 +1203,13 @@ export default function DirectResolutionButton({
   }
 
   // Permission is remote state that must stay synchronized with the active wallet identity.
-  // oxlint-disable react-you-might-not-need-an-effect/no-event-handler
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isDirect || isResolved || checkedResolutionAccessScopeKeyRef.current === resolutionAccessScopeKey) {
       return
     }
     checkedResolutionAccessScopeKeyRef.current = resolutionAccessScopeKey
-    void checkWhitelist()
+    queueMicrotask(() => void checkWhitelist())
   }, [checkWhitelist, isDirect, isResolved, resolutionAccessScopeKey])
-  // oxlint-enable react-you-might-not-need-an-effect/no-event-handler
 
   async function submitResolutionReport() {
     if (isDepositWalletBalanceError) {

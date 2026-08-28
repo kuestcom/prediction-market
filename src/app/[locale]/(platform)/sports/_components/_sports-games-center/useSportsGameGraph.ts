@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import type { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -205,79 +205,79 @@ function useLaggedSportsLegendCursor({
     }
   }, [latestSnapshot, latestTimestamp])
 
-  useEffect(() => {
-    targetRef.current = cursorSnapshot
+  useLayoutEffect(
+    function animateSportsLegendCursor() {
+      targetRef.current = cursorSnapshot
 
-    if (!cursorSnapshot) {
-      displayedRef.current = null
-      setDisplayedSnapshot(null)
+      if (!cursorSnapshot) {
+        displayedRef.current = null
+        if (animationFrameRef.current != null) {
+          cancelAnimationFrame(animationFrameRef.current)
+          animationFrameRef.current = null
+        }
+        lastFrameTimestampRef.current = null
+        animationStartTimestampRef.current = null
+        return
+      }
+
+      if (!displayedRef.current) {
+        displayedRef.current = baselineSnapshot ?? cursorSnapshot
+      }
+
+      if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+        displayedRef.current = cursorSnapshot
+        animationStartTimestampRef.current = null
+        return
+      }
+
       if (animationFrameRef.current != null) {
-        cancelAnimationFrame(animationFrameRef.current)
-        animationFrameRef.current = null
-      }
-      lastFrameTimestampRef.current = null
-      animationStartTimestampRef.current = null
-      return
-    }
-
-    if (!displayedRef.current) {
-      displayedRef.current = baselineSnapshot ?? cursorSnapshot
-      setDisplayedSnapshot(displayedRef.current)
-    }
-
-    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
-      displayedRef.current = cursorSnapshot
-      setDisplayedSnapshot(cursorSnapshot)
-      animationStartTimestampRef.current = null
-      return
-    }
-
-    if (animationFrameRef.current != null) {
-      return
-    }
-
-    function animate(timestamp: number) {
-      const current = displayedRef.current
-      const target = targetRef.current
-      if (!current || !target) {
-        animationFrameRef.current = null
-        lastFrameTimestampRef.current = null
-        animationStartTimestampRef.current = null
         return
       }
 
-      animationStartTimestampRef.current ??= timestamp
-      const previousTimestamp = lastFrameTimestampRef.current ?? timestamp
-      const elapsedMs = Math.min(64, Math.max(0, timestamp - previousTimestamp))
-      lastFrameTimestampRef.current = timestamp
-      const progress = 1 - Math.exp(-elapsedMs / SPORTS_LEGEND_CURSOR_RESPONSE_MS)
-      const next = interpolateSportsLegendCursor(current, target, progress)
-      const remainingDateMs = Math.abs(target.date.getTime() - next.date.getTime())
-      const remainingValue = Math.max(
-        0,
-        ...Object.keys(target.values).map((key) => Math.abs((target.values[key] ?? 0) - (next.values[key] ?? 0))),
-      )
-      const animationElapsedMs = timestamp - animationStartTimestampRef.current
+      function animate(timestamp: number) {
+        const current = displayedRef.current
+        const target = targetRef.current
+        if (!current || !target) {
+          animationFrameRef.current = null
+          lastFrameTimestampRef.current = null
+          animationStartTimestampRef.current = null
+          return
+        }
 
-      if (
-        animationElapsedMs >= SPORTS_LEGEND_CURSOR_MAX_ANIMATION_MS ||
-        (remainingDateMs <= 1 && remainingValue <= 0.01)
-      ) {
-        displayedRef.current = target
-        setDisplayedSnapshot(target)
-        animationFrameRef.current = null
-        lastFrameTimestampRef.current = null
-        animationStartTimestampRef.current = null
-        return
+        animationStartTimestampRef.current ??= timestamp
+        const previousTimestamp = lastFrameTimestampRef.current ?? timestamp
+        const elapsedMs = Math.min(64, Math.max(0, timestamp - previousTimestamp))
+        lastFrameTimestampRef.current = timestamp
+        const progress = 1 - Math.exp(-elapsedMs / SPORTS_LEGEND_CURSOR_RESPONSE_MS)
+        const next = interpolateSportsLegendCursor(current, target, progress)
+        const remainingDateMs = Math.abs(target.date.getTime() - next.date.getTime())
+        const remainingValue = Math.max(
+          0,
+          ...Object.keys(target.values).map((key) => Math.abs((target.values[key] ?? 0) - (next.values[key] ?? 0))),
+        )
+        const animationElapsedMs = timestamp - animationStartTimestampRef.current
+
+        if (
+          animationElapsedMs >= SPORTS_LEGEND_CURSOR_MAX_ANIMATION_MS ||
+          (remainingDateMs <= 1 && remainingValue <= 0.01)
+        ) {
+          displayedRef.current = target
+          setDisplayedSnapshot(target)
+          animationFrameRef.current = null
+          lastFrameTimestampRef.current = null
+          animationStartTimestampRef.current = null
+          return
+        }
+
+        displayedRef.current = next
+        setDisplayedSnapshot(next)
+        animationFrameRef.current = window.requestAnimationFrame(animate)
       }
 
-      displayedRef.current = next
-      setDisplayedSnapshot(next)
       animationFrameRef.current = window.requestAnimationFrame(animate)
-    }
-
-    animationFrameRef.current = window.requestAnimationFrame(animate)
-  }, [baselineSnapshot, cursorSnapshot])
+    },
+    [baselineSnapshot, cursorSnapshot],
+  )
 
   useEffect(
     () => () => {
@@ -290,7 +290,7 @@ function useLaggedSportsLegendCursor({
     [],
   )
 
-  return displayedSnapshot
+  return cursorSnapshot ? (displayedSnapshot ?? baselineSnapshot ?? cursorSnapshot) : null
 }
 
 export function useSportsGameGraphChartSettings() {

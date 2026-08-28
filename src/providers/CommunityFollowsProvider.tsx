@@ -78,10 +78,12 @@ export function CommunityFollowsProvider({ children }: { children: ReactNode }) 
   void authRevision
 
   useEffect(() => {
-    setOverrides(new Map())
     pendingRef.current.clear()
     pushPromptShownRef.current = false
-    setPendingWallets(new Set())
+    queueMicrotask(() => {
+      setOverrides(new Map())
+      setPendingWallets(new Set())
+    })
     void queryClient.invalidateQueries({ queryKey: communityFollowQueryKeys.all })
   }, [queryClient, viewerAddress, viewerDepositWallet])
 

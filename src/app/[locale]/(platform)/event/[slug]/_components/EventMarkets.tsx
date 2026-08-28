@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import type { MarketPositionTag } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
@@ -630,16 +630,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const { rows: marketRows, hasChanceData } = useEventMarketRows(event)
   const { expandedMarketId, toggleMarket, expandMarket, selectDetailTab, getSelectedDetailTab } =
     useMarketDetailController(event.id)
-  const rowChartDeltaCacheRef = useRef<{ eventId: string; values: Record<string, number> }>({
-    eventId: event.id,
-    values: {},
-  })
-  if (rowChartDeltaCacheRef.current.eventId !== event.id) {
-    rowChartDeltaCacheRef.current = {
-      eventId: event.id,
-      values: {},
-    }
-  }
   const rowChartDeltaTargets = useMemo(() => buildRowChartDeltaTargets(event.markets), [event.markets])
   const shouldHydrateChartDeltas = rowChartDeltaTargets.length > 0
   const rowChartDeltaPriceHistory = useEventPriceHistory({
@@ -727,25 +717,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     rowChartDeltaTargets,
     shouldHydrateChartDeltas,
   ])
-  const stableRowChartDeltaYesByMarket = useMemo(() => {
-    if (!shouldHydrateChartDeltas) {
-      return rowChartDeltaCacheRef.current.values
-    }
-
-    const mergedDeltas = { ...rowChartDeltaCacheRef.current.values }
-    rowChartDeltaTargets.forEach((target) => {
-      const delta = rowChartDeltaYesByMarket[target.conditionId]
-      if (typeof delta === 'number' && Number.isFinite(delta)) {
-        mergedDeltas[target.conditionId] = delta
-      }
-    })
-    rowChartDeltaCacheRef.current = {
-      eventId: event.id,
-      values: mergedDeltas,
-    }
-
-    return mergedDeltas
-  }, [event.id, rowChartDeltaTargets, rowChartDeltaYesByMarket, shouldHydrateChartDeltas])
+  const stableRowChartDeltaYesByMarket = rowChartDeltaYesByMarket
   const reviewConditionIds = useReviewConditionIds({ markets: event.markets, currentTimestamp })
   const { resolveResolvedOutcomeIndex } = useTweetMarketResolution({ event, currentTimestamp })
   const chanceRefreshQueryKeys = useMemo(

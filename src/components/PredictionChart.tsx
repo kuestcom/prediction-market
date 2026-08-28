@@ -290,16 +290,17 @@ export default function PredictionChart({
   }, [autoscale, data, series, yAxisMinTicks])
   const yAxisMin = typeof yAxis?.min === 'number' && Number.isFinite(yAxis.min) ? yAxis.min : defaultYAxis.min
   const yAxisMax = typeof yAxis?.max === 'number' && Number.isFinite(yAxis.max) ? yAxis.max : defaultYAxis.max
+  const yAxisTicks = yAxis?.ticks
   const resolvedYAxisTicks = useMemo(() => {
-    if (!Array.isArray(yAxis?.ticks)) {
+    if (!Array.isArray(yAxisTicks)) {
       return normalizeTicks(defaultYAxis.ticks)
     }
-    if (yAxis.ticks.length === 0) {
+    if (yAxisTicks.length === 0) {
       return []
     }
-    const normalizedTicks = normalizeTicks(yAxis.ticks)
+    const normalizedTicks = normalizeTicks(yAxisTicks)
     return normalizedTicks.length > 0 ? normalizedTicks : defaultYAxis.ticks
-  }, [defaultYAxis.ticks, yAxis?.ticks])
+  }, [defaultYAxis.ticks, yAxisTicks])
 
   const domainBounds = useMemo(() => {
     const explicitStart = toDomainTimestamp(xDomain?.start)
