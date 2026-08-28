@@ -54,7 +54,7 @@ describe('openrouter helpers', () => {
     const headers = init.headers as Record<string, string>
     expect(headers.Authorization).toBe('Bearer openrouter-key')
     expect(headers['HTTP-Referer']).toBe('https://kuest.test')
-    expect(headers['X-Title']).toBe('Kuest Runtime')
+    expect(headers['X-OpenRouter-Title']).toBe('Kuest Runtime')
   })
 
   it('loads only web-search-capable models and sends runtime site name in models headers', async () => {
@@ -110,7 +110,7 @@ describe('openrouter helpers', () => {
     const headers = init.headers as Record<string, string>
     expect(headers.Authorization).toBe('Bearer openrouter-key')
     expect(headers['HTTP-Referer']).toBe('https://kuest.test')
-    expect(headers['X-Title']).toBe('Kuest Runtime')
+    expect(headers['X-OpenRouter-Title']).toBe('Kuest Runtime')
   })
 
   it('loads all available models for translation selection', async () => {
@@ -185,5 +185,25 @@ describe('openrouter helpers', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(webSearchModels.map((model) => model.id)).toEqual(['openai/gpt-4o-mini'])
     expect(allModels.map((model) => model.id)).toEqual(['anthropic/claude-sonnet', 'openai/gpt-4o-mini'])
+  })
+
+  it('omits incompatible characters from the runtime site title header', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('测试站点名称')
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const { fetchAllOpenRouterModels } = await import('@/lib/ai/openrouter')
+    await expect(fetchAllOpenRouterModels('openrouter-key')).resolves.toEqual([])
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const headers = init.headers as Record<string, string>
+    expect(headers['X-OpenRouter-Title']).toBeUndefined()
   })
 })

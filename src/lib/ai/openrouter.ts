@@ -36,6 +36,11 @@ const OPENROUTER_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
 const OPENROUTER_WEB_SEARCH_PARAMETER = 'web_search_options'
 const inFlightOpenRouterModelInfo = new Map<string, Promise<OpenRouterModelInfo[]>>()
 
+function sanitizeOpenRouterTitle(value: string) {
+  const withoutDiacritics = value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+  return withoutDiacritics.replace(/[^\x20-\x7e]/g, '').trim()
+}
+
 interface RequestCompletionOptions {
   temperature?: number
   maxTokens?: number
@@ -57,8 +62,9 @@ async function buildOpenRouterHeaders(apiKey: string) {
   }
 
   const siteName = await loadRuntimeThemeSiteName()
-  if (siteName) {
-    headers['X-Title'] = siteName
+  const openRouterTitle = siteName ? sanitizeOpenRouterTitle(siteName) : ''
+  if (openRouterTitle) {
+    headers['X-OpenRouter-Title'] = openRouterTitle
   }
 
   return headers
