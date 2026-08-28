@@ -9,6 +9,7 @@ export const SERIES_KEY = 'live_price'
 export const LIVE_WINDOW_MS = 40 * 1000
 const LIVE_HISTORY_BUFFER_MS = 8 * 1000
 export const LIVE_DATA_RETENTION_MS = LIVE_WINDOW_MS + LIVE_HISTORY_BUFFER_MS
+export const LIVE_IDLE_RECOVERY_DISPLAY_MS = 1_250
 export const LIVE_CLOCK_FRAME_MS = 1000 / 30
 export const LIVE_X_AXIS_STEP_MS = 10 * 1000
 export const LIVE_X_AXIS_RIGHT_INSET = 84
@@ -61,6 +62,44 @@ export function buildLiveSeriesFallbackData(
       [SERIES_KEY]: price,
     },
   ] satisfies DataPoint[]
+}
+
+export function buildLiveSeriesIdleResetData(price: number | null, chartEndTimestamp: number) {
+  return buildLiveSeriesFallbackData(price, chartEndTimestamp, LIVE_WINDOW_MS)
+}
+
+export function shouldResetLiveSeriesAfterIdle(
+  previousArrivalTimestamp: number | null,
+  currentArrivalTimestamp: number,
+  thresholdMs = LIVE_DATA_RETENTION_MS,
+) {
+  if (
+    previousArrivalTimestamp == null ||
+    !Number.isFinite(previousArrivalTimestamp) ||
+    !Number.isFinite(currentArrivalTimestamp) ||
+    !Number.isFinite(thresholdMs) ||
+    thresholdMs <= 0
+  ) {
+    return false
+  }
+
+  return currentArrivalTimestamp - previousArrivalTimestamp >= thresholdMs
+}
+
+export function resolveLiveSeriesIdleRecoverySpan(previousPrice: number | null, currentPrice: number | null) {
+  if (
+    previousPrice == null ||
+    currentPrice == null ||
+    !Number.isFinite(previousPrice) ||
+    !Number.isFinite(currentPrice) ||
+    previousPrice <= 0 ||
+    currentPrice <= 0
+  ) {
+    return null
+  }
+
+  const span = Math.abs(currentPrice - previousPrice)
+  return span > 0 ? span : null
 }
 
 export function resolveLiveChartPaddedDomainEnd({

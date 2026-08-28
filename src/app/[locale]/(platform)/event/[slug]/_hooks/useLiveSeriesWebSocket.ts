@@ -12,14 +12,18 @@ import {
 
 import {
   appendLivePriceTransition,
+  buildLiveSeriesIdleResetData,
   extractLivePriceUpdates,
   isSnapshotMessage,
   keepWithinLiveWindow,
+  LIVE_IDLE_RECOVERY_DISPLAY_MS,
   LIVE_DATA_RETENTION_MS,
   MAX_POINTS,
   normalizeLiveChartPrice,
+  resolveLiveSeriesIdleRecoverySpan,
   resolveLivePriceTransitionDuration,
   SERIES_KEY,
+  shouldResetLiveSeriesAfterIdle,
   writePersistedLivePrice,
 } from '../_utils/eventLiveSeriesChartUtils'
 
@@ -29,6 +33,11 @@ interface UseLiveSeriesWebSocketOptions {
   eventEndTimestamp: number | null
   subscriptionSymbol: string
   isLiveView: boolean
+}
+
+interface LiveSeriesIdleRecovery {
+  version: number
+  priceSpan: number | null
 }
 
 export function useLiveSeriesWebSocket({
@@ -42,6 +51,8 @@ export function useLiveSeriesWebSocket({
   const wsUrl = wsLiveDataUrl
   const eventEndTimestampRef = useRef(eventEndTimestamp)
   const [data, setData] = useState<DataPoint[]>([])
+  const [idleRecovery, setIdleRecovery] = useState<LiveSeriesIdleRecovery | null>(null)
+  const [idleRecoveryVersion, setIdleRecoveryVersion] = useState(0)
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(() => (wsUrl ? 'connecting' : 'offline'))
 
   useEffect(
@@ -66,6 +77,38 @@ export function useLiveSeriesWebSocket({
       let isActive = true
       let ws: WebSocket | null = null
       let previousPriceMessageTimestamp: number | null = null
+      let lastMessageArrivalTimestamp: number | null = null
+      let latestKnownPrice: number | null = null
+      let hiddenAtTimestamp: number | null = document.hidden ? Date.now() : null
+      let idleRecoveryRequested = false
+      let idleRecoveryUntilTimestamp: number | null = null
+      let idleRecoveryVersion = 0
+      let idleRecoveryClearTimeout: number | null = null
+
+      function clearIdleRecoveryTimer() {
+        if (idleRecoveryClearTimeout == null) {
+          return
+        }
+
+        window.clearTimeout(idleRecoveryClearTimeout)
+        idleRecoveryClearTimeout = null
+      }
+
+      function startIdleRecovery(currentPrice: number, recoveryTimestamp: number) {
+        idleRecoveryVersion += 1
+        idleRecoveryUntilTimestamp = recoveryTimestamp + LIVE_IDLE_RECOVERY_DISPLAY_MS
+        setIdleRecoveryVersion(idleRecoveryVersion)
+        setIdleRecovery({
+          version: idleRecoveryVersion,
+          priceSpan: resolveLiveSeriesIdleRecoverySpan(latestKnownPrice, currentPrice),
+        })
+        clearIdleRecoveryTimer()
+        idleRecoveryClearTimeout = window.setTimeout(() => {
+          idleRecoveryClearTimeout = null
+          idleRecoveryUntilTimestamp = null
+          setIdleRecovery(null)
+        }, LIVE_IDLE_RECOVERY_DISPLAY_MS)
+      }
 
       function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
         const filters = JSON.stringify({
@@ -132,6 +175,29 @@ export function useLiveSeriesWebSocket({
         }
         heartbeatController?.markActivity(socket, arrivalTimestamp)
 
+        const latest = wsUpdatesForRender.at(-1)
+        if (!latest) {
+          return
+        }
+
+        const idleGapDetected = shouldResetLiveSeriesAfterIdle(
+          lastMessageArrivalTimestamp,
+          arrivalTimestamp,
+          LIVE_DATA_RETENTION_MS,
+        )
+        const idleRecoveryIsActive = idleRecoveryUntilTimestamp != null && arrivalTimestamp < idleRecoveryUntilTimestamp
+        const shouldReanchorAfterIdle = idleRecoveryRequested || idleGapDetected || idleRecoveryIsActive
+
+        if (idleRecoveryRequested || idleGapDetected) {
+          if (!idleRecoveryIsActive) {
+            startIdleRecovery(latest.price, arrivalTimestamp)
+          }
+          idleRecoveryRequested = false
+        }
+
+        lastMessageArrivalTimestamp = arrivalTimestamp
+        latestKnownPrice = latest.price
+
         const cadenceTransitionDurationMs = resolveLivePriceTransitionDuration(
           previousPriceMessageTimestamp,
           arrivalTimestamp,
@@ -145,13 +211,17 @@ export function useLiveSeriesWebSocket({
         previousPriceMessageTimestamp = arrivalTimestamp
 
         setStatus('live')
-        const latest = wsUpdatesForRender.at(-1)
-        if (latest) {
-          writePersistedLivePrice(topic, subscriptionSymbol, latest.price, latest.timestamp)
-        }
+        writePersistedLivePrice(topic, subscriptionSymbol, latest.price, latest.timestamp)
 
         setData((prev) => {
           const cutoff = arrivalTimestamp - LIVE_DATA_RETENTION_MS
+
+          if (shouldReanchorAfterIdle) {
+            // A resumed connection may deliver a large historical snapshot or a
+            // backlog of updates. Keep only the current value and let the next
+            // live update continue from this fresh 40-second window.
+            return buildLiveSeriesIdleResetData(latest.price, transitionStartTimestamp)
+          }
 
           if (messageIsSnapshot) {
             let lastSnapshotTimestamp: number | null = null
@@ -212,7 +282,15 @@ export function useLiveSeriesWebSocket({
       }
 
       function handleVisibilityChange() {
-        if (!document.hidden) {
+        const visibilityTimestamp = Date.now()
+        if (document.hidden) {
+          hiddenAtTimestamp ??= visibilityTimestamp
+        } else {
+          const hiddenDuration = hiddenAtTimestamp == null ? 0 : visibilityTimestamp - hiddenAtTimestamp
+          if (hiddenDuration >= LIVE_DATA_RETENTION_MS) {
+            idleRecoveryRequested = true
+          }
+          hiddenAtTimestamp = null
           previousPriceMessageTimestamp = null
           setStatus('connecting')
         }
@@ -275,6 +353,8 @@ export function useLiveSeriesWebSocket({
       return function cleanupLiveSeriesWebSocket() {
         isActive = false
         setStatus('offline')
+        clearIdleRecoveryTimer()
+        idleRecoveryUntilTimestamp = null
         heartbeatController.clear()
         clearReconnect()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
@@ -294,5 +374,5 @@ export function useLiveSeriesWebSocket({
     [eventType, topic, isLiveView, wsUrl, subscriptionSymbol],
   )
 
-  return { data, status }
+  return { data, idleRecovery, idleRecoveryVersion, status }
 }

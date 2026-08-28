@@ -352,7 +352,7 @@ function EventLiveSeriesChartContent({
     [config.active_window_minutes, realtimeTopic],
   )
 
-  const { data, status } = useLiveSeriesWebSocket({
+  const { data, idleRecovery, idleRecoveryVersion, status } = useLiveSeriesWebSocket({
     topic: realtimeTopic,
     eventType: config.event_type,
     eventEndTimestamp: explicitEndTimestamp,
@@ -704,6 +704,17 @@ function EventLiveSeriesChartContent({
       values.push(axisCurrentPrice)
     }
 
+    const recoverySpan = idleRecovery?.priceSpan
+    if (
+      recoverySpan != null &&
+      recoverySpan > 0 &&
+      typeof axisCurrentPrice === 'number' &&
+      Number.isFinite(axisCurrentPrice)
+    ) {
+      // Keep the resumed price centered while the scale absorbs a large idle-time move.
+      values.push(Math.max(0, axisCurrentPrice - recoverySpan), axisCurrentPrice + recoverySpan)
+    }
+
     return buildContinuousLiveAxis(
       values,
       axisCurrentPrice,
@@ -711,13 +722,16 @@ function EventLiveSeriesChartContent({
       featuredChartLayout ? 4 : LIVE_AXIS_TARGET_TICK_INTERVALS,
       featuredChartLayout ? FEATURED_LIVE_AXIS_MINIMUM_PRICE_SPAN_RATIO : LIVE_AXIS_MINIMUM_PRICE_SPAN_RATIO,
     )
-  }, [axisCurrentPrice, axisPriceDisplayDigits, dataSource, featuredChartLayout, renderData])
+  }, [axisCurrentPrice, axisPriceDisplayDigits, dataSource, featuredChartLayout, idleRecovery, renderData])
   const axisInitializationPhase =
     data.length > 0 ? 'realtime-ready' : dataSource.length > 0 ? 'reference-ready' : 'empty'
   const chartScopeKey = preserveSeriesContinuity
     ? `${config.series_slug}:${config.topic}:${config.event_type}:${subscriptionSymbol}`
     : `${event.id}:${realtimeTopic}:${subscriptionSymbol}`
-  const axisValues = useStableLiveChartAxis(candidateAxisValues, `${chartScopeKey}:${axisInitializationPhase}`)
+  const axisValues = useStableLiveChartAxis(
+    candidateAxisValues,
+    `${chartScopeKey}:${axisInitializationPhase}:${idleRecoveryVersion}`,
+  )
 
   const currentLineTop = (() => {
     if (currentPrice == null) {

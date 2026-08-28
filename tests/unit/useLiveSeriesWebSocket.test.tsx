@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useLiveSeriesWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesWebSocket'
 import {
+  LIVE_DATA_RETENTION_MS,
   resolveLivePriceTransitionDuration,
   SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
@@ -368,6 +369,80 @@ describe('useLiveSeriesWebSocket', () => {
 
     expect(result.current.data).toBe(visibleData)
     expect(result.current.data).toHaveLength(2)
+    hiddenSpy.mockRestore()
+  })
+
+  it('reanchors to the latest price instead of rendering a long-idle snapshot backlog', () => {
+    const { result, socket } = mountHook()
+
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: now - 1_000 }],
+      }),
+    )
+
+    now += LIVE_DATA_RETENTION_MS + 1_000
+    const snapshot = Array.from({ length: 300 }, (_, index) => ({
+      symbol: 'BTC',
+      value: 100 + index / 100,
+      timestamp: now - 30_000 + index * 100,
+    }))
+
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        payload: { data: snapshot },
+      }),
+    )
+
+    expect(result.current.data).toHaveLength(2)
+    expect(result.current.data.every((point) => point[SERIES_KEY] === 102.99)).toBe(true)
+    expect(result.current.idleRecoveryVersion).toBe(1)
+    expect(result.current.idleRecovery?.priceSpan).toBeCloseTo(2.99)
+  })
+
+  it('reanchors after a long hidden period even when updates arrived while hidden', () => {
+    let isHidden = false
+    const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockImplementation(() => isHidden)
+    const { result, socket } = mountHook()
+
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: now - 1_000 }],
+      }),
+    )
+
+    act(() => {
+      isHidden = true
+      document.dispatchEvent(new Event('visibilitychange'))
+      now += LIVE_DATA_RETENTION_MS + 1_000
+      socket.emitMessage({
+        type: 'update',
+        symbol: 'BTC',
+        value: 120,
+        timestamp: now,
+      })
+      isHidden = false
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        payload: {
+          data: [
+            { symbol: 'BTC', value: 150, timestamp: now - 1_000 },
+            { symbol: 'BTC', value: 151, timestamp: now },
+          ],
+        },
+      }),
+    )
+
+    expect(result.current.data).toHaveLength(2)
+    expect(result.current.data.every((point) => point[SERIES_KEY] === 151)).toBe(true)
+    expect(result.current.idleRecoveryVersion).toBe(1)
     hiddenSpy.mockRestore()
   })
 })
