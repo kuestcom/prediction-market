@@ -53,7 +53,12 @@ import {
   SERIES_KEY,
   toCountdownLeftLabel,
 } from '../_utils/eventLiveSeriesChartUtils'
-import { buildContinuousLiveAxis, interpolateLiveChartAxis, type LiveChartAxis } from '../_utils/liveSeriesChartAxis'
+import {
+  buildContinuousLiveAxis,
+  buildLiveChartRecoveryValues,
+  interpolateLiveChartAxis,
+  type LiveChartAxis,
+} from '../_utils/liveSeriesChartAxis'
 import {
   resolveLiveSeriesAxisPriceDigits,
   resolveLiveSeriesDeltaDisplayDigits,
@@ -704,15 +709,10 @@ function EventLiveSeriesChartContent({
       values.push(axisCurrentPrice)
     }
 
-    const recoverySpan = idleRecovery?.priceSpan
-    if (
-      recoverySpan != null &&
-      recoverySpan > 0 &&
-      typeof axisCurrentPrice === 'number' &&
-      Number.isFinite(axisCurrentPrice)
-    ) {
+    const recoveryValues = buildLiveChartRecoveryValues(axisCurrentPrice, idleRecovery?.priceSpan ?? null)
+    if (recoveryValues.length > 0) {
       // Keep the resumed price centered while the scale absorbs a large idle-time move.
-      values.push(Math.max(0, axisCurrentPrice - recoverySpan), axisCurrentPrice + recoverySpan)
+      values.push(...recoveryValues)
     }
 
     return buildContinuousLiveAxis(

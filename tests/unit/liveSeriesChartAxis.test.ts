@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildContinuousLiveAxis,
+  buildLiveChartRecoveryValues,
   interpolateLiveChartAxis,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/liveSeriesChartAxis'
 
@@ -20,5 +21,10 @@ describe('live series chart axis', () => {
 
     expect(interpolated.ticks.every((tick) => tick >= interpolated.min && tick <= interpolated.max)).toBe(true)
     expect(interpolated.ticks).not.toEqual(target.ticks)
+  })
+
+  it('keeps a large downward recovery range symmetric and nonnegative', () => {
+    expect(buildLiveChartRecoveryValues(40, 60)).toEqual([0, 80])
+    expect(buildLiveChartRecoveryValues(100, 20)).toEqual([80, 120])
   })
 })

@@ -38,6 +38,22 @@ function buildTicksForBounds(min: number, max: number, fractionDigits: number, t
   }
 }
 
+export function buildLiveChartRecoveryValues(currentPrice: number | null, recoverySpan: number | null) {
+  if (
+    currentPrice == null ||
+    recoverySpan == null ||
+    !Number.isFinite(currentPrice) ||
+    !Number.isFinite(recoverySpan) ||
+    currentPrice <= 0 ||
+    recoverySpan <= 0
+  ) {
+    return []
+  }
+
+  const boundedSpan = Math.min(recoverySpan, currentPrice)
+  return [currentPrice - boundedSpan, currentPrice + boundedSpan]
+}
+
 export function buildContinuousLiveAxis(
   values: number[],
   currentPrice: number | null,

@@ -355,6 +355,8 @@ export function useLiveSeriesWebSocket({
         setStatus('offline')
         clearIdleRecoveryTimer()
         idleRecoveryUntilTimestamp = null
+        setIdleRecovery(null)
+        setIdleRecoveryVersion(0)
         heartbeatController.clear()
         clearReconnect()
         document.removeEventListener('visibilitychange', handleVisibilityChange)

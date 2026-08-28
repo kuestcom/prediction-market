@@ -445,4 +445,46 @@ describe('useLiveSeriesWebSocket', () => {
     expect(result.current.idleRecoveryVersion).toBe(1)
     hiddenSpy.mockRestore()
   })
+
+  it('clears idle recovery state when the websocket effect is recreated', () => {
+    const view = renderHook(
+      ({ subscriptionSymbol }) =>
+        useLiveSeriesWebSocket({
+          topic: 'crypto_prices',
+          eventType: 'price',
+          eventEndTimestamp: null,
+          subscriptionSymbol,
+          isLiveView: true,
+        }),
+      { initialProps: { subscriptionSymbol: 'BTC' } },
+    )
+    const firstSocket = MockWebSocket.instances[0]!
+    act(() => firstSocket.emitOpen())
+
+    act(() =>
+      firstSocket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: now - 1_000 }],
+      }),
+    )
+
+    now += LIVE_DATA_RETENTION_MS + 1_000
+    act(() =>
+      firstSocket.emitMessage({
+        type: 'update',
+        symbol: 'BTC',
+        value: 120,
+        timestamp: now,
+      }),
+    )
+
+    expect(view.result.current.idleRecoveryVersion).toBe(1)
+    expect(view.result.current.idleRecovery).not.toBeNull()
+
+    view.rerender({ subscriptionSymbol: 'ETH' })
+
+    expect(view.result.current.idleRecovery).toBeNull()
+    expect(view.result.current.idleRecoveryVersion).toBe(0)
+    view.unmount()
+  })
 })
