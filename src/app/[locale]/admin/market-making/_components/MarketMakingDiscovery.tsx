@@ -2217,6 +2217,7 @@ function CampaignDialog({
                   render={
                     <button
                       type="button"
+                      disabled={usesImportFlow || sponsorSeries || !hasSelectableServiceWindow}
                       className="flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     />
                   }
@@ -2252,7 +2253,7 @@ function CampaignDialog({
                     startMonth={hasSelectableServiceWindow ? minimumServiceEndDate : marketEndDate}
                     endMonth={marketEndDate}
                     disabled={
-                      sponsorSeries || !hasSelectableServiceWindow
+                      usesImportFlow || sponsorSeries || !hasSelectableServiceWindow
                         ? true
                         : { before: minimumServiceEndDate, after: marketEndDate }
                     }
@@ -2299,59 +2300,59 @@ function CampaignDialog({
           <aside className="mt-4 flex flex-col gap-3 lg:sticky lg:top-0 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:min-h-0 lg:overflow-y-auto">
             <section className="relative rounded-xl border bg-muted/60 p-3.5 sm:p-4">
               <div className="space-y-3 text-sm">
-                <div className="flex items-start justify-between gap-3 border-b pb-3">
-                  <div className="min-w-0">
+                <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5 border-b pb-3">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="font-medium">{copy.makerReward}</span>
-                    </div>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Label htmlFor="sponsor-premium" className="text-xs text-muted-foreground">
-                          {copy.sponsorPremium}
-                        </Label>
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <button
-                                type="button"
-                                className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                aria-label={copy.sponsorPremiumHelp}
-                              />
-                            }
-                          >
-                            <CircleHelpIcon className="size-3.5" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-72 text-sm">{copy.sponsorPremiumHelp}</TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <div className="relative w-20 shrink-0">
-                        <Input
-                          id="sponsor-premium"
-                          type="number"
-                          min={0}
-                          max={1000}
-                          step={1}
-                          inputMode="numeric"
-                          value={sponsorPremiumPercent}
-                          aria-invalid={!sponsorPremiumValid}
-                          onChange={(event) => {
-                            const value = event.target.value
-                            if (isSponsorPremiumValid(value)) {
-                              setSponsorPremiumPercent(value)
-                              clearIssuedQuote()
-                            }
-                          }}
-                          className="h-8 pr-6 text-right text-xs"
-                        />
-                        <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">
-                          %
-                        </span>
-                      </div>
                     </div>
                   </div>
                   <span className="shrink-0 font-medium">
                     {breakdown ? formatUsdcString(breakdown.marketMakerReward, locale) : '—'}
                   </span>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="sponsor-premium" className="text-xs text-muted-foreground">
+                        {copy.sponsorPremium}
+                      </Label>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                              aria-label={copy.sponsorPremiumHelp}
+                            />
+                          }
+                        >
+                          <CircleHelpIcon className="size-3.5" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-72 text-sm">{copy.sponsorPremiumHelp}</TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="relative w-20 shrink-0">
+                      <Input
+                        id="sponsor-premium"
+                        type="number"
+                        min={0}
+                        max={1000}
+                        step={1}
+                        inputMode="numeric"
+                        value={sponsorPremiumPercent}
+                        aria-invalid={!sponsorPremiumValid}
+                        onChange={(event) => {
+                          const value = event.target.value
+                          if (isSponsorPremiumValid(value)) {
+                            setSponsorPremiumPercent(value)
+                            clearIssuedQuote()
+                          }
+                        }}
+                        className="h-8 pr-6 text-right text-xs"
+                      />
+                      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">
+                        %
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {!isConnected ? (

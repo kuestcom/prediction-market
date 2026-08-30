@@ -1,7 +1,15 @@
 'use client'
 
 import { useDisconnect } from '@reown/appkit/react'
-import { ChevronDownIcon, DownloadIcon, GiftIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
+import {
+  ChevronDownIcon,
+  DownloadIcon,
+  GiftIcon,
+  SettingsIcon,
+  ShieldKeyholeIcon,
+  TrophyIcon,
+  UnplugIcon,
+} from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
@@ -298,12 +306,12 @@ export default function HeaderDropdownUserMenuAuth() {
               render={<Link href="/admin" className="flex w-full items-center gap-1.5" />}
               className="py-2 text-sm font-semibold"
             >
-              <ShieldIcon className="size-4 text-current" />
+              <ShieldKeyholeIcon className="size-4 text-current" />
               {t('Admin')}
             </DropdownMenuLinkItem>
           )}
 
-          <div className="flex items-center justify-between gap-2 px-2 py-1 text-sm font-semibold">
+          <div className="flex cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm font-semibold transition-colors hover:bg-accent hover:text-accent-foreground">
             <span>{t('Dark Mode')}</span>
             <ThemeSelector />
           </div>
