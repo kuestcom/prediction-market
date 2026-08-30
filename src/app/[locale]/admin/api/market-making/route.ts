@@ -514,7 +514,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const search = (searchParams.get('q') ?? '').trim().slice(0, 120)
+    const fullSearch = (searchParams.get('q') ?? '').trim()
+    const polymarketUrl = parsePolymarketUrl(fullSearch)
+    const search = polymarketUrl ? fullSearch : fullSearch.slice(0, 120)
     const requestedSource = searchParams.get('source')
     const source = isSourceFilter(requestedSource) ? requestedSource : 'all'
     const requestedLimit = Number.parseInt(searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10)
@@ -524,7 +526,7 @@ export async function GET(request: NextRequest) {
     const now = Date.now()
     const kuestMinimumEnd = new Date(now + eligibility.kuestSeconds * 1_000)
     const seriesMinimumEnd = new Date(now + 10_800_000)
-    const isPolymarketUrl = Boolean(parsePolymarketUrl(search))
+    const isPolymarketUrl = Boolean(polymarketUrl)
 
     const shouldLoadKuest = source !== 'polymarket' && !(source === 'all' && isPolymarketUrl)
     const shouldLoadPolymarket = source === 'all' || source === 'polymarket'

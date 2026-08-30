@@ -26,6 +26,18 @@ export interface GammaEventLike {
 
 type PolymarketUrlKind = 'event' | 'market'
 
+export function isSponsorPremiumValid(value: string) {
+  return value === '' || (/^\d{1,4}$/.test(value) && Number(value) <= 1000)
+}
+
+export function shouldResetImportActions(previousImportId: string | null, nextImportId: string | null) {
+  return previousImportId?.toLowerCase() !== nextImportId?.toLowerCase()
+}
+
+export function shouldAutoCompleteDeployment(awaitingFinalization: boolean, campaignId: bigint | undefined) {
+  return awaitingFinalization && campaignId !== undefined && campaignId > 0n
+}
+
 export interface PolymarketUrlLookup {
   kind: PolymarketUrlKind
   slug: string

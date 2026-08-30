@@ -6,9 +6,12 @@ import {
   filterEligiblePolymarketEvents,
   getPolymarketEndDateMin,
   getPolymarketRequestLimit,
+  isSponsorPremiumValid,
   isPolymarketEventOnKuest,
   kuestSeriesMetadata,
   parsePolymarketUrl,
+  shouldAutoCompleteDeployment,
+  shouldResetImportActions,
 } from '@/lib/market-making-discovery'
 import {
   buildMarketMakerQuoteInput,
@@ -31,6 +34,25 @@ describe('series market-making helpers', () => {
     })
     expect(parsePolymarketUrl('https://example.com/event/example-event')).toBeNull()
     expect(parsePolymarketUrl('https://polymarket.com/profile/example-event')).toBeNull()
+  })
+
+  it('blocks funding when sponsor premium is invalid', () => {
+    expect(isSponsorPremiumValid('')).toBe(true)
+    expect(isSponsorPremiumValid('1000')).toBe(true)
+    expect(isSponsorPremiumValid('1001')).toBe(false)
+    expect(isSponsorPremiumValid('10.5')).toBe(false)
+  })
+
+  it('resets cancellation and withdrawal state only when the import changes', () => {
+    expect(shouldResetImportActions('0xABC', '0xabc')).toBe(false)
+    expect(shouldResetImportActions('0xabc', '0xdef')).toBe(true)
+    expect(shouldResetImportActions('0xabc', null)).toBe(true)
+  })
+
+  it('only auto-completes a deployment finalized during the active flow', () => {
+    expect(shouldAutoCompleteDeployment(false, 1n)).toBe(false)
+    expect(shouldAutoCompleteDeployment(true, 0n)).toBe(false)
+    expect(shouldAutoCompleteDeployment(true, 1n)).toBe(true)
   })
 
   it('preserves legacy event import keys and isolates series imports', () => {

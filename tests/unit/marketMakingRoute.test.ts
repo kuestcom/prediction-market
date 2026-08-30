@@ -93,4 +93,37 @@ describe('market-making Polymarket URL search', () => {
     expect(mocks.fetch.mock.calls[1]?.[0]).toBe(endpoint)
     expect(body.data[0]).toMatchObject({ source: 'polymarket', title })
   })
+
+  it('uses a valid long Polymarket URL for direct slug lookup', async () => {
+    const slug = `market-${'a'.repeat(130)}`
+    const query = `https://polymarket.com/market/${slug}`
+    expect(query.length).toBeGreaterThan(120)
+    vi.setSystemTime(new Date('2026-08-30T00:00:00.000Z'))
+    mocks.fetch.mockResolvedValueOnce(
+      jsonResponse({
+        slug,
+        question: 'Long market',
+        conditionId: '0xlong',
+        active: true,
+        acceptingOrders: true,
+        endDate: '2026-09-30T00:00:00.000Z',
+      }),
+    )
+
+    const response = await GET(requestFor(query))
+
+    expect(response.status).toBe(200)
+    expect(mocks.fetch.mock.calls[1]?.[0]).toBe(`https://gamma.test/markets/slug/${slug}`)
+  })
+
+  it('limits ordinary text searches to 120 characters', async () => {
+    const query = 'a'.repeat(180)
+    mocks.fetch.mockResolvedValueOnce(jsonResponse({ events: [] }))
+
+    const response = await GET(requestFor(query))
+    const endpoint = new URL(String(mocks.fetch.mock.calls[1]?.[0]))
+
+    expect(response.status).toBe(200)
+    expect(endpoint.searchParams.get('q')).toBe(query.slice(0, 120))
+  })
 })

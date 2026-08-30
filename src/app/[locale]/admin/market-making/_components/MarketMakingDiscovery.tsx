@@ -69,6 +69,11 @@ import {
 } from '@/lib/kuest-notifications'
 import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
 import {
+  isSponsorPremiumValid,
+  shouldAutoCompleteDeployment,
+  shouldResetImportActions,
+} from '@/lib/market-making-discovery'
+import {
   buildMarketMakerQuoteInput,
   displayedCostAtomic,
   marketImportStorageKey,
@@ -1196,6 +1201,8 @@ function CampaignDialog({
   const [isWithdrawingImport, setIsWithdrawingImport] = useState(false)
   const [importCancellationCompleted, setImportCancellationCompleted] = useState(false)
   const [importWithdrawalCompleted, setImportWithdrawalCompleted] = useState(false)
+  const awaitingDeploymentFinalization = useRef(false)
+  const currentImportId = useRef<string | null>(null)
   const [readyNotified, setReadyNotified] = useState(false)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [notificationEmail, setNotificationEmail] = useState('')
@@ -1215,8 +1222,7 @@ function CampaignDialog({
       : null
   const importPaymentStorageKey = importStorageKey ? `${importStorageKey}:payment` : null
   const [pendingImportPaymentHash, setPendingImportPaymentHash] = useState<string | null>(null)
-  const sponsorPremiumValid =
-    sponsorPremiumPercent === '' || (/^\d{1,4}$/.test(sponsorPremiumPercent) && Number(sponsorPremiumPercent) <= 1000)
+  const sponsorPremiumValid = isSponsorPremiumValid(sponsorPremiumPercent)
   const sponsorPremiumBps = sponsorPremiumValid ? Number(sponsorPremiumPercent || 0) * 100 : undefined
 
   useEffect(() => {
@@ -1356,7 +1362,7 @@ function CampaignDialog({
     const storedPayment = importPaymentStorageKey ? window.localStorage.getItem(importPaymentStorageKey) : null
     queueMicrotask(() => {
       if (stored?.startsWith('0x')) {
-        setImportId(stored)
+        setActiveImportId(stored)
       }
       if (storedPayment?.startsWith('0x')) {
         setPendingImportPaymentHash(storedPayment)
@@ -1439,10 +1445,11 @@ function CampaignDialog({
   })
 
   useEffect(() => {
-    if (deploymentCampaignQuery.data === undefined || deploymentCampaignQuery.data === 0n) {
+    if (!shouldAutoCompleteDeployment(awaitingDeploymentFinalization.current, deploymentCampaignQuery.data)) {
       return
     }
     void queryClient.invalidateQueries({ queryKey: ['market-making-campaigns'] })
+    awaitingDeploymentFinalization.current = false
     toast.success(copy.campaignCreated)
     onOpenChange(false)
   }, [copy.campaignCreated, deploymentCampaignQuery.data, onOpenChange, queryClient])
@@ -1505,6 +1512,23 @@ function CampaignDialog({
   function clearIssuedQuote() {
     setIssuedQuote(null)
     setIssueError(null)
+  }
+
+  function setActiveImportId(nextImportId: string | null) {
+    if (shouldResetImportActions(currentImportId.current, nextImportId)) {
+      setImportCancellationCompleted(false)
+      setImportWithdrawalCompleted(false)
+      awaitingDeploymentFinalization.current = false
+    }
+    currentImportId.current = nextImportId
+    setImportId(nextImportId)
+  }
+
+  function handleCampaignOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      awaitingDeploymentFinalization.current = false
+    }
+    onOpenChange(nextOpen)
   }
 
   async function handleRetryImport() {
@@ -1743,6 +1767,9 @@ function CampaignDialog({
   }
 
   async function handleFundCampaign() {
+    if (!sponsorPremiumValid) {
+      return
+    }
     if (!isConnected || !address) {
       try {
         await openAppKit()
@@ -1786,7 +1813,7 @@ function CampaignDialog({
             window.localStorage.removeItem(importPaymentStorageKey)
           }
           activeImport = null
-          setImportId(null)
+          setActiveImportId(null)
           setImportValue(null)
           setPendingImportPaymentHash(null)
         }
@@ -1804,7 +1831,7 @@ function CampaignDialog({
               ...('series' in quoteInput ? { series: quoteInput.series } : {}),
             }),
           })
-          setImportId(activeImport.importId)
+          setActiveImportId(activeImport.importId)
           setImportValue(activeImport)
           setImportOpen(true)
           if (importStorageKey) {
@@ -1819,7 +1846,6 @@ function CampaignDialog({
           args: [activeImport.importId as `0x${string}`],
         })
         if (finalizedCampaignId > 0n) {
-          onOpenChange(false)
           return
         }
 
@@ -1934,6 +1960,17 @@ function CampaignDialog({
             hasDeploymentReservation = true
           }
         }
+        if (item.needsDeployment && !activeImport.reusable && hasDeploymentReservation) {
+          const currentCampaignId = await publicClient.readContract({
+            address: MARKET_MAKER_ESCROW_ADDRESS,
+            abi: MARKET_MAKER_ESCROW_ABI,
+            functionName: 'deploymentCampaignId',
+            args: [activeImport.importId as `0x${string}`],
+          })
+          if (currentCampaignId === 0n) {
+            awaitingDeploymentFinalization.current = true
+          }
+        }
         if (!['ready', 'activated'].includes(activeImport.state)) {
           return
         }
@@ -2020,7 +2057,7 @@ function CampaignDialog({
       }
       await queryClient.invalidateQueries({ queryKey: ['market-making-campaigns'] })
       toast.success(copy.campaignCreated)
-      onOpenChange(false)
+      handleCampaignOpenChange(false)
     } catch (error) {
       if (error instanceof EscrowApiError && error.code === 'verified_email_required') {
         setIssueError(null)
@@ -2247,7 +2284,7 @@ function CampaignDialog({
                     if (!checked) {
                       setServiceEnd(marketEndDate)
                     }
-                    setImportId(null)
+                    setActiveImportId(null)
                     setImportValue(null)
                     setPendingImportPaymentHash(null)
                     clearIssuedQuote()
@@ -2297,7 +2334,7 @@ function CampaignDialog({
                           aria-invalid={!sponsorPremiumValid}
                           onChange={(event) => {
                             const value = event.target.value
-                            if (value === '' || /^\d{0,4}$/.test(value)) {
+                            if (isSponsorPremiumValid(value)) {
                               setSponsorPremiumPercent(value)
                               clearIssuedQuote()
                             }
@@ -2399,6 +2436,7 @@ function CampaignDialog({
             className="w-full"
             disabled={
               isIssuing ||
+              !sponsorPremiumValid ||
               (isConnected &&
                 (preview?.status !== 'priced' ||
                   previewQuery.isLoading ||
@@ -2428,14 +2466,14 @@ function CampaignDialog({
   if (isMobile) {
     return (
       <>
-        <Drawer open={open} onOpenChange={onOpenChange}>
+        <Drawer open={open} onOpenChange={handleCampaignOpenChange}>
           <DrawerContent className="flex max-h-[90dvh] w-full flex-col overflow-hidden bg-background">
             <DrawerHeader className="sr-only">
               <DrawerTitle>{copy.sponsor}</DrawerTitle>
               <DrawerDescription>{copy.campaignDescription}</DrawerDescription>
             </DrawerHeader>
             <div className="absolute top-3 right-3 z-10">
-              <Button type="button" variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => handleCampaignOpenChange(false)}>
                 <XIcon className="size-5" />
                 <span className="sr-only">{copy.close}</span>
               </Button>
@@ -2476,7 +2514,7 @@ function CampaignDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={handleCampaignOpenChange}>
         <DialogContent className="flex max-h-[90dvh] max-w-5xl flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-5xl">
           <DialogHeader className="sr-only">
             <DialogTitle>{copy.sponsor}</DialogTitle>
