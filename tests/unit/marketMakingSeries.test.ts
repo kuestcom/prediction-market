@@ -11,6 +11,7 @@ import {
   kuestSeriesMetadata,
   parsePolymarketUrl,
   shouldAutoCompleteDeployment,
+  shouldCloseExistingDeployment,
   shouldResetImportActions,
 } from '@/lib/market-making-discovery'
 import {
@@ -50,6 +51,8 @@ describe('series market-making helpers', () => {
   })
 
   it('only auto-completes a deployment finalized during the active flow', () => {
+    expect(shouldCloseExistingDeployment(1n)).toBe(true)
+    expect(shouldCloseExistingDeployment(0n)).toBe(false)
     expect(shouldAutoCompleteDeployment(false, 1n)).toBe(false)
     expect(shouldAutoCompleteDeployment(true, 0n)).toBe(false)
     expect(shouldAutoCompleteDeployment(true, 1n)).toBe(true)

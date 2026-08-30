@@ -71,6 +71,7 @@ import { MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
 import {
   isSponsorPremiumValid,
   shouldAutoCompleteDeployment,
+  shouldCloseExistingDeployment,
   shouldResetImportActions,
 } from '@/lib/market-making-discovery'
 import {
@@ -1845,7 +1846,8 @@ function CampaignDialog({
           functionName: 'deploymentCampaignId',
           args: [activeImport.importId as `0x${string}`],
         })
-        if (finalizedCampaignId > 0n) {
+        if (shouldCloseExistingDeployment(finalizedCampaignId)) {
+          handleCampaignOpenChange(false)
           return
         }
 

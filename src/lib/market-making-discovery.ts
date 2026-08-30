@@ -38,6 +38,10 @@ export function shouldAutoCompleteDeployment(awaitingFinalization: boolean, camp
   return awaitingFinalization && campaignId !== undefined && campaignId > 0n
 }
 
+export function shouldCloseExistingDeployment(campaignId: bigint | undefined) {
+  return campaignId !== undefined && campaignId > 0n
+}
+
 export interface PolymarketUrlLookup {
   kind: PolymarketUrlKind
   slug: string
