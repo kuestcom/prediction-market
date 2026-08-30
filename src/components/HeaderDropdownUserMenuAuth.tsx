@@ -311,7 +311,7 @@ export default function HeaderDropdownUserMenuAuth() {
             </DropdownMenuLinkItem>
           )}
 
-          <div className="flex cursor-pointer items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm font-semibold transition-colors hover:bg-accent hover:text-accent-foreground">
+          <div className="flex items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-sm font-semibold transition-colors hover:bg-accent hover:text-accent-foreground">
             <span>{t('Dark Mode')}</span>
             <ThemeSelector />
           </div>
