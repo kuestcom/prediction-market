@@ -8,6 +8,7 @@ import {
   getPolymarketRequestLimit,
   isPolymarketEventOnKuest,
   kuestSeriesMetadata,
+  parsePolymarketUrl,
 } from '@/lib/market-making-discovery'
 import {
   buildMarketMakerQuoteInput,
@@ -19,6 +20,19 @@ import {
 } from '@/lib/market-making-series'
 
 describe('series market-making helpers', () => {
+  it('parses Polymarket event and market URLs', () => {
+    expect(parsePolymarketUrl('https://polymarket.com/event/example-event?utm_source=test')).toEqual({
+      kind: 'event',
+      slug: 'example-event',
+    })
+    expect(parsePolymarketUrl('https://www.polymarket.com/market/example-market/')).toEqual({
+      kind: 'market',
+      slug: 'example-market',
+    })
+    expect(parsePolymarketUrl('https://example.com/event/example-event')).toBeNull()
+    expect(parsePolymarketUrl('https://polymarket.com/profile/example-event')).toBeNull()
+  })
+
   it('preserves legacy event import keys and isolates series imports', () => {
     const params = {
       chainId: 80002,
@@ -74,6 +88,7 @@ describe('series market-making helpers', () => {
       conditionIds: ['0x' + '11'.repeat(32)],
       depthPerSideAtomic: '1000000000',
       maxSpreadBps: 300,
+      sponsorPremiumBps: 0,
       series: {
         enabled: true,
         seriesSlug: 'btc-up-or-down-15m',

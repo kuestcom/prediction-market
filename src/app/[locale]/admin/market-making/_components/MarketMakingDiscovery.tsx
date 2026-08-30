@@ -125,6 +125,8 @@ interface MarketMakingCopy {
   dayCount: string
   untilDate: string
   makerReward: string
+  sponsorPremium: string
+  sponsorPremiumHelp: string
   importEvent: string
   kuestFee: string
   total: string
@@ -137,6 +139,7 @@ interface MarketMakingCopy {
   funding: string
   campaignCreated: string
   transactionRejected: string
+  transactionConfirmed: string
   insufficientBalance: string
   balanceUnavailable: string
   retry: string
@@ -162,6 +165,11 @@ interface MarketMakingCopy {
   importRetrying: string
   importFailed: string
   importRefundable: string
+  refundReadyToWithdraw: string
+  cancelImport: string
+  cancellingImport: string
+  deploymentRelayerPending: string
+  withdrawRefund: string
   importPaymentPending: string
   notificationSettings: string
   emailAddress: string
@@ -264,6 +272,46 @@ interface EscrowIssuedQuoteResponse {
   costs: EscrowCostBreakdown
 }
 
+interface EscrowDeploymentReservationResponse {
+  status: 'issued'
+  reservation: {
+    importId: string
+    sponsor: string
+    reward: string
+    bond: string
+    protocolFeeBps: number
+    acceptDeadline: number
+    serviceStart: number
+    serviceEnd: number
+    claimableAt: number
+    validUntil: number
+    nonce: string
+  }
+  signature: string
+}
+
+interface EscrowDeploymentCancellationResponse {
+  status: 'issued'
+  cancellation: {
+    importId: string
+    sponsor: string
+    nonce: string
+  }
+  signature: string
+  typedData: {
+    primaryType: 'DeploymentCancellation'
+    domain: {
+      chainId: number
+      verifyingContract: string
+    }
+    message: {
+      importId: string
+      sponsor: string
+      nonce: string
+    }
+  }
+}
+
 type ImportState =
   | 'awaiting_payment'
   | 'payment_confirming'
@@ -310,6 +358,7 @@ interface EscrowImportResponse {
   }
   costs: EscrowCostBreakdown
   progress: { current: number; total: number }
+  reusable: boolean
   canRetry: boolean
   refundable: boolean
   message: string | null
@@ -318,6 +367,7 @@ interface EscrowImportResponse {
 const DEPTH_OPTIONS = [500, 1000, 2500, 5000]
 const SPREAD_OPTIONS = [100, 200, 300, 500]
 const USDC_ATOMIC_SCALE = 1_000_000n
+const MAX_USDC_ALLOWANCE = (1n << 256n) - 1n
 
 function formatCompactCurrency(value: number, locale: string) {
   return new Intl.NumberFormat(locale, {
@@ -687,29 +737,25 @@ function DepthPreview({
   return (
     <div className="mt-3" aria-hidden="true">
       <div
-        className="grid grid-cols-[1fr_auto_1fr] items-end transition-[column-gap] duration-300"
+        className="grid grid-cols-[1fr_auto_1fr] items-end overflow-hidden rounded-md border border-border/50 bg-background/40 transition-[column-gap] duration-300"
         style={{ columnGap: `${gap}px` }}
       >
-        <div>
-          <div className="mb-1.5 text-center text-xs text-muted-foreground">{buyOrders}</div>
-          <div className="flex h-7 items-center justify-end overflow-hidden rounded-l-md bg-muted/50">
-            <div
-              className="h-full rounded-l-md bg-yes/25 transition-[width] duration-300"
-              style={{ width: `${width}%` }}
-            />
-          </div>
+        <div className="relative flex h-7 items-center overflow-hidden rounded-l-md bg-background/80 px-2">
+          <div
+            className="absolute inset-y-0 right-0 rounded-l-md bg-yes/25 transition-[width] duration-300"
+            style={{ width: `${width}%` }}
+          />
+          <span className="relative z-10 text-left text-xs font-medium text-foreground">{buyOrders}</span>
         </div>
         <div className="flex h-7 items-center text-xs font-medium whitespace-nowrap text-muted-foreground">
           {spread / 100}¢ {maxLabel}
         </div>
-        <div>
-          <div className="mb-1.5 text-center text-xs text-muted-foreground">{sellOrders}</div>
-          <div className="flex h-7 items-center overflow-hidden rounded-r-md bg-muted/50">
-            <div
-              className="h-full rounded-r-md bg-no/25 transition-[width] duration-300"
-              style={{ width: `${width}%` }}
-            />
-          </div>
+        <div className="relative flex h-7 items-center overflow-hidden rounded-r-md bg-background/80 px-2">
+          <div
+            className="absolute inset-y-0 left-0 rounded-r-md bg-no/25 transition-[width] duration-300"
+            style={{ width: `${width}%` }}
+          />
+          <span className="relative z-10 ml-auto text-right text-xs font-medium text-foreground">{sellOrders}</span>
         </div>
       </div>
     </div>
@@ -762,20 +808,38 @@ function formatDeployingMarkets(template: string, current: number, total: number
   return template.replace('__CURRENT__', String(current)).replace('__TOTAL__', String(total))
 }
 
+function isZeroAddress(value: string | undefined) {
+  return value?.toLowerCase() === `0x${'0'.repeat(40)}`
+}
+
 function ImportProgressModal({
   copy,
   value,
   open,
   retrying,
+  cancelling,
+  withdrawing,
+  canCancel,
+  refundReady,
+  relayerPending,
   onOpenChange,
   onRetry,
+  onCancel,
+  onWithdraw,
 }: {
   copy: MarketMakingCopy
   value: EscrowImportResponse | null
   open: boolean
   retrying: boolean
+  cancelling: boolean
+  withdrawing: boolean
+  canCancel: boolean
+  refundReady: boolean
+  relayerPending: boolean
   onOpenChange: (open: boolean) => void
   onRetry: () => void
+  onCancel: () => void
+  onWithdraw: () => void
 }) {
   const isMobile = useIsMobile()
   const state = value?.state ?? 'payment_confirming'
@@ -820,7 +884,11 @@ function ImportProgressModal({
       <div className="pr-10">
         <h2 className="text-xl font-semibold">{copy.importTitle}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {state === 'awaiting_payment' ? copy.importPaymentPending : copy.importDescription}
+          {state === 'awaiting_payment'
+            ? copy.importPaymentPending
+            : relayerPending
+              ? copy.deploymentRelayerPending
+              : copy.importDescription}
         </p>
       </div>
       <ol className="mt-6 space-y-4">
@@ -860,6 +928,22 @@ function ImportProgressModal({
             <Button type="button" variant="outline" className="mt-4 w-full" disabled={retrying} onClick={onRetry}>
               {retrying ? <LoaderCircleIcon className="size-4 animate-spin" /> : <RotateCcwIcon className="size-4" />}
               {retrying ? copy.importRetrying : copy.importRetry}
+            </Button>
+          )}
+          {state === 'failed_refundable' && canCancel && (
+            <Button type="button" variant="outline" className="mt-4 w-full" disabled={cancelling} onClick={onCancel}>
+              {cancelling ? <LoaderCircleIcon className="size-4 animate-spin" /> : <RotateCcwIcon className="size-4" />}
+              {cancelling ? copy.cancellingImport : copy.cancelImport}
+            </Button>
+          )}
+          {state === 'failed_refundable' && refundReady && (
+            <Button type="button" className="mt-4 w-full" disabled={withdrawing} onClick={onWithdraw}>
+              {withdrawing ? (
+                <LoaderCircleIcon className="size-4 animate-spin" />
+              ) : (
+                <CircleDollarSignIcon className="size-4" />
+              )}
+              {copy.withdrawRefund}
             </Button>
           )}
         </div>
@@ -1098,6 +1182,7 @@ function CampaignDialog({
   )
   const [depth, setDepth] = useState(1000)
   const [spread, setSpread] = useState(300)
+  const [sponsorPremiumPercent, setSponsorPremiumPercent] = useState('0')
   const [serviceEnd, setServiceEnd] = useState(initialServiceEnd)
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [issuedQuote, setIssuedQuote] = useState<EscrowIssuedQuoteResponse | null>(null)
@@ -1107,6 +1192,10 @@ function CampaignDialog({
   const [importValue, setImportValue] = useState<EscrowImportResponse | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [isRetryingImport, setIsRetryingImport] = useState(false)
+  const [isCancellingImport, setIsCancellingImport] = useState(false)
+  const [isWithdrawingImport, setIsWithdrawingImport] = useState(false)
+  const [importCancellationCompleted, setImportCancellationCompleted] = useState(false)
+  const [importWithdrawalCompleted, setImportWithdrawalCompleted] = useState(false)
   const [readyNotified, setReadyNotified] = useState(false)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [notificationEmail, setNotificationEmail] = useState('')
@@ -1126,6 +1215,9 @@ function CampaignDialog({
       : null
   const importPaymentStorageKey = importStorageKey ? `${importStorageKey}:payment` : null
   const [pendingImportPaymentHash, setPendingImportPaymentHash] = useState<string | null>(null)
+  const sponsorPremiumValid =
+    sponsorPremiumPercent === '' || (/^\d{1,4}$/.test(sponsorPremiumPercent) && Number(sponsorPremiumPercent) <= 1000)
+  const sponsorPremiumBps = sponsorPremiumValid ? Number(sponsorPremiumPercent || 0) * 100 : undefined
 
   useEffect(() => {
     activeEmailWallet.current = address
@@ -1148,6 +1240,7 @@ function CampaignDialog({
         conditionIds: quoteConditionIds,
         depthPerSideAtomic: (BigInt(depth) * USDC_ATOMIC_SCALE).toString(),
         maxSpreadBps: spread,
+        sponsorPremiumBps,
         serviceEnd: Math.floor(serviceEnd.getTime() / 1000),
         sponsorSeries,
         seriesSlug: item.seriesSlug,
@@ -1163,6 +1256,7 @@ function CampaignDialog({
       serviceEnd,
       sponsorSeries,
       spread,
+      sponsorPremiumBps,
       usesImportFlow,
     ],
   )
@@ -1182,7 +1276,8 @@ function CampaignDialog({
     isConnected &&
     Boolean(address) &&
     hasSelectableServiceWindow &&
-    quoteConditionIds.length === item.markets.length
+    quoteConditionIds.length === item.markets.length &&
+    sponsorPremiumValid
   const previewQuery = useQuery({
     queryKey: ['market-making-escrow-preview', escrowBaseUrl, quoteInput],
     enabled: canRequestQuote,
@@ -1213,6 +1308,7 @@ function CampaignDialog({
   const marketCountLabel =
     item.markets.length > 1 ? formatCountTemplate(copy.marketCount, item.markets.length, locale) : null
   const importReady = importValue !== null && ['ready', 'activated'].includes(importValue.state)
+  const balanceCheckRequired = !(usesImportFlow && importValue !== null && !importValue.reusable)
   const costs = preview?.costs ?? null
   const initialDeploymentFeeAtomic = importValue?.costs.initialDeploymentFeeAtomic ?? costs?.initialDeploymentFeeAtomic
   const initialDeploymentFeePaid =
@@ -1274,10 +1370,108 @@ function CampaignDialog({
     retry: false,
     refetchInterval: (query) => {
       const state = (query.state.data as EscrowImportResponse | undefined)?.state
-      return state && ['ready', 'activated', 'failed_refundable', 'expired'].includes(state) ? false : 4_000
+      if (state && ['failed_refundable', 'expired'].includes(state)) {
+        return false
+      }
+      if (state && ['ready', 'activated'].includes(state)) {
+        const reusable = (query.state.data as EscrowImportResponse | undefined)?.reusable
+        return item.needsDeployment && reusable === false ? 4_000 : false
+      }
+      return 4_000
     },
     queryFn: () => fetchEscrowJson<EscrowImportResponse>(`${escrowBaseUrl}/api/imports/${importId}`),
   })
+
+  const deploymentCampaignQuery = useQuery({
+    queryKey: ['market-making-deployment-campaign', chainId, importId],
+    enabled: Boolean(open && item.needsDeployment && importId && publicClient && importValue?.reusable !== true),
+    retry: false,
+    refetchInterval: (query) => (query.state.data && query.state.data > 0n ? false : 4_000),
+    queryFn: async () => {
+      if (!publicClient || !importId) {
+        throw new Error(copy.walletNotReady)
+      }
+      return publicClient.readContract({
+        address: MARKET_MAKER_ESCROW_ADDRESS,
+        abi: MARKET_MAKER_ESCROW_ABI,
+        functionName: 'deploymentCampaignId',
+        args: [importId as `0x${string}`],
+      })
+    },
+  })
+
+  const deploymentReservationSponsorQuery = useQuery({
+    queryKey: ['market-making-deployment-reservation-sponsor', chainId, importId],
+    enabled: Boolean(open && item.needsDeployment && importId && publicClient && importValue?.reusable !== true),
+    retry: false,
+    refetchInterval: () => (importValue?.state === 'failed_refundable' ? 4_000 : false),
+    queryFn: async () => {
+      if (!publicClient || !importId) {
+        throw new Error(copy.walletNotReady)
+      }
+      return publicClient.readContract({
+        address: MARKET_MAKER_ESCROW_ADDRESS,
+        abi: MARKET_MAKER_ESCROW_ABI,
+        functionName: 'deploymentReservationSponsor',
+        args: [importId as `0x${string}`],
+      })
+    },
+  })
+
+  const pendingImportWithdrawalQuery = useQuery({
+    queryKey: ['market-making-import-pending-withdrawal', chainId, address?.toLowerCase(), importId],
+    enabled: Boolean(
+      open && item.needsDeployment && importId && address && publicClient && importValue?.state === 'failed_refundable',
+    ),
+    retry: false,
+    refetchInterval: 4_000,
+    queryFn: async () => {
+      if (!publicClient || !address) {
+        throw new Error(copy.walletNotReady)
+      }
+      return publicClient.readContract({
+        address: MARKET_MAKER_ESCROW_ADDRESS,
+        abi: MARKET_MAKER_ESCROW_ABI,
+        functionName: 'pendingWithdrawals',
+        args: [address as Address],
+      })
+    },
+  })
+
+  useEffect(() => {
+    if (deploymentCampaignQuery.data === undefined || deploymentCampaignQuery.data === 0n) {
+      return
+    }
+    void queryClient.invalidateQueries({ queryKey: ['market-making-campaigns'] })
+    toast.success(copy.campaignCreated)
+    onOpenChange(false)
+  }, [copy.campaignCreated, deploymentCampaignQuery.data, onOpenChange, queryClient])
+
+  const deploymentImport = item.needsDeployment && importValue?.reusable === false
+  const reservationSponsor = deploymentReservationSponsorQuery.data
+  const sponsorHasDeploymentReservation = Boolean(
+    address && reservationSponsor?.toLowerCase() === address.toLowerCase(),
+  )
+  const importCanCancel = Boolean(
+    deploymentImport &&
+    importValue?.state === 'failed_refundable' &&
+    sponsorHasDeploymentReservation &&
+    !importCancellationCompleted,
+  )
+  const importRefundReady = Boolean(
+    deploymentImport &&
+    importValue?.state === 'failed_refundable' &&
+    !importWithdrawalCompleted &&
+    (importCancellationCompleted ||
+      (pendingImportWithdrawalQuery.data !== undefined &&
+        pendingImportWithdrawalQuery.data > 0n &&
+        isZeroAddress(reservationSponsor))),
+  )
+  const deploymentRelayerPending = Boolean(
+    deploymentImport &&
+    importReady &&
+    (deploymentCampaignQuery.data === undefined || deploymentCampaignQuery.data === 0n),
+  )
 
   useEffect(() => {
     if (!importQuery.data) {
@@ -1329,6 +1523,128 @@ function CampaignDialog({
       setIssueError(error instanceof EscrowApiError ? quoteErrorMessage(error, copy) : copy.transactionFailed)
     } finally {
       setIsRetryingImport(false)
+    }
+  }
+
+  async function handleCancelImport() {
+    if (
+      !address ||
+      !publicClient ||
+      !transactionWalletClient ||
+      !importValue ||
+      importValue.state !== 'failed_refundable'
+    ) {
+      return
+    }
+    setIsCancellingImport(true)
+    setIssueError(null)
+    try {
+      await ensureWalletNetwork()
+      const issued = await fetchEscrowJson<EscrowDeploymentCancellationResponse>(
+        `${escrowBaseUrl}/api/imports/${importValue.importId}/cancellation`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sponsor: address }),
+        },
+      )
+      const cancellation = issued.cancellation
+      if (
+        issued.status !== 'issued' ||
+        !issued.signature.startsWith('0x') ||
+        cancellation.importId.toLowerCase() !== importValue.importId.toLowerCase() ||
+        cancellation.sponsor.toLowerCase() !== address.toLowerCase() ||
+        issued.typedData.primaryType !== 'DeploymentCancellation' ||
+        issued.typedData.domain.verifyingContract.toLowerCase() !== MARKET_MAKER_ESCROW_ADDRESS.toLowerCase() ||
+        Number(issued.typedData.domain.chainId) !== chainId ||
+        issued.typedData.message.importId.toLowerCase() !== cancellation.importId.toLowerCase() ||
+        issued.typedData.message.sponsor.toLowerCase() !== cancellation.sponsor.toLowerCase() ||
+        issued.typedData.message.nonce !== cancellation.nonce
+      ) {
+        throw new Error('Signed cancellation does not match the expected sponsor, chain, escrow, import, or nonce.')
+      }
+      const reservationSponsor = await publicClient.readContract({
+        address: MARKET_MAKER_ESCROW_ADDRESS,
+        abi: MARKET_MAKER_ESCROW_ABI,
+        functionName: 'deploymentReservationSponsor',
+        args: [cancellation.importId as `0x${string}`],
+      })
+      const reservationNonce = await publicClient.readContract({
+        address: MARKET_MAKER_ESCROW_ADDRESS,
+        abi: MARKET_MAKER_ESCROW_ABI,
+        functionName: 'deploymentReservationNonce',
+        args: [cancellation.importId as `0x${string}`],
+      })
+      if (
+        reservationSponsor.toLowerCase() !== address.toLowerCase() ||
+        reservationNonce !== BigInt(cancellation.nonce)
+      ) {
+        throw new Error('The deployment sponsorship changed. Please refresh and try again.')
+      }
+      const cancellationHash = await sendSponsorTransaction({
+        to: MARKET_MAKER_ESCROW_ADDRESS,
+        data: encodeFunctionData({
+          abi: MARKET_MAKER_ESCROW_ABI,
+          functionName: 'cancelDeploymentReservation',
+          args: [
+            {
+              importId: cancellation.importId as `0x${string}`,
+              sponsor: cancellation.sponsor as Address,
+              nonce: BigInt(cancellation.nonce),
+            },
+            issued.signature as `0x${string}`,
+          ],
+        }),
+        title: copy.cancelImport,
+      })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: cancellationHash })
+      if (receipt.status !== 'success') {
+        throw new Error(copy.transactionFailed)
+      }
+      setImportCancellationCompleted(true)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['market-making-import', escrowBaseUrl, importValue.importId] }),
+        deploymentReservationSponsorQuery.refetch(),
+        pendingImportWithdrawalQuery.refetch(),
+      ])
+      toast.success(copy.refundReadyToWithdraw)
+    } catch (error) {
+      setIssueError(error instanceof EscrowApiError ? quoteErrorMessage(error, copy) : fundingErrorMessage(error, copy))
+      if (!isUserRejectedRequestError(error)) {
+        console.error('Failed to cancel import sponsorship.', error)
+      }
+    } finally {
+      setIsCancellingImport(false)
+    }
+  }
+
+  async function handleWithdrawImport() {
+    if (!address || !publicClient) {
+      setIssueError(copy.walletNotReady)
+      return
+    }
+    setIsWithdrawingImport(true)
+    setIssueError(null)
+    try {
+      const withdrawalHash = await sendSponsorTransaction({
+        to: MARKET_MAKER_ESCROW_ADDRESS,
+        data: encodeFunctionData({ abi: MARKET_MAKER_ESCROW_ABI, functionName: 'withdraw', args: [] }),
+        title: copy.withdrawRefund,
+      })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: withdrawalHash })
+      if (receipt.status !== 'success') {
+        throw new Error(copy.transactionFailed)
+      }
+      setImportWithdrawalCompleted(true)
+      await pendingImportWithdrawalQuery.refetch()
+      toast.success(copy.transactionConfirmed)
+    } catch (error) {
+      setIssueError(error instanceof EscrowApiError ? quoteErrorMessage(error, copy) : fundingErrorMessage(error, copy))
+      if (!isUserRejectedRequestError(error)) {
+        console.error('Failed to withdraw import refund.', error)
+      }
+    } finally {
+      setIsWithdrawingImport(false)
     }
   }
 
@@ -1398,6 +1714,34 @@ function CampaignDialog({
     }
   }
 
+  async function ensureEscrowAllowance(amount: bigint) {
+    if (!address || !publicClient) {
+      throw new Error(copy.walletNotReady)
+    }
+    const allowance = await publicClient.readContract({
+      address: COLLATERAL_TOKEN_ADDRESS,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [address as Address, MARKET_MAKER_ESCROW_ADDRESS],
+    })
+    if (allowance >= amount) {
+      return
+    }
+    const approvalHash = await sendSponsorTransaction({
+      to: COLLATERAL_TOKEN_ADDRESS,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [MARKET_MAKER_ESCROW_ADDRESS, MAX_USDC_ALLOWANCE],
+      }),
+      title: copy.approveUsdc,
+    })
+    const approvalReceipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash })
+    if (approvalReceipt.status !== 'success') {
+      throw new Error(copy.transactionFailed)
+    }
+  }
+
   async function handleFundCampaign() {
     if (!isConnected || !address) {
       try {
@@ -1414,7 +1758,10 @@ function CampaignDialog({
       setIssueError(copy.walletNotReady)
       return
     }
-    if (isSponsorBalanceLoading || sponsorBalanceQuery.isError || hasInsufficientSponsorBalance) {
+    if (
+      balanceCheckRequired &&
+      (isSponsorBalanceLoading || sponsorBalanceQuery.isError || hasInsufficientSponsorBalance)
+    ) {
       return
     }
 
@@ -1422,7 +1769,7 @@ function CampaignDialog({
     setIssueError(null)
     try {
       let activeImport = importValue
-      let createdImportNow = false
+      let hasDeploymentReservation = false
       if (usesImportFlow) {
         if (!item.slug) {
           throw new Error(copy.marketDataUnavailable)
@@ -1460,10 +1807,20 @@ function CampaignDialog({
           setImportId(activeImport.importId)
           setImportValue(activeImport)
           setImportOpen(true)
-          createdImportNow = true
           if (importStorageKey) {
             window.localStorage.setItem(importStorageKey, activeImport.importId)
           }
+        }
+
+        const finalizedCampaignId = await publicClient.readContract({
+          address: MARKET_MAKER_ESCROW_ADDRESS,
+          abi: MARKET_MAKER_ESCROW_ABI,
+          functionName: 'deploymentCampaignId',
+          args: [activeImport.importId as `0x${string}`],
+        })
+        if (finalizedCampaignId > 0n) {
+          onOpenChange(false)
+          return
         }
 
         if (activeImport.state === 'awaiting_payment') {
@@ -1513,11 +1870,75 @@ function CampaignDialog({
           })
         }
 
+        if (
+          item.needsDeployment &&
+          !activeImport.reusable &&
+          (activeImport.state === 'paid' || ['ready', 'activated'].includes(activeImport.state))
+        ) {
+          const reservationSponsor = await publicClient.readContract({
+            address: MARKET_MAKER_ESCROW_ADDRESS,
+            abi: MARKET_MAKER_ESCROW_ABI,
+            functionName: 'deploymentReservationSponsor',
+            args: [activeImport.importId as `0x${string}`],
+          })
+          hasDeploymentReservation = reservationSponsor.toLowerCase() === address.toLowerCase()
+          if (!hasDeploymentReservation) {
+            const reservation = await fetchEscrowJson<EscrowDeploymentReservationResponse>(
+              `${escrowBaseUrl}/api/imports/${activeImport.importId}/reservation`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  sponsor: address,
+                  depthPerSideAtomic: quoteInput.depthPerSideAtomic,
+                  maxSpreadBps: quoteInput.maxSpreadBps,
+                  sponsorPremiumBps: quoteInput.sponsorPremiumBps,
+                  ...('serviceEnd' in quoteInput ? { serviceEnd: quoteInput.serviceEnd } : {}),
+                  ...('series' in quoteInput ? { series: quoteInput.series } : {}),
+                }),
+              },
+            )
+            const reservationValue = reservation.reservation
+            const requiredAllowance =
+              BigInt(reservationValue.reward) +
+              (BigInt(reservationValue.reward) * BigInt(reservationValue.protocolFeeBps)) / 10_000n
+            await ensureEscrowAllowance(requiredAllowance)
+            const reservationHash = await sendSponsorTransaction({
+              to: MARKET_MAKER_ESCROW_ADDRESS,
+              data: encodeFunctionData({
+                abi: MARKET_MAKER_ESCROW_ABI,
+                functionName: 'reserveDeployment',
+                args: [
+                  {
+                    importId: reservationValue.importId as `0x${string}`,
+                    sponsor: reservationValue.sponsor as Address,
+                    reward: BigInt(reservationValue.reward),
+                    bond: BigInt(reservationValue.bond),
+                    protocolFeeBps: reservationValue.protocolFeeBps,
+                    acceptDeadline: BigInt(reservationValue.acceptDeadline),
+                    serviceStart: BigInt(reservationValue.serviceStart),
+                    serviceEnd: BigInt(reservationValue.serviceEnd),
+                    claimableAt: BigInt(reservationValue.claimableAt),
+                    validUntil: BigInt(reservationValue.validUntil),
+                    nonce: BigInt(reservationValue.nonce),
+                  },
+                  reservation.signature as `0x${string}`,
+                ],
+              }),
+              title: copy.sponsor,
+            })
+            const reservationReceipt = await publicClient.waitForTransactionReceipt({ hash: reservationHash })
+            if (reservationReceipt.status !== 'success') {
+              throw new Error(copy.transactionFailed)
+            }
+            hasDeploymentReservation = true
+          }
+        }
         if (!['ready', 'activated'].includes(activeImport.state)) {
           return
         }
-        if (createdImportNow) {
-          void previewQuery.refetch()
+        if (item.needsDeployment && !activeImport.reusable) {
+          setImportOpen(true)
           return
         }
       }
@@ -1526,29 +1947,30 @@ function CampaignDialog({
         throw new Error(copy.quoteUnavailable)
       }
 
-      const issued =
-        issuedQuote && issuedQuote.quote.validUntil > Math.floor(Date.now() / 1000) + 15
-          ? issuedQuote
-          : await fetchEscrowJson<EscrowIssuedQuoteResponse>(
-              usesImportFlow
-                ? `${escrowBaseUrl}/api/imports/${activeImport?.importId}/quote`
-                : `${escrowBaseUrl}/api/quote`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(
-                  usesImportFlow
-                    ? {
-                        sponsor: address,
-                        depthPerSideAtomic: quoteInput.depthPerSideAtomic,
-                        maxSpreadBps: quoteInput.maxSpreadBps,
-                        ...('serviceEnd' in quoteInput ? { serviceEnd: quoteInput.serviceEnd } : {}),
-                        ...('series' in quoteInput ? { series: quoteInput.series } : {}),
-                      }
-                    : quoteInput,
-                ),
-              },
-            )
+      const canReuseIssuedQuote = issuedQuote && issuedQuote.quote.validUntil > Math.floor(Date.now() / 1000) + 15
+      const issued = canReuseIssuedQuote
+        ? issuedQuote
+        : await fetchEscrowJson<EscrowIssuedQuoteResponse>(
+            usesImportFlow
+              ? `${escrowBaseUrl}/api/imports/${activeImport?.importId}/quote`
+              : `${escrowBaseUrl}/api/quote`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(
+                usesImportFlow
+                  ? {
+                      sponsor: address,
+                      depthPerSideAtomic: quoteInput.depthPerSideAtomic,
+                      maxSpreadBps: quoteInput.maxSpreadBps,
+                      sponsorPremiumBps: quoteInput.sponsorPremiumBps,
+                      ...('serviceEnd' in quoteInput ? { serviceEnd: quoteInput.serviceEnd } : {}),
+                      ...('series' in quoteInput ? { series: quoteInput.series } : {}),
+                    }
+                  : quoteInput,
+              ),
+            },
+          )
       if (
         issued.status !== 'issued' ||
         !issued.signature.startsWith('0x') ||
@@ -1563,27 +1985,7 @@ function CampaignDialog({
       const sponsor = address as `0x${string}`
       const reward = BigInt(issued.quote.reward)
       const requiredAllowance = reward + (reward * BigInt(issued.quote.protocolFeeBps)) / 10_000n
-      const allowance = await publicClient.readContract({
-        address: COLLATERAL_TOKEN_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'allowance',
-        args: [sponsor, MARKET_MAKER_ESCROW_ADDRESS],
-      })
-      if (allowance < requiredAllowance) {
-        const approvalHash = await sendSponsorTransaction({
-          to: COLLATERAL_TOKEN_ADDRESS,
-          data: encodeFunctionData({
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [MARKET_MAKER_ESCROW_ADDRESS, requiredAllowance],
-          }),
-          title: copy.approveUsdc,
-        })
-        const approvalReceipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash })
-        if (approvalReceipt.status !== 'success') {
-          throw new Error(copy.quoteUnavailable)
-        }
-      }
+      await ensureEscrowAllowance(requiredAllowance)
 
       const quote = issued.quote
       const campaignArguments = [
@@ -1671,290 +2073,354 @@ function CampaignDialog({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-5">
-        <section>
-          <div className="mb-3 flex items-center gap-1.5">
-            <h3 className="font-semibold">{copy.depth}</h3>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    aria-label={copy.depthHelp}
-                  />
-                }
-              >
-                <CircleHelpIcon className="size-4" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-72 text-sm">{copy.depthHelp}</TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {DEPTH_OPTIONS.map((option) => (
-              <Button
-                key={option}
-                type="button"
-                variant={depth === option ? 'default' : 'outline'}
-                className="px-2"
-                onClick={() => {
-                  setDepth(option)
-                  clearIssuedQuote()
-                }}
-              >
-                {formatCompactCurrency(option, locale)}
-              </Button>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <div className="mb-3 flex items-center gap-1.5">
-            <h3 className="font-semibold">{copy.spread}</h3>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <button
-                    type="button"
-                    className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    aria-label={copy.spreadHelp}
-                  />
-                }
-              >
-                <CircleHelpIcon className="size-4" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-72 text-sm">{copy.spreadHelp}</TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {SPREAD_OPTIONS.map((option) => (
-              <Button
-                key={option}
-                type="button"
-                variant={spread === option ? 'default' : 'outline'}
-                className="px-2"
-                onClick={() => {
-                  setSpread(option)
-                  clearIssuedQuote()
-                }}
-              >
-                {option / 100}¢
-              </Button>
-            ))}
-          </div>
-          <DepthPreview
-            depth={depth}
-            spread={spread}
-            buyOrders={copy.buyOrders}
-            sellOrders={copy.sellOrders}
-            maxLabel={copy.max}
-          />
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2">
-          <div className="flex items-center gap-3 rounded-xl border p-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-              <ArrowLeftRightIcon className="size-4 text-muted-foreground" />
-            </span>
-            <div>
-              <div className="text-sm text-muted-foreground">{copy.coverage}</div>
-              <div className="mt-0.5 text-lg font-semibold">{coverageBps === null ? '—' : `${coverageBps / 100}%`}</div>
-            </div>
-          </div>
-          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <PopoverTrigger
-              render={
-                <button
-                  type="button"
-                  className="flex items-center gap-3 rounded-xl border p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                />
-              }
-            >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-                <CalendarIcon className="size-4 text-muted-foreground" />
-              </span>
-              <span>
-                <span className="block text-sm">
-                  <span className="text-muted-foreground">{copy.duration}: </span>
-                  <span className="font-semibold">
-                    {serviceDurationDays === null
-                      ? '—'
-                      : formatCountTemplate(copy.dayCount, serviceDurationDays, locale)}
-                  </span>
-                </span>
-                <span className="mt-0.5 block text-sm text-muted-foreground">
-                  {sponsorshipDurationSubtitle({
-                    sponsorSeries,
-                    allRenewals: copy.allRenewals,
-                    dateLabel: formatDateTemplate(
-                      copy.untilDate,
-                      formatEndDate(preview ? new Date(preview.serviceEnd * 1000) : serviceEnd, locale),
-                    ),
-                  })}
-                </span>
-              </span>
-            </PopoverTrigger>
-            <PopoverContent align="end" collisionPadding={16} className="w-auto p-2">
-              <Calendar
-                mode="single"
-                selected={serviceEnd}
-                startMonth={hasSelectableServiceWindow ? minimumServiceEndDate : marketEndDate}
-                endMonth={marketEndDate}
-                disabled={
-                  sponsorSeries || !hasSelectableServiceWindow
-                    ? true
-                    : { before: minimumServiceEndDate, after: marketEndDate }
-                }
-                onSelect={(date) => {
-                  if (!date) {
-                    return
-                  }
-                  setServiceEnd(normalizeServiceEndDate(date, marketEndDate))
-                  setCalendarOpen(false)
-                  clearIssuedQuote()
-                }}
-                className="bg-transparent p-0"
-              />
-            </PopoverContent>
-          </Popover>
-        </section>
-
-        {item.seriesSlug && item.creatorFilter && (
-          <section className="flex items-center justify-between gap-4 rounded-xl border p-3">
-            <div className="min-w-0">
-              <Label htmlFor="sponsor-series" className="font-semibold">
-                {copy.sponsorSeries}
-              </Label>
-              <p className="mt-0.5 text-sm text-muted-foreground">{copy.sponsorSeriesDescription}</p>
-            </div>
-            <Switch
-              id="sponsor-series"
-              checked={sponsorSeries}
-              onCheckedChange={(checked) => {
-                setSponsorSeries(checked)
-                if (!checked) {
-                  setServiceEnd(marketEndDate)
-                }
-                setImportId(null)
-                setImportValue(null)
-                setPendingImportPaymentHash(null)
-                clearIssuedQuote()
-              }}
-            />
-          </section>
-        )}
-
-        <div className="min-h-[138px]">
-          {!isConnected ? (
-            <div className="flex min-h-[138px] items-center rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-              {copy.connectWallet}
-            </div>
-          ) : !hasSelectableServiceWindow ? (
-            <div className="flex min-h-[138px] items-center rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-              {previewQuery.isError ? quoteErrorMessage(previewQuery.error, copy) : copy.quoteUnavailable}
-            </div>
-          ) : (!canRequestQuote || previewQuery.isLoading) && !breakdown ? (
-            <div className="flex min-h-[138px] items-center justify-center gap-2 rounded-xl bg-muted/60 p-4 text-sm text-muted-foreground">
-              <LoaderCircleIcon className="size-4 animate-spin" />
-              {copy.calculating}
-            </div>
-          ) : previewQuery.isError || !breakdown || !costs || displayedTotalAtomic === null ? (
-            <div className="flex min-h-[138px] items-center rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-              {copy.quoteUnavailable}
-            </div>
-          ) : (
-            <section className="relative min-h-[138px] rounded-xl bg-muted/60 p-4">
-              {previewQuery.isFetching && (
-                <LoaderCircleIcon className="absolute top-4 right-4 size-4 animate-spin text-muted-foreground" />
-              )}
-              <div className="space-y-2.5 text-sm">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">{copy.makerReward}</span>
-                  <span className="font-medium">{formatUsdcString(breakdown.marketMakerReward, locale)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">{copy.kuestFee}</span>
-                  <span className="font-medium">{formatUsdcString(breakdown.protocolFee, locale)}</span>
-                </div>
-                {deploymentFeePending && (
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-muted-foreground">{copy.importEvent}</span>
-                    <span className="font-medium">{formatUsdcAtomic(initialDeploymentFeeAtomic, locale)}</span>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-3 sm:px-5 sm:py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-5">
+        <div className="min-h-0 flex-1 overflow-y-auto lg:contents">
+          <div className="space-y-3 pb-3 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:min-h-0 lg:overflow-y-auto lg:pr-1">
+            <section className="rounded-xl border p-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <h3 className="font-semibold">{copy.depth}</h3>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            aria-label={copy.depthHelp}
+                          />
+                        }
+                      >
+                        <CircleHelpIcon className="size-4" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-72 text-sm">{copy.depthHelp}</TooltipContent>
+                    </Tooltip>
                   </div>
-                )}
-                <div className="flex items-center justify-between gap-4 border-t pt-3 text-base font-semibold">
-                  <span>
-                    {costs.totalCostStatus === 'estimate' || costs.totalCostStatus === 'pending'
-                      ? copy.estimated
-                      : copy.total}
-                  </span>
-                  <span>{formatUsdcAtomic(displayedTotalAtomic, locale)}</span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {DEPTH_OPTIONS.map((option) => (
+                      <Button
+                        key={option}
+                        type="button"
+                        variant={depth === option ? 'default' : 'outline'}
+                        className="h-9 px-1.5 text-xs"
+                        onClick={() => {
+                          setDepth(option)
+                          clearIssuedQuote()
+                        }}
+                      >
+                        {formatCompactCurrency(option, locale)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <h3 className="font-semibold">{copy.spread}</h3>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            aria-label={copy.spreadHelp}
+                          />
+                        }
+                      >
+                        <CircleHelpIcon className="size-4" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-72 text-sm">{copy.spreadHelp}</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {SPREAD_OPTIONS.map((option) => (
+                      <Button
+                        key={option}
+                        type="button"
+                        variant={spread === option ? 'default' : 'outline'}
+                        className="h-9 px-1.5 text-xs"
+                        onClick={() => {
+                          setSpread(option)
+                          clearIssuedQuote()
+                        }}
+                      >
+                        {option / 100}¢
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
+              <div className="mt-3 w-full opacity-80">
+                <DepthPreview
+                  depth={depth}
+                  spread={spread}
+                  buyOrders={copy.buyOrders}
+                  sellOrders={copy.sellOrders}
+                  maxLabel={copy.max}
+                />
+              </div>
             </section>
-          )}
+
+            <section className="grid gap-2.5 sm:grid-cols-2">
+              <div className="flex items-center gap-2.5 rounded-xl border p-2.5">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                  <ArrowLeftRightIcon className="size-4 text-muted-foreground" />
+                </span>
+                <div>
+                  <div className="text-xs text-muted-foreground">{copy.coverage}</div>
+                  <div className="mt-0.5 text-base font-semibold">
+                    {coverageBps === null ? '—' : `${coverageBps / 100}%`}
+                  </div>
+                </div>
+              </div>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger
+                  render={
+                    <button
+                      type="button"
+                      className="flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    />
+                  }
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <CalendarIcon className="size-4 text-muted-foreground" />
+                  </span>
+                  <span>
+                    <span className="block text-sm">
+                      <span className="text-muted-foreground">{copy.duration}: </span>
+                      <span className="font-semibold">
+                        {serviceDurationDays === null
+                          ? '—'
+                          : formatCountTemplate(copy.dayCount, serviceDurationDays, locale)}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {sponsorshipDurationSubtitle({
+                        sponsorSeries,
+                        allRenewals: copy.allRenewals,
+                        dateLabel: formatDateTemplate(
+                          copy.untilDate,
+                          formatEndDate(preview ? new Date(preview.serviceEnd * 1000) : serviceEnd, locale),
+                        ),
+                      })}
+                    </span>
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent align="end" collisionPadding={16} className="w-auto p-2">
+                  <Calendar
+                    mode="single"
+                    selected={serviceEnd}
+                    startMonth={hasSelectableServiceWindow ? minimumServiceEndDate : marketEndDate}
+                    endMonth={marketEndDate}
+                    disabled={
+                      sponsorSeries || !hasSelectableServiceWindow
+                        ? true
+                        : { before: minimumServiceEndDate, after: marketEndDate }
+                    }
+                    onSelect={(date) => {
+                      if (!date) {
+                        return
+                      }
+                      setServiceEnd(normalizeServiceEndDate(date, marketEndDate))
+                      setCalendarOpen(false)
+                      clearIssuedQuote()
+                    }}
+                    className="bg-transparent p-0"
+                  />
+                </PopoverContent>
+              </Popover>
+            </section>
+
+            {item.seriesSlug && item.creatorFilter && (
+              <section className="flex items-center justify-between gap-3 rounded-xl border p-2.5">
+                <div className="min-w-0">
+                  <Label htmlFor="sponsor-series" className="text-sm font-semibold">
+                    {copy.sponsorSeries}
+                  </Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{copy.sponsorSeriesDescription}</p>
+                </div>
+                <Switch
+                  id="sponsor-series"
+                  checked={sponsorSeries}
+                  onCheckedChange={(checked) => {
+                    setSponsorSeries(checked)
+                    if (!checked) {
+                      setServiceEnd(marketEndDate)
+                    }
+                    setImportId(null)
+                    setImportValue(null)
+                    setPendingImportPaymentHash(null)
+                    clearIssuedQuote()
+                  }}
+                />
+              </section>
+            )}
+          </div>
+
+          <aside className="mt-4 flex flex-col gap-3 lg:sticky lg:top-0 lg:col-start-2 lg:row-start-1 lg:mt-0 lg:min-h-0 lg:overflow-y-auto">
+            <section className="relative rounded-xl border bg-muted/60 p-3.5 sm:p-4">
+              <div className="space-y-3 text-sm">
+                <div className="flex items-start justify-between gap-3 border-b pb-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{copy.makerReward}</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="sponsor-premium" className="text-xs text-muted-foreground">
+                          {copy.sponsorPremium}
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <button
+                                type="button"
+                                className="text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                aria-label={copy.sponsorPremiumHelp}
+                              />
+                            }
+                          >
+                            <CircleHelpIcon className="size-3.5" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-72 text-sm">{copy.sponsorPremiumHelp}</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="relative w-20 shrink-0">
+                        <Input
+                          id="sponsor-premium"
+                          type="number"
+                          min={0}
+                          max={1000}
+                          step={1}
+                          inputMode="numeric"
+                          value={sponsorPremiumPercent}
+                          aria-invalid={!sponsorPremiumValid}
+                          onChange={(event) => {
+                            const value = event.target.value
+                            if (value === '' || /^\d{0,4}$/.test(value)) {
+                              setSponsorPremiumPercent(value)
+                              clearIssuedQuote()
+                            }
+                          }}
+                          className="h-8 pr-6 text-right text-xs"
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="shrink-0 font-medium">
+                    {breakdown ? formatUsdcString(breakdown.marketMakerReward, locale) : '—'}
+                  </span>
+                </div>
+
+                {!isConnected ? (
+                  <div className="flex min-h-[96px] items-center rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                    {copy.connectWallet}
+                  </div>
+                ) : !hasSelectableServiceWindow ? (
+                  <div className="flex min-h-[96px] items-center rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                    {previewQuery.isError ? quoteErrorMessage(previewQuery.error, copy) : copy.quoteUnavailable}
+                  </div>
+                ) : (!canRequestQuote || previewQuery.isLoading) && !breakdown ? (
+                  <div className="flex min-h-[96px] items-center justify-center gap-2 rounded-lg bg-background/60 p-3 text-sm text-muted-foreground">
+                    <LoaderCircleIcon className="size-4 animate-spin" />
+                    {copy.calculating}
+                  </div>
+                ) : previewQuery.isError || !breakdown || !costs || displayedTotalAtomic === null ? (
+                  <div className="flex min-h-[96px] items-center rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                    {copy.quoteUnavailable}
+                  </div>
+                ) : (
+                  <div className="relative space-y-2.5">
+                    {previewQuery.isFetching && (
+                      <LoaderCircleIcon className="absolute top-0 right-0 size-4 animate-spin text-muted-foreground" />
+                    )}
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">{copy.kuestFee}</span>
+                      <span className="font-medium">{formatUsdcString(breakdown.protocolFee, locale)}</span>
+                    </div>
+                    {deploymentFeePending && (
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-muted-foreground">{copy.importEvent}</span>
+                        <span className="font-medium">{formatUsdcAtomic(initialDeploymentFeeAtomic, locale)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between gap-4 border-t pt-3 text-base font-semibold">
+                      <span>
+                        {costs.totalCostStatus === 'estimate' || costs.totalCostStatus === 'pending'
+                          ? copy.estimated
+                          : copy.total}
+                      </span>
+                      <span>{formatUsdcAtomic(displayedTotalAtomic, locale)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {issueError && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {issueError}
+              </div>
+            )}
+          </aside>
         </div>
 
-        {issueError && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-            {issueError}
-          </div>
-        )}
-      </div>
-
-      <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-5">
-        {hasInsufficientSponsorBalance && (
-          <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
-            <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
-            {copy.insufficientBalance}
-          </div>
-        )}
-        {sponsorBalanceQuery.isError && (
-          <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
-            <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
-            <span>{copy.balanceUnavailable}</span>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={sponsorBalanceQuery.isFetching}
-              onClick={() => void sponsorBalanceQuery.refetch()}
-            >
-              {copy.retry}
-            </Button>
-          </div>
-        )}
-        <p className="mb-2 hidden overflow-hidden text-center text-xs text-ellipsis whitespace-nowrap text-muted-foreground sm:block">
-          {copy.escrowNotice}
-        </p>
-        <Button
-          type="button"
-          size="lg"
-          className="w-full"
-          disabled={
-            isIssuing ||
-            (isConnected &&
-              (preview?.status !== 'priced' ||
-                previewQuery.isLoading ||
-                previewQuery.isFetching ||
-                !transactionWalletClient ||
-                isSponsorBalanceLoading ||
-                sponsorBalanceQuery.isError ||
-                hasInsufficientSponsorBalance))
-          }
-          onClick={handleFundCampaign}
-        >
-          {isIssuing ? (
-            <>
-              <LoaderCircleIcon className="size-4 animate-spin" />
-              {copy.funding}
-            </>
-          ) : isConnected ? (
-            copy.continue
-          ) : (
-            copy.connectWallet
+        <div className="shrink-0 border-t bg-background/95 pt-3 pb-1 backdrop-blur lg:col-start-2 lg:row-start-2">
+          {balanceCheckRequired && hasInsufficientSponsorBalance && (
+            <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
+              <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
+              {copy.insufficientBalance}
+            </div>
           )}
-        </Button>
+          {balanceCheckRequired && sponsorBalanceQuery.isError && (
+            <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
+              <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
+              <span>{copy.balanceUnavailable}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={sponsorBalanceQuery.isFetching}
+                onClick={() => void sponsorBalanceQuery.refetch()}
+              >
+                {copy.retry}
+              </Button>
+            </div>
+          )}
+          <p className="mb-2 hidden overflow-hidden text-center text-xs text-ellipsis whitespace-nowrap text-muted-foreground sm:block">
+            {copy.escrowNotice}
+          </p>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            disabled={
+              isIssuing ||
+              (isConnected &&
+                (preview?.status !== 'priced' ||
+                  previewQuery.isLoading ||
+                  previewQuery.isFetching ||
+                  !transactionWalletClient ||
+                  (balanceCheckRequired &&
+                    (isSponsorBalanceLoading || sponsorBalanceQuery.isError || hasInsufficientSponsorBalance))))
+            }
+            onClick={handleFundCampaign}
+          >
+            {isIssuing ? (
+              <>
+                <LoaderCircleIcon className="size-4 animate-spin" />
+                {copy.funding}
+              </>
+            ) : isConnected ? (
+              copy.continue
+            ) : (
+              copy.connectWallet
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -1982,8 +2448,15 @@ function CampaignDialog({
           value={importValue}
           open={importOpen}
           retrying={isRetryingImport}
+          cancelling={isCancellingImport}
+          withdrawing={isWithdrawingImport}
+          canCancel={importCanCancel}
+          refundReady={importRefundReady}
+          relayerPending={deploymentRelayerPending}
           onOpenChange={setImportOpen}
           onRetry={handleRetryImport}
+          onCancel={() => void handleCancelImport()}
+          onWithdraw={() => void handleWithdrawImport()}
         />
         <SponsorEmailDialog
           copy={copy}
@@ -2004,7 +2477,7 @@ function CampaignDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-lg flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-lg">
+        <DialogContent className="flex max-h-[90dvh] max-w-5xl flex-col gap-0 overflow-hidden bg-background p-0 sm:max-w-5xl">
           <DialogHeader className="sr-only">
             <DialogTitle>{copy.sponsor}</DialogTitle>
             <DialogDescription>{copy.campaignDescription}</DialogDescription>
@@ -2017,8 +2490,15 @@ function CampaignDialog({
         value={importValue}
         open={importOpen}
         retrying={isRetryingImport}
+        cancelling={isCancellingImport}
+        withdrawing={isWithdrawingImport}
+        canCancel={importCanCancel}
+        refundReady={importRefundReady}
+        relayerPending={deploymentRelayerPending}
         onOpenChange={setImportOpen}
         onRetry={handleRetryImport}
+        onCancel={() => void handleCancelImport()}
+        onWithdraw={() => void handleWithdrawImport()}
       />
       <SponsorEmailDialog
         copy={copy}

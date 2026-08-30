@@ -21,6 +21,7 @@ import {
   getPolymarketEndDateMin,
   getPolymarketRequestLimit,
   kuestSeriesMetadata,
+  parsePolymarketUrl,
   recurringConditionIds,
 } from '@/lib/market-making-discovery'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -153,15 +154,87 @@ async function loadEligibilityWindows() {
   }
 }
 
+function gammaEventsFromPayload(body: unknown) {
+  if (Array.isArray(body)) {
+    return body as GammaEvent[]
+  }
+  return body && typeof body === 'object' ? [body as GammaEvent] : []
+}
+
+function gammaMarketFromPayload(body: unknown) {
+  if (Array.isArray(body)) {
+    return body[0] as GammaMarket | undefined
+  }
+  if (!body || typeof body !== 'object') {
+    return undefined
+  }
+  const payload = body as { market?: unknown; markets?: unknown }
+  if (payload.market && typeof payload.market === 'object') {
+    return payload.market as GammaMarket
+  }
+  if (Array.isArray(payload.markets)) {
+    return payload.markets[0] as GammaMarket | undefined
+  }
+  return body as GammaMarket
+}
+
+function gammaEventFromMarket(market: GammaMarket, slug: string): GammaEvent {
+  return {
+    id: market.conditionId ?? market.slug ?? slug,
+    slug: market.slug ?? slug,
+    title: market.question,
+    icon: market.icon,
+    image: market.image,
+    endDate: market.endDate,
+    closed: market.closed,
+    active: market.active,
+    markets: [market],
+  }
+}
+
+async function fetchPolymarketBySlug(
+  lookup: { kind: 'event' | 'market'; slug: string },
+  limit: number,
+  minimumEnd: number,
+  seriesMinimumEnd: number,
+) {
+  const { polymarketGammaUrl } = resolvePublicRuntimeEnv(process.env)
+  const resource = lookup.kind === 'event' ? 'events' : 'markets'
+  const endpoint = new URL(`/${resource}/slug/${encodeURIComponent(lookup.slug)}`, polymarketGammaUrl)
+  const response = await fetch(endpoint.toString(), {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    next: { revalidate: 60 },
+  })
+  if (response.status === 404) {
+    return [] as GammaEvent[]
+  }
+  if (!response.ok) {
+    throw new Error(`Polymarket Gamma request failed with status ${response.status}.`)
+  }
+
+  const body = await parseLimitedJson(response)
+  const gammaEvents =
+    lookup.kind === 'event'
+      ? gammaEventsFromPayload(body)
+      : ((market) => (market ? [gammaEventFromMarket(market, lookup.slug)] : []))(gammaMarketFromPayload(body))
+  const now = Date.now()
+
+  return filterEligiblePolymarketEvents(gammaEvents, now, minimumEnd, seriesMinimumEnd, limit) as GammaEvent[]
+}
+
 async function fetchPolymarketEvents(search: string, limit: number, minimumEnd: number, seriesMinimumEnd: number) {
+  const lookup = parsePolymarketUrl(search)
+  if (lookup) {
+    return fetchPolymarketBySlug(lookup, limit, minimumEnd, seriesMinimumEnd)
+  }
+
   const { polymarketGammaUrl } = resolvePublicRuntimeEnv(process.env)
   const endpoint = new URL(search ? '/public-search' : '/events', polymarketGammaUrl)
   if (search) {
     endpoint.searchParams.set('q', search)
     endpoint.searchParams.set('events_status', 'active')
     endpoint.searchParams.set('keep_closed_markets', '0')
-    // Search results are filtered locally for active markets and the minimum lead time.
-    // Keep the over-fetch bounded so large Gamma market payloads stay within the response byte limit.
     endpoint.searchParams.set('limit_per_type', String(Math.min(Math.max(limit * 2, 40), 60)))
     endpoint.searchParams.set('page', '1')
     endpoint.searchParams.set('search_profiles', 'false')
@@ -451,8 +524,9 @@ export async function GET(request: NextRequest) {
     const now = Date.now()
     const kuestMinimumEnd = new Date(now + eligibility.kuestSeconds * 1_000)
     const seriesMinimumEnd = new Date(now + 10_800_000)
+    const isPolymarketUrl = Boolean(parsePolymarketUrl(search))
 
-    const shouldLoadKuest = source !== 'polymarket'
+    const shouldLoadKuest = source !== 'polymarket' && !(source === 'all' && isPolymarketUrl)
     const shouldLoadPolymarket = source === 'all' || source === 'polymarket'
     const kuestPromise = shouldLoadKuest
       ? listKuestEvents(

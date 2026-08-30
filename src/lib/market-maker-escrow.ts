@@ -1,11 +1,19 @@
 import { keccak256, parseAbi, stringToHex } from 'viem'
 
 export const MARKET_MAKER_ESCROW_ABI = parseAbi([
-  'struct Campaign { address sponsor; address marketMaker; address payoutAccount; uint256 reward; uint256 protocolFee; uint256 bond; bytes32 quoteId; bytes32 scopeHash; bytes32 termsHash; bytes32 evidenceHash; bytes32 decisionHash; uint64 acceptDeadline; uint64 serviceStart; uint64 serviceEnd; uint64 claimableAt; uint64 disputedAt; uint16 protocolFeeBps; uint8 status; uint256 rewardToMaker; uint256 bondToSponsor; }',
+  'struct Campaign { address sponsor; address marketMaker; address payoutAccount; uint256 reward; uint256 protocolFee; uint256 bond; bytes32 quoteId; bytes32 scopeHash; bytes32 termsHash; bytes32 evidenceHash; bytes32 decisionHash; uint64 acceptDeadline; uint64 serviceStart; uint64 serviceEnd; uint64 claimableAt; uint64 disputedAt; uint16 protocolFeeBps; uint8 status; uint256 rewardToMaker; uint256 bondToSponsor; bytes32 deploymentId; }',
+  'struct DeploymentReservation { bytes32 importId; address sponsor; uint256 reward; uint256 bond; uint16 protocolFeeBps; uint64 acceptDeadline; uint64 serviceStart; uint64 serviceEnd; uint64 claimableAt; uint64 validUntil; uint256 nonce; }',
+  'struct DeploymentCancellation { bytes32 importId; address sponsor; uint256 nonce; }',
   'function campaignCount() view returns (uint256)',
   'function getCampaign(uint256 campaignId) view returns (Campaign)',
   'function pendingWithdrawals(address account) view returns (uint256)',
+  'function getDeploymentReservation(bytes32 importId) view returns (DeploymentReservation)',
+  'function deploymentReservationSponsor(bytes32 importId) view returns (address)',
+  'function deploymentReservationNonce(bytes32 importId) view returns (uint256)',
+  'function deploymentCampaignId(bytes32 importId) view returns (uint256)',
   'function createCampaign((bytes32 quoteId,address sponsor,bytes32 scopeHash,bytes32 termsHash,uint256 reward,uint256 bond,uint16 protocolFeeBps,uint64 acceptDeadline,uint64 serviceStart,uint64 serviceEnd,uint64 claimableAt,uint64 validUntil) quote, bytes operatorSignature) returns (uint256 campaignId)',
+  'function reserveDeployment((bytes32 importId,address sponsor,uint256 reward,uint256 bond,uint16 protocolFeeBps,uint64 acceptDeadline,uint64 serviceStart,uint64 serviceEnd,uint64 claimableAt,uint64 validUntil,uint256 nonce) reservation, bytes operatorSignature)',
+  'function cancelDeploymentReservation((bytes32 importId,address sponsor,uint256 nonce) cancellation, bytes operatorSignature)',
   'function cancelCampaign(uint256 campaignId)',
   'function openDispute(uint256 campaignId, bytes32 evidenceHash)',
   'function withdraw()',

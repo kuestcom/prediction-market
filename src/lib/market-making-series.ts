@@ -5,6 +5,7 @@ export interface SeriesQuoteInputParams {
   conditionIds: string[]
   depthPerSideAtomic: string
   maxSpreadBps: number
+  sponsorPremiumBps?: number
   serviceEnd?: number
   sponsorSeries: boolean
   seriesSlug?: string | null
@@ -29,6 +30,7 @@ export function buildMarketMakerQuoteInput(params: SeriesQuoteInputParams): Reco
     conditionIds: params.conditionIds,
     depthPerSideAtomic: params.depthPerSideAtomic,
     maxSpreadBps: params.maxSpreadBps,
+    sponsorPremiumBps: params.sponsorPremiumBps ?? 0,
   }
   if (!params.sponsorSeries && params.serviceEnd !== undefined) {
     input.serviceEnd = params.serviceEnd

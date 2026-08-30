@@ -24,6 +24,50 @@ export interface GammaEventLike {
   markets?: GammaMarketLike[]
 }
 
+type PolymarketUrlKind = 'event' | 'market'
+
+export interface PolymarketUrlLookup {
+  kind: PolymarketUrlKind
+  slug: string
+}
+
+export function parsePolymarketUrl(value: string): PolymarketUrlLookup | null {
+  let url: URL
+  try {
+    url = new URL(value.trim())
+  } catch {
+    return null
+  }
+
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    !['polymarket.com', 'www.polymarket.com'].includes(url.hostname) ||
+    url.port ||
+    url.username ||
+    url.password
+  ) {
+    return null
+  }
+
+  const segments = url.pathname.split('/').filter(Boolean)
+  if (segments.length !== 2 || (segments[0] !== 'event' && segments[0] !== 'market')) {
+    return null
+  }
+
+  let slug: string
+  try {
+    slug = decodeURIComponent(segments[1]!).trim()
+  } catch {
+    return null
+  }
+
+  if (!slug || slug.length > 300 || slug.includes('/') || slug.includes('\\')) {
+    return null
+  }
+
+  return { kind: segments[0], slug }
+}
+
 export function gammaSeriesMetadata(event: GammaEventLike) {
   const slug = (event.seriesSlug ?? event.series_slug ?? event.series?.[0]?.slug)?.normalize('NFC').trim().toLowerCase()
   const recurrence =
