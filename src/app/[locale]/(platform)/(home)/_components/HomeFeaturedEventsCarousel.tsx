@@ -2317,6 +2317,7 @@ export default function HomeFeaturedEventsCarousel({
   sideCard,
 }: HomeFeaturedEventsCarouselProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const [featuredViewportStore] = useState(createFeaturedViewportStore)
   const sectionRef = useCallback(
     (node: HTMLElement | null) => featuredViewportStore.setNode(node),
@@ -2381,6 +2382,21 @@ export default function HomeFeaturedEventsCarousel({
 
     setActiveIndex((nextIndex + items.length) % items.length)
   }
+
+  function resolveNavigationTitle(title: string | null) {
+    if (!title) {
+      return null
+    }
+
+    const localizedTitle = localizeHomeEventCardTitle(title, locale)
+    const fullLidTitleValues = resolveHomeFeaturedFullLidTitleValues(localizedTitle, locale)
+    return fullLidTitleValues
+      ? t('Will the White House call a full lid by {time}? ({startDate}–{endDate})', fullLidTitleValues)
+      : localizedTitle
+  }
+
+  const previousTitle = resolveNavigationTitle(activeItem.previousTitle)
+  const nextTitle = resolveNavigationTitle(activeItem.nextTitle)
 
   return (
     <section ref={sectionRef} className="hidden gap-3 md:grid [&_img]:pointer-events-none [&_img]:select-none">
@@ -2465,7 +2481,7 @@ export default function HomeFeaturedEventsCarousel({
                 <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
                   <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
                     <ChevronLeftIcon className="size-4" />
-                    <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.previousTitle}</span>
+                    <span className="hidden max-w-44 truncate text-xs md:block">{previousTitle}</span>
                   </span>
                 </span>
               </Button>
@@ -2477,7 +2493,7 @@ export default function HomeFeaturedEventsCarousel({
               >
                 <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
                   <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
-                    <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.nextTitle}</span>
+                    <span className="hidden max-w-44 truncate text-xs md:block">{nextTitle}</span>
                     <ChevronRightIcon className="size-4" />
                   </span>
                 </span>
