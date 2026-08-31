@@ -1,3 +1,4 @@
+import { io } from 'next/cache'
 import { unstable_rethrow } from 'next/navigation'
 import { NextResponse } from 'next/server'
 
@@ -5,7 +6,6 @@ import { bpsToPercent, getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt
 import { MUTABLE_API_CACHE_CONTROL } from '@/lib/api-cache'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
-import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 interface AffiliateSettingsResponse {
   builderTakerSharePercent: number
@@ -16,7 +16,7 @@ interface AffiliateSettingsResponse {
 
 export async function GET() {
   try {
-    await deferPublicShellPrerenderIfNeeded()
+    await io()
 
     const { data: settings, error } = await SettingsRepository.getSettings()
 

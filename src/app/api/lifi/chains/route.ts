@@ -1,10 +1,10 @@
+import { io } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 import { getLiFiServerActions } from '@/lib/lifi'
-import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 export async function GET() {
-  await deferPublicShellPrerenderIfNeeded()
+  await io()
 
   const lifi = await getLiFiServerActions()
 

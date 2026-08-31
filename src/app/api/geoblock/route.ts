@@ -1,11 +1,11 @@
+import { io } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 import { MUTABLE_API_CACHE_CONTROL } from '@/lib/api-cache'
 import { loadBlockedCountries } from '@/lib/geoblock-settings'
-import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 export async function GET() {
-  await deferPublicShellPrerenderIfNeeded()
+  await io()
 
   const blockedCountries = await loadBlockedCountries()
 
