@@ -415,14 +415,7 @@ export const TagRepository = {
             return { data: result, error: null }
           })
 
-    if (configuredSidebarTagsError) {
-      return {
-        data: null,
-        error: configuredSidebarTagsError,
-        globalChilds: [],
-      }
-    }
-    const configuredSidebarTagRecords = configuredSidebarTags ?? []
+    const configuredSidebarTagRecords = configuredSidebarTagsError ? [] : (configuredSidebarTags ?? [])
 
     const visibleMainEventTags = alias(event_tags, 'visible_main_event_tags')
     const visibleMainTags = alias(tags, 'visible_main_tags')
@@ -1103,10 +1096,14 @@ export const TagRepository = {
     data: TagTranslationsMap | null
     error: string | null
   }> {
-    const normalizedEntries = NON_DEFAULT_LOCALES.map((locale) => {
+    const normalizedEntries = NON_DEFAULT_LOCALES.flatMap((locale) => {
       const rawValue = translations[locale]
-      const value = typeof rawValue === 'string' ? rawValue.trim() : ''
-      return { locale, value }
+      if (typeof rawValue !== 'string') {
+        return []
+      }
+
+      const value = rawValue.trim()
+      return [{ locale, value }]
     })
 
     const localesToDelete = normalizedEntries.filter((entry) => entry.value.length === 0).map((entry) => entry.locale)

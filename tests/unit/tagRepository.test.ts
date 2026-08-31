@@ -243,6 +243,48 @@ describe('tagRepository.getMainTags', () => {
     )
   })
 
+  it('keeps primary tags when configured sidebar enrichment fails', async () => {
+    const now = new Date('2026-03-11T00:00:00.000Z')
+
+    mocks.runQuery
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 1,
+            name: 'Finance',
+            slug: 'finance',
+            is_main_category: true,
+            is_hidden: false,
+            display_order: 1,
+            active_markets_count: 0,
+            created_at: now,
+            updated_at: now,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: null, error: 'Database unavailable' })
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({
+        data: [{ current_timestamp_ms: now.getTime() }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ tag_id: 1, name: 'Finanças' }],
+        error: null,
+      })
+
+    const { TagRepository } = await import('@/lib/db/queries/tag')
+    const result = await TagRepository.getMainTags('pt')
+
+    expect(result.error).toBeNull()
+    expect(result.data).toMatchObject([{ slug: 'finance', name: 'Finanças' }])
+    expect(result.data?.[0]?.sidebarItems).toContainEqual(
+      expect.objectContaining({ slug: 'stocks', label: 'Stocks', count: 0 }),
+    )
+  })
+
   it('counts only the visible series winner for sidebar totals', async () => {
     const now = new Date('2026-03-12T12:00:00.000Z')
     const earlier = new Date('2026-03-11T12:00:00.000Z')

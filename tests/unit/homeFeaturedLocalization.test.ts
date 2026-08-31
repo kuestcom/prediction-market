@@ -8,6 +8,7 @@ import {
   localizeHomeFeaturedMarketDates,
   resolveHomeFeaturedFullLidTitleValues,
 } from '@/lib/home-featured-localization'
+import { normalizeLocalizedUpOrDownTitle } from '@/lib/up-or-down-localization'
 
 describe('home featured localization', () => {
   it('localizes date-only market labels for Chinese', () => {
@@ -78,6 +79,12 @@ describe('home featured localization', () => {
   it('does not partially translate ordinary titles containing Trump approval', () => {
     expect(localizeHomeEventCardTitle('Trump approval poll closes tomorrow', 'pt')).toBe(
       'Trump approval poll closes tomorrow',
+    )
+  })
+
+  it('recognizes the Arabic up-or-down marker without replacing the marker', () => {
+    expect(normalizeLocalizedUpOrDownTitle('pt', 'Trump approval صعود أم هبوط this week?')).toBe(
+      'Aprovação de Trump صعود أم هبوط this week?',
     )
   })
 

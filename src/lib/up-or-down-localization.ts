@@ -17,6 +17,7 @@ const UP_OR_DOWN_SUBJECT_TRANSLATIONS: Record<string, Partial<Record<SupportedLo
 }
 const UP_OR_DOWN_TITLE_MARKERS = [
   'up or down',
+  'صعود أم هبوط',
   'صعودًا أم هبوطًا',
   'صعودا أم هبوطا',
   'rauf oder runter',
@@ -32,8 +33,8 @@ const UP_OR_DOWN_TITLE_MARKERS = [
 ] as const
 
 function isUpOrDownTitle(title: string) {
-  const normalizedTitle = title.toLocaleLowerCase()
-  return UP_OR_DOWN_TITLE_MARKERS.some((marker) => normalizedTitle.includes(marker.toLocaleLowerCase()))
+  const normalizedTitle = title.toLowerCase()
+  return UP_OR_DOWN_TITLE_MARKERS.some((marker) => normalizedTitle.includes(marker.toLowerCase()))
 }
 
 function localizeUpOrDownSubject(locale: SupportedLocale, subject: string) {
