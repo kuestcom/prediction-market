@@ -1,4 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
+import { getExtracted } from 'next-intl/server'
 import { cacheLife, cacheTag } from 'next/cache'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -560,12 +561,14 @@ export async function listHomeFeaturedHotTopics(
   return data
 }
 
-function buildHomeFeaturedSideCard(input: {
+async function buildHomeFeaturedSideCard(input: {
   configured: HomeFeaturedSideCardSettings
   featuredEvents: HomeFeaturedEventCard[]
   hotTopics: HomeFeaturedHotTopic[]
-}): HomeFeaturedSideCardSettings {
-  const { configured, featuredEvents, hotTopics } = input
+  locale: SupportedLocale
+}): Promise<HomeFeaturedSideCardSettings> {
+  const { configured, featuredEvents, hotTopics, locale } = input
+  const t = await getExtracted({ locale })
 
   function buildSlide(slide: HomeFeaturedSideCardSettings['slides'][number]) {
     if (slide.type !== 'text' || !slide.useAi) {
@@ -576,9 +579,12 @@ function buildHomeFeaturedSideCard(input: {
     if (liveEvent) {
       return {
         ...slide,
-        title: 'Live market focus',
-        text: `${liveEvent.event.title} is live now with ${formatDollarValueLabel(liveEvent.event.volume, { maximumFractionDigits: 0 })} total volume.`,
-        ctaLabel: slide.ctaLabel || 'Open market',
+        title: t('Live market focus'),
+        text: t('{eventTitle} is live now with {volume} total volume.', {
+          eventTitle: liveEvent.event.title,
+          volume: formatDollarValueLabel(liveEvent.event.volume, { maximumFractionDigits: 0 }),
+        }),
+        ctaLabel: slide.ctaLabel || t('Open market'),
         ctaHref: slide.ctaHref || resolveEventPagePath(liveEvent.event),
         icon: 'flame' as const,
       }
@@ -588,9 +594,11 @@ function buildHomeFeaturedSideCard(input: {
     if (topTopic) {
       return {
         ...slide,
-        title: `${topTopic.label} leads volume`,
-        text: `${formatDollarValueLabel(topTopic.volume24h, { maximumFractionDigits: 0 })} tracked across active and recently settled markets.`,
-        ctaLabel: slide.ctaLabel || 'Explore topic',
+        title: t('{categoryName} leads volume', { categoryName: topTopic.label }),
+        text: t('{volume} tracked across active and recently settled markets.', {
+          volume: formatDollarValueLabel(topTopic.volume24h, { maximumFractionDigits: 0 }),
+        }),
+        ctaLabel: slide.ctaLabel || t('Explore topic'),
         ctaHref: slide.ctaHref || topTopic.href,
         icon: 'trending-up' as const,
       }
@@ -600,9 +608,9 @@ function buildHomeFeaturedSideCard(input: {
     if (firstEvent) {
       return {
         ...slide,
-        title: 'Featured market',
+        title: t('Featured market'),
         text: firstEvent.event.title,
-        ctaLabel: slide.ctaLabel || 'Open market',
+        ctaLabel: slide.ctaLabel || t('Open market'),
         ctaHref: slide.ctaHref || resolveEventPagePath(firstEvent.event),
         icon: 'sparkles' as const,
       }
@@ -629,18 +637,19 @@ async function loadHomeFeaturedSettings() {
 export async function getHomeFeaturedSideCard(
   featuredEvents: HomeFeaturedEventCard[],
   hotTopics: HomeFeaturedHotTopic[],
+  locale: SupportedLocale = DEFAULT_LOCALE,
 ): Promise<HomeFeaturedSideCardSettings> {
   const { data: allSettings, error: settingsError } = await loadHomeFeaturedSettings()
   if (settingsError) {
     console.error('Failed to load home featured side card settings', settingsError)
-    return getHomeFeaturedSettingsFromSettings(undefined).sideCard
   }
 
   const settings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
-  const sideCard = buildHomeFeaturedSideCard({
+  const sideCard = await buildHomeFeaturedSideCard({
     configured: settings.sideCard,
     featuredEvents,
     hotTopics,
+    locale,
   })
   const slides = sideCard.slides
     .filter((slide) => slide.enabled)

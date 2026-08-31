@@ -5,6 +5,20 @@ const mocks = vi.hoisted(() => ({
   getPublicAssetUrl: vi.fn((path: string | null) => (path ? `https://assets.example/${path}` : '')),
 }))
 
+vi.mock('next-intl/server', () => ({
+  getExtracted:
+    async ({ locale }: { locale: string }) =>
+    (message: string, values?: Record<string, string>) => {
+      const translations: Record<string, string> = {
+        '{categoryName} leads volume': '{categoryName}成交量领先',
+        '{volume} tracked across active and recently settled markets.': '活跃及近期结算市场累计追踪{volume}。',
+      }
+      const translated = locale === 'zh' ? (translations[message] ?? message) : message
+
+      return translated.replace(/\{(\w+)\}/g, (_match, key: string) => values?.[key] ?? `{${key}}`)
+    },
+}))
+
 vi.mock('next/cache', async () => {
   const actual = await vi.importActual<typeof import('next/cache')>('next/cache')
 
@@ -74,5 +88,47 @@ describe('home featured side card', () => {
     expect(sideCard.slides).toHaveLength(1)
     expect(sideCard.slides[0]).toMatchObject({ id: 'ready-text', type: 'text' })
     expect(sideCard.slides.some((slide) => slide.type === 'image' && !slide.imageUrl)).toBe(false)
+  })
+
+  it('localizes generated title and body templates for Chinese pages', async () => {
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        home_featured: {
+          side_card_slides_v1: {
+            value: JSON.stringify([
+              {
+                id: 'generated-text',
+                type: 'text',
+                enabled: true,
+                title: '',
+                text: '',
+                useAi: true,
+              },
+            ]),
+            updated_at: '',
+          },
+        },
+      },
+      error: null,
+    })
+
+    const { getHomeFeaturedSideCard } = await import('@/lib/home-featured-events')
+    const sideCard = await getHomeFeaturedSideCard(
+      [],
+      [
+        {
+          label: '政治',
+          slug: 'politics',
+          href: '/zh/markets/politics',
+          volume24h: 21_194,
+        } as any,
+      ],
+      'zh',
+    )
+
+    expect(sideCard.slides[0]).toMatchObject({
+      title: '政治成交量领先',
+      text: '活跃及近期结算市场累计追踪$21,194。',
+    })
   })
 })

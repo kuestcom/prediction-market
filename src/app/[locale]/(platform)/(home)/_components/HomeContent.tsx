@@ -77,7 +77,7 @@ export default async function HomeContent({
 
           const featuredSideCard =
             featuredEvents.length > 0
-              ? await getHomeFeaturedSideCard(featuredEvents, featuredHotTopics)
+              ? await getHomeFeaturedSideCard(featuredEvents, featuredHotTopics, resolvedLocale)
               : DEFAULT_HOME_FEATURED_SETTINGS.sideCard
 
           return {
