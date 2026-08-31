@@ -537,6 +537,7 @@ interface AdminEventRow {
   livestream_url: string | null
   series_slug: string | null
   series_recurrence: string | null
+  start_date: string | null
   volume: number
   volume_24h: number
   is_hidden: boolean
@@ -2678,6 +2679,7 @@ export const EventRepository = {
         rules: events.rules,
         series_slug: events.series_slug,
         series_recurrence: events.series_recurrence,
+        start_date: events.start_date,
         end_date: events.end_date,
         created_at: events.created_at,
         updated_at: events.updated_at,
@@ -3015,6 +3017,11 @@ export const EventRepository = {
     const formattedRows: AdminEventRow[] = rows.map((row) => {
       const createdAt = row.created_at instanceof Date ? row.created_at : new Date(row.created_at)
       const updatedAt = row.updated_at instanceof Date ? row.updated_at : new Date(row.updated_at)
+      const startDate = row.start_date
+        ? row.start_date instanceof Date
+          ? row.start_date
+          : new Date(row.start_date)
+        : null
       const endDate = row.end_date ? (row.end_date instanceof Date ? row.end_date : new Date(row.end_date)) : null
       const volumeData = volumeByEventId.get(row.id)
       const sportsData = sportsByEventId.get(row.id)
@@ -3032,6 +3039,7 @@ export const EventRepository = {
         rules: row.rules ?? null,
         series_slug: row.series_slug ?? null,
         series_recurrence: row.series_recurrence ?? null,
+        start_date: startDate && !Number.isNaN(startDate.getTime()) ? startDate.toISOString() : null,
         volume: volumeData?.volume ?? 0,
         volume_24h: volumeData?.volume_24h ?? 0,
         is_hidden: Boolean(row.is_hidden),

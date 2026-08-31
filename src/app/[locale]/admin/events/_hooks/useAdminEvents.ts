@@ -28,6 +28,7 @@ export interface AdminEventRow {
   rules: string | null
   series_slug: string | null
   series_recurrence: string | null
+  start_date: string | null
   volume: number
   volume_24h: number
   is_hidden: boolean

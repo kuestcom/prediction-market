@@ -49,6 +49,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { formatDollarValueLabel } from '@/lib/formatters'
+import { localizeHomeEventCardTitle } from '@/lib/home-featured-localization'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import { cn } from '@/lib/utils'
 
@@ -67,6 +68,7 @@ interface AdminEventCandidate {
   volume: number
   volume_24h: number
   status: string
+  start_date: string | null
   end_date: string | null
   sports_score: string | null
   sports_live: boolean | null
@@ -141,6 +143,56 @@ function toFeaturedItem(candidate: AdminEventCandidate, rank: number): HomeFeatu
     autoRolloverEnabled: hasSeries,
     contextItems: [],
   }
+}
+
+const FEATURED_MARKET_TIME_ZONE = 'America/New_York'
+
+function formatCandidateDateTime(value: string | null, locale: string) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    timeZone: FEATURED_MARKET_TIME_ZONE,
+    timeZoneName: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function resolveCandidatePeriodLabel(candidate: AdminEventCandidate, locale: string) {
+  const start = formatCandidateDateTime(candidate.start_date, locale)
+  const end = formatCandidateDateTime(candidate.end_date, locale)
+  if (start && end) {
+    return `${start} – ${end}`
+  }
+
+  return start ?? end
+}
+
+function resolveCandidateStatus(candidate: AdminEventCandidate, now: number) {
+  if (candidate.status === 'resolved') {
+    return { label: 'Resolved', tone: 'muted' as const }
+  }
+
+  const start = candidate.start_date ? Date.parse(candidate.start_date) : Number.NaN
+  const end = candidate.end_date ? Date.parse(candidate.end_date) : Number.NaN
+  if (Number.isFinite(end) && end <= now) {
+    return { label: 'Expired', tone: 'muted' as const }
+  }
+  if (Number.isFinite(start) && start > now) {
+    return { label: 'Next', tone: 'warning' as const }
+  }
+
+  return { label: 'Active', tone: 'active' as const }
 }
 
 function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
@@ -239,6 +291,7 @@ function HomeFeaturedResponsiveOverlay({
 
 function HomeFeaturedSelectionDialog({
   isMobile,
+  locale,
   open,
   disabled,
   selectedItems,
@@ -246,6 +299,7 @@ function HomeFeaturedSelectionDialog({
   onAddCandidate,
 }: {
   isMobile: boolean
+  locale: string
   open: boolean
   disabled: boolean
   selectedItems: HomeFeaturedEventAdminItem[]
@@ -258,6 +312,7 @@ function HomeFeaturedSelectionDialog({
   const [candidates, setCandidates] = useState<AdminEventCandidate[]>([])
   const searchRequestIdRef = useRef(0)
   const isLoading = loadingRequestId !== null
+  const [now] = useState(() => Date.now())
   const selectedKeys = useMemo(() => new Set(selectedItems.map(buildFeaturedKey)), [selectedItems])
 
   useEffect(
@@ -333,9 +388,16 @@ function HomeFeaturedSelectionDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title={t('Add featured markets')}
-      description={t(
-        'Select active markets for the home carousel. Recurring markets are saved as a series automatically.',
-      )}
+      description={
+        <>
+          <span>
+            {t('Select active markets for the home carousel. Recurring markets are saved as a series automatically.')}
+          </span>
+          <span className="mt-1 block">
+            {t('Adding a recurring market selects its entire series; the period shown is only a preview.')}
+          </span>
+        </>
+      }
       dialogClassName="sm:max-w-3xl"
       footer={
         <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
@@ -373,6 +435,17 @@ function HomeFeaturedSelectionDialog({
             candidates.map((candidate) => {
               const candidateKey = buildFeaturedKey(toFeaturedItem(candidate, selectedItems.length))
               const isSelected = selectedKeys.has(candidateKey)
+              const isSeries = Boolean(candidate.series_slug?.trim())
+              const periodLabel = resolveCandidatePeriodLabel(candidate, locale)
+              const periodStatus = resolveCandidateStatus(candidate, now)
+              const localizedStatusLabel =
+                periodStatus.label === 'Resolved'
+                  ? t('Resolved')
+                  : periodStatus.label === 'Expired'
+                    ? t('Expired')
+                    : periodStatus.label === 'Next'
+                      ? t('Next')
+                      : t('Active')
 
               return (
                 <button
@@ -388,16 +461,42 @@ function HomeFeaturedSelectionDialog({
                     <HomeFeaturedAdminPreviewImage src={candidate.icon_url} alt="" className="size-10 object-cover" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{candidate.title}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {candidate.series_slug ? `${t('Series')} · ${candidate.series_slug}` : candidate.slug}
+                    <p className="truncate text-sm font-medium">
+                      {localizeHomeEventCardTitle(candidate.title, locale)}
                     </p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+                      <span className="truncate">
+                        {isSeries ? `${t('Series')} · ${candidate.series_slug}` : candidate.slug}
+                      </span>
+                      {periodLabel && <span className="truncate">{periodLabel}</span>}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5',
+                          periodStatus.tone === 'active' && 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+                          periodStatus.tone === 'warning' && 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                          periodStatus.tone === 'muted' && 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {localizedStatusLabel}
+                      </span>
+                      {isSeries && <span className="text-muted-foreground">{t('Recurring event')}</span>}
+                    </div>
                   </div>
                   <div className="hidden text-right text-sm text-muted-foreground sm:block">
                     <p>{formatDollarValueLabel(candidate.volume, { maximumFractionDigits: 0 })}</p>
                     <p>{`${formatDollarValueLabel(candidate.volume_24h, { maximumFractionDigits: 0 })} 24h`}</p>
                   </div>
-                  <span className="text-sm text-muted-foreground">{isSelected ? t('Added') : t('Add')}</span>
+                  <span className="shrink-0 text-right text-sm text-muted-foreground">
+                    {isSelected
+                      ? isSeries
+                        ? `${t('Added')} ${t('Series')}`
+                        : t('Added')
+                      : isSeries
+                        ? `${t('Add')} ${t('Series')}`
+                        : t('Add')}
+                  </span>
                 </button>
               )
             })}
@@ -1085,6 +1184,7 @@ export default function HomeFeaturedMarketsSection({
 
       <HomeFeaturedSelectionDialog
         isMobile={isMobile}
+        locale={locale}
         open={selectionDialogOpen}
         disabled={disabled}
         selectedItems={featuredEvents}
