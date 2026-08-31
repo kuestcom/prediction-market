@@ -152,6 +152,10 @@ interface MarketMakingCopy {
   walletNotReady: string
   transactionFailed: string
   approveUsdc: string
+  payImportFee: string
+  reserveDeployment: string
+  fundMarketMakerCampaign: string
+  confirmNetworkSwitch: string
   transactionPrompt: string
   marketClosesTooSoon: string
   marketDataUnavailable: string
@@ -1115,7 +1119,7 @@ function CampaignDialog({
     const selectedChainId = resolveWalletChainId(appKitChainId)
     if (selectedChainId !== null && selectedChainId !== chainId) {
       await runWithSignaturePrompt(() => switchNetwork(chain), {
-        title: copy.funding,
+        title: copy.confirmNetworkSwitch,
         description: copy.transactionPrompt,
       })
     }
@@ -1874,7 +1878,7 @@ function CampaignDialog({
                 functionName: 'transfer',
                 args: [activeImport.payment.receiverAddress as Address, BigInt(activeImport.payment.amountAtomic)],
               }),
-              title: copy.importEvent,
+              title: copy.payImportFee,
             }))
           setPendingImportPaymentHash(paymentHash)
           if (importPaymentStorageKey) {
@@ -1953,7 +1957,7 @@ function CampaignDialog({
                   reservation.signature as `0x${string}`,
                 ],
               }),
-              title: copy.sponsor,
+              title: copy.reserveDeployment,
             })
             const reservationReceipt = await publicClient.waitForTransactionReceipt({ hash: reservationHash })
             if (reservationReceipt.status !== 'success') {
@@ -2051,7 +2055,7 @@ function CampaignDialog({
           functionName: 'createCampaign',
           args: campaignArguments,
         }),
-        title: copy.sponsor,
+        title: copy.fundMarketMakerCampaign,
       })
       const campaignReceipt = await publicClient.waitForTransactionReceipt({ hash: campaignHash })
       if (campaignReceipt.status !== 'success') {
@@ -2074,6 +2078,9 @@ function CampaignDialog({
             ? quoteErrorMessage(error, copy)
             : fundingErrorMessage(error, copy)
       setIssueError(friendlyMessage)
+      if (usesImportFlow && isUserRejectedRequestError(error)) {
+        setImportOpen(false)
+      }
       if (!isUserRejectedRequestError(error)) {
         console.error('Failed to fund market-making campaign.', error)
       }
@@ -2399,40 +2406,36 @@ function CampaignDialog({
                 )}
               </div>
             </section>
-
-            {issueError && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                {issueError}
-              </div>
-            )}
           </aside>
         </div>
 
         <div className="shrink-0 border-t bg-background/95 pt-3 pb-1 backdrop-blur lg:col-start-2 lg:row-start-2">
-          {balanceCheckRequired && hasInsufficientSponsorBalance && (
-            <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
+          {issueError ? (
+            <div className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-semibold text-destructive">
               <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
-              {copy.insufficientBalance}
+              <span>{issueError}</span>
             </div>
-          )}
-          {balanceCheckRequired && sponsorBalanceQuery.isError && (
-            <div className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-center text-sm font-semibold text-orange-500">
+          ) : balanceCheckRequired && (hasInsufficientSponsorBalance || sponsorBalanceQuery.isError) ? (
+            <div className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-semibold text-orange-500">
               <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
-              <span>{copy.balanceUnavailable}</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={sponsorBalanceQuery.isFetching}
-                onClick={() => void sponsorBalanceQuery.refetch()}
-              >
-                {copy.retry}
-              </Button>
+              <span>{hasInsufficientSponsorBalance ? copy.insufficientBalance : copy.balanceUnavailable}</span>
+              {sponsorBalanceQuery.isError && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={sponsorBalanceQuery.isFetching}
+                  onClick={() => void sponsorBalanceQuery.refetch()}
+                >
+                  {copy.retry}
+                </Button>
+              )}
             </div>
+          ) : (
+            <p className="mb-2 hidden overflow-hidden text-center text-xs text-ellipsis whitespace-nowrap text-muted-foreground sm:block">
+              {copy.escrowNotice}
+            </p>
           )}
-          <p className="mb-2 hidden overflow-hidden text-center text-xs text-ellipsis whitespace-nowrap text-muted-foreground sm:block">
-            {copy.escrowNotice}
-          </p>
           <Button
             type="button"
             size="lg"
