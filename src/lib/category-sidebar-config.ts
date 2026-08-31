@@ -129,6 +129,25 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
   ],
 }
 
+export function getCategorySidebarConfiguredTagSlugs() {
+  const slugs = new Set<string>()
+
+  for (const template of Object.values(categorySidebarTemplates)) {
+    for (const item of template ?? []) {
+      if (item.type !== 'link') {
+        continue
+      }
+
+      slugs.add(item.slug)
+      for (const subItem of item.subItems ?? []) {
+        slugs.add(subItem.slug)
+      }
+    }
+  }
+
+  return slugs
+}
+
 function isLinkItem(item: CategorySidebarTemplateItem): item is CategorySidebarTemplateLinkItem {
   return item.type === 'link'
 }

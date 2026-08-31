@@ -179,10 +179,6 @@ function resolveCandidatePeriodLabel(candidate: AdminEventCandidate, locale: str
 }
 
 function resolveCandidateStatus(candidate: AdminEventCandidate, now: number) {
-  if (candidate.status === 'resolved') {
-    return { label: 'Resolved', tone: 'muted' as const }
-  }
-
   const start = candidate.start_date ? Date.parse(candidate.start_date) : Number.NaN
   const end = candidate.end_date ? Date.parse(candidate.end_date) : Number.NaN
   if (Number.isFinite(end) && end <= now) {
@@ -312,8 +308,24 @@ function HomeFeaturedSelectionDialog({
   const [candidates, setCandidates] = useState<AdminEventCandidate[]>([])
   const searchRequestIdRef = useRef(0)
   const isLoading = loadingRequestId !== null
-  const [now] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const selectedKeys = useMemo(() => new Set(selectedItems.map(buildFeaturedKey)), [selectedItems])
+
+  useEffect(
+    function refreshCandidateStatusClock() {
+      if (!open) {
+        return
+      }
+
+      const refreshTimeoutId = window.setTimeout(() => setNow(Date.now()), 0)
+      const intervalId = window.setInterval(() => setNow(Date.now()), 1_000)
+      return function cleanupCandidateStatusClock() {
+        window.clearTimeout(refreshTimeoutId)
+        window.clearInterval(intervalId)
+      }
+    },
+    [open],
+  )
 
   useEffect(
     function loadCandidates() {
@@ -439,13 +451,11 @@ function HomeFeaturedSelectionDialog({
               const periodLabel = resolveCandidatePeriodLabel(candidate, locale)
               const periodStatus = resolveCandidateStatus(candidate, now)
               const localizedStatusLabel =
-                periodStatus.label === 'Resolved'
-                  ? t('Resolved')
-                  : periodStatus.label === 'Expired'
-                    ? t('Expired')
-                    : periodStatus.label === 'Next'
-                      ? t('Next')
-                      : t('Active')
+                periodStatus.label === 'Expired'
+                  ? t('Expired')
+                  : periodStatus.label === 'Next'
+                    ? t('Next')
+                    : t('Active')
 
               return (
                 <button

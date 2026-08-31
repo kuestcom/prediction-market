@@ -53,7 +53,7 @@ describe('event Additional Context translation', () => {
 
     expect(mocks.requestOpenRouterCompletion).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ maxTokens: 20_000 }),
+      expect.objectContaining({ maxTokens: 8_000 }),
     )
   })
 })

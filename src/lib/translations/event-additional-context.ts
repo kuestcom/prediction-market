@@ -4,6 +4,8 @@ import { LOCALE_LABELS } from '@/i18n/locales'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { assertTranslationUsesExpectedScript } from '@/lib/translations/batch'
 
+const MAX_ADDITIONAL_CONTEXT_TRANSLATION_TOKENS = 8_000
+
 function normalizeTranslatedText(value: string) {
   return value
     .trim()
@@ -40,7 +42,7 @@ export async function translateEventAdditionalContext(
       apiKey: options.apiKey,
       model: options.model,
       temperature: 0,
-      maxTokens: Math.max(250, Math.ceil(sourceText.length * 2)),
+      maxTokens: Math.min(MAX_ADDITIONAL_CONTEXT_TRANSLATION_TOKENS, Math.max(250, Math.ceil(sourceText.length * 2))),
       timeoutMs: options.timeoutMs,
     },
   )

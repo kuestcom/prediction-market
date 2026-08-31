@@ -156,6 +156,93 @@ describe('tagRepository.getMainTags', () => {
     expect(result.globalChilds).toEqual([{ slug: 'shared', name: 'Shared', count: 2 }])
   })
 
+  it('loads configured tag translations without overriding localized synthetic labels', async () => {
+    const now = new Date('2026-03-11T00:00:00.000Z')
+    const later = new Date('2026-03-11T04:00:00.000Z')
+
+    mocks.runQuery
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 1,
+            name: 'Finance',
+            slug: 'finance',
+            is_main_category: true,
+            is_hidden: false,
+            display_order: 1,
+            active_markets_count: 0,
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            id: 2,
+            name: 'Crypto',
+            slug: 'crypto',
+            is_main_category: true,
+            is_hidden: false,
+            display_order: 2,
+            active_markets_count: 1,
+            created_at: now,
+            updated_at: now,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({
+        data: [
+          { id: 10, slug: 'stocks' },
+          { id: 11, slug: 'daily' },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            event_id: 'btc-daily',
+            event_slug: 'btc-daily',
+            event_status: 'active',
+            series_recurrence: null,
+            series_slug: 'btc-up-or-down-daily',
+            end_date: later,
+            created_at: now,
+            updated_at: now,
+            tag_slug: 'crypto',
+            tag_is_main_category: true,
+          },
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ current_timestamp_ms: now.getTime() }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          { tag_id: 1, name: 'Finanças' },
+          { tag_id: 2, name: 'Cripto' },
+          { tag_id: 10, name: 'Ações' },
+        ],
+        error: null,
+      })
+
+    const { TagRepository } = await import('@/lib/db/queries/tag')
+    const result = await TagRepository.getMainTags('pt')
+
+    expect(result.error).toBeNull()
+    expect(result.data?.find((tag) => tag.slug === 'finance')?.sidebarItems).toContainEqual(
+      expect.objectContaining({ slug: 'stocks', label: 'Ações', count: 0 }),
+    )
+    expect(result.data?.find((tag) => tag.slug === 'crypto')?.childs).toContainEqual({
+      slug: 'daily',
+      name: 'Diário',
+      count: 1,
+    })
+    expect(result.data?.find((tag) => tag.slug === 'crypto')?.sidebarItems).toContainEqual(
+      expect.objectContaining({ slug: 'daily', label: 'Diário', count: 1 }),
+    )
+  })
+
   it('counts only the visible series winner for sidebar totals', async () => {
     const now = new Date('2026-03-12T12:00:00.000Z')
     const earlier = new Date('2026-03-11T12:00:00.000Z')

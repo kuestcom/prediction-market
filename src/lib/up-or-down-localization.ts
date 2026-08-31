@@ -15,12 +15,36 @@ const UP_OR_DOWN_SUBJECT_TRANSLATIONS: Record<string, Partial<Record<SupportedLo
     zh: '特朗普支持率',
   },
 }
+const UP_OR_DOWN_TITLE_MARKERS = [
+  'up or down',
+  'صعودًا أم هبوطًا',
+  'صعودا أم هبوطا',
+  'rauf oder runter',
+  'sube o baja',
+  'en hausse ou en baisse',
+  'sale o scende',
+  '上がる？下がる？',
+  '상승 또는 하락',
+  'wzrośnie czy spadnie',
+  'sobe ou desce',
+  'вырастет или упадет',
+  '上涨还是下跌',
+] as const
+
+function isUpOrDownTitle(title: string) {
+  const normalizedTitle = title.toLocaleLowerCase()
+  return UP_OR_DOWN_TITLE_MARKERS.some((marker) => normalizedTitle.includes(marker.toLocaleLowerCase()))
+}
 
 function localizeUpOrDownSubject(locale: SupportedLocale, subject: string) {
   return UP_OR_DOWN_SUBJECT_TRANSLATIONS[subject]?.[locale] ?? subject
 }
 
 export function normalizeLocalizedUpOrDownTitle(locale: SupportedLocale, title: string) {
+  if (!isUpOrDownTitle(title)) {
+    return title
+  }
+
   let normalized = title
   for (const [source, translations] of Object.entries(UP_OR_DOWN_SUBJECT_TRANSLATIONS)) {
     const localized = translations[locale]
