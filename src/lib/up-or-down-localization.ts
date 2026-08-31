@@ -4,7 +4,7 @@ const CHINESE_UP_OR_DOWN_SUBJECTS: Record<string, string> = {
   'Trump approval': '特朗普支持率',
 }
 
-export function localizeUpOrDownSubject(locale: SupportedLocale, subject: string) {
+function localizeUpOrDownSubject(locale: SupportedLocale, subject: string) {
   return locale === 'zh' ? (CHINESE_UP_OR_DOWN_SUBJECTS[subject] ?? subject) : subject
 }
 
