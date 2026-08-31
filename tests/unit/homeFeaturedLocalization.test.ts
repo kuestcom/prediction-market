@@ -69,6 +69,9 @@ describe('home featured localization', () => {
     expect(localizeHomeEventCardTitle('本周 Trump approval会上涨还是下跌?', 'zh')).toBe(
       '本周特朗普支持率会上涨还是下跌？',
     )
+    expect(localizeHomeEventCardTitle('Trump approval sobe ou desce esta semana?', 'pt')).toBe(
+      'Aprovação de Trump sobe ou desce esta semana?',
+    )
     expect(localizeHomeEventCardTitle('BTC会上涨还是下跌 4h', 'zh')).toBe('BTC会上涨还是下跌 4h')
   })
 

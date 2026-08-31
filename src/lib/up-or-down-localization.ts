@@ -1,21 +1,36 @@
 import type { SupportedLocale } from '@/i18n/locales'
 
-const CHINESE_UP_OR_DOWN_SUBJECTS: Record<string, string> = {
-  'Trump approval': '特朗普支持率',
+const UP_OR_DOWN_SUBJECT_TRANSLATIONS: Record<string, Partial<Record<SupportedLocale, string>>> = {
+  'Trump approval': {
+    ar: 'تأييد ترامب',
+    de: 'Trump-Zustimmung',
+    es: 'Aprobación de Trump',
+    fr: 'Approbation de Trump',
+    it: 'Approvazione di Trump',
+    ja: 'トランプ支持率',
+    ko: '트럼프 지지율',
+    pl: 'Poparcie dla Trumpa',
+    pt: 'Aprovação de Trump',
+    ru: 'Одобрение Трампа',
+    zh: '特朗普支持率',
+  },
 }
 
 function localizeUpOrDownSubject(locale: SupportedLocale, subject: string) {
-  return locale === 'zh' ? (CHINESE_UP_OR_DOWN_SUBJECTS[subject] ?? subject) : subject
+  return UP_OR_DOWN_SUBJECT_TRANSLATIONS[subject]?.[locale] ?? subject
 }
 
 export function normalizeLocalizedUpOrDownTitle(locale: SupportedLocale, title: string) {
-  if (locale !== 'zh' || !title.includes('上涨还是下跌')) {
-    return title
+  let normalized = title
+  for (const [source, translations] of Object.entries(UP_OR_DOWN_SUBJECT_TRANSLATIONS)) {
+    const localized = translations[locale]
+    if (localized) {
+      normalized = normalized.replaceAll(source, localized)
+    }
   }
 
-  let normalized = title
-  for (const [source, localized] of Object.entries(CHINESE_UP_OR_DOWN_SUBJECTS)) {
-    normalized = normalized.replace(source, localized)
+  if (locale !== 'zh' || !normalized.includes('上涨还是下跌')) {
+    return normalized
   }
 
   return normalized
