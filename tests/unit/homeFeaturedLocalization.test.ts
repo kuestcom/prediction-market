@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { HomeFeaturedEventCard, Market } from '@/types'
 
 import {
+  localizeHomeEventCardTitle,
   localizeHomeFeaturedDateLabel,
   localizeHomeFeaturedMarketDates,
   resolveHomeFeaturedFullLidTitleValues,
@@ -50,6 +51,25 @@ describe('home featured localization', () => {
       startDate: '8月31日',
       endDate: '9月5日',
     })
+  })
+
+  it('localizes English and partially translated shared-market titles', () => {
+    expect(localizeHomeEventCardTitle('WTI Crude Oil (WTI) Up or Down on August 31?', 'zh')).toBe(
+      '8月31日WTI Crude Oil (WTI)会上涨还是下跌？',
+    )
+    expect(localizeHomeEventCardTitle('S&P 500 (SPX) Up or Down on August 31?', 'zh')).toBe(
+      '8月31日S&P 500 (SPX)会上涨还是下跌？',
+    )
+    expect(localizeHomeEventCardTitle('Gold (XAUUSD) Up or Down on August 31?', 'zh')).toBe(
+      '8月31日Gold (XAUUSD)会上涨还是下跌？',
+    )
+    expect(localizeHomeEventCardTitle('8月 31日 WTI Crude Oil (WTI)会上涨还是下跌?', 'zh')).toBe(
+      '8月31日WTI Crude Oil (WTI)会上涨还是下跌？',
+    )
+    expect(localizeHomeEventCardTitle('本周 Trump approval会上涨还是下跌?', 'zh')).toBe(
+      '本周特朗普支持率会上涨还是下跌？',
+    )
+    expect(localizeHomeEventCardTitle('BTC会上涨还是下跌 4h', 'zh')).toBe('BTC会上涨还是下跌 4h')
   })
 
   it('leaves unrelated market labels and titles alone', () => {

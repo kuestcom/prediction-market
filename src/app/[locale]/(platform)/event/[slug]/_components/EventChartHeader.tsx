@@ -1,4 +1,5 @@
 import { TriangleIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { AnimatedCounter } from 'react-animated-counter'
 
 import type { EventSeriesEntry } from '@/types'
@@ -45,6 +46,7 @@ export default function EventChartHeader({
   tweetCountdownTargetMs = null,
   tweetMarketsFinal = false,
 }: EventChartHeaderProps) {
+  const t = useExtracted()
   const seriesNavigation = showSeriesNavigation ? (
     <EventSeriesPills currentEventSlug={currentEventSlug} seriesEvents={seriesEvents} />
   ) : null
@@ -143,7 +145,7 @@ export default function EventChartHeader({
               ) : (
                 <span>--</span>
               )}
-              <span>% chance</span>
+              <span>% {t('chance')}</span>
             </div>
           </div>
 

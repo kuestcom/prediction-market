@@ -25,6 +25,7 @@ const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components
 
 interface EventChartCanvasProps {
   chartData: DataPoint[]
+  locale?: string
   legendSeries: SeriesConfig[]
   chartWidth: number
   chartHeight?: number
@@ -51,6 +52,7 @@ interface EventChartCanvasProps {
 const CHART_MARGIN = { top: 30, right: 40, bottom: 52, left: 0 }
 export default function EventChartCanvas({
   chartData,
+  locale = 'en',
   legendSeries,
   chartWidth,
   chartHeight = 332,
@@ -100,6 +102,15 @@ export default function EventChartCanvas({
         lineCurve="monotoneX"
         plotClipPadding={{ right: EVENT_PLOT_CLIP_RIGHT_PADDING }}
         tooltipLabelVariant="panel"
+        tooltipDateFormatter={(date) =>
+          date.toLocaleString(locale, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          })
+        }
       />
       <EventChartTradeFlow items={tradeFlowItems} />
     </div>

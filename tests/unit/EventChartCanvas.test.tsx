@@ -57,4 +57,47 @@ describe('eventChartCanvas', () => {
 
     expect(mocks.predictionChart).toHaveBeenCalledWith(expect.objectContaining({ dataSyncMode: 'replace' }))
   })
+
+  it('formats tooltip timestamps with the page locale', () => {
+    render(
+      <EventChartCanvas
+        chartData={[]}
+        locale="zh"
+        legendSeries={[{ key: 'market', name: '上涨', color: '#00ff00' }]}
+        chartWidth={400}
+        chartScopeKey="event:ALL:market"
+        onCursorDataChange={vi.fn()}
+        isMobile={false}
+        isSingleMarket
+        chartSettings={{
+          autoscale: false,
+          xAxis: true,
+          yAxis: true,
+          horizontalGrid: true,
+          verticalGrid: false,
+          annotations: false,
+        }}
+        chartAnnotationMarkers={[]}
+        leadingGapStart={null}
+        disableResetAnimation={false}
+        legendContent={null}
+        tradeFlowItems={[]}
+      />,
+    )
+
+    const props = mocks.predictionChart.mock.lastCall?.[0] as {
+      tooltipDateFormatter: (date: Date) => string
+    }
+    const date = new Date('2026-08-30T19:33:00.000Z')
+
+    expect(props.tooltipDateFormatter(date)).toBe(
+      date.toLocaleString('zh', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }),
+    )
+  })
 })

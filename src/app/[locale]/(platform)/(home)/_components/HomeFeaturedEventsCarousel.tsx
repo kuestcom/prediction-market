@@ -43,6 +43,7 @@ import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
@@ -611,6 +612,7 @@ function resolveFeaturedOutcomeHref(
 }
 
 function OutcomeRows({ item, linkedHref }: { item: HomeFeaturedEventCard; linkedHref: string }) {
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const outcomes = item.topOutcomes
   const shouldShowOutcomeImages = item.event.show_market_icons !== false
 
@@ -620,32 +622,36 @@ function OutcomeRows({ item, linkedHref }: { item: HomeFeaturedEventCard; linked
 
   return (
     <div className="grid gap-0">
-      {outcomes.map((outcome) => (
-        <Link
-          key={outcome.key}
-          href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
-          className={cn(
-            `group/outcome grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 py-2 last:border-b-0`,
-          )}
-        >
-          <span className="flex min-w-0 items-center gap-3">
-            {shouldShowOutcomeImages && outcome.imageUrl && (
-              <span className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
-                <EventIconImage
-                  src={outcome.imageUrl}
-                  alt={outcome.label}
-                  sizes="36px"
-                  containerClassName="size-full rounded-md"
-                />
-              </span>
+      {outcomes.map((outcome) => {
+        const label = normalizeOutcomeLabel(outcome.label)
+
+        return (
+          <Link
+            key={outcome.key}
+            href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
+            className={cn(
+              `group/outcome grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 py-2 last:border-b-0`,
             )}
-            <span className="truncate text-base font-medium underline-offset-2 group-hover/outcome:underline">
-              {outcome.label}
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              {shouldShowOutcomeImages && outcome.imageUrl && (
+                <span className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
+                  <EventIconImage
+                    src={outcome.imageUrl}
+                    alt={label}
+                    sizes="36px"
+                    containerClassName="size-full rounded-md"
+                  />
+                </span>
+              )}
+              <span className="truncate text-base font-medium underline-offset-2 group-hover/outcome:underline">
+                {label}
+              </span>
             </span>
-          </span>
-          <span className="text-xl font-semibold tabular-nums">{formatChancePercent(outcome.chance)}</span>
-        </Link>
-      ))}
+            <span className="text-xl font-semibold tabular-nums">{formatChancePercent(outcome.chance)}</span>
+          </Link>
+        )
+      })}
     </div>
   )
 }
@@ -659,6 +665,7 @@ function StandardActions({
   linkedHref: string
   stacked?: boolean
 }) {
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const primaryMarket = item.primaryMarkets[0]
   const outcomes = item.topOutcomes
 
@@ -700,7 +707,7 @@ function StandardActions({
                     style={liveOutcomeAppearance.backgroundStyle}
                   />
                 ) : null}
-                <span className="relative z-1 truncate">{outcome.label}</span>
+                <span className="relative z-1 truncate">{normalizeOutcomeLabel(outcome.label)}</span>
               </Link>
             }
           />

@@ -22,9 +22,9 @@ const TIMED_UP_OR_DOWN_TITLE_PATTERN =
 const RANGED_UP_OR_DOWN_TITLE_PATTERN =
   /^(.+?) Up or Down - ([A-Z]+) (\d{1,2})(?:, (\d{4}))?, (\d{1,2})(?::(\d{2}))?\s*(AM|PM)-(\d{1,2})(?::(\d{2}))?\s*(AM|PM) ET$/i
 const WEEKLY_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down this week\?$/i
-const DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-v2'
-const DETERMINISTIC_RANGED_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-range-v1'
-const DETERMINISTIC_WEEKLY_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-weekly-v1'
+const DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-v3'
+const DETERMINISTIC_RANGED_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-range-v2'
+const DETERMINISTIC_WEEKLY_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-weekly-v2'
 const ENGLISH_MONTH_INDEX: Record<string, number> = {
   april: 3,
   august: 7,

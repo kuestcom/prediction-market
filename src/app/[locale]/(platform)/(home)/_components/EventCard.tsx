@@ -25,6 +25,11 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveCryptoCadenceEventTitle } from '@/lib/crypto-cadence-event'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { isEventResolvedLike } from '@/lib/home-events'
+import {
+  localizeHomeEventCardTitle,
+  localizeHomeEventMarketDates,
+  resolveHomeFeaturedFullLidTitleValues,
+} from '@/lib/home-featured-localization'
 import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { cn } from '@/lib/utils'
@@ -83,13 +88,14 @@ interface EventCardProps {
 }
 
 export default function EventCard({
-  event,
+  event: sourceEvent,
   priceOverridesByMarket = EMPTY_PRICE_OVERRIDES,
   enableHomeSportsMoneylineLayout = false,
   currentTimestamp = null,
 }: EventCardProps) {
   const locale = useLocale()
   const t = useExtracted()
+  const event = useMemo(() => localizeHomeEventMarketDates(sourceEvent, locale), [locale, sourceEvent])
   const isResolvedEvent = isEventResolvedLike(event)
   const canUseXTrackerResolvedOutcomes = useCanUseXTrackerResolvedOutcomes(event)
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isResolvedEvent && canUseXTrackerResolvedOutcomes)
@@ -104,11 +110,16 @@ export default function EventCard({
   const originalMarketCount = Math.max(event.total_markets_count, event.markets.length)
   const shouldUsePrimaryMarketTitle = !isResolvedEvent && isSingleMarket && originalMarketCount > 1
   const cryptoCadenceTitle = resolveCryptoCadenceEventTitle(event, locale)
-  const cardTitle =
+  const rawCardTitle =
     cryptoCadenceTitle ??
     (shouldUsePrimaryMarketTitle
       ? primaryMarket?.question || primaryMarket?.short_title || primaryMarket?.title || event.title
       : event.title)
+  const localizedCardTitle = localizeHomeEventCardTitle(rawCardTitle, locale)
+  const fullLidTitleValues = resolveHomeFeaturedFullLidTitleValues(localizedCardTitle, locale)
+  const cardTitle = fullLidTitleValues
+    ? t('Will the White House call a full lid by {time}? ({startDate}–{endDate})', fullLidTitleValues)
+    : localizedCardTitle
   const yesOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES) : null
   const noOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO) : null
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp)

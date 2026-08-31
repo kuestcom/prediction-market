@@ -1,6 +1,9 @@
-import type { HomeFeaturedEventCard, Market } from '@/types'
+import type { NonDefaultLocale } from '@/i18n/locales'
+import type { Event, HomeFeaturedEventCard, Market } from '@/types'
 
 import { resolveSupportedLocale } from '@/i18n/locales'
+import { resolveDeterministicTranslation } from '@/lib/translations/batch'
+import { normalizeLocalizedUpOrDownTitle } from '@/lib/up-or-down-localization'
 
 const ENGLISH_DATE_LABEL_PATTERN = /^([A-Za-z]+) (\d{1,2})(?:, (\d{4}))?$/
 const ENGLISH_TIME_LABEL_PATTERN = /^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i
@@ -103,8 +106,23 @@ export function resolveHomeFeaturedFullLidTitleValues(title: string, locale: str
   }
 }
 
+export function localizeHomeEventCardTitle(title: string, locale: string) {
+  const resolvedLocale = resolveSupportedLocale(locale)
+  if (resolvedLocale === 'en') {
+    return title
+  }
+
+  const deterministicTitle = resolveDeterministicTranslation({
+    locale: resolvedLocale as NonDefaultLocale,
+    sourceLabel: 'event title',
+    sourceText: title,
+  })
+
+  return normalizeLocalizedUpOrDownTitle(resolvedLocale, deterministicTitle ?? title)
+}
+
 function localizeMarketDateLabels(market: Market, locale: string): Market {
-  const title = localizeHomeFeaturedDateLabel(market.title, locale)
+  const title = market.title ? localizeHomeFeaturedDateLabel(market.title, locale) : market.title
   const shortTitle = market.short_title ? localizeHomeFeaturedDateLabel(market.short_title, locale) : market.short_title
   const metadata = market.metadata && typeof market.metadata === 'object' ? market.metadata : null
   const metadataShortTitle = metadata && typeof metadata.short_title === 'string' ? metadata.short_title : null
@@ -139,27 +157,31 @@ function localizeMarketDateLabels(market: Market, locale: string): Market {
   }
 }
 
-export function localizeHomeFeaturedMarketDates(item: HomeFeaturedEventCard, locale: string): HomeFeaturedEventCard {
+export function localizeHomeEventMarketDates(event: Event, locale: string): Event {
   const resolvedLocale = resolveSupportedLocale(locale)
   if (resolvedLocale === 'en') {
-    return item
+    return event
   }
 
-  const markets = item.event.markets.map((market) => localizeMarketDateLabels(market, resolvedLocale))
+  const markets = event.markets.map((market) => localizeMarketDateLabels(market, resolvedLocale))
+  return markets.some((market, index) => market !== event.markets[index]) ? { ...event, markets } : event
+}
+
+export function localizeHomeFeaturedMarketDates(item: HomeFeaturedEventCard, locale: string): HomeFeaturedEventCard {
+  const event = localizeHomeEventMarketDates(item.event, locale)
   const topOutcomes = item.topOutcomes.map((outcome) => ({
     ...outcome,
-    label: localizeHomeFeaturedDateLabel(outcome.label, resolvedLocale),
+    label: localizeHomeFeaturedDateLabel(outcome.label, locale),
   }))
-  const changedMarkets = markets.some((market, index) => market !== item.event.markets[index])
   const changedOutcomes = topOutcomes.some((outcome, index) => outcome.label !== item.topOutcomes[index]?.label)
 
-  if (!changedMarkets && !changedOutcomes) {
+  if (event === item.event && !changedOutcomes) {
     return item
   }
 
   return {
     ...item,
-    event: changedMarkets ? { ...item.event, markets } : item.event,
+    event,
     topOutcomes: changedOutcomes ? topOutcomes : item.topOutcomes,
   }
 }

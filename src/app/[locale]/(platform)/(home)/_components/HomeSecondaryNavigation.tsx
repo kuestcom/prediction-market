@@ -36,6 +36,29 @@ interface UseResolvedTagItemsParams {
 function useResolvedTagItems({ tag, activeSubtagSlug }: UseResolvedTagItemsParams) {
   const t = useExtracted()
   const tagItems = useMemo<TagItem[]>(() => {
+    function localizeKnownTagLabel(label: string) {
+      switch (label) {
+        case 'Up or Down':
+          return t('Up or Down')
+        case 'Crypto Prices':
+          return t('Crypto Prices')
+        case 'Recurring':
+          return t('Recurring')
+        case 'Daily':
+          return t('Daily')
+        case 'Commodities':
+          return t('Commodities')
+        case 'Daily-Close':
+          return t('Daily-Close')
+        case 'Finance Updown':
+          return t('Finance Updown')
+        case 'AI Rankings':
+          return t('AI Rankings')
+        default:
+          return label
+      }
+    }
+
     if (tag.sidebarItems) {
       return tag.sidebarItems
         .filter((item) => item.type === 'link')
@@ -43,13 +66,17 @@ function useResolvedTagItems({ tag, activeSubtagSlug }: UseResolvedTagItemsParam
         .map((item) => ({
           href: item.href,
           slug: item.slug,
-          label: item.isAll ? t('All') : item.label,
+          label: item.isAll ? t('All') : localizeKnownTagLabel(item.label),
         }))
     }
 
     return [
       { href: undefined, slug: tag.slug, label: t('All') },
-      ...tag.childs.map((child) => ({ href: undefined, slug: child.slug, label: child.name })),
+      ...tag.childs.map((child) => ({
+        href: undefined,
+        slug: child.slug,
+        label: localizeKnownTagLabel(child.name),
+      })),
     ]
   }, [tag.childs, tag.sidebarItems, tag.slug, t])
 
