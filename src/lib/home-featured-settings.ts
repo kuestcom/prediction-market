@@ -93,12 +93,15 @@ export const HOME_FEATURED_SIDE_CARD_LIMITS = {
   videoUrl: 500,
 } as const
 
+export const DEFAULT_HOME_FEATURED_SIDE_CARD_TITLE = 'Market pulse'
+export const DEFAULT_HOME_FEATURED_SIDE_CARD_TEXT = 'Fast movers across active markets.'
+
 const DEFAULT_HOME_FEATURED_SIDE_CARD_SLIDE: HomeFeaturedSideCardSlide = {
   id: 'legacy',
   enabled: true,
   type: 'text',
-  title: 'Market pulse',
-  text: 'Fast movers across active markets.',
+  title: DEFAULT_HOME_FEATURED_SIDE_CARD_TITLE,
+  text: DEFAULT_HOME_FEATURED_SIDE_CARD_TEXT,
   ctaLabel: '',
   ctaHref: '',
   icon: 'trending-up',

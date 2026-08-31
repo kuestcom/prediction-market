@@ -50,7 +50,15 @@ import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
+import {
+  localizeHomeFeaturedMarketDates,
+  resolveHomeFeaturedFullLidTitleValues,
+} from '@/lib/home-featured-localization'
 import { isHomeFeaturedEventEnded, resolveHomeFeaturedEventEndTimestamp } from '@/lib/home-featured-rollover'
+import {
+  DEFAULT_HOME_FEATURED_SIDE_CARD_TEXT,
+  DEFAULT_HOME_FEATURED_SIDE_CARD_TITLE,
+} from '@/lib/home-featured-settings'
 import { resolveHomeFeaturedSportsScoreboardContent } from '@/lib/home-featured-sports-score'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import {
@@ -544,7 +552,13 @@ function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventC
                 ? t('Esports')
                 : breadcrumbItem.label,
   }))
-  const displayTitle = cryptoCadencePresentation?.title ?? resolveFeaturedDisplayTitle(item)
+  const featuredTitle = resolveFeaturedDisplayTitle(item)
+  const fullLidTitleValues = resolveHomeFeaturedFullLidTitleValues(featuredTitle, locale)
+  const displayTitle =
+    cryptoCadencePresentation?.title ??
+    (fullLidTitleValues
+      ? t('Will the White House call a full lid by {time}? ({startDate}–{endDate})', fullLidTitleValues)
+      : featuredTitle)
 
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
@@ -1549,6 +1563,9 @@ function FeaturedRightRailSingle({
   hideSideCard?: boolean
 }) {
   const t = useExtracted()
+  const sideCardTitle = sideCard.title === DEFAULT_HOME_FEATURED_SIDE_CARD_TITLE ? t('Market pulse') : sideCard.title
+  const sideCardText =
+    sideCard.text === DEFAULT_HOME_FEATURED_SIDE_CARD_TEXT ? t('Fast movers across active markets.') : sideCard.text
   const hasCta = Boolean(sideCard.ctaLabel.trim() && sideCard.ctaHref.trim())
   const sideCardHref = sideCard.ctaHref.trim()
   const shouldUseDocumentNavigation = requiresDocumentNavigation(sideCardHref)
@@ -1603,9 +1620,9 @@ function FeaturedRightRailSingle({
             `mb-3 h-1 w-10 rounded-full bg-primary/70 shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_32%,transparent)]`,
           )}
         />
-        <span className="line-clamp-2 max-w-[16rem] text-xl/tight font-semibold tracking-tight">{sideCard.title}</span>
+        <span className="line-clamp-2 max-w-[16rem] text-xl/tight font-semibold tracking-tight">{sideCardTitle}</span>
         <span className={cn('mt-5 text-sm/relaxed text-muted-foreground', hasCta ? 'line-clamp-4' : 'line-clamp-5')}>
-          {sideCard.text}
+          {sideCardText}
         </span>
 
         {hasCta && (
@@ -1701,9 +1718,13 @@ function FeaturedSideCardSlide({
   slide: HomeFeaturedSideCardSettings['slides'][number]
   isActive: boolean
 }) {
+  const t = useExtracted()
   const href = slide.ctaHref.trim()
   const hasCta = Boolean(slide.ctaLabel.trim() && href)
   const isClickable = slide.type === 'image' ? Boolean(href) : slide.type === 'text' && hasCta
+  const title = slide.title === DEFAULT_HOME_FEATURED_SIDE_CARD_TITLE ? t('Market pulse') : slide.title
+  const text =
+    slide.text === DEFAULT_HOME_FEATURED_SIDE_CARD_TEXT ? t('Fast movers across active markets.') : slide.text
   const className = cn(
     `group/side-card relative flex h-full min-w-full flex-col overflow-hidden bg-card text-card-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none`,
     slide.type === 'text' && 'p-5',
@@ -1753,9 +1774,9 @@ function FeaturedSideCardSlide({
         />
         <div className="relative z-1 flex min-h-0 flex-1 flex-col py-7">
           <span className="mb-3 h-1 w-10 rounded-full bg-primary/70 shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_32%,transparent)]" />
-          <span className="line-clamp-2 max-w-[16rem] text-xl/tight font-semibold tracking-tight">{slide.title}</span>
+          <span className="line-clamp-2 max-w-[16rem] text-xl/tight font-semibold tracking-tight">{title}</span>
           <span className={cn('mt-5 text-sm/relaxed text-muted-foreground', hasCta ? 'line-clamp-3' : 'line-clamp-4')}>
-            {slide.text}
+            {text}
           </span>
           {hasCta && (
             <span className="mt-auto ml-auto inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-background/70 px-3 text-sm font-medium shadow-sm">
@@ -1902,6 +1923,8 @@ function FeaturedRightRail({
 }
 
 function FeaturedRightRailAction() {
+  const t = useExtracted()
+
   return (
     <div className="hidden lg:block">
       <Button
@@ -1910,7 +1933,7 @@ function FeaturedRightRailAction() {
           `h-10 w-full rounded-full bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-secondary/80 hover:text-foreground dark:bg-transparent dark:hover:bg-secondary/80`,
         )}
         nativeButton={false}
-        render={<Link href="/predictions">Expand all</Link>}
+        render={<Link href="/predictions">{t('Expand all')}</Link>}
       />
     </div>
   )
@@ -2101,7 +2124,9 @@ function FeaturedSlide({
   isNext: boolean
   isChartEnabled: boolean
 }) {
-  const item = useHomeFeaturedRolloverItem(sourceItem)
+  const rolloverItem = useHomeFeaturedRolloverItem(sourceItem)
+  const locale = useLocale()
+  const item = useMemo(() => localizeHomeFeaturedMarketDates(rolloverItem, locale), [locale, rolloverItem])
   const isMobile = useIsMobile()
   const linkedHref = resolveEventPagePath(item.event)
   const shouldRenderChart = isChartEnabled && (isPrevious || isActive || isNext)
