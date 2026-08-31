@@ -336,7 +336,13 @@ function useAdminCategoriesTableState() {
   }
 }
 
-export default function AdminCategoriesTable() {
+interface AdminCategoriesTableProps {
+  enabledTranslationLocales?: NonDefaultLocale[]
+}
+
+export default function AdminCategoriesTable({
+  enabledTranslationLocales = NON_DEFAULT_LOCALES,
+}: AdminCategoriesTableProps) {
   const t = useExtracted()
   const [isCategoryActionsExpanded, setIsCategoryActionsExpanded] = useState(false)
   const {
@@ -477,7 +483,7 @@ export default function AdminCategoriesTable() {
         <Input id="translation-en" value={translationCategory?.name ?? ''} readOnly disabled />
       </div>
 
-      {NON_DEFAULT_LOCALES.map((locale) => {
+      {enabledTranslationLocales.map((locale) => {
         const fieldId = `translation-${locale}`
         return (
           <div key={locale} className="grid gap-2">

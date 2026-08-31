@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getAutomaticTranslationsEnabledFromSettings,
   getEnabledLocalesFromSettings,
+  getEnabledLocalesInOrderFromSettings,
   getLocaleOrderFromSettings,
   getRulesTranslationsEnabledFromSettings,
 } from '@/i18n/locale-settings'
@@ -52,6 +53,23 @@ describe('locale settings helpers', () => {
         },
       }),
     ).toEqual(['en', 'pt', 'de', 'es', 'fr', 'zh', 'ja', 'ar', 'ru', 'it', 'pl', 'ko'])
+  })
+
+  it('filters disabled locales while preserving the configured order', () => {
+    expect(
+      getEnabledLocalesInOrderFromSettings({
+        i18n: {
+          enabled_locales: {
+            value: '["en","pt","zh"]',
+            updated_at: new Date().toISOString(),
+          },
+          locale_order: {
+            value: '["zh","de","en","pt"]',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      }),
+    ).toEqual(['en', 'zh', 'pt'])
   })
 
   it('falls back to the enabled order when the full order is not stored', () => {

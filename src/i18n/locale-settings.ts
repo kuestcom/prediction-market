@@ -61,9 +61,18 @@ export function getLocaleOrderFromSettings(settings?: SettingsMap): SupportedLoc
   }
 }
 
+export function getEnabledLocalesInOrderFromSettings(settings?: SettingsMap): SupportedLocale[] {
+  const enabledLocales = getEnabledLocalesFromSettings(settings)
+  const enabledSet = new Set(enabledLocales)
+  const localeOrder = getLocaleOrderFromSettings(settings)
+  const orderedLocales = (localeOrder ?? enabledLocales).filter((locale) => enabledSet.has(locale))
+
+  return normalizeEnabledLocales(orderedLocales)
+}
+
 export async function loadEnabledLocales(): Promise<SupportedLocale[]> {
   const { data } = await SettingsRepository.getSettings()
-  return getEnabledLocalesFromSettings(data ?? undefined)
+  return getEnabledLocalesInOrderFromSettings(data ?? undefined)
 }
 
 export function getAutomaticTranslationsEnabledFromSettings(settings?: SettingsMap): boolean {
