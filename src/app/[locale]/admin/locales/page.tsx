@@ -8,6 +8,7 @@ import {
   getAutomaticTranslationsEnabledFromSettings,
   getEnabledLocalesFromSettings,
   getLocaleOrderFromSettings,
+  getRulesTranslationsEnabledFromSettings,
 } from '@/i18n/locale-settings'
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { parseOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
@@ -31,6 +32,7 @@ async function AdminLocalesSettingsContent({ params }: PageProps<'/[locale]/admi
   const enabledLocales = getEnabledLocalesFromSettings(allSettings ?? undefined)
   const localeOrder = getLocaleOrderFromSettings(allSettings ?? undefined)
   const automaticTranslationsEnabled = getAutomaticTranslationsEnabledFromSettings(allSettings ?? undefined)
+  const rulesTranslationsEnabled = getRulesTranslationsEnabledFromSettings(allSettings ?? undefined)
   const openRouterSettings = parseOpenRouterProviderSettings(allSettings ?? undefined)
   const isOpenRouterConfigured = openRouterSettings.configured
 
@@ -48,6 +50,7 @@ async function AdminLocalesSettingsContent({ params }: PageProps<'/[locale]/admi
         enabledLocales={enabledLocales}
         localeOrder={localeOrder ?? undefined}
         automaticTranslationsEnabled={automaticTranslationsEnabled}
+        rulesTranslationsEnabled={rulesTranslationsEnabled}
         isOpenRouterConfigured={isOpenRouterConfigured}
       />
     </section>

@@ -5,6 +5,7 @@ import { ChevronDownIcon, FilterIcon, SearchIcon, SettingsIcon, XIcon } from 'lu
 import { useExtracted } from 'next-intl'
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 
+import type { EventRulesTranslationsInput } from '@/app/[locale]/admin/events/_actions/update-event-rules-translations'
 import type { EventTranslationsInput } from '@/app/[locale]/admin/events/_actions/update-event-translations'
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import type {
@@ -19,6 +20,7 @@ import type { SportsSegmentScore } from '@/types'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateEventAdditionalContextAction } from '@/app/[locale]/admin/events/_actions/update-event-additional-context'
 import { updateEventLivestreamUrlAction } from '@/app/[locale]/admin/events/_actions/update-event-livestream-url'
+import { updateEventRulesTranslationsAction } from '@/app/[locale]/admin/events/_actions/update-event-rules-translations'
 import { updateEventSportsFinalStateAction } from '@/app/[locale]/admin/events/_actions/update-event-sports-final-state'
 import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_actions/update-event-sync-settings'
 import { updateEventTranslationsAction } from '@/app/[locale]/admin/events/_actions/update-event-translations'
@@ -76,6 +78,8 @@ export interface AdminEventsTableProps {
   tableState: AdminEventsTableState
   onTableStateChange: (patch: AdminEventsTableStatePatch) => void
   mainCategoryOptions: { slug: string; name: string }[]
+  enabledTranslationLocales?: NonDefaultLocale[]
+  rulesTranslationsEnabled?: boolean
 }
 
 interface SportsSourceCandidate {
@@ -368,6 +372,7 @@ function useAdminEventsTableState(
   initialAutoDeployNewEventsEnabled: boolean,
   tableState: AdminEventsTableState,
   onTableStateChange: (patch: AdminEventsTableStatePatch) => void,
+  rulesTranslationsEnabled: boolean,
 ) {
   const t = useExtracted()
   const queryClient = useQueryClient()
@@ -413,6 +418,9 @@ function useAdminEventsTableState(
   const [pendingHiddenId, setPendingHiddenId] = useState<string | null>(null)
   const [translationEvent, setTranslationEvent] = useState<AdminEventRow | null>(null)
   const [translationValues, setTranslationValues] = useState<EventTranslationsInput>({} as EventTranslationsInput)
+  const [rulesTranslationValues, setRulesTranslationValues] = useState<EventRulesTranslationsInput>(
+    {} as EventRulesTranslationsInput,
+  )
   const [translationError, setTranslationError] = useState<string | null>(null)
   const [isSavingTranslations, setIsSavingTranslations] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -503,6 +511,12 @@ function useAdminEventsTableState(
           return acc
         }, {} as EventTranslationsInput),
       )
+      setRulesTranslationValues(
+        NON_DEFAULT_LOCALES.reduce<EventRulesTranslationsInput>((acc, locale) => {
+          acc[locale] = event.rules_translations?.[locale] ?? ''
+          return acc
+        }, {} as EventRulesTranslationsInput),
+      )
     },
     [isSavingTranslations],
   )
@@ -510,6 +524,7 @@ function useAdminEventsTableState(
   const resetTranslationsDialog = useCallback(() => {
     setTranslationEvent(null)
     setTranslationValues({} as EventTranslationsInput)
+    setRulesTranslationValues({} as EventRulesTranslationsInput)
     setTranslationError(null)
     setIsSavingTranslations(false)
   }, [])
@@ -524,6 +539,13 @@ function useAdminEventsTableState(
 
   const handleTranslationChange = useCallback((locale: NonDefaultLocale, value: string) => {
     setTranslationValues((previous) => ({
+      ...previous,
+      [locale]: value,
+    }))
+  }, [])
+
+  const handleRulesTranslationChange = useCallback((locale: NonDefaultLocale, value: string) => {
+    setRulesTranslationValues((previous) => ({
       ...previous,
       [locale]: value,
     }))
@@ -548,6 +570,16 @@ function useAdminEventsTableState(
     }
 
     if (result.success) {
+      let rulesResult: Awaited<ReturnType<typeof updateEventRulesTranslationsAction>> | null = null
+      if (rulesTranslationsEnabled) {
+        rulesResult = await updateEventRulesTranslationsAction(translationEvent.id, rulesTranslationValues)
+        if (!rulesResult.success) {
+          setTranslationError(rulesResult.error ?? t('Failed to update event Rules translations'))
+          setIsSavingTranslations(false)
+          return
+        }
+      }
+
       queryClient.setQueriesData<{
         data: AdminEventRow[]
         totalCount: number
@@ -561,7 +593,13 @@ function useAdminEventsTableState(
         return {
           ...previous,
           data: previous.data.map((event) =>
-            event.id === translationEvent.id ? { ...event, translations: result.data ?? {} } : event,
+            event.id === translationEvent.id
+              ? {
+                  ...event,
+                  translations: result.data ?? {},
+                  ...(rulesResult ? { rules_translations: rulesResult.data ?? {} } : {}),
+                }
+              : event,
           ),
         }
       })
@@ -574,7 +612,15 @@ function useAdminEventsTableState(
 
     setTranslationError(result.error ?? t('Failed to update event translations'))
     setIsSavingTranslations(false)
-  }, [queryClient, resetTranslationsDialog, t, translationEvent, translationValues])
+  }, [
+    queryClient,
+    resetTranslationsDialog,
+    rulesTranslationValues,
+    rulesTranslationsEnabled,
+    t,
+    translationEvent,
+    translationValues,
+  ])
 
   const handleOpenSettings = useCallback(() => {
     setDraftAutoDeployEnabled(savedAutoDeployEnabled)
@@ -1090,6 +1136,8 @@ function useAdminEventsTableState(
     handleOpenTranslations,
     closeTranslationsDialog,
     handleTranslationChange,
+    handleRulesTranslationChange,
+    rulesTranslationValues,
     handleSaveTranslations,
     settingsOpen,
     setSettingsOpen,
@@ -1167,6 +1215,8 @@ export default function AdminEventsTable({
   tableState,
   onTableStateChange,
   mainCategoryOptions,
+  enabledTranslationLocales = NON_DEFAULT_LOCALES,
+  rulesTranslationsEnabled = false,
 }: AdminEventsTableProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
@@ -1201,6 +1251,8 @@ export default function AdminEventsTable({
     isSavingTranslations,
     closeTranslationsDialog,
     handleTranslationChange,
+    handleRulesTranslationChange,
+    rulesTranslationValues,
     handleSaveTranslations,
     settingsOpen,
     setSettingsOpen,
@@ -1270,7 +1322,12 @@ export default function AdminEventsTable({
     handleCloseSportsFinalModal,
     handleSaveSportsFinalState,
     columns,
-  } = useAdminEventsTableState(initialAutoDeployNewEventsEnabled, tableState, onTableStateChange)
+  } = useAdminEventsTableState(
+    initialAutoDeployNewEventsEnabled,
+    tableState,
+    onTableStateChange,
+    rulesTranslationsEnabled,
+  )
 
   const settingsButton = (
     <Tooltip>
@@ -1586,21 +1643,46 @@ export default function AdminEventsTable({
         <Input id="event-translation-en" value={translationEvent?.title ?? ''} readOnly disabled />
       </div>
 
-      {NON_DEFAULT_LOCALES.map((locale) => {
+      {rulesTranslationsEnabled && translationEvent?.rules ? (
+        <div className="grid gap-2">
+          <Label htmlFor="event-rules-translation-en" className="flex items-center gap-2">
+            <LocaleFlag locale="en" />
+            {t('English Rules (source)') || 'English Rules (source)'}
+          </Label>
+          <Textarea id="event-rules-translation-en" value={translationEvent.rules} readOnly disabled />
+        </div>
+      ) : null}
+
+      {enabledTranslationLocales.map((locale) => {
         const fieldId = `event-translation-${locale}`
         return (
-          <div key={locale} className="grid gap-2">
-            <Label htmlFor={fieldId} className="flex items-center gap-2">
-              <LocaleFlag locale={locale} />
-              {LOCALE_LABELS[locale]}
-            </Label>
-            <Input
-              id={fieldId}
-              value={translationValues[locale] ?? ''}
-              onChange={(event) => handleTranslationChange(locale, event.target.value)}
-              placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
-              disabled={isSavingTranslations}
-            />
+          <div key={locale} className="grid gap-3 rounded-md border p-3">
+            <div className="grid gap-2">
+              <Label htmlFor={fieldId} className="flex items-center gap-2">
+                <LocaleFlag locale={locale} />
+                {LOCALE_LABELS[locale]}
+              </Label>
+              <Input
+                id={fieldId}
+                value={translationValues[locale] ?? ''}
+                onChange={(event) => handleTranslationChange(locale, event.target.value)}
+                placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
+                disabled={isSavingTranslations}
+              />
+            </div>
+            {rulesTranslationsEnabled && translationEvent?.rules ? (
+              <div className="grid gap-2">
+                <Label htmlFor={`event-rules-translation-${locale}`}>{t('Rules')}</Label>
+                <Textarea
+                  id={`event-rules-translation-${locale}`}
+                  value={rulesTranslationValues[locale] ?? ''}
+                  onChange={(event) => handleRulesTranslationChange(locale, event.target.value)}
+                  placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
+                  disabled={isSavingTranslations}
+                  className="min-h-28"
+                />
+              </div>
+            ) : null}
           </div>
         )
       })}
@@ -2012,7 +2094,8 @@ export default function AdminEventsTable({
               <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
                 <DrawerTitle>{t('Event translations')}</DrawerTitle>
                 <DrawerDescription>
-                  {t('Update non-English titles for this event. English remains the source title.')}
+                  {t('Update non-English titles and Rules for this event. English remains the source text.') ||
+                    'Update non-English titles and Rules for this event. English remains the source text.'}
                 </DrawerDescription>
               </DrawerHeader>
 
@@ -2054,7 +2137,8 @@ export default function AdminEventsTable({
               <DialogHeader className="px-6 pt-6">
                 <DialogTitle>{t('Event translations')}</DialogTitle>
                 <DialogDescription>
-                  {t('Update non-English titles for this event. English remains the source title.')}
+                  {t('Update non-English titles and Rules for this event. English remains the source text.') ||
+                    'Update non-English titles and Rules for this event. English remains the source text.'}
                 </DialogDescription>
               </DialogHeader>
 

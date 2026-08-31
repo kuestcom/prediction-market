@@ -3,17 +3,21 @@ import { Suspense } from 'react'
 
 import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSkeleton'
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
+import { loadEnabledLocales, loadRulesTranslationsEnabled } from '@/i18n/locale-settings'
 import { getRootLocale } from '@/i18n/root-locale'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
+import { isNonDefaultLocale } from '@/lib/translations/jobs'
 
 export const instant = false
 
 async function AdminEventsContent() {
   const locale = await getRootLocale()
-  const [autoDeployNewEventsEnabled, mainTagsResult] = await Promise.all([
+  const [autoDeployNewEventsEnabled, mainTagsResult, enabledLocales, rulesTranslationsEnabled] = await Promise.all([
     loadAutoDeployNewEventsEnabled(),
     TagRepository.getMainTags(locale),
+    loadEnabledLocales(),
+    loadRulesTranslationsEnabled(),
   ])
   const mainCategoryOptions = (mainTagsResult.data ?? []).map((tag) => ({
     slug: tag.slug,
@@ -24,6 +28,8 @@ async function AdminEventsContent() {
     <AdminEventsTableFromUrl
       initialAutoDeployNewEventsEnabled={autoDeployNewEventsEnabled}
       mainCategoryOptions={mainCategoryOptions}
+      enabledTranslationLocales={enabledLocales.filter(isNonDefaultLocale)}
+      rulesTranslationsEnabled={rulesTranslationsEnabled}
     />
   )
 }

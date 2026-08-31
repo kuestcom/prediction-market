@@ -43,14 +43,16 @@ const UpdateLocalesSettingsSchema = z
     enabled_locales: z.array(LocaleSchema).optional(),
     locale_order: z.array(LocaleSchema).optional(),
     automatic_translations_enabled: z.string().optional(),
+    rules_translations_enabled: z.string().optional(),
   })
-  .transform(({ enabled_locales, locale_order, automatic_translations_enabled }) => {
+  .transform(({ enabled_locales, locale_order, automatic_translations_enabled, rules_translations_enabled }) => {
     const enabledLocales = ensureEnabledLocales(enabled_locales ?? [])
 
     return {
       enabledLocales,
       localeOrder: locale_order === undefined ? null : ensureLocaleOrder(locale_order),
       automaticTranslationsEnabled: normalizeBoolean(automatic_translations_enabled, false),
+      rulesTranslationsEnabled: normalizeBoolean(rules_translations_enabled, false),
     }
   })
 
@@ -79,11 +81,16 @@ export async function updateLocalesSettingsAction(
     typeof formData.get('automatic_translations_enabled') === 'string'
       ? formData.get('automatic_translations_enabled')
       : undefined
+  const rulesTranslationsEnabled =
+    typeof formData.get('rules_translations_enabled') === 'string'
+      ? formData.get('rules_translations_enabled')
+      : undefined
 
   const parsed = UpdateLocalesSettingsSchema.safeParse({
     enabled_locales: rawLocales,
     locale_order: rawLocaleOrder,
     automatic_translations_enabled: automaticTranslationsEnabled,
+    rules_translations_enabled: rulesTranslationsEnabled,
   })
 
   if (!parsed.success) {
@@ -95,6 +102,7 @@ export async function updateLocalesSettingsAction(
   const canEnableAutomaticTranslations = openRouterSettings.configured
   const normalizedAutomaticTranslationsEnabled =
     canEnableAutomaticTranslations && parsed.data.automaticTranslationsEnabled
+  const normalizedRulesTranslationsEnabled = canEnableAutomaticTranslations && parsed.data.rulesTranslationsEnabled
 
   const settingsToUpdate = [
     { group: 'i18n', key: 'enabled_locales', value },
@@ -102,6 +110,11 @@ export async function updateLocalesSettingsAction(
       group: 'i18n',
       key: 'automatic_translations_enabled',
       value: normalizedAutomaticTranslationsEnabled ? 'true' : 'false',
+    },
+    {
+      group: 'i18n',
+      key: 'rules_translations_enabled',
+      value: normalizedRulesTranslationsEnabled ? 'true' : 'false',
     },
   ]
 

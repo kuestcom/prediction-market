@@ -2,9 +2,17 @@ import { and, asc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 
 import type { NonDefaultLocale } from '@/i18n/locales'
-import type { EventTranslationJobPayload, TagTranslationJobPayload } from '@/lib/translations/jobs'
+import type {
+  EventRulesTranslationJobPayload,
+  EventTranslationJobPayload,
+  TagTranslationJobPayload,
+} from '@/lib/translations/jobs'
 
-import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
+import {
+  loadAutomaticTranslationsEnabled,
+  loadEnabledLocales,
+  loadRulesTranslationsEnabled,
+} from '@/i18n/locale-settings'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import {
   events as eventsTable,
@@ -16,7 +24,12 @@ import {
 import { db } from '@/lib/drizzle'
 import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 import { resolveDeterministicTranslation, resolveTranslationSourceFingerprint } from '@/lib/translations/batch'
-import { isNonDefaultLocale, parseEventJobPayload, parseTagJobPayload } from '@/lib/translations/jobs'
+import {
+  isNonDefaultLocale,
+  parseEventJobPayload,
+  parseEventRulesJobPayload,
+  parseTagJobPayload,
+} from '@/lib/translations/jobs'
 
 export const maxDuration = 30
 
@@ -28,8 +41,13 @@ const DISCOVERY_ENQUEUE_TARGET = 120
 const JOB_UPSERT_BATCH_SIZE = 100
 const DEFAULT_MAX_ATTEMPTS = 5
 const EVENT_TITLE_TRANSLATION_JOB_TYPE = 'translate_event_title'
+const EVENT_RULES_TRANSLATION_JOB_TYPE = 'translate_event_rules'
 const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
-const TRANSLATION_JOB_TYPES = [EVENT_TITLE_TRANSLATION_JOB_TYPE, TAG_NAME_TRANSLATION_JOB_TYPE] as const
+const TRANSLATION_JOB_TYPES = [
+  EVENT_TITLE_TRANSLATION_JOB_TYPE,
+  EVENT_RULES_TRANSLATION_JOB_TYPE,
+  TAG_NAME_TRANSLATION_JOB_TYPE,
+] as const
 
 type TranslationJobType = (typeof TRANSLATION_JOB_TYPES)[number]
 
@@ -47,7 +65,7 @@ interface TranslationJobRow {
 interface JobUpsertRow {
   job_type: TranslationJobType
   dedupe_key: string
-  payload: EventTranslationJobPayload | TagTranslationJobPayload
+  payload: EventTranslationJobPayload | EventRulesTranslationJobPayload | TagTranslationJobPayload
   status: 'pending'
   attempts: number
   max_attempts: number
@@ -66,6 +84,7 @@ interface ExistingDiscoveryJobRow {
 interface EventSourceRow {
   id: string
   title: string
+  rules: string | null
 }
 
 interface TagSourceRow {
@@ -78,6 +97,13 @@ interface EventTranslationMetaRow {
   locale: string
   source_hash: string | null
   is_manual: boolean | null
+}
+
+interface EventRulesTranslationMetaRow {
+  event_id: string
+  locale: string
+  rules_source_hash: string | null
+  rules_is_manual: boolean | null
 }
 
 interface TagTranslationMetaRow {
@@ -127,6 +153,7 @@ interface TranslationEnqueueStats {
   completedDeterministicEventTranslations: number
   enqueuedEventJobs: number
   enqueuedTagJobs: number
+  enqueuedEventRulesJobs: number
   timeLimitReached: boolean
 }
 
@@ -135,6 +162,7 @@ export async function GET(request: Request) {
     completedDeterministicEventTranslations: 0,
     enqueuedEventJobs: 0,
     enqueuedTagJobs: 0,
+    enqueuedEventRulesJobs: 0,
     timeLimitReached: false,
   }
 
@@ -142,14 +170,16 @@ export async function GET(request: Request) {
     request,
     jobName: 'translation-enqueue',
     handler: async () => {
-      const [openRouterSettings, automaticTranslationsEnabled, enabledLocales] = await Promise.all([
-        loadOpenRouterProviderSettings(),
-        loadAutomaticTranslationsEnabled(),
-        loadEnabledLocales(),
-      ])
+      const [openRouterSettings, automaticTranslationsEnabled, rulesTranslationsEnabled, enabledLocales] =
+        await Promise.all([
+          loadOpenRouterProviderSettings(),
+          loadAutomaticTranslationsEnabled(),
+          loadRulesTranslationsEnabled(),
+          loadEnabledLocales(),
+        ])
       const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
 
-      if (!automaticTranslationsEnabled) {
+      if (!automaticTranslationsEnabled && !rulesTranslationsEnabled) {
         return {
           success: true,
           skipped: true,
@@ -168,10 +198,12 @@ export async function GET(request: Request) {
       }
 
       const startedAt = Date.now()
-      stats.completedDeterministicEventTranslations = await syncDeterministicEventTranslations(
-        startedAt,
-        enabledTranslationLocales,
-      )
+      if (automaticTranslationsEnabled) {
+        stats.completedDeterministicEventTranslations = await syncDeterministicEventTranslations(
+          startedAt,
+          enabledTranslationLocales,
+        )
+      }
       stats.timeLimitReached = isTimeLimitReached(startedAt)
 
       if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
@@ -188,10 +220,13 @@ export async function GET(request: Request) {
         startedAt,
         enabledTranslationLocales,
         providerSignature,
+        automaticTranslationsEnabled,
+        rulesTranslationsEnabled,
       )
 
       stats.enqueuedEventJobs = discovery.enqueuedEventJobs
       stats.enqueuedTagJobs = discovery.enqueuedTagJobs
+      stats.enqueuedEventRulesJobs = discovery.enqueuedEventRulesJobs
       stats.timeLimitReached = isTimeLimitReached(startedAt)
 
       return {
@@ -246,6 +281,11 @@ function getSourceHashFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_typ
       return parsed.source_hash ?? null
     }
 
+    if (job.job_type === EVENT_RULES_TRANSLATION_JOB_TYPE) {
+      const parsed = parseEventRulesJobPayload(job.payload, job.dedupe_key)
+      return parsed.source_hash ?? null
+    }
+
     if (job.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
       const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
       return parsed.source_hash ?? null
@@ -261,6 +301,11 @@ function getProviderSignatureFromStoredJobPayload(job: Pick<TranslationJobRow, '
   try {
     if (job.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
       const parsed = parseEventJobPayload(job.payload, job.dedupe_key)
+      return parsed.provider_signature ?? null
+    }
+
+    if (job.job_type === EVENT_RULES_TRANSLATION_JOB_TYPE) {
+      const parsed = parseEventRulesJobPayload(job.payload, job.dedupe_key)
       return parsed.provider_signature ?? null
     }
 
@@ -519,6 +564,21 @@ async function enqueueTagDiscoveryJobs(
   })
 }
 
+async function enqueueEventRulesDiscoveryJobs(
+  startedAtMs: number,
+  maxJobs: number,
+  locales: NonDefaultLocale[],
+  providerSignature: string,
+): Promise<number> {
+  return enqueueTranslationDiscoveryJobs(startedAtMs, maxJobs, locales, providerSignature, {
+    loadSourcePage: loadEventRulesSourcePage,
+    loadTranslationMetaMap: loadEventRulesTranslationMetaMap,
+    getSourceId: (sourceRow) => sourceRow.id,
+    getSourceText: (sourceRow) => sourceRow.rules ?? '',
+    buildJobRow: buildEventRulesTranslationJobRow,
+  })
+}
+
 async function enqueueTranslationDiscoveryJobs<TSource>(
   startedAtMs: number,
   maxJobs: number,
@@ -597,6 +657,7 @@ async function loadEventSourcePage(offset: number): Promise<TranslationDiscovery
     .select({
       id: eventsTable.id,
       title: eventsTable.title,
+      rules: eventsTable.rules,
     })
     .from(eventsTable)
     .where(and(ne(eventsTable.status, 'resolved'), isNull(eventsTable.resolved_at)))
@@ -610,8 +671,40 @@ async function loadEventSourcePage(offset: number): Promise<TranslationDiscovery
       .map((row) => ({
         id: row.id,
         title: typeof row.title === 'string' ? row.title.trim() : '',
+        rules: typeof row.rules === 'string' ? row.rules.trim() : null,
       }))
       .filter((row) => row.title.length > 0),
+  }
+}
+
+async function loadEventRulesSourcePage(offset: number): Promise<TranslationDiscoveryPage<EventSourceRow>> {
+  const events = await db
+    .select({
+      id: eventsTable.id,
+      title: eventsTable.title,
+      rules: eventsTable.rules,
+    })
+    .from(eventsTable)
+    .where(
+      and(
+        ne(eventsTable.status, 'resolved'),
+        isNull(eventsTable.resolved_at),
+        sql`NULLIF(TRIM(COALESCE(${eventsTable.rules}, '')), '') IS NOT NULL`,
+      ),
+    )
+    .orderBy(asc(eventsTable.id))
+    .offset(offset)
+    .limit(DISCOVERY_SCAN_PAGE_SIZE)
+
+  return {
+    rawCount: events.length,
+    sourceRows: (events as EventSourceRow[])
+      .map((row) => ({
+        id: row.id,
+        title: typeof row.title === 'string' ? row.title.trim() : '',
+        rules: typeof row.rules === 'string' ? row.rules.trim() : null,
+      }))
+      .filter((row) => Boolean(row.rules)),
   }
 }
 
@@ -650,6 +743,35 @@ async function loadEventTranslationMetaMap(sourceRows: EventSourceRow[], locales
     .where(and(inArray(eventTranslationsTable.event_id, eventIds), inArray(eventTranslationsTable.locale, locales)))
 
   return buildEventTranslationMetaMap(translationRows as EventTranslationMetaRow[])
+}
+
+function buildEventRulesTranslationMetaMap(rows: EventRulesTranslationMetaRow[]): Map<string, TranslationMeta> {
+  const map = new Map<string, TranslationMeta>()
+  for (const row of rows) {
+    if (!isNonDefaultLocale(row.locale)) {
+      continue
+    }
+    map.set(`${row.event_id}:${row.locale}`, {
+      source_hash: typeof row.rules_source_hash === 'string' ? row.rules_source_hash : null,
+      is_manual: Boolean(row.rules_is_manual),
+    })
+  }
+  return map
+}
+
+async function loadEventRulesTranslationMetaMap(sourceRows: EventSourceRow[], locales: NonDefaultLocale[]) {
+  const eventIds = sourceRows.map((row) => row.id)
+  const translationRows = await db
+    .select({
+      event_id: eventTranslationsTable.event_id,
+      locale: eventTranslationsTable.locale,
+      rules_source_hash: eventTranslationsTable.rules_source_hash,
+      rules_is_manual: eventTranslationsTable.rules_is_manual,
+    })
+    .from(eventTranslationsTable)
+    .where(and(inArray(eventTranslationsTable.event_id, eventIds), inArray(eventTranslationsTable.locale, locales)))
+
+  return buildEventRulesTranslationMetaMap(translationRows as EventRulesTranslationMetaRow[])
 }
 
 async function loadTagTranslationMetaMap(sourceRows: TagSourceRow[], locales: NonDefaultLocale[]) {
@@ -694,6 +816,33 @@ function buildEventTranslationJobRow({
   }
 }
 
+function buildEventRulesTranslationJobRow({
+  sourceRow,
+  locale,
+  dedupeKey,
+  sourceHash,
+  providerSignature,
+  availableAt,
+}: BuildTranslationJobRowInput<EventSourceRow>): JobUpsertRow {
+  return {
+    job_type: EVENT_RULES_TRANSLATION_JOB_TYPE,
+    dedupe_key: dedupeKey,
+    payload: {
+      event_id: sourceRow.id,
+      locale,
+      source_rules: sourceRow.rules ?? '',
+      source_hash: sourceHash,
+      provider_signature: providerSignature,
+    },
+    status: 'pending',
+    attempts: 0,
+    max_attempts: DEFAULT_MAX_ATTEMPTS,
+    available_at: availableAt,
+    reserved_at: null,
+    last_error: null,
+  }
+}
+
 function buildTagTranslationJobRow({
   sourceRow,
   locale,
@@ -725,25 +874,42 @@ async function enqueueMissingOrOutdatedTranslationJobs(
   startedAtMs: number,
   locales: NonDefaultLocale[],
   providerSignature: string,
+  automaticTranslationsEnabled: boolean,
+  rulesTranslationsEnabled: boolean,
 ) {
-  const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
-  let enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
-  let enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
-  const eventTargetFilled = enqueuedEventJobs === perTypeTarget
-  const tagTargetFilled = enqueuedTagJobs === perTypeTarget
-  let remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs
+  const enabledTypes = (automaticTranslationsEnabled ? 2 : 0) + (rulesTranslationsEnabled ? 1 : 0)
+  const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / Math.max(1, enabledTypes)))
+  let enqueuedEventJobs = automaticTranslationsEnabled
+    ? await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+    : 0
+  let enqueuedTagJobs = automaticTranslationsEnabled
+    ? await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+    : 0
+  let enqueuedEventRulesJobs = rulesTranslationsEnabled
+    ? await enqueueEventRulesDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+    : 0
+  let remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs - enqueuedEventRulesJobs
 
-  if (remainingCapacity > 0 && eventTargetFilled && !isTimeLimitReached(startedAtMs)) {
+  if (remainingCapacity > 0 && automaticTranslationsEnabled && !isTimeLimitReached(startedAtMs)) {
     enqueuedEventJobs += await enqueueEventDiscoveryJobs(startedAtMs, remainingCapacity, locales, providerSignature)
-    remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs
+    remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs - enqueuedEventRulesJobs
   }
-
-  if (remainingCapacity > 0 && tagTargetFilled && !isTimeLimitReached(startedAtMs)) {
+  if (remainingCapacity > 0 && automaticTranslationsEnabled && !isTimeLimitReached(startedAtMs)) {
     enqueuedTagJobs += await enqueueTagDiscoveryJobs(startedAtMs, remainingCapacity, locales, providerSignature)
+    remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs - enqueuedEventRulesJobs
+  }
+  if (remainingCapacity > 0 && rulesTranslationsEnabled && !isTimeLimitReached(startedAtMs)) {
+    enqueuedEventRulesJobs += await enqueueEventRulesDiscoveryJobs(
+      startedAtMs,
+      remainingCapacity,
+      locales,
+      providerSignature,
+    )
   }
 
   return {
     enqueuedEventJobs,
     enqueuedTagJobs,
+    enqueuedEventRulesJobs,
   }
 }

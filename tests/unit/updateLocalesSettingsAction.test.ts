@@ -52,6 +52,7 @@ describe('updateLocalesSettingsAction', () => {
     expect(mocks.updateSettings).toHaveBeenCalledWith([
       { group: 'i18n', key: 'enabled_locales', value: '["en","pt"]' },
       { group: 'i18n', key: 'automatic_translations_enabled', value: 'false' },
+      { group: 'i18n', key: 'rules_translations_enabled', value: 'false' },
     ])
   })
 
@@ -72,6 +73,20 @@ describe('updateLocalesSettingsAction', () => {
         value: '["en","pt","de","es","fr","zh","ja","ar","ru","it","pl","ko"]',
       },
       { group: 'i18n', key: 'automatic_translations_enabled', value: 'false' },
+      { group: 'i18n', key: 'rules_translations_enabled', value: 'false' },
     ])
+  })
+
+  it('persists Rules translations when enabled and OpenRouter is configured', async () => {
+    mocks.loadOpenRouterProviderSettings.mockResolvedValue({ configured: true })
+    const formData = new FormData()
+    formData.append('enabled_locales', 'en')
+    formData.append('rules_translations_enabled', 'true')
+
+    await updateLocalesSettingsAction({ error: null }, formData)
+
+    expect(mocks.updateSettings).toHaveBeenCalledWith(
+      expect.arrayContaining([{ group: 'i18n', key: 'rules_translations_enabled', value: 'true' }]),
+    )
   })
 })

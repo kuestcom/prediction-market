@@ -130,7 +130,7 @@ function setEnglishTime(date: Date, rawHour: string, rawMinute: string | undefin
 
 export function resolveDeterministicTranslation(input: {
   locale: NonDefaultLocale
-  sourceLabel: 'event title' | 'tag name'
+  sourceLabel: 'event title' | 'event rules' | 'tag name'
   sourceText: string
 }) {
   if (input.sourceLabel !== 'event title') {
@@ -213,7 +213,7 @@ export function resolveDeterministicTranslation(input: {
 
 export function resolveDeterministicTranslationVersion(input: {
   locale: NonDefaultLocale
-  sourceLabel: 'event title' | 'tag name'
+  sourceLabel: 'event title' | 'event rules' | 'tag name'
   sourceText: string
 }) {
   const sourceText = input.sourceText.trim()
@@ -229,7 +229,7 @@ export function resolveDeterministicTranslationVersion(input: {
 
 export function resolveTranslationSourceFingerprint(input: {
   locale: NonDefaultLocale
-  sourceLabel: 'event title' | 'tag name'
+  sourceLabel: 'event title' | 'event rules' | 'tag name'
   sourceText: string
 }) {
   const deterministicVersion = resolveDeterministicTranslationVersion(input)

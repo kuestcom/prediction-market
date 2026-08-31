@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseTagJobPayload } from '@/lib/translations/jobs'
+import { parseEventRulesJobPayload, parseTagJobPayload } from '@/lib/translations/jobs'
 
 describe('translation job payload helpers', () => {
+  it('parses event Rules payloads for non-default locales', () => {
+    expect(
+      parseEventRulesJobPayload(
+        { event_id: '01ARZ3NDEKTSV4RRFFQ69G5FAV', locale: 'zh', source_rules: 'Resolve at URL.' },
+        '01ARZ3NDEKTSV4RRFFQ69G5FAV:zh',
+      ),
+    ).toMatchObject({ event_id: '01ARZ3NDEKTSV4RRFFQ69G5FAV', locale: 'zh', source_rules: 'Resolve at URL.' })
+  })
+
   it('rejects malformed tag ids that parseInt would truncate', () => {
     expect(() => parseTagJobPayload({ tag_id: '12abc', locale: 'es' }, 'tag:bad-suffix')).toThrow(
       'missing or invalid tag_id',

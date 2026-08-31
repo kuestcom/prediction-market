@@ -4,6 +4,7 @@ import {
   getAutomaticTranslationsEnabledFromSettings,
   getEnabledLocalesFromSettings,
   getLocaleOrderFromSettings,
+  getRulesTranslationsEnabledFromSettings,
 } from '@/i18n/locale-settings'
 import {
   DEFAULT_LOCALE,
@@ -92,6 +93,23 @@ describe('locale settings helpers', () => {
       getAutomaticTranslationsEnabledFromSettings({
         i18n: {
           automatic_translations_enabled: {
+            value: 'true',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      }),
+    ).toBe(true)
+  })
+
+  it('keeps Rules translations disabled when the setting is missing', () => {
+    expect(getRulesTranslationsEnabledFromSettings(undefined)).toBe(false)
+  })
+
+  it('reads the Rules translations enabled flag from settings', () => {
+    expect(
+      getRulesTranslationsEnabledFromSettings({
+        i18n: {
+          rules_translations_enabled: {
             value: 'true',
             updated_at: new Date().toISOString(),
           },

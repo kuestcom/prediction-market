@@ -10,6 +10,14 @@ export interface EventTranslationJobPayload {
   provider_signature?: string
 }
 
+export interface EventRulesTranslationJobPayload {
+  event_id: string
+  locale: NonDefaultLocale
+  source_rules?: string
+  source_hash?: string
+  provider_signature?: string
+}
+
 export interface TagTranslationJobPayload {
   tag_id: number
   locale: NonDefaultLocale
@@ -52,6 +60,31 @@ export function parseEventJobPayload(payload: unknown, dedupeKey: string): Event
     event_id: eventId,
     locale,
     source_title: typeof value.source_title === 'string' ? value.source_title : undefined,
+    source_hash: typeof value.source_hash === 'string' ? value.source_hash : undefined,
+    provider_signature: typeof value.provider_signature === 'string' ? value.provider_signature : undefined,
+  }
+}
+
+export function parseEventRulesJobPayload(payload: unknown, dedupeKey: string): EventRulesTranslationJobPayload {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error(`Invalid payload for job ${dedupeKey}: expected object`)
+  }
+
+  const value = payload as Record<string, unknown>
+  const eventId = typeof value.event_id === 'string' ? value.event_id : ''
+  const locale = typeof value.locale === 'string' ? value.locale : ''
+
+  if (!eventId) {
+    throw new Error(`Invalid payload for job ${dedupeKey}: missing event_id`)
+  }
+  if (!isNonDefaultLocale(locale)) {
+    throw new Error(`Invalid payload for job ${dedupeKey}: locale must be a non-default locale`)
+  }
+
+  return {
+    event_id: eventId,
+    locale,
+    source_rules: typeof value.source_rules === 'string' ? value.source_rules : undefined,
     source_hash: typeof value.source_hash === 'string' ? value.source_hash : undefined,
     provider_signature: typeof value.provider_signature === 'string' ? value.provider_signature : undefined,
   }

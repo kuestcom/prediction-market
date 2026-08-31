@@ -29,6 +29,7 @@ interface AdminLocalesSettingsFormProps {
   enabledLocales: SupportedLocale[]
   localeOrder?: SupportedLocale[]
   automaticTranslationsEnabled: boolean
+  rulesTranslationsEnabled?: boolean
   isOpenRouterConfigured: boolean
 }
 
@@ -83,6 +84,7 @@ function useLocalesSettingsForm(
   enabledLocales: SupportedLocale[],
   localeOrder: SupportedLocale[] | undefined,
   automaticTranslationsEnabled: boolean,
+  rulesTranslationsEnabled: boolean,
   isOpenRouterConfigured: boolean,
 ) {
   const t = useExtracted()
@@ -96,6 +98,9 @@ function useLocalesSettingsForm(
   )
   const [automaticTranslationsState, setAutomaticTranslationsState] = useState(
     () => isOpenRouterConfigured && automaticTranslationsEnabled,
+  )
+  const [rulesTranslationsState, setRulesTranslationsState] = useState(
+    () => isOpenRouterConfigured && rulesTranslationsEnabled,
   )
 
   useEffect(
@@ -123,6 +128,8 @@ function useLocalesSettingsForm(
     setOrderedLocales,
     automaticTranslationsState,
     setAutomaticTranslationsState,
+    rulesTranslationsState,
+    setRulesTranslationsState,
   }
 }
 
@@ -131,6 +138,7 @@ function AdminLocalesSettingsFormInner({
   enabledLocales,
   localeOrder,
   automaticTranslationsEnabled,
+  rulesTranslationsEnabled = false,
   isOpenRouterConfigured,
 }: AdminLocalesSettingsFormProps) {
   const t = useExtracted()
@@ -144,11 +152,14 @@ function AdminLocalesSettingsFormInner({
     setOrderedLocales,
     automaticTranslationsState,
     setAutomaticTranslationsState,
+    rulesTranslationsState,
+    setRulesTranslationsState,
   } = useLocalesSettingsForm(
     supportedLocales,
     enabledLocales,
     localeOrder,
     automaticTranslationsEnabled,
+    rulesTranslationsEnabled,
     isOpenRouterConfigured,
   )
   const [draggedLocale, setDraggedLocale] = useState<SupportedLocale | null>(null)
@@ -166,6 +177,14 @@ function AdminLocalesSettingsFormInner({
     }
 
     setAutomaticTranslationsState(nextValue)
+  }
+
+  function handleRulesTranslationsToggle(nextValue: boolean) {
+    if (!isOpenRouterConfigured) {
+      return
+    }
+
+    setRulesTranslationsState(nextValue)
   }
 
   function handleDragStart(locale: SupportedLocale, event: DragEvent<HTMLButtonElement>) {
@@ -204,6 +223,7 @@ function AdminLocalesSettingsFormInner({
   }
 
   const automaticTranslationsValue = isOpenRouterConfigured && automaticTranslationsState
+  const rulesTranslationsValue = isOpenRouterConfigured && rulesTranslationsState
 
   return (
     <Form action={formAction} className="grid gap-4">
@@ -325,6 +345,24 @@ function AdminLocalesSettingsFormInner({
           name="automatic_translations_enabled"
           value={automaticTranslationsValue ? 'true' : 'false'}
         />
+        <div className="flex items-center justify-between gap-3 border-t pt-4">
+          <div className="grid gap-1">
+            <Label htmlFor="rules_translations_enabled" className="text-sm font-medium">
+              {t('Automatic translations of event Rules') || 'Automatic translations of event Rules'}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {t('Translate event Rules into the enabled locales.') ||
+                'Translate event Rules into the enabled locales.'}
+            </p>
+          </div>
+          <Switch
+            id="rules_translations_enabled"
+            checked={rulesTranslationsValue}
+            onCheckedChange={handleRulesTranslationsToggle}
+            disabled={!isOpenRouterConfigured || isPending}
+          />
+        </div>
+        <input type="hidden" name="rules_translations_enabled" value={rulesTranslationsValue ? 'true' : 'false'} />
       </section>
 
       {state.error && <InputError message={state.error} />}
@@ -344,6 +382,7 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
         enabledLocales: props.enabledLocales,
         localeOrder: props.localeOrder,
         automaticTranslationsEnabled: props.automaticTranslationsEnabled,
+        rulesTranslationsEnabled: props.rulesTranslationsEnabled,
         isOpenRouterConfigured: props.isOpenRouterConfigured,
       }),
     [
@@ -351,6 +390,7 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
       props.enabledLocales,
       props.localeOrder,
       props.automaticTranslationsEnabled,
+      props.rulesTranslationsEnabled,
       props.isOpenRouterConfigured,
     ],
   )

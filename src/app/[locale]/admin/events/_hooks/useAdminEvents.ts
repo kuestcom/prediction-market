@@ -25,12 +25,14 @@ export interface AdminEventRow {
   livestream_url: string | null
   additional_context: string | null
   additional_context_updated_at: string | null
+  rules: string | null
   series_slug: string | null
   series_recurrence: string | null
   volume: number
   volume_24h: number
   is_hidden: boolean
   translations: Partial<Record<NonDefaultLocale, string>>
+  rules_translations: Partial<Record<NonDefaultLocale, string>>
   sports_score: string | null
   sports_segment_scores: SportsSegmentScore[] | null
   sports_segment_count: number | null
