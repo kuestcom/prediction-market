@@ -57,6 +57,34 @@ describe('openrouter helpers', () => {
     expect(headers['X-OpenRouter-Title']).toBe('Kuest Runtime')
   })
 
+  it('rejects completions truncated by the max token limit', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              finish_reason: 'length',
+              message: { role: 'assistant', content: 'partial translation' },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    const { requestOpenRouterCompletion } = await import('@/lib/ai/openrouter')
+    await expect(
+      requestOpenRouterCompletion([{ role: 'user', content: 'hello' }], {
+        apiKey: 'openrouter-key',
+        model: 'openai/gpt-4o-mini',
+      }),
+    ).rejects.toThrow('truncated')
+  })
+
   it('loads only web-search-capable models and sends runtime site name in models headers', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

@@ -31,6 +31,7 @@ interface ResolveCategorySidebarDataParams {
   categoryCount: number
   categorySlug: string
   childs: PlatformNavigationChild[]
+  localizedNamesBySlug?: ReadonlyMap<string, string>
 }
 
 interface ResolveCategorySidebarPageTitleParams {
@@ -158,6 +159,7 @@ export function resolveCategorySidebarData({
   categoryCount,
   categorySlug,
   childs,
+  localizedNamesBySlug,
 }: ResolveCategorySidebarDataParams): CategorySidebarResolutionResult {
   const template = categorySidebarTemplates[categorySlug]
   if (!template) {
@@ -184,6 +186,10 @@ export function resolveCategorySidebarData({
   const childsBySlug = new Map(childs.map((child) => [child.slug, child]))
   const configuredLinkItems = template.filter(isLinkItem).flatMap((item) => [item, ...(item.subItems ?? [])])
 
+  function resolveConfiguredLabel(item: CategorySidebarTemplateLinkItem | CategorySidebarTemplateSubItem) {
+    return localizedNamesBySlug?.get(item.slug) ?? childsBySlug.get(item.slug)?.name ?? item.label
+  }
+
   const configuredSlugs = new Set(configuredLinkItems.filter((item) => !item.isAll).map((item) => item.slug))
 
   const configuredChilds = configuredLinkItems
@@ -191,7 +197,7 @@ export function resolveCategorySidebarData({
     .filter((item) => item.includeInChilds !== false)
     .map((item) => ({
       slug: item.slug,
-      name: childsBySlug.get(item.slug)?.name ?? item.label,
+      name: resolveConfiguredLabel(item),
       count: childsBySlug.get(item.slug)?.count ?? 0,
     }))
 
@@ -203,7 +209,7 @@ export function resolveCategorySidebarData({
     return {
       type: 'link',
       slug: item.slug,
-      label: childsBySlug.get(item.slug)?.name ?? item.label,
+      label: resolveConfiguredLabel(item),
       count:
         item.showCount === false ? undefined : item.isAll ? categoryCount : (childsBySlug.get(item.slug)?.count ?? 0),
       href: item.href,

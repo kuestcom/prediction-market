@@ -52,6 +52,7 @@ import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-even
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
 import {
+  localizeHomeEventCardTitle,
   localizeHomeFeaturedMarketDates,
   resolveHomeFeaturedFullLidTitleValues,
 } from '@/lib/home-featured-localization'
@@ -553,7 +554,7 @@ function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventC
                 ? t('Esports')
                 : breadcrumbItem.label,
   }))
-  const featuredTitle = resolveFeaturedDisplayTitle(item)
+  const featuredTitle = localizeHomeEventCardTitle(resolveFeaturedDisplayTitle(item), locale)
   const fullLidTitleValues = resolveHomeFeaturedFullLidTitleValues(featuredTitle, locale)
   const displayTitle =
     cryptoCadencePresentation?.title ??

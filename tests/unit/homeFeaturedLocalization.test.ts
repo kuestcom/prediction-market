@@ -72,6 +72,10 @@ describe('home featured localization', () => {
     expect(localizeHomeEventCardTitle('BTC会上涨还是下跌 4h', 'zh')).toBe('BTC会上涨还是下跌 4h')
   })
 
+  it('localizes a date-only primary market question used as the card title', () => {
+    expect(localizeHomeEventCardTitle('September 1', 'zh')).toBe('9月1日')
+  })
+
   it('leaves unrelated market labels and titles alone', () => {
     expect(localizeHomeFeaturedDateLabel('Above $100,000', 'zh')).toBe('Above $100,000')
     expect(resolveHomeFeaturedFullLidTitleValues('Will Bitcoin reach $200k?', 'zh')).toBeNull()

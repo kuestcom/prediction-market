@@ -147,13 +147,13 @@ export default function EventLiveSeriesChartHeader({
 
     switch (unit) {
       case 'day':
-        return t('Days')
+        return t('{count, plural, one {Day} other {Days}}', { count: value })
       case 'hr':
-        return t('Hours')
+        return t('{count, plural, one {Hour} other {Hours}}', { count: value })
       case 'min':
-        return t('Minutes')
+        return t('{count, plural, one {Minute} other {Minutes}}', { count: value })
       case 'sec':
-        return t('Seconds')
+        return t('{count, plural, one {Second} other {Seconds}}', { count: value })
     }
   }
   const resolvedCountdownLeftLabel =

@@ -559,9 +559,10 @@ function useAdminEventsTableState(
     setIsSavingTranslations(true)
     setTranslationError(null)
 
-    let result
+    const eventId = translationEvent.id
+    let result: Awaited<ReturnType<typeof updateEventTranslationsAction>>
     try {
-      result = await updateEventTranslationsAction(translationEvent.id, translationValues)
+      result = await updateEventTranslationsAction(eventId, translationValues)
     } catch (error) {
       console.error('Failed to update event translations', error)
       setTranslationError(t('Failed to update event translations'))
@@ -570,39 +571,57 @@ function useAdminEventsTableState(
     }
 
     if (result.success) {
+      function reconcileTranslationCache(rulesTranslations?: AdminEventRow['rules_translations']) {
+        queryClient.setQueriesData<{
+          data: AdminEventRow[]
+          totalCount: number
+          creatorOptions: string[]
+          seriesOptions: string[]
+        }>({ queryKey: ['admin-events'] }, (previous) => {
+          if (!previous) {
+            return previous
+          }
+
+          return {
+            ...previous,
+            data: previous.data.map((event) =>
+              event.id === eventId
+                ? {
+                    ...event,
+                    translations: result.data ?? {},
+                    ...(rulesTranslations ? { rules_translations: rulesTranslations } : {}),
+                  }
+                : event,
+            ),
+          }
+        })
+      }
+
+      // The title action commits independently, so reflect it immediately if the
+      // optional Rules action fails after the title has already been persisted.
+      reconcileTranslationCache()
+
       let rulesResult: Awaited<ReturnType<typeof updateEventRulesTranslationsAction>> | null = null
       if (rulesTranslationsEnabled) {
-        rulesResult = await updateEventRulesTranslationsAction(translationEvent.id, rulesTranslationValues)
+        try {
+          rulesResult = await updateEventRulesTranslationsAction(eventId, rulesTranslationValues)
+        } catch (error) {
+          console.error('Failed to update event Rules translations', error)
+          setTranslationError(t('Failed to update event Rules translations'))
+          setIsSavingTranslations(false)
+          void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+          return
+        }
+
         if (!rulesResult.success) {
           setTranslationError(rulesResult.error ?? t('Failed to update event Rules translations'))
           setIsSavingTranslations(false)
+          void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
           return
         }
       }
 
-      queryClient.setQueriesData<{
-        data: AdminEventRow[]
-        totalCount: number
-        creatorOptions: string[]
-        seriesOptions: string[]
-      }>({ queryKey: ['admin-events'] }, (previous) => {
-        if (!previous) {
-          return previous
-        }
-
-        return {
-          ...previous,
-          data: previous.data.map((event) =>
-            event.id === translationEvent.id
-              ? {
-                  ...event,
-                  translations: result.data ?? {},
-                  ...(rulesResult ? { rules_translations: rulesResult.data ?? {} } : {}),
-                }
-              : event,
-          ),
-        }
-      })
+      reconcileTranslationCache(rulesResult ? (rulesResult.data ?? {}) : undefined)
 
       toast.success(t('Translations updated for {name}.', { name: translationEvent.title }))
       void queryClient.invalidateQueries({ queryKey: ['admin-events'] })

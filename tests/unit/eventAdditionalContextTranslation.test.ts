@@ -40,4 +40,20 @@ describe('event Additional Context translation', () => {
       'empty translation',
     )
   })
+
+  it('allows long contexts to request enough output tokens', async () => {
+    mocks.requestOpenRouterCompletion.mockResolvedValueOnce('背景翻译')
+    const sourceText = 'a'.repeat(10_000)
+
+    await expect(
+      translateEventAdditionalContext(sourceText, 'zh', {
+        apiKey: 'test-key',
+      }),
+    ).resolves.toBe('背景翻译')
+
+    expect(mocks.requestOpenRouterCompletion).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ maxTokens: 20_000 }),
+    )
+  })
 })

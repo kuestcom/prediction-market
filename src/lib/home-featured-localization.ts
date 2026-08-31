@@ -2,28 +2,18 @@ import type { NonDefaultLocale } from '@/i18n/locales'
 import type { Event, HomeFeaturedEventCard, Market } from '@/types'
 
 import { resolveSupportedLocale } from '@/i18n/locales'
-import { resolveDeterministicTranslation } from '@/lib/translations/batch'
+import {
+  formatLocalizedDate,
+  formatLocalizedTime,
+  parseEnglishDate,
+  resolveDeterministicTranslation,
+} from '@/lib/translations/batch'
 import { normalizeLocalizedUpOrDownTitle } from '@/lib/up-or-down-localization'
 
 const ENGLISH_DATE_LABEL_PATTERN = /^([A-Za-z]+) (\d{1,2})(?:, (\d{4}))?$/
 const ENGLISH_TIME_LABEL_PATTERN = /^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i
 const FULL_LID_TITLE_PATTERN =
   /^Will the White House call a full lid by (.+?)\? \(([A-Za-z]+ \d{1,2}(?:, \d{4})?) [-–] ([A-Za-z]+ \d{1,2}(?:, \d{4})?)\)$/
-const ENGLISH_MONTH_INDEX: Record<string, number> = {
-  april: 3,
-  august: 7,
-  december: 11,
-  february: 1,
-  january: 0,
-  july: 6,
-  june: 5,
-  march: 2,
-  may: 4,
-  november: 10,
-  october: 9,
-  september: 8,
-}
-
 export function localizeHomeFeaturedDateLabel(value: string, locale: string) {
   const resolvedLocale = resolveSupportedLocale(locale)
   if (resolvedLocale === 'en') {
@@ -36,24 +26,12 @@ export function localizeHomeFeaturedDateLabel(value: string, locale: string) {
   }
 
   const [, monthName, rawDay, rawYear] = match
-  const month = monthName ? ENGLISH_MONTH_INDEX[monthName.toLowerCase()] : undefined
-  const day = Number(rawDay)
-  const year = rawYear ? Number(rawYear) : 2000
-  if (month == null || !Number.isInteger(day) || !Number.isInteger(year)) {
+  const date = monthName && rawDay ? parseEnglishDate(monthName, rawDay, rawYear) : null
+  if (!date) {
     return value
   }
 
-  const date = new Date(Date.UTC(year, month, day))
-  if (date.getUTCMonth() !== month || date.getUTCDate() !== day) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat(resolvedLocale, {
-    day: 'numeric',
-    month: 'long',
-    ...(rawYear ? { year: 'numeric' } : {}),
-    timeZone: 'UTC',
-  }).format(date)
+  return formatLocalizedDate(resolvedLocale as NonDefaultLocale, date, Boolean(rawYear))
 }
 
 function localizeHomeFeaturedTimeLabel(value: string, locale: string) {
@@ -76,11 +54,7 @@ function localizeHomeFeaturedTimeLabel(value: string, locale: string) {
 
   const hour24 = rawPeriod?.toUpperCase() === 'AM' ? hour % 12 : (hour % 12) + 12
   const date = new Date(Date.UTC(2000, 0, 1, hour24, minute))
-  return new Intl.DateTimeFormat(resolvedLocale, {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  }).format(date)
+  return formatLocalizedTime(resolvedLocale as NonDefaultLocale, date)
 }
 
 export function resolveHomeFeaturedFullLidTitleValues(title: string, locale: string) {
@@ -112,13 +86,14 @@ export function localizeHomeEventCardTitle(title: string, locale: string) {
     return title
   }
 
+  const localizedDateTitle = localizeHomeFeaturedDateLabel(title, resolvedLocale)
   const deterministicTitle = resolveDeterministicTranslation({
     locale: resolvedLocale as NonDefaultLocale,
     sourceLabel: 'event title',
     sourceText: title,
   })
 
-  return normalizeLocalizedUpOrDownTitle(resolvedLocale, deterministicTitle ?? title)
+  return normalizeLocalizedUpOrDownTitle(resolvedLocale, deterministicTitle ?? localizedDateTitle)
 }
 
 function localizeMarketDateLabels(market: Market, locale: string): Market {

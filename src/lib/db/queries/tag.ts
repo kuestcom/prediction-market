@@ -499,6 +499,18 @@ export const TagRepository = {
       return { data: null, error: translationError, globalChilds: [] }
     }
 
+    const localizedNamesBySlug = new Map<string, string>()
+    for (const subcategory of subcategoriesResult) {
+      if (!subcategory.sub_tag_slug) {
+        continue
+      }
+
+      const localizedName = localizedNamesByTagId.get(subcategory.sub_tag_id ?? -1) ?? subcategory.sub_tag_name
+      if (localizedName) {
+        localizedNamesBySlug.set(subcategory.sub_tag_slug, localizedName)
+      }
+    }
+
     const grouped = new Map<string, { name: string; slug: string; count: number }[]>()
     const globalCounts = new Map<string, { name: string; slug: string; count: number }>()
 
@@ -600,6 +612,7 @@ export const TagRepository = {
         categorySlug: tag.slug,
         categoryCount: mainCategoryEventCounts.get(tag.slug) ?? 0,
         childs: sortedChilds,
+        localizedNamesBySlug,
       })
 
       return {

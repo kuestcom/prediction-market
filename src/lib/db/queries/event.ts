@@ -3448,21 +3448,27 @@ export const EventRepository = {
         }
 
         const now = new Date()
-        await tx
-          .update(event_translations)
-          .set({
-            additional_context: null,
-            additional_context_source_hash: null,
-            additional_context_is_manual: false,
-            updated_at: now,
-          })
-          .where(
-            and(
-              eq(event_translations.event_id, eventId),
-              inArray(event_translations.locale, NON_DEFAULT_LOCALES),
-              eq(event_translations.additional_context_is_manual, false),
-            ),
-          )
+        const localesToReplace = normalizedContext
+          ? normalizedEntries.map((entry) => entry.locale)
+          : NON_DEFAULT_LOCALES
+
+        if (localesToReplace.length > 0) {
+          await tx
+            .update(event_translations)
+            .set({
+              additional_context: null,
+              additional_context_source_hash: null,
+              additional_context_is_manual: false,
+              updated_at: now,
+            })
+            .where(
+              and(
+                eq(event_translations.event_id, eventId),
+                inArray(event_translations.locale, localesToReplace),
+                eq(event_translations.additional_context_is_manual, false),
+              ),
+            )
+        }
 
         if (!normalizedContext || normalizedEntries.length === 0) {
           return

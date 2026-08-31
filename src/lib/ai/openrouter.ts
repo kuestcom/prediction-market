@@ -20,6 +20,7 @@ interface OpenRouterChoice {
     role: 'assistant'
     content: string
   }
+  finish_reason?: string | null
 }
 
 interface OpenRouterResponse {
@@ -106,7 +107,12 @@ export async function requestOpenRouterCompletion(messages: OpenRouterMessage[],
   }
 
   const completion = (await response.json()) as OpenRouterResponse
-  const content = completion.choices[0]?.message?.content
+  const choice = completion.choices[0]
+  const content = choice?.message?.content
+
+  if (choice?.finish_reason === 'length') {
+    throw new Error('OpenRouter response was truncated because it reached max_tokens.')
+  }
 
   if (!content) {
     throw new Error('OpenRouter response did not contain any content.')

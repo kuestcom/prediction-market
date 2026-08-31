@@ -40,7 +40,7 @@ export async function translateEventAdditionalContext(
       apiKey: options.apiKey,
       model: options.model,
       temperature: 0,
-      maxTokens: Math.min(2_000, Math.max(250, Math.ceil(sourceText.length * 2))),
+      maxTokens: Math.max(250, Math.ceil(sourceText.length * 2)),
       timeoutMs: options.timeoutMs,
     },
   )

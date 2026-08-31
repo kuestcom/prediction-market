@@ -73,7 +73,7 @@ export function groupTranslationsByLocale<T extends TranslationLocaleRow>(rows: 
   return Array.from(rowsByLocale.values())
 }
 
-function formatLocalizedDate(locale: NonDefaultLocale, date: Date, includeYear: boolean) {
+export function formatLocalizedDate(locale: NonDefaultLocale, date: Date, includeYear: boolean) {
   const formatterKey = `${locale}:${includeYear ? 'year' : 'month-day'}`
   let formatter = dateFormatters.get(formatterKey)
   if (!formatter) {
@@ -89,7 +89,7 @@ function formatLocalizedDate(locale: NonDefaultLocale, date: Date, includeYear: 
   return formatter.format(date)
 }
 
-function formatLocalizedTime(locale: NonDefaultLocale, date: Date) {
+export function formatLocalizedTime(locale: NonDefaultLocale, date: Date) {
   const formatterKey = `${locale}:time`
   let formatter = dateFormatters.get(formatterKey)
   if (!formatter) {
@@ -104,7 +104,7 @@ function formatLocalizedTime(locale: NonDefaultLocale, date: Date) {
   return formatter.format(date)
 }
 
-function parseEnglishDate(englishMonth: string, rawDay: string, year: string | undefined) {
+export function parseEnglishDate(englishMonth: string, rawDay: string, year: string | undefined) {
   const monthIndex = ENGLISH_MONTH_INDEX[englishMonth.toLowerCase()]
   const day = Number(rawDay)
   const numericYear = year ? Number(year) : 2000
