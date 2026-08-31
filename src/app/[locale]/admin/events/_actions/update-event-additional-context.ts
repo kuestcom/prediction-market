@@ -3,9 +3,13 @@
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
 
+import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
+import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import { translateEventAdditionalContext } from '@/lib/translations/event-additional-context'
+import { isNonDefaultLocale } from '@/lib/translations/jobs'
 
 const AdditionalContextSchema = z.string().max(10_000, 'Additional context is too long.')
 
@@ -74,6 +78,49 @@ export async function updateEventAdditionalContextAction(
         success: false,
         error: error ?? 'Failed to update additional context.',
       }
+    }
+
+    const translations: Record<string, string> = {}
+    try {
+      if (normalized.value) {
+        const [automaticTranslationsEnabled, enabledLocales, openRouterSettings] = await Promise.all([
+          loadAutomaticTranslationsEnabled(),
+          loadEnabledLocales(),
+          loadOpenRouterProviderSettings(),
+        ])
+
+        if (automaticTranslationsEnabled && openRouterSettings.configured && openRouterSettings.apiKey) {
+          const locales = enabledLocales.filter(isNonDefaultLocale)
+          const translationResults = await Promise.allSettled(
+            locales.map(async (locale) => ({
+              locale,
+              value: await translateEventAdditionalContext(normalized.value!, locale, {
+                apiKey: openRouterSettings.apiKey!,
+                model: openRouterSettings.translationModel || openRouterSettings.model,
+              }),
+            })),
+          )
+
+          for (const result of translationResults) {
+            if (result.status === 'fulfilled') {
+              translations[result.value.locale] = result.value.value
+            } else {
+              console.error('Additional context translation failed:', result.reason)
+            }
+          }
+        }
+      }
+    } catch (translationError) {
+      console.error('Additional context translation setup failed:', translationError)
+    }
+
+    const translationUpdate = await EventRepository.updateEventAdditionalContextTranslationsById(
+      eventId,
+      normalized.value,
+      translations,
+    )
+    if (translationUpdate.error) {
+      console.error('Additional context translations could not be saved:', translationUpdate.error)
     }
 
     revalidatePath('/[locale]/admin/events', 'page')

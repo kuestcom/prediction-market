@@ -2,6 +2,7 @@ import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-co
 
 import { CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS } from '@/lib/custom-javascript-code'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+export { localizeGlobalAnnouncementMessage } from '@/lib/global-announcement-localization'
 
 const GENERAL_SETTINGS_GROUP = 'general'
 

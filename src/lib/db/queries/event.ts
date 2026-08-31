@@ -525,6 +525,7 @@ interface ListAdminEventsParams {
 }
 
 export type EventTranslationsMap = Partial<Record<NonDefaultLocale, string>>
+export type EventAdditionalContextTranslationsMap = Partial<Record<NonDefaultLocale, string>>
 
 interface AdminEventRow {
   id: string
@@ -628,6 +629,42 @@ async function getLocalizedEventTitlesById(eventIds: string[], locale: Supported
     .where(and(inArray(event_translations.event_id, eventIds), eq(event_translations.locale, locale)))
 
   return new Map(rows.map((row) => [row.event_id, row.title]))
+}
+
+async function getLocalizedEventAdditionalContextsById(
+  eventIds: string[],
+  locale: SupportedLocale,
+): Promise<Map<string, { value: string; sourceHash: string | null }>> {
+  if (!eventIds.length || locale === DEFAULT_LOCALE) {
+    return new Map()
+  }
+
+  const rows = await db
+    .select({
+      event_id: event_translations.event_id,
+      additional_context: event_translations.additional_context,
+      source_hash: event_translations.additional_context_source_hash,
+    })
+    .from(event_translations)
+    .where(
+      and(
+        inArray(event_translations.event_id, eventIds),
+        eq(event_translations.locale, locale),
+        sql`NULLIF(TRIM(COALESCE(${event_translations.additional_context}, '')), '') IS NOT NULL`,
+      ),
+    )
+
+  return new Map(
+    rows
+      .filter((row): row is typeof row & { additional_context: string } => typeof row.additional_context === 'string')
+      .map((row) => [
+        row.event_id,
+        {
+          value: row.additional_context.trim(),
+          sourceHash: typeof row.source_hash === 'string' ? row.source_hash : null,
+        },
+      ]),
+  )
 }
 
 function toOptionalNumber(value: unknown): number | null {
@@ -1002,6 +1039,7 @@ function eventResource(
   lastTradeMap: Map<string, number> = new Map(),
   localizedTagNamesById: Map<number, string> = new Map(),
   localizedEventTitlesById: Map<string, string> = new Map(),
+  localizedEventAdditionalContextsById: Map<string, { value: string; sourceHash: string | null }> = new Map(),
   liveChartSeriesSlugs: Set<string> = new Set(),
 ): Event {
   const tagRecords = (event.eventTags ?? [])
@@ -1111,7 +1149,18 @@ function eventResource(
     creator: event.creator || '',
     icon_url: getPublicAssetUrl(event.icon_url),
     livestream_url: event.livestream_url ?? null,
-    additional_context: event.additional_context ?? null,
+    additional_context: (() => {
+      const sourceContext = typeof event.additional_context === 'string' ? event.additional_context.trim() : ''
+      const localizedContext = localizedEventAdditionalContextsById.get(event.id)
+      if (
+        localizedContext &&
+        sourceContext &&
+        localizedContext.sourceHash === createHash('sha256').update(sourceContext).digest('hex')
+      ) {
+        return localizedContext.value
+      }
+      return event.additional_context ?? null
+    })(),
     additional_context_updated_at: event.additional_context_updated_at?.toISOString?.() ?? null,
     show_market_icons: event.show_market_icons ?? true,
     is_polymarket_mirror: Boolean(event.is_polymarket_mirror),
@@ -1192,14 +1241,21 @@ async function buildEventResource(
         .filter((tagId): tagId is number => typeof tagId === 'number'),
     ),
   )
-  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] =
-    await Promise.all([
-      fetchOutcomePrices(outcomeTokenIds),
-      fetchLastTradePrices(outcomeTokenIds),
-      getLocalizedTagNamesById(tagIds, locale),
-      getLocalizedEventTitlesById([eventResult.id], locale),
-      getEnabledLiveChartSeriesSlugs(),
-    ])
+  const [
+    priceMap,
+    lastTradeMap,
+    localizedTagNamesById,
+    localizedEventTitlesById,
+    localizedEventAdditionalContextsById,
+    liveChartSeriesSlugs,
+  ] = await Promise.all([
+    fetchOutcomePrices(outcomeTokenIds),
+    fetchLastTradePrices(outcomeTokenIds),
+    getLocalizedTagNamesById(tagIds, locale),
+    getLocalizedEventTitlesById([eventResult.id], locale),
+    getLocalizedEventAdditionalContextsById([eventResult.id], locale),
+    getEnabledLiveChartSeriesSlugs(),
+  ])
   return eventResource(
     eventResult,
     userId,
@@ -1208,6 +1264,7 @@ async function buildEventResource(
     lastTradeMap,
     localizedTagNamesById,
     localizedEventTitlesById,
+    localizedEventAdditionalContextsById,
     liveChartSeriesSlugs,
   )
 }
@@ -1734,14 +1791,21 @@ async function hydrateEventListResults({
   const eventIds = eventsData.map((event) => event.id)
   const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
   const sportsVolumeGroupKeysForAggregation = Array.from(new Set(sportsVolumeGroupKeyByEventId.values()))
-  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] =
-    await Promise.all([
-      skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
-      skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
-      getLocalizedTagNamesById(tagIds, locale),
-      getLocalizedEventTitlesById(eventIds, locale),
-      getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
-    ])
+  const [
+    priceMap,
+    lastTradeMap,
+    localizedTagNamesById,
+    localizedEventTitlesById,
+    localizedEventAdditionalContextsById,
+    groupedSportsVolumesByGroupKey,
+  ] = await Promise.all([
+    skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
+    skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
+    getLocalizedTagNamesById(tagIds, locale),
+    getLocalizedEventTitlesById(eventIds, locale),
+    getLocalizedEventAdditionalContextsById(eventIds, locale),
+    getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
+  ])
   const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
   return eventsData
@@ -1755,6 +1819,7 @@ async function hydrateEventListResults({
         lastTradeMap,
         localizedTagNamesById,
         localizedEventTitlesById,
+        localizedEventAdditionalContextsById,
         liveChartSeriesSlugs,
       ),
     )
@@ -3146,6 +3211,84 @@ export const EventRepository = {
     })
   },
 
+  async updateEventAdditionalContextTranslationsById(
+    eventId: string,
+    sourceContext: string | null,
+    translations: EventAdditionalContextTranslationsMap,
+  ): Promise<{ data: { updated: number } | null; error: string | null }> {
+    const normalizedContext = sourceContext?.trim() || null
+    const normalizedEntries = NON_DEFAULT_LOCALES.map((locale) => ({
+      locale,
+      value: typeof translations[locale] === 'string' ? translations[locale]!.trim() : '',
+    })).filter((entry) => entry.value.length > 0)
+
+    return runQuery(async () => {
+      await db.transaction(async (tx) => {
+        const eventRecord = await tx
+          .select({ id: events.id, title: events.title })
+          .from(events)
+          .where(eq(events.id, eventId))
+          .limit(1)
+
+        const event = eventRecord[0]
+        if (!event) {
+          throw new Error('Event not found.')
+        }
+
+        const now = new Date()
+        await tx
+          .update(event_translations)
+          .set({
+            additional_context: null,
+            additional_context_source_hash: null,
+            additional_context_is_manual: false,
+            updated_at: now,
+          })
+          .where(
+            and(
+              eq(event_translations.event_id, eventId),
+              inArray(event_translations.locale, NON_DEFAULT_LOCALES),
+              eq(event_translations.additional_context_is_manual, false),
+            ),
+          )
+
+        if (!normalizedContext || normalizedEntries.length === 0) {
+          return
+        }
+
+        const sourceHash = createHash('sha256').update(normalizedContext).digest('hex')
+        const titleSourceHash = createHash('sha256').update(event.title).digest('hex')
+        for (const entry of normalizedEntries) {
+          await tx
+            .insert(event_translations)
+            .values({
+              event_id: eventId,
+              locale: entry.locale,
+              title: event.title,
+              source_hash: titleSourceHash,
+              is_manual: false,
+              additional_context: entry.value,
+              additional_context_source_hash: sourceHash,
+              additional_context_is_manual: false,
+              updated_at: now,
+            })
+            .onConflictDoUpdate({
+              target: [event_translations.event_id, event_translations.locale],
+              set: {
+                additional_context: sql`EXCLUDED.additional_context`,
+                additional_context_source_hash: sql`EXCLUDED.additional_context_source_hash`,
+                additional_context_is_manual: false,
+                updated_at: sql`EXCLUDED.updated_at`,
+              },
+              setWhere: eq(event_translations.additional_context_is_manual, false),
+            })
+        }
+      })
+
+      return { data: { updated: normalizedEntries.length }, error: null }
+    })
+  },
+
   async setEventSportsFinalState(
     eventId: string,
     {
@@ -3738,14 +3881,21 @@ export const EventRepository = {
         ),
       )
       const eventIds = hydratedGroupedEventsData.map((event) => event.id)
-      const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] =
-        await Promise.all([
-          fetchOutcomePrices(tokensForPricing),
-          fetchLastTradePrices(tokensForPricing),
-          getLocalizedTagNamesById(tagIds, locale),
-          getLocalizedEventTitlesById(eventIds, locale),
-          getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
-        ])
+      const [
+        priceMap,
+        lastTradeMap,
+        localizedTagNamesById,
+        localizedEventTitlesById,
+        localizedEventAdditionalContextsById,
+        groupedVolumesByGroupKey,
+      ] = await Promise.all([
+        fetchOutcomePrices(tokensForPricing),
+        fetchLastTradePrices(tokensForPricing),
+        getLocalizedTagNamesById(tagIds, locale),
+        getLocalizedEventTitlesById(eventIds, locale),
+        getLocalizedEventAdditionalContextsById(eventIds, locale),
+        getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
+      ])
       const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
       const groupedVolume = groupedVolumesByGroupKey.get(baseGroupKey)
@@ -3760,6 +3910,7 @@ export const EventRepository = {
             lastTradeMap,
             localizedTagNamesById,
             localizedEventTitlesById,
+            localizedEventAdditionalContextsById,
             liveChartSeriesSlugs,
           ),
         )

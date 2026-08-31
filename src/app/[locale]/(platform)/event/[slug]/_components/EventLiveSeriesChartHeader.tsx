@@ -141,7 +141,7 @@ export default function EventLiveSeriesChartHeader({
     ) : null
   const priceStatusLabel = isEventClosed ? t('Final price') : t('Current price')
   function resolveCountdownLabel(unit: CountdownUnit, value: number) {
-    if (locale !== 'zh') {
+    if (locale === 'en') {
       return countdownLabel(unit, value)
     }
 
@@ -157,9 +157,9 @@ export default function EventLiveSeriesChartHeader({
     }
   }
   const resolvedCountdownLeftLabel =
-    locale === 'zh'
-      ? visibleCountdownUnits.map(({ unit, value }) => `${value}${resolveCountdownLabel(unit, value)}`).join('')
-      : countdownLeftLabel
+    locale === 'en'
+      ? countdownLeftLabel
+      : visibleCountdownUnits.map(({ unit, value }) => `${value} ${resolveCountdownLabel(unit, value)}`).join(' ')
 
   return (
     <div

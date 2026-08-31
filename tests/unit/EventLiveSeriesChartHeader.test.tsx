@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 import EventLiveSeriesChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChartHeader'
 
@@ -9,18 +9,27 @@ const mocks = vi.hoisted(() => ({ locale: 'en' }))
 vi.mock('next-intl', () => ({
   useLocale: () => mocks.locale,
   useExtracted: () => (message: string, values?: Record<string, string>) => {
-    const translations: Record<string, string> = {
-      'Price To Beat': '基准价格',
-      'Current price': '当前价格',
-      'Final price': '最终价格',
-      Days: '天',
-      Hours: '小时',
-      Minutes: '分钟',
-      Seconds: '秒',
-      '{time} left': '剩余 {time}',
-      'Resolution time': '结算时间',
+    const translations: Record<string, Record<string, string>> = {
+      zh: {
+        'Price To Beat': '基准价格',
+        'Current price': '当前价格',
+        'Final price': '最终价格',
+        Days: '天',
+        Hours: '小时',
+        Minutes: '分钟',
+        Seconds: '秒',
+        '{time} left': '剩余 {time}',
+        'Resolution time': '结算时间',
+      },
+      de: {
+        Days: 'Tage',
+        Hours: 'Stunden',
+        Minutes: 'Minuten',
+        Seconds: 'Sekunden',
+        '{time} left': 'Noch {time}',
+      },
     }
-    const translated = mocks.locale === 'zh' ? (translations[message] ?? message) : message
+    const translated = translations[mocks.locale]?.[message] ?? message
 
     return translated.replace('{time}', values?.time ?? '{time}')
   },
@@ -109,6 +118,20 @@ describe('eventLiveSeriesChartHeader', () => {
     expect(screen.getByText('秒')).toBeInTheDocument()
     expect(screen.queryByText('Price To Beat')).not.toBeInTheDocument()
     expect(screen.queryByText('Current price')).not.toBeInTheDocument()
+  })
+
+  it('localizes countdown labels and remaining time for non-Chinese locales', async () => {
+    mocks.locale = 'de'
+
+    render(<EventLiveSeriesChartHeader {...baseProps} />)
+
+    expect(screen.getByText('Stunden')).toBeInTheDocument()
+    expect(screen.getByText('Minuten')).toBeInTheDocument()
+    expect(screen.getByText('Sekunden')).toBeInTheDocument()
+    fireEvent.mouseEnter(screen.getByRole('button'))
+    expect(await screen.findByText('Noch 2 Stunden 7 Minuten 9 Sekunden')).toBeInTheDocument()
+    expect(screen.queryByText('HRS')).not.toBeInTheDocument()
+    expect(screen.queryByText('2 Hrs 7 Mins 9 Secs left')).not.toBeInTheDocument()
   })
 
   it('positions responsive rolling digits using relative font units', () => {

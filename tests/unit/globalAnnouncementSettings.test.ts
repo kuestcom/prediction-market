@@ -1,13 +1,42 @@
 import { describe, expect, it } from 'vitest'
 
+import type { SupportedLocale } from '@/i18n/locales'
+
+import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
   DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON,
   getGlobalAnnouncementSettingsFromSettings,
+  localizeGlobalAnnouncementMessage,
   MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH,
   validateGlobalAnnouncementInput,
 } from '@/lib/global-announcement-settings'
 
 describe('global announcement settings helpers', () => {
+  it('localizes the mainnet migration announcement for every supported locale', () => {
+    const expectedTranslations: Record<SupportedLocale, string> = {
+      en: 'Last call to move to Mainnet',
+      de: 'Letzte Aufforderung zum Wechsel ins Mainnet',
+      es: 'Último aviso para migrar a la red principal',
+      pt: 'Último aviso para migrar para a rede principal',
+      fr: 'Dernier rappel pour passer au réseau principal',
+      zh: '迁移至主网的最后提醒',
+      ja: 'メインネット移行の最終案内',
+      ar: 'التنبيه الأخير للانتقال إلى الشبكة الرئيسية',
+      ru: 'Последнее напоминание о переходе в основную сеть',
+      it: 'Ultimo avviso per passare alla rete principale',
+      pl: 'Ostatnie przypomnienie o przejściu do sieci głównej',
+      ko: '메인넷 전환 최종 안내',
+    }
+
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(localizeGlobalAnnouncementMessage(locale, 'Last call to move to Mainnet')).toBe(
+        expectedTranslations[locale],
+      )
+    }
+
+    expect(localizeGlobalAnnouncementMessage('zh', 'A custom announcement')).toBe('A custom announcement')
+  })
+
   it('returns empty defaults when settings are missing', () => {
     expect(getGlobalAnnouncementSettingsFromSettings(undefined)).toEqual({
       message: '',

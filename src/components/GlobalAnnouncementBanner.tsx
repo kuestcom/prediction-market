@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 
 import { isCustomJavascriptCodeEnabledOnPathname } from '@/lib/custom-javascript-code'
+import { localizeGlobalAnnouncementMessage } from '@/lib/global-announcement-localization'
 
 interface GlobalAnnouncementBannerProps {
   locale: string
@@ -47,7 +48,8 @@ export default function GlobalAnnouncementBanner({
   disabledOn,
 }: GlobalAnnouncementBannerProps) {
   const localizedPathname = useLocalizedPathname(locale)
-  const hasMessage = message.trim().length > 0
+  const localizedMessage = localizeGlobalAnnouncementMessage(locale, message)
+  const hasMessage = localizedMessage.length > 0
   const isEnabled = isCustomJavascriptCodeEnabledOnPathname({ disabledOn }, localizedPathname)
 
   if (!hasMessage || !isEnabled) {
@@ -56,7 +58,7 @@ export default function GlobalAnnouncementBanner({
 
   const content = (
     <div className="w-full bg-primary text-primary-foreground">
-      <div className="container py-2 text-center text-xs font-semibold sm:text-sm">{message}</div>
+      <div className="container py-2 text-center text-xs font-semibold sm:text-sm">{localizedMessage}</div>
     </div>
   )
 
