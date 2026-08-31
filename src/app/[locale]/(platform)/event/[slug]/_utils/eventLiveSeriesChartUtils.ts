@@ -957,8 +957,8 @@ export function getVisibleCountdownUnits(
   ]
 }
 
-export function formatDateAtTimezone(timestamp: number, timeZone: string) {
-  return new Intl.DateTimeFormat('en-US', {
+export function formatDateAtTimezone(timestamp: number, timeZone: string, locale = 'en-US') {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -966,11 +966,10 @@ export function formatDateAtTimezone(timestamp: number, timeZone: string) {
   }).format(new Date(timestamp))
 }
 
-export function formatTimeAtTimezone(timestamp: number, timeZone: string) {
-  return new Intl.DateTimeFormat('en-US', {
+export function formatTimeAtTimezone(timestamp: number, timeZone: string, locale = 'en-US') {
+  return new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true,
     timeZone,
   }).format(new Date(timestamp))
 }

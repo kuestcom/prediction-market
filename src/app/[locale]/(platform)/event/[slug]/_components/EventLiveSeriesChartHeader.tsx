@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
@@ -116,6 +116,7 @@ export default function EventLiveSeriesChartHeader({
   showCountdownLogo = true,
 }: EventLiveSeriesChartHeaderProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const liveMarketLabel = isMobile ? t('Live') : t('Go to live market')
   const countdownEndedLogo =
     watermark.iconSvg || watermark.iconImageUrl || watermark.label ? (
@@ -138,7 +139,27 @@ export default function EventLiveSeriesChartHeader({
         {watermark.label ? <span className="font-semibold">{watermark.label}</span> : null}
       </div>
     ) : null
-  const priceStatusLabel = isEventClosed ? 'Final price' : 'Current price'
+  const priceStatusLabel = isEventClosed ? t('Final price') : t('Current price')
+  function resolveCountdownLabel(unit: CountdownUnit, value: number) {
+    if (locale !== 'zh') {
+      return countdownLabel(unit, value)
+    }
+
+    switch (unit) {
+      case 'day':
+        return t('Days')
+      case 'hr':
+        return t('Hours')
+      case 'min':
+        return t('Minutes')
+      case 'sec':
+        return t('Seconds')
+    }
+  }
+  const resolvedCountdownLeftLabel =
+    locale === 'zh'
+      ? visibleCountdownUnits.map(({ unit, value }) => `${value}${resolveCountdownLabel(unit, value)}`).join('')
+      : countdownLeftLabel
 
   return (
     <div
@@ -162,7 +183,7 @@ export default function EventLiveSeriesChartHeader({
         )}
       >
         <div>
-          <div className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Price To Beat</div>
+          <div className="text-xs font-semibold whitespace-nowrap text-muted-foreground">{t('Price To Beat')}</div>
           <div
             className={cn(
               `mt-1 text-[16px] leading-none font-semibold whitespace-nowrap text-muted-foreground tabular-nums sm:text-[22px]`,
@@ -227,7 +248,7 @@ export default function EventLiveSeriesChartHeader({
                           <RollingValue value={String(Math.max(0, Math.floor(value))).padStart(2, '0')} />
                         </div>
                         <div className="mt-1 text-[8px] font-semibold tracking-[0.08em] text-muted-foreground uppercase min-[360px]:text-[9px] sm:text-2xs">
-                          {countdownLabel(unit, value)}
+                          {resolveCountdownLabel(unit, value)}
                         </div>
                       </div>
                     ))}
@@ -244,12 +265,13 @@ export default function EventLiveSeriesChartHeader({
                     <span className="text-xs font-semibold tracking-[0.08em] uppercase">{t('Live')}</span>
                   </div>
                   <div className="text-sm">
-                    <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
-                    <span className="ml-1 text-muted-foreground">left</span>
+                    <span className="font-semibold text-foreground">
+                      {t('{time} left', { time: resolvedCountdownLeftLabel })}
+                    </span>
                   </div>
                 </div>
 
-                <div className="text-xs text-muted-foreground">Resolution time</div>
+                <div className="text-xs text-muted-foreground">{t('Resolution time')}</div>
 
                 <div className="grid gap-2 text-sm text-foreground">
                   <div className="flex items-center gap-2">

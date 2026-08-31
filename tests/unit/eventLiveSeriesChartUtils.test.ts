@@ -9,6 +9,8 @@ import {
   buildLiveSeriesFallbackData,
   classifyLiveSeriesReference,
   findLiveSeriesEvent,
+  formatDateAtTimezone,
+  formatTimeAtTimezone,
   getVisibleCountdownUnits,
   isCanonicalBinanceDailySnapshot,
   LIVE_PRICE_TRANSITION_MS,
@@ -24,6 +26,15 @@ import {
   resolveLiveSeriesRealtimeTopic,
   SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
+
+describe('live series date labels', () => {
+  it('formats resolution dates and times with the page locale', () => {
+    const timestamp = Date.parse('2026-08-30T20:33:00.000Z')
+
+    expect(formatDateAtTimezone(timestamp, 'America/New_York', 'zh')).toBe('2026年8月30日')
+    expect(formatTimeAtTimezone(timestamp, 'America/New_York', 'zh')).toBe('16:33')
+  })
+})
 
 describe('getVisibleCountdownUnits', () => {
   it('hides zero hours when less than one hour remains', () => {

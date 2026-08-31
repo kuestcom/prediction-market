@@ -4,8 +4,26 @@ import { render, screen } from '@testing-library/react'
 
 import EventLiveSeriesChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChartHeader'
 
+const mocks = vi.hoisted(() => ({ locale: 'en' }))
+
 vi.mock('next-intl', () => ({
-  useExtracted: () => (message: string) => message,
+  useLocale: () => mocks.locale,
+  useExtracted: () => (message: string, values?: Record<string, string>) => {
+    const translations: Record<string, string> = {
+      'Price To Beat': '基准价格',
+      'Current price': '当前价格',
+      'Final price': '最终价格',
+      Days: '天',
+      Hours: '小时',
+      Minutes: '分钟',
+      Seconds: '秒',
+      '{time} left': '剩余 {time}',
+      'Resolution time': '结算时间',
+    }
+    const translated = mocks.locale === 'zh' ? (translations[message] ?? message) : message
+
+    return translated.replace('{time}', values?.time ?? '{time}')
+  },
 }))
 
 vi.mock('@/i18n/navigation', () => ({
@@ -43,6 +61,10 @@ const baseProps = {
 }
 
 describe('eventLiveSeriesChartHeader', () => {
+  beforeEach(() => {
+    mocks.locale = 'en'
+  })
+
   it('shows no price to beat when the event has no active baseline', () => {
     render(<EventLiveSeriesChartHeader {...baseProps} resolvedBaselinePrice={null} delta={null} />)
 
@@ -73,6 +95,20 @@ describe('eventLiveSeriesChartHeader', () => {
     expect(screen.getByText('HR').parentElement).toHaveTextContent('01')
     expect(screen.getByText('MINS').parentElement).toHaveTextContent('59')
     expect(screen.getByText('SECS').parentElement).toHaveTextContent('58')
+  })
+
+  it('localizes live price and countdown labels in Chinese', () => {
+    mocks.locale = 'zh'
+
+    render(<EventLiveSeriesChartHeader {...baseProps} />)
+
+    expect(screen.getByText('基准价格')).toBeInTheDocument()
+    expect(screen.getByText('当前价格')).toBeInTheDocument()
+    expect(screen.getByText('小时')).toBeInTheDocument()
+    expect(screen.getByText('分钟')).toBeInTheDocument()
+    expect(screen.getByText('秒')).toBeInTheDocument()
+    expect(screen.queryByText('Price To Beat')).not.toBeInTheDocument()
+    expect(screen.queryByText('Current price')).not.toBeInTheDocument()
   })
 
   it('positions responsive rolling digits using relative font units', () => {

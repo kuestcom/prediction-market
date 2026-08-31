@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import EventLiveSeriesChartOverlay from '@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChartOverlay'
@@ -60,5 +60,21 @@ describe('EventLiveSeriesChartOverlay', () => {
     )
 
     expect(container.querySelectorAll('canvas')).toHaveLength(1)
+  })
+
+  it('renders a localized target label', () => {
+    render(
+      <EventLiveSeriesChartOverlay
+        targetLine={{ badgeTop: 140, isAbove: false, isBelow: false }}
+        targetLabel="基准"
+        targetLineGuideColor="#5D6878"
+        targetBadgeColor="#5D6878"
+        currentLineTop={null}
+        currentPriceGuideColor="#F59E0B"
+      />,
+    )
+
+    expect(screen.getByText('基准')).toBeInTheDocument()
+    expect(screen.queryByText('Target')).not.toBeInTheDocument()
   })
 })

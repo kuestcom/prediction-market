@@ -10,6 +10,7 @@ interface TargetLine {
 
 interface EventLiveSeriesChartOverlayProps {
   targetLine: TargetLine | null
+  targetLabel?: string
   targetLineGuideColor: string
   targetBadgeColor: string
   currentLineTop: number | null
@@ -114,6 +115,7 @@ function TargetChevronCanvas({ direction }: { direction: 'up' | 'down' }) {
 
 export default function EventLiveSeriesChartOverlay({
   targetLine,
+  targetLabel = 'Target',
   targetLineGuideColor,
   targetBadgeColor,
   currentLineTop,
@@ -142,7 +144,7 @@ export default function EventLiveSeriesChartOverlay({
           >
             <TargetBadgeCanvas color={targetBadgeColor} />
             <span className="relative z-1 inline-flex items-center gap-0.5 pl-1.5 text-xs leading-none text-white">
-              <span>Target</span>
+              <span>{targetLabel}</span>
               {targetLine.isAbove && <TargetChevronCanvas direction="up" />}
               {targetLine.isBelow && <TargetChevronCanvas direction="down" />}
             </span>

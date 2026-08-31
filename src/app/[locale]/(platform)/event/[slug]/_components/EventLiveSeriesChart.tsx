@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
@@ -288,6 +289,8 @@ function EventLiveSeriesChartContent({
   showLiveMarketLink,
   featuredChartLayout,
 }: EventLiveSeriesChartContentProps) {
+  const t = useExtracted()
+  const locale = useLocale()
   const site = useSiteIdentity()
   const { width: windowWidth } = useWindowSize()
   const liveColor = config.line_color || '#F59E0B'
@@ -852,10 +855,16 @@ function EventLiveSeriesChartContent({
     [countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds],
   )
 
-  const etDateLabel = useMemo(() => formatDateAtTimezone(endTimestamp, 'America/New_York'), [endTimestamp])
-  const etTimeLabel = useMemo(() => formatTimeAtTimezone(endTimestamp, 'America/New_York'), [endTimestamp])
-  const utcDateLabel = useMemo(() => formatDateAtTimezone(endTimestamp, 'UTC'), [endTimestamp])
-  const utcTimeLabel = useMemo(() => formatTimeAtTimezone(endTimestamp, 'UTC'), [endTimestamp])
+  const etDateLabel = useMemo(
+    () => formatDateAtTimezone(endTimestamp, 'America/New_York', locale),
+    [endTimestamp, locale],
+  )
+  const etTimeLabel = useMemo(
+    () => formatTimeAtTimezone(endTimestamp, 'America/New_York', locale),
+    [endTimestamp, locale],
+  )
+  const utcDateLabel = useMemo(() => formatDateAtTimezone(endTimestamp, 'UTC', locale), [endTimestamp, locale])
+  const utcTimeLabel = useMemo(() => formatTimeAtTimezone(endTimestamp, 'UTC', locale), [endTimestamp, locale])
 
   const watermark = useMemo(
     () => ({
@@ -897,6 +906,7 @@ function EventLiveSeriesChartContent({
             <div className="relative z-0">
               <EventLiveSeriesChartOverlay
                 targetLine={targetLine}
+                targetLabel={t('Target')}
                 targetLineGuideColor={targetLineGuideColor}
                 targetBadgeColor={targetBadgeColor}
                 currentLineTop={showCurrentPriceGuide ? currentLineTop : null}
@@ -920,12 +930,12 @@ function EventLiveSeriesChartContent({
                 xAxisTickValues={xAxisTickValues}
                 xAxisTickFormatter={(date) =>
                   isEventClosed
-                    ? date.toLocaleTimeString('en-US', {
+                    ? date.toLocaleTimeString(locale, {
                         hour: '2-digit',
                         minute: '2-digit',
                         hour12: false,
                       })
-                    : date.toLocaleTimeString('en-US', {
+                    : date.toLocaleTimeString(locale, {
                         hour: '2-digit',
                         minute: '2-digit',
                         second: '2-digit',
@@ -982,14 +992,14 @@ function EventLiveSeriesChartContent({
                 tooltipHeaderFontSize={11}
                 tooltipDateFontSize={10}
                 tooltipDateFormatter={(date) =>
-                  date.toLocaleString('en-US', {
+                  date.toLocaleString(locale, {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                     hour: 'numeric',
                     minute: '2-digit',
                     second: '2-digit',
-                  }) + (isMarketClosed ? ' (market closed)' : '')
+                  }) + (isMarketClosed ? ` (${t('Closed')})` : '')
                 }
                 showTooltipSeriesLabels={false}
                 tooltipHeader={{
