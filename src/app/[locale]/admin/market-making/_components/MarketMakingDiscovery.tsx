@@ -2410,28 +2410,34 @@ function CampaignDialog({
         </div>
 
         <div className="shrink-0 border-t bg-background/95 pt-3 pb-1 backdrop-blur lg:col-start-2 lg:row-start-2">
-          {issueError ? (
+          {issueError && (
             <div className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-semibold text-destructive">
               <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
               <span>{issueError}</span>
             </div>
-          ) : balanceCheckRequired && (hasInsufficientSponsorBalance || sponsorBalanceQuery.isError) ? (
+          )}
+          {balanceCheckRequired && sponsorBalanceQuery.isError && (
             <div className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-semibold text-orange-500">
               <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
-              <span>{hasInsufficientSponsorBalance ? copy.insufficientBalance : copy.balanceUnavailable}</span>
-              {sponsorBalanceQuery.isError && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={sponsorBalanceQuery.isFetching}
-                  onClick={() => void sponsorBalanceQuery.refetch()}
-                >
-                  {copy.retry}
-                </Button>
-              )}
+              <span>{copy.balanceUnavailable}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={sponsorBalanceQuery.isFetching}
+                onClick={() => void sponsorBalanceQuery.refetch()}
+              >
+                {copy.retry}
+              </Button>
             </div>
-          ) : (
+          )}
+          {!issueError && balanceCheckRequired && !sponsorBalanceQuery.isError && hasInsufficientSponsorBalance && (
+            <div className="mb-2 flex items-center justify-center gap-2 text-center text-sm font-semibold text-orange-500">
+              <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
+              <span>{copy.insufficientBalance}</span>
+            </div>
+          )}
+          {!issueError && !(balanceCheckRequired && (hasInsufficientSponsorBalance || sponsorBalanceQuery.isError)) && (
             <p className="mb-2 hidden overflow-hidden text-center text-xs text-ellipsis whitespace-nowrap text-muted-foreground sm:block">
               {copy.escrowNotice}
             </p>
