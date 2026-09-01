@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useMemo, useState } from 'react'
 
 import type { EventSeriesEntry } from '@/types'
@@ -74,33 +74,38 @@ function isSeriesEventResolved(event: EventSeriesEntry) {
   return parseSeriesEventDate(event.resolved_at) !== null
 }
 
-function getSeriesEventLabel(event: EventSeriesEntry) {
+function getSeriesEventLabel(event: EventSeriesEntry, locale = 'en-US', fallback = 'Unknown date') {
   const date = getSeriesEventDate(event)
   return date
-    ? date.toLocaleDateString('en-US', {
+    ? date.toLocaleDateString(locale, {
         month: 'short',
         day: 'numeric',
         timeZone: 'UTC',
       })
-    : 'Unknown date'
+    : fallback
 }
 
-function getSeriesEventLabelWithYear(event: EventSeriesEntry, timeZone: string) {
+function getSeriesEventLabelWithYear(
+  event: EventSeriesEntry,
+  timeZone: string,
+  locale = 'en-US',
+  fallback = 'Unknown date',
+) {
   const date = getSeriesEventDate(event)
   return date
-    ? date.toLocaleDateString('en-US', {
+    ? date.toLocaleDateString(locale, {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
         timeZone,
       })
-    : 'Unknown date'
+    : fallback
 }
 
-function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string) {
+function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string, locale = 'en-US') {
   const date = getSeriesEventDate(event)
   return date
-    ? date.toLocaleTimeString('en-US', {
+    ? date.toLocaleTimeString(locale, {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
@@ -109,24 +114,22 @@ function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string) {
     : '--'
 }
 
-function getSeriesEventPillTimeLabel(event: EventSeriesEntry, timeZone: string, showMinutes = false, padHour = false) {
+function getSeriesEventPillTimeLabel(
+  event: EventSeriesEntry,
+  timeZone: string,
+  showMinutes = false,
+  padHour = false,
+  locale = 'en-US',
+) {
   const date = getSeriesEventDate(event)
   return date
-    ? date.toLocaleTimeString('en-US', {
+    ? date.toLocaleTimeString(locale, {
         hour: padHour ? '2-digit' : 'numeric',
         ...(showMinutes ? { minute: '2-digit' as const } : {}),
         hour12: true,
         timeZone,
       })
     : '--'
-}
-
-function toCountdownLeftLabel(showDays: boolean, days: number, hours: number, minutes: number, seconds: number) {
-  if (showDays) {
-    return `${days} ${days === 1 ? 'Day' : 'Days'} ${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`
-  }
-
-  return `${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${seconds} ${seconds === 1 ? 'Sec' : 'Secs'}`
 }
 
 function getResolvedDirection(event: EventSeriesEntry) {
@@ -216,10 +219,13 @@ interface EventSeriesPillsProps {
 }
 
 function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
-  const etDateLabel = getSeriesEventLabelWithYear(event, 'America/New_York')
-  const etTimeLabel = getSeriesEventTimeLabel(event, 'America/New_York')
-  const utcDateLabel = getSeriesEventLabelWithYear(event, 'UTC')
-  const utcTimeLabel = getSeriesEventTimeLabel(event, 'UTC')
+  const t = useExtracted()
+  const locale = useLocale()
+  const unknownDateLabel = t('Unknown date')
+  const etDateLabel = getSeriesEventLabelWithYear(event, 'America/New_York', locale, unknownDateLabel)
+  const etTimeLabel = getSeriesEventTimeLabel(event, 'America/New_York', locale)
+  const utcDateLabel = getSeriesEventLabelWithYear(event, 'UTC', locale, unknownDateLabel)
+  const utcTimeLabel = getSeriesEventTimeLabel(event, 'UTC', locale)
 
   return (
     <div className="grid gap-2 text-sm text-foreground">
@@ -258,12 +264,24 @@ function SeriesEventCountdownHoverCardContent({
   nowTimestamp: number
   showLiveBadge: boolean
 }) {
+  const t = useExtracted()
   const endTimestamp = getSeriesEventTimestamp(event)
   const hasEndTimestamp = Number.isFinite(endTimestamp)
   const isEnded = hasEndTimestamp && nowTimestamp >= endTimestamp
   const countdown = hasEndTimestamp ? resolveLiveSeriesCountdown(endTimestamp, nowTimestamp) : null
   const countdownLeftLabel = countdown
-    ? toCountdownLeftLabel(countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds)
+    ? [
+        countdown.showDays
+          ? `${countdown.days} ${t('{count, plural, one {Day} other {Days}}', { count: countdown.days })}`
+          : null,
+        `${countdown.hours} ${t('{count, plural, one {Hour} other {Hours}}', { count: countdown.hours })}`,
+        `${countdown.minutes} ${t('{count, plural, one {Minute} other {Minutes}}', { count: countdown.minutes })}`,
+        ...(!countdown.showDays
+          ? [`${countdown.seconds} ${t('{count, plural, one {Second} other {Seconds}}', { count: countdown.seconds })}`]
+          : []),
+      ]
+        .filter((value): value is string => value !== null)
+        .join(' ')
     : '--'
 
   return (
@@ -276,16 +294,17 @@ function SeriesEventCountdownHoverCardContent({
                 <span className="absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45" />
                 <span className="relative inline-flex size-2 rounded-full bg-red-500" />
               </span>
-              <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
+              <span className="text-xs font-semibold tracking-[0.08em] uppercase">{t('Live')}</span>
             </div>
           )}
           <div className="text-sm">
-            <span className="font-semibold text-foreground">{isEnded ? 'Event ended' : countdownLeftLabel}</span>
-            {!isEnded && <span className="ml-1 text-muted-foreground">left</span>}
+            <span className="font-semibold text-foreground">
+              {isEnded ? t('Event ended') : t('{time} left', { time: countdownLeftLabel })}
+            </span>
           </div>
         </div>
 
-        <div className="text-xs text-muted-foreground">Resolution time</div>
+        <div className="text-xs text-muted-foreground">{t('Resolution time')}</div>
         <ResolutionTimeTooltipRows event={event} />
       </div>
     </HoverCardContent>
@@ -301,6 +320,14 @@ export default function EventSeriesPills({
   rightSlot,
 }: EventSeriesPillsProps) {
   const t = useExtracted()
+  const locale = useLocale()
+  const unknownDateLabel = t('Unknown date')
+  function eventLabel(event: EventSeriesEntry) {
+    return getSeriesEventLabel(event, locale, unknownDateLabel)
+  }
+  function eventPillTimeLabel(event: EventSeriesEntry, timeZone: string, showMinutes = false, padHour = false) {
+    return getSeriesEventPillTimeLabel(event, timeZone, showMinutes, padHour, locale)
+  }
   const [isPastMenuOpen, setIsPastMenuOpen] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [hoveredPastBadgeId, setHoveredPastBadgeId] = useState<string | null>(null)
@@ -366,7 +393,7 @@ export default function EventSeriesPills({
                     />
                   }
                 >
-                  <span>Past</span>
+                  <span>{t('Past')}</span>
                   <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
                 </DropdownMenuTrigger>
 
@@ -378,8 +405,8 @@ export default function EventSeriesPills({
                         const isUp = direction === 'up'
                         const shouldDim = hoveredPastBadgeId !== null && hoveredPastBadgeId !== event.id
                         const resultLabel = usesIntradayPillLabels
-                          ? getSeriesEventPillTimeLabel(event, 'America/New_York', isShortCadence)
-                          : getSeriesEventLabel(event)
+                          ? eventPillTimeLabel(event, 'America/New_York', isShortCadence)
+                          : eventLabel(event)
                         return (
                           <Tooltip key={event.id}>
                             <TooltipTrigger
@@ -422,7 +449,7 @@ export default function EventSeriesPills({
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
-                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', true, true)} ET`
+                  const etTimeLabel = `${eventPillTimeLabel(event, 'America/New_York', true, true)} ET`
 
                   if (isCurrentEvent) {
                     return (
@@ -438,7 +465,7 @@ export default function EventSeriesPills({
                           <GavelIcon className="size-3.5 shrink-0 text-foreground" />
                           <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                           <span className="size-1 rounded-full bg-foreground/70" />
-                          <span className="text-xs text-muted-foreground">{getSeriesEventLabel(event)}</span>
+                          <span className="text-xs text-muted-foreground">{eventLabel(event)}</span>
                         </span>
                       </DropdownMenuItem>
                     )
@@ -453,7 +480,7 @@ export default function EventSeriesPills({
                       <GavelIcon className="size-3.5 shrink-0 text-foreground" />
                       <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                       <span className="size-1 rounded-full bg-foreground/70" />
-                      <span className="text-xs text-muted-foreground">{getSeriesEventLabel(event)}</span>
+                      <span className="text-xs text-muted-foreground">{eventLabel(event)}</span>
                     </DropdownMenuLinkItem>
                   )
                 })}
@@ -468,7 +495,7 @@ export default function EventSeriesPills({
                 'text-background',
               )}
             >
-              Ended: {getSeriesEventLabel(currentResolvedEvent)}
+              {t('Ended {date}', { date: eventLabel(currentResolvedEvent) })}
             </span>
           )}
 
@@ -478,9 +505,9 @@ export default function EventSeriesPills({
               const eventTimestamp = getSeriesEventTimestamp(event)
               const isTradingNow = event.id === currentTradingEventId
               const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
-              const etTimeLabel = getSeriesEventPillTimeLabel(event, 'America/New_York', isShortCadence)
+              const etTimeLabel = eventPillTimeLabel(event, 'America/New_York', isShortCadence)
               const pillLabel = resolveLiveSeriesPillLabel({
-                dateLabel: getSeriesEventLabel(event),
+                dateLabel: eventLabel(event),
                 isDailySeries,
                 isToday: isTodayInEt,
                 timeLabel: etTimeLabel,
@@ -547,7 +574,7 @@ export default function EventSeriesPills({
                 {overflowEvents.map((event) => {
                   const eventTimestamp = getSeriesEventTimestamp(event)
                   const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
-                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', true, true)} ET`
+                  const etTimeLabel = `${eventPillTimeLabel(event, 'America/New_York', true, true)} ET`
 
                   return (
                     <DropdownMenuLinkItem
@@ -557,9 +584,7 @@ export default function EventSeriesPills({
                     >
                       <span className="shrink-0 font-semibold text-foreground tabular-nums">{etTimeLabel}</span>
                       <span className="size-1 rounded-full bg-foreground/70" />
-                      <span className="text-muted-foreground">
-                        {isTodayInEt ? t('Today') : getSeriesEventLabel(event)}
-                      </span>
+                      <span className="text-muted-foreground">{isTodayInEt ? t('Today') : eventLabel(event)}</span>
                     </DropdownMenuLinkItem>
                   )
                 })}
@@ -588,7 +613,7 @@ export default function EventSeriesPills({
                 />
               }
             >
-              <span>Past</span>
+              <span>{t('Past')}</span>
               <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -599,6 +624,7 @@ export default function EventSeriesPills({
             >
               {pastResolvedEvents.map((event) => {
                 const isCurrentEvent = event.slug === currentEventSlug
+                const etTimeLabel = `${eventPillTimeLabel(event, 'America/New_York', true, true)} ET`
 
                 if (isCurrentEvent) {
                   return (
@@ -611,7 +637,9 @@ export default function EventSeriesPills({
                     >
                       <span className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span>{getSeriesEventLabel(event)}</span>
+                        <span className="font-semibold tabular-nums">{etTimeLabel}</span>
+                        <span className="size-1 rounded-full bg-foreground/70" />
+                        <span>{eventLabel(event)}</span>
                       </span>
                     </DropdownMenuItem>
                   )
@@ -624,7 +652,9 @@ export default function EventSeriesPills({
                     className="cursor-pointer py-1.5 text-xs font-medium"
                   >
                     <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span>{getSeriesEventLabel(event)}</span>
+                    <span className="font-semibold tabular-nums">{etTimeLabel}</span>
+                    <span className="size-1 rounded-full bg-foreground/70" />
+                    <span>{eventLabel(event)}</span>
                   </DropdownMenuLinkItem>
                 )
               })}
@@ -638,7 +668,7 @@ export default function EventSeriesPills({
               `inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold text-background`,
             )}
           >
-            Ended: {getSeriesEventLabel(currentResolvedEvent)}
+            {t('Ended {date}', { date: eventLabel(currentResolvedEvent) })}
           </span>
         )}
 
@@ -656,7 +686,7 @@ export default function EventSeriesPills({
                     : 'bg-muted text-foreground hover:bg-muted/80',
                 )}
               >
-                {getSeriesEventLabel(event)}
+                {eventLabel(event)}
               </Link>
             )
           })}

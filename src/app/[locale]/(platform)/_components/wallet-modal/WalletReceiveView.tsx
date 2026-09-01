@@ -26,12 +26,12 @@ function WalletReceiveView({
     <div className="space-y-4">
       <div className="space-y-2">
         <p className="text-center text-sm font-semibold text-muted-foreground">
-          <span>Scan QR Code or copy your {siteLabel} wallet address to transfer</span>{' '}
+          <span>{t('Scan QR Code or copy your {siteName} wallet address to transfer', { siteName: siteLabel })}</span>{' '}
           <span className="inline-flex items-center gap-1 align-middle">
             <Image src="/images/deposit/transfer/usdc_dark.png" alt="USDC" width={14} height={14} className="block" />
             <span>USDC</span>
           </span>{' '}
-          <span>on</span>{' '}
+          <span>{t('on')}</span>{' '}
           <span className="inline-flex items-center gap-1 align-middle">
             <Image
               src="/images/deposit/transfer/polygon_dark.png"

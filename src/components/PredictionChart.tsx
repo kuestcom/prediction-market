@@ -176,6 +176,7 @@ function positionTooltipEntries(
 export default function PredictionChart({
   data: providedData,
   series: providedSeries,
+  locale = 'en-US',
   width = 800,
   height = 400,
   margin = defaultMargin,
@@ -429,14 +430,14 @@ export default function PredictionChart({
         return xAxisTickFormatter(date)
       }
       if (totalDurationHours <= 48) {
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        return date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
       }
       if (totalDurationHours <= 24 * 45) {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
       }
-      return date.toLocaleDateString('en-US', { month: 'short' })
+      return date.toLocaleDateString(locale, { month: 'short' })
     },
-    [totalDurationHours, xAxisTickFormatter],
+    [locale, totalDurationHours, xAxisTickFormatter],
   )
   const formatYAxisTick = useCallback(
     (value: number) => (yAxis?.tickFormat ? yAxis.tickFormat(value) : `${value}%`),
@@ -851,6 +852,7 @@ export default function PredictionChart({
           margin={resolvedMargin}
           innerWidth={innerWidth}
           clampedTooltipX={resolvedCursor?.left ?? innerWidth}
+          locale={locale}
           valueFormatter={tooltipValueFormatter}
           dateFormatter={tooltipDateFormatter}
           headerFontSize={tooltipHeaderFontSize}

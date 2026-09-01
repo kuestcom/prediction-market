@@ -1,6 +1,9 @@
+'use client'
+
 import type { ReactNode } from 'react'
 
 import { ExternalLinkIcon, WalletIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import { formatWalletModalAddress } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
@@ -24,6 +27,7 @@ export default function WalletTransferSummary({
   showDestinationAddress = false,
   extraRows,
 }: WalletTransferSummaryProps) {
+  const t = useExtracted()
   const walletEoaLabel = formatWalletModalAddress(walletEoaAddress)
   const walletLabel = showDestinationAddress ? formatWalletModalAddress(walletAddress) : null
   const site = useSiteIdentity()
@@ -31,35 +35,35 @@ export default function WalletTransferSummary({
   return (
     <div className="rounded-lg border">
       <WalletTransferSummaryRow
-        label="Source"
+        label={t('Source')}
         value={
           <>
             <WalletIcon className="size-4" />
-            Wallet
+            {t('Wallet')}
             {walletEoaLabel ? ` (${walletEoaLabel})` : ''}
             {showExternalLinks && walletEoaAddress && (
-              <ExplorerLink address={walletEoaAddress} label="View wallet on Polygonscan" />
+              <ExplorerLink address={walletEoaAddress} label={t('View wallet on Polygonscan')} />
             )}
           </>
         }
       />
       <WalletTransferSummaryDivider />
       <WalletTransferSummaryRow
-        label="Destination"
+        label={t('Destination')}
         value={
           <>
             <SiteLogoIcon
               logoSvg={site.logoSvg}
               logoImageUrl={site.logoImageUrl}
-              alt={`${siteLabel} logo`}
+              alt={t('{siteName} logo', { siteName: siteLabel })}
               className="size-4 text-current [&_svg]:size-[1em] [&_svg_*]:fill-current [&_svg_*]:stroke-current"
               imageClassName="size-[1em] object-contain"
               size={16}
             />
-            {siteLabel} Wallet
+            {t('{siteName} Wallet', { siteName: siteLabel })}
             {walletLabel ? ` (${walletLabel})` : ''}
             {showExternalLinks && walletAddress && (
-              <ExplorerLink address={walletAddress} label="View wallet on Polygonscan" />
+              <ExplorerLink address={walletAddress} label={t('View wallet on Polygonscan')} />
             )}
           </>
         }

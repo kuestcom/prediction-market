@@ -5,6 +5,10 @@ import { createElement } from 'react'
 
 import WalletSendForm from '@/app/[locale]/(platform)/_components/wallet-modal/WalletSendForm'
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (message: string) => message,
+}))
+
 const mocks = vi.hoisted(() => ({
   useAppKitAccount: vi.fn(),
 }))

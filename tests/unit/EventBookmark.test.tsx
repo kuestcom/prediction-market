@@ -5,6 +5,10 @@ import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (message: string) => message,
+}))
+
 const mocks = vi.hoisted(() => ({
   getBookmarkStatusAction: vi.fn(),
   getQueriesData: vi.fn(),

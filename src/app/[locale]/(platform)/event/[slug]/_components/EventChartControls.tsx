@@ -74,6 +74,14 @@ export default function EventChartControls({
 }: EventChartControlsProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const timeRangeLabels: Record<TimeRange, string> = {
+    '1H': t('1H'),
+    '6H': t('6H'),
+    '1D': t('1D'),
+    '1W': t('1W'),
+    '1M': t('1M'),
+    ALL: t('ALL'),
+  }
   const { settingsOpen, setSettingsOpen } = useSettingsMenu()
   const selectedSet = new Set(selectedMarketIds)
   const selectedOptions = marketOptions.filter((option) => selectedSet.has(option.key))
@@ -116,7 +124,7 @@ export default function EventChartControls({
             )}
             data-range={range}
           >
-            {range}
+            {timeRangeLabels[range]}
           </ToggleGroupItem>
         ))}
       </ToggleGroup>

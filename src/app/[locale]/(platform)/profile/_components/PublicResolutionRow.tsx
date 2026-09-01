@@ -9,13 +9,14 @@ import type { DataApiRewardProposal } from '@/lib/data-api/resolution-rewards'
 
 import { resolveResolutionProposalValue } from '@/app/[locale]/(platform)/profile/_utils/PublicResolutionUtils'
 import EventIconImage from '@/components/EventIconImage'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { Link } from '@/i18n/navigation'
 import { resolveEventMarketPath } from '@/lib/events-routing'
-import { formatTimeAgo } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 export default function PublicResolutionRow({ proposal }: { proposal: DataApiRewardProposal }) {
   const t = useExtracted()
+  const { formatTimeAgo } = useLocalizedTimeAgo()
   const market = proposal.market
   const isYes = proposal.side === 2
   const proposedLabel = isYes ? market.yesLabel || 'YES' : market.noLabel || 'NO'

@@ -15,6 +15,7 @@ import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { useNowTimestamp } from '@/hooks/useNowTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
@@ -23,7 +24,7 @@ import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { PUBLIC_ALLOWED_MARKET_CREATORS_PATH } from '@/lib/allowed-market-creators'
 import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
-import { formatDollarValueLabel, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
+import { formatDollarValueLabel, formatSharePriceLabel, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { buildPublicProfilePath, isPlatformMainCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
@@ -655,6 +656,7 @@ function useActivityVisibleWindow({
 
 export default function ActivityFeed() {
   const t = useExtracted()
+  const { formatTimeAgo } = useLocalizedTimeAgo()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { tags } = usePlatformNavigationData()
   const { wsLiveDataUrl } = usePublicRuntimeConfig()

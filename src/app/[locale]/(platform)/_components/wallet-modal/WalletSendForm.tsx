@@ -4,6 +4,7 @@ import type { ChangeEventHandler, FormEventHandler } from 'react'
 
 import { useAppKitAccount } from '@reown/appkit/react'
 import { ArrowLeftIcon, ChevronRightIcon, FuelIcon, InfoIcon, WalletIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
 
@@ -48,6 +49,7 @@ function WalletSendForm({
   onMax?: () => void
   isBalanceLoading?: boolean
 }) {
+  const t = useExtracted()
   const trimmedRecipient = sendTo.trim()
   const isRecipientAddress = /^0x[a-fA-F0-9]{40}$/.test(trimmedRecipient)
   const parsedAmount = Number(sendAmount)
@@ -113,13 +115,13 @@ function WalletSendForm({
           onClick={onBack}
         >
           <ArrowLeftIcon className="size-4" />
-          Back
+          {t('Back')}
         </button>
       )}
 
       <form className="mt-2 grid gap-4" onSubmit={onSubmitSend}>
         <div className="grid gap-2">
-          <Label htmlFor="wallet-send-to">Recipient address</Label>
+          <Label htmlFor="wallet-send-to">{t('Recipient address')}</Label>
           <div className="relative">
             <Input
               id="wallet-send-to"
@@ -139,13 +141,13 @@ function WalletSendForm({
                 className="absolute inset-y-2 right-2 text-xs"
               >
                 <WalletIcon className="size-3.5 shrink-0" />
-                <span>use connected</span>
+                <span>{t('use connected')}</span>
               </Button>
             )}
           </div>
         </div>
         <div className="space-y-1">
-          <Label htmlFor="wallet-send-amount">Amount</Label>
+          <Label htmlFor="wallet-send-amount">{t('Amount')}</Label>
           <div className="relative">
             <Input
               id="wallet-send-amount"
@@ -170,14 +172,14 @@ function WalletSendForm({
                 onClick={onMax}
                 disabled={!onMax || isBalanceLoading}
               >
-                Max
+                {t('Max')}
               </Button>
             </div>
           </div>
           <div className="mx-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>${amountDisplay}</span>
             <span className="flex items-center gap-1">
-              <span>Balance:</span>
+              <span>{t('Balance')}:</span>
               <span>{balanceDisplay}</span>
               <span>USDC</span>
             </span>
@@ -186,12 +188,12 @@ function WalletSendForm({
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Receive token</Label>
+            <Label>{t('Receive token')}</Label>
             <Select value={receiveToken} onValueChange={(value) => value !== null && setReceiveToken(value)}>
               <SelectTrigger className="h-12 w-full justify-between">
                 <div className="flex items-center gap-2">
                   {selectedToken && <Image src={selectedToken.icon} alt={selectedToken.label} width={20} height={20} />}
-                  <span className="text-sm font-medium">{selectedToken?.label ?? 'Select token'}</span>
+                  <span className="text-sm font-medium">{selectedToken?.label ?? t('Select token')}</span>
                 </div>
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} side="bottom" align="start" sideOffset={6}>
@@ -207,12 +209,12 @@ function WalletSendForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Receive chain</Label>
+            <Label>{t('Receive chain')}</Label>
             <Select value={receiveChain} onValueChange={(value) => value !== null && setReceiveChain(value)}>
               <SelectTrigger className="h-12 w-full justify-between">
                 <div className="flex items-center gap-2">
                   {selectedChain && <Image src={selectedChain.icon} alt={selectedChain.label} width={20} height={20} />}
-                  <span className="text-sm font-medium">{selectedChain?.label ?? 'Select chain'}</span>
+                  <span className="text-sm font-medium">{selectedChain?.label ?? t('Select chain')}</span>
                 </div>
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false} side="bottom" align="start" sideOffset={6}>
@@ -231,7 +233,7 @@ function WalletSendForm({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground">You will receive</span>
+            <span className="text-foreground">{t('You will receive')}</span>
             <div className="flex items-center gap-3 text-right">
               <span className="text-foreground">
                 {receiveAmountDisplay} {receiveToken}
@@ -244,7 +246,7 @@ function WalletSendForm({
             className="flex w-full items-center justify-between text-sm text-muted-foreground"
             onClick={() => setIsBreakdownOpen((current) => !current)}
           >
-            <span>Transaction breakdown</span>
+            <span>{t('Transaction breakdown')}</span>
             <span className="flex items-center gap-1">
               {!isBreakdownOpen && <span>0.00%</span>}
               <ChevronRightIcon className={cn('size-4 transition', { 'rotate-90': isBreakdownOpen })} />
@@ -258,7 +260,7 @@ function WalletSendForm({
                     <TooltipTrigger
                       render={
                         <div className="flex items-center gap-2">
-                          <span>Network cost</span>
+                          <span>{t('Network cost')}</span>
                           <InfoIcon className="size-4" />
                         </div>
                       }
@@ -266,15 +268,15 @@ function WalletSendForm({
                     <TooltipContent>
                       <div className="space-y-1 text-xs text-foreground">
                         <div className="flex items-center justify-between gap-4">
-                          <span>Total cost</span>
+                          <span>{t('Total cost')}</span>
                           <span className="text-right">$0.00</span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Source chain gas</span>
+                          <span>{t('Source chain gas')}</span>
                           <span className="text-right">$0.00</span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Destination chain gas</span>
+                          <span>{t('Destination chain gas')}</span>
                           <span className="text-right">$0.00</span>
                         </div>
                       </div>
@@ -290,7 +292,7 @@ function WalletSendForm({
                     <TooltipTrigger
                       render={
                         <div className="flex items-center gap-2">
-                          <span>Price impact</span>
+                          <span>{t('Price impact')}</span>
                           <InfoIcon className="size-4" />
                         </div>
                       }
@@ -298,15 +300,15 @@ function WalletSendForm({
                     <TooltipContent>
                       <div className="space-y-1 text-xs text-foreground">
                         <div className="flex items-center justify-between gap-4">
-                          <span>Total impact</span>
+                          <span>{t('Total impact')}</span>
                           <span className="text-right">0.00%</span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Swap impact</span>
+                          <span>{t('Swap impact')}</span>
                           <span className="text-right">0.00%</span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span>Fun.xyz fee</span>
+                          <span>{t('Fun.xyz fee')}</span>
                           <span className="text-right">0.00%</span>
                         </div>
                       </div>
@@ -319,16 +321,16 @@ function WalletSendForm({
                     <TooltipTrigger
                       render={
                         <div className="flex items-center gap-2">
-                          <span>Max slippage</span>
+                          <span>{t('Max slippage')}</span>
                           <InfoIcon className="size-4" />
                         </div>
                       }
                     />
                     <TooltipContent>
-                      Slippage occurs due to price changes during trade execution. Minimum received: $0.00
+                      {t('Slippage occurs due to price changes during trade execution. Minimum received: $0.00')}
                     </TooltipContent>
                   </Tooltip>
-                  <span>Auto • 0.00%</span>
+                  <span>{t('Auto • 0.00%')}</span>
                 </div>
               </div>
             </TooltipProvider>
@@ -336,7 +338,7 @@ function WalletSendForm({
         </div>
 
         <Button type="submit" className="h-12 w-full gap-2 text-base" disabled={isSubmitDisabled}>
-          {isSending ? 'Submitting…' : 'Withdraw'}
+          {isSending ? t('Submitting…') : t('Withdraw')}
         </Button>
       </form>
     </div>

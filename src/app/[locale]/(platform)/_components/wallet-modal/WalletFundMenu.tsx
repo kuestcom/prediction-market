@@ -1,6 +1,7 @@
 'use client'
 
 import { CircleDollarSignIcon, CreditCardIcon, ExternalLinkIcon, WalletIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 
@@ -35,6 +36,7 @@ function WalletFundMenu({
   walletBalance?: string | null
   isBalanceLoading?: boolean
 }) {
+  const t = useExtracted()
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const logoVariant = isDark ? 'dark' : 'light'
@@ -60,20 +62,20 @@ function WalletFundMenu({
             <div className="flex size-12 items-center justify-center text-foreground">
               <Image
                 src="/images/deposit/social-media/discord.svg"
-                alt="Discord"
+                alt={t('Discord')}
                 width={24}
                 height={24}
                 className="size-6 dark:brightness-0 dark:invert"
               />
             </div>
             <div>
-              <p className="text-sm font-semibold">Get free Amoy USDC</p>
+              <p className="text-sm font-semibold">{t('Get free Amoy USDC')}</p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>
-                  Use <span className="font-semibold text-foreground">/faucet</span>
+                  {t('Use')} <span className="font-semibold text-foreground">/faucet</span>
                 </span>
                 <span className="size-1 rounded-full bg-muted-foreground" />
-                <span>on Discord</span>
+                <span>{t('on Discord')}</span>
               </div>
             </div>
           </div>
@@ -82,7 +84,7 @@ function WalletFundMenu({
               `inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-foreground`,
             )}
           >
-            <span>Open Discord</span>
+            <span>{t('Open Discord')}</span>
             <ExternalLinkIcon className="size-3.5" />
           </span>
         </a>
@@ -100,7 +102,7 @@ function WalletFundMenu({
             <WalletIcon className="size-6" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">Wallet ({walletLabel})</p>
+            <p className="text-sm font-semibold text-foreground">{t('Wallet ({address})', { address: walletLabel })}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {isBalanceLoading ? (
                 <Skeleton className="h-3 w-10 rounded-full" />
@@ -108,7 +110,7 @@ function WalletFundMenu({
                 <span>${formattedWalletBalance}</span>
               )}
               <span className="size-1 rounded-full bg-muted-foreground" />
-              <span>Instant</span>
+              <span>{t('Instant')}</span>
             </div>
           </div>
         </div>
@@ -116,7 +118,7 @@ function WalletFundMenu({
 
       <div className="mx-auto flex w-full items-center gap-3 text-xs text-muted-foreground">
         <div className="h-px flex-1 bg-border/70" />
-        <span>more</span>
+        <span>{t('more')}</span>
         <div className="h-px flex-1 bg-border/70" />
       </div>
 
@@ -138,18 +140,18 @@ function WalletFundMenu({
             <CreditCardIcon className="size-6" />
           </div>
           <div>
-            <p className="text-sm font-semibold">Buy Crypto</p>
+            <p className="text-sm font-semibold">{t('Buy Crypto')}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>card</span>
+              <span>{t('card')}</span>
               <span className="size-1 rounded-full bg-muted-foreground" />
-              <span>bank wire</span>
+              <span>{t('bank wire')}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center -space-x-2 transition-all group-hover:-space-x-1">
           {paymentLogos.map((logo) => (
             <div key={logo} className="relative size-5 overflow-hidden rounded-full bg-background shadow-sm">
-              <Image src={logo} alt="Meld payment method" fill sizes="24px" className="object-cover" />
+              <Image src={logo} alt={t('Meld payment method')} fill sizes="24px" className="object-cover" />
             </div>
           ))}
         </div>
@@ -168,18 +170,18 @@ function WalletFundMenu({
             <CircleDollarSignIcon className="size-6" />
           </div>
           <div>
-            <p className="text-sm font-semibold">Transfer Funds</p>
+            <p className="text-sm font-semibold">{t('Transfer Funds')}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>USDC</span>
               <span className="size-1 rounded-full bg-muted-foreground" />
-              <span>copy wallet or scan QR code</span>
+              <span>{t('copy wallet or scan QR code')}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center -space-x-2 transition-all group-hover:-space-x-1">
           {transferLogos.map((logo) => (
             <div key={logo} className="relative size-6 overflow-hidden rounded-full bg-background shadow-sm">
-              <Image src={logo} alt="Transfer method icon" fill sizes="28px" className="object-cover" />
+              <Image src={logo} alt={t('Transfer method icon')} fill sizes="28px" className="object-cover" />
             </div>
           ))}
         </div>

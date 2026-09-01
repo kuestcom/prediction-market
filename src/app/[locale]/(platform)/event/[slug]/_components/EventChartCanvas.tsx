@@ -80,6 +80,7 @@ export default function EventChartCanvas({
       <PredictionChart
         data={chartData}
         series={legendSeries}
+        locale={locale}
         width={chartWidth}
         height={chartHeight}
         margin={CHART_MARGIN}

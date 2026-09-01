@@ -30,6 +30,7 @@ export interface PredictionChartAnnotationMarker {
 export interface PredictionChartProps {
   data?: DataPoint[]
   series?: SeriesConfig[]
+  locale?: string
   width?: number
   height?: number
   margin?: { top: number; right: number; bottom: number; left: number }

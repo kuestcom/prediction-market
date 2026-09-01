@@ -13,13 +13,15 @@ import {
   resolveVariant,
 } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import EventIconImage from '@/components/EventIconImage'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { Link } from '@/i18n/navigation'
 import { MICRO_UNIT } from '@/lib/constants'
-import { formatCurrency, formatTimeAgo } from '@/lib/formatters'
+import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 export default function PublicActivityRow({ activity }: PublicActivityRowProps) {
   const t = useExtracted()
+  const { formatTimeAgo } = useLocalizedTimeAgo()
   const variant = resolveVariant(activity)
   const icon = activityIcon(variant)
   const sharesText = formatActivityShares(activity)

@@ -355,10 +355,10 @@ export function formatCompactCurrency(value: number) {
   return formatCurrency(value)
 }
 
-export function formatDate(dateInput: Date | number): string {
+export function formatDate(dateInput: Date | number, locale = DEFAULT_LOCALE): string {
   const date = typeof dateInput === 'number' ? new Date(dateInput) : dateInput
 
-  return date.toLocaleDateString(DEFAULT_LOCALE, {
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -377,7 +377,14 @@ function normalizeDateString(value: string) {
   return trimmed
 }
 
-export function formatTimeAgo(dateInput: string | number | Date, nowInput: number | Date = Date.now()) {
+type RelativeTimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+
+export interface RelativeTimeParts {
+  count: number
+  unit: RelativeTimeUnit
+}
+
+function parseDateInput(dateInput: string | number | Date) {
   let date: Date
 
   if (dateInput instanceof Date) {
@@ -395,8 +402,17 @@ export function formatTimeAgo(dateInput: string | number | Date, nowInput: numbe
     }
   }
 
-  if (Number.isNaN(date.getTime())) {
-    return '—'
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+export function getRelativeTimeParts(
+  dateInput: string | number | Date,
+  nowInput: number | Date = Date.now(),
+  includeExtendedUnits = false,
+): RelativeTimeParts | null {
+  const date = parseDateInput(dateInput)
+  if (!date) {
+    return null
   }
 
   const nowTimestamp = nowInput instanceof Date ? nowInput.getTime() : nowInput
@@ -404,18 +420,52 @@ export function formatTimeAgo(dateInput: string | number | Date, nowInput: numbe
   const diffInSeconds = Math.max(0, Math.floor((resolvedNowTimestamp - date.getTime()) / 1000))
 
   if (diffInSeconds < 60) {
-    return `${diffInSeconds}s ago`
+    return { count: diffInSeconds, unit: 'second' }
   }
 
   if (diffInSeconds < 3600) {
-    return `${Math.floor(diffInSeconds / 60)}m ago`
+    return { count: Math.floor(diffInSeconds / 60), unit: 'minute' }
   }
 
   if (diffInSeconds < 86400) {
-    return `${Math.floor(diffInSeconds / 3600)}h ago`
+    return { count: Math.floor(diffInSeconds / 3600), unit: 'hour' }
   }
 
-  return `${Math.floor(diffInSeconds / 86400)}d ago`
+  const diffInDays = Math.floor(diffInSeconds / 86400)
+  if (!includeExtendedUnits || diffInDays < 7) {
+    return { count: diffInDays, unit: 'day' }
+  }
+
+  const diffInWeeks = Math.floor(diffInDays / 7)
+  if (diffInWeeks < 4) {
+    return { count: Math.max(1, diffInWeeks), unit: 'week' }
+  }
+
+  const diffInMonths = Math.floor(diffInDays / 30)
+  if (diffInMonths < 12) {
+    return { count: Math.max(1, diffInMonths), unit: 'month' }
+  }
+
+  return { count: Math.max(1, Math.floor(diffInDays / 365)), unit: 'year' }
+}
+
+export function formatTimeAgo(dateInput: string | number | Date, nowInput: number | Date = Date.now()) {
+  const relativeTime = getRelativeTimeParts(dateInput, nowInput)
+  if (!relativeTime) {
+    return '—'
+  }
+
+  const unitLabels: Record<RelativeTimeUnit, string> = {
+    second: 's',
+    minute: 'm',
+    hour: 'h',
+    day: 'd',
+    week: 'w',
+    month: 'mo',
+    year: 'y',
+  }
+
+  return `${relativeTime.count}${unitLabels[relativeTime.unit]} ago`
 }
 
 export function truncateAddress(address: string) {

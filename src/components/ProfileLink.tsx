@@ -9,11 +9,12 @@ import { useMemo, useState } from 'react'
 import ProfileActivityTooltipCard from '@/components/ProfileActivityTooltipCard'
 import { Badge } from '@/components/ui/badge'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
-import { formatTimeAgo, truncateAddress } from '@/lib/formatters'
+import { truncateAddress } from '@/lib/formatters'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
@@ -111,6 +112,7 @@ export default function ProfileLink({
   avatarBadge,
   tooltipTrigger = 'all',
 }: ProfileLinkProps) {
+  const { formatTimeAgo } = useLocalizedTimeAgo()
   const { handleOpenChange, startLoading, tooltipStats, isTooltipLoading } = useProfileTooltipStats(user)
   const isInline = layout === 'inline'
   const isStacked = layout === 'stacked'

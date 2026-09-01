@@ -8,12 +8,12 @@ function WalletAddressCard({
   walletAddress,
   onCopy,
   copied,
-  label = 'Deposit Wallet',
+  label,
 }: {
   walletAddress?: string | null
   onCopy: () => void
   copied: boolean
-  label?: string
+  label: string
 }) {
   return (
     <div

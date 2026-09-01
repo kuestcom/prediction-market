@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { Clock3Icon, SparkleIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 
@@ -232,6 +232,7 @@ export default function MarketOutcomeGraph({
   isMobile,
 }: MarketOutcomeGraphProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const site = useSiteIdentity()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
@@ -407,6 +408,7 @@ export default function MarketOutcomeGraph({
             <PredictionChart
               data={chartData}
               series={series}
+              locale={locale}
               width={chartWidth}
               height={318}
               margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
@@ -499,6 +501,7 @@ function MarketOutcomeMetaInformation({
   currentTimestamp: number | null
 }) {
   const t = useExtracted()
+  const locale = useLocale()
   const { clobUrl } = usePublicRuntimeConfig()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = (market.outcomes ?? [])
@@ -587,7 +590,7 @@ function MarketOutcomeMetaInformation({
           <TooltipTrigger>
             <div className="flex items-center gap-1.5 text-sm/tight font-semibold text-muted-foreground">
               <Clock3Icon className="size-4 text-muted-foreground" strokeWidth={2.5} />
-              <span>{formatDate(expiryTimestamp)}</span>
+              <span>{formatDate(expiryTimestamp, locale)}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-64 text-left">

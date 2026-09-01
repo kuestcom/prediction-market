@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronLeftIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 
 import type {
@@ -33,6 +34,7 @@ import { defaultViemNetwork } from '@/lib/viem-network'
 export type { WalletDepositModalProps, WalletWithdrawModalProps }
 
 export function WalletDepositModal(props: WalletDepositModalProps) {
+  const t = useExtracted()
   const {
     open,
     onOpenChange,
@@ -163,7 +165,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
         isLoadingTokens={isLoadingTokens}
         selectedId={selectedTokenId}
         onSelect={setPreferredSelectedTokenId}
-        emptyMessage={isDirectTestModeDeposit ? 'No Amoy USDC balance found.' : undefined}
+        emptyMessage={isDirectTestModeDeposit ? t('No Amoy USDC balance found.') : undefined}
       />
     ) : view === 'amount' ? (
       <WalletAmountStep
@@ -236,11 +238,13 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
               ) : (
                 <span className="size-8" aria-hidden="true" />
               )}
-              <DrawerTitle className="flex-1 text-center text-xl font-semibold text-foreground">Deposit</DrawerTitle>
+              <DrawerTitle className="flex-1 text-center text-xl font-semibold text-foreground">
+                {t('Deposit')}
+              </DrawerTitle>
               <span className="size-8" aria-hidden="true" />
             </div>
             <DrawerDescription className="text-center text-xs text-muted-foreground">
-              {siteLabel} Balance: {balanceDisplay}
+              {siteLabel} {t('Balance')}: {balanceDisplay}
             </DrawerDescription>
           </DrawerHeader>
           <div className="border-t" />
@@ -260,7 +264,11 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
         onOpenChange(next)
       }}
     >
-      <DialogContent className="max-w-md border bg-background pt-4 sm:max-w-md" showCloseButton={view !== 'confirm'}>
+      <DialogContent
+        className="max-w-md border bg-background pt-4 sm:max-w-md"
+        showCloseButton={view !== 'confirm'}
+        closeLabel={t('Close')}
+      >
         {view === 'confirm' && <CountdownBadge onReset={() => setConfirmRefreshIndex((current) => current + 1)} />}
         <DialogHeader className="gap-1">
           <div className="flex items-center">
@@ -277,11 +285,13 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
             ) : (
               <span className="size-8" aria-hidden="true" />
             )}
-            <DialogTitle className="flex-1 text-center text-lg font-semibold text-foreground">Deposit</DialogTitle>
+            <DialogTitle className="flex-1 text-center text-lg font-semibold text-foreground">
+              {t('Deposit')}
+            </DialogTitle>
             <span className="size-8" aria-hidden="true" />
           </div>
           <DialogDescription className="text-center text-xs text-muted-foreground">
-            {siteLabel} Balance: {balanceDisplay}
+            {siteLabel} {t('Balance')}: {balanceDisplay}
           </DialogDescription>
         </DialogHeader>
         <div className="-mx-6 border-t" />
@@ -292,6 +302,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
 }
 
 export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
+  const t = useExtracted()
   const {
     open,
     onOpenChange,
@@ -333,7 +344,9 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[90vh] w-full bg-background px-0">
           <DrawerHeader className="px-4 pt-4 pb-2">
-            <DrawerTitle className="text-center text-foreground">Withdraw from {siteLabel}</DrawerTitle>
+            <DrawerTitle className="text-center text-foreground">
+              {t('Withdraw from {siteName}', { siteName: siteLabel })}
+            </DrawerTitle>
           </DrawerHeader>
           <div className="w-full px-4 pb-4">
             <div className="space-y-4 pt-4">{content}</div>
@@ -345,9 +358,11 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-xl border bg-background">
+      <DialogContent className="w-full max-w-xl border bg-background" closeLabel={t('Close')}>
         <DialogHeader>
-          <DialogTitle className="text-center text-foreground">Withdraw from {siteLabel}</DialogTitle>
+          <DialogTitle className="text-center text-foreground">
+            {t('Withdraw from {siteName}', { siteName: siteLabel })}
+          </DialogTitle>
         </DialogHeader>
         {content}
       </DialogContent>

@@ -9,16 +9,11 @@ import type { Event } from '@/types'
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
-import {
-  formatDollarValueLabel,
-  formatSharePriceLabel,
-  formatSharesLabel,
-  formatTimeAgo,
-  fromMicro,
-} from '@/lib/formatters'
+import { formatDollarValueLabel, formatSharePriceLabel, formatSharesLabel, fromMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { getUserPublicAddress } from '@/lib/user-address'
 import { cn } from '@/lib/utils'
@@ -75,6 +70,7 @@ function useInfiniteScrollSentinel({
 export default function EventMarketHistory({ market }: EventMarketHistoryProps) {
   const t = useExtracted()
   const locale = useLocale()
+  const { formatTimeAgo } = useLocalizedTimeAgo()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{
     conditionId: string | undefined

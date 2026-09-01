@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowRightIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ function WalletAmountStep({
   amountValue: string
   onAmountChange: (value: string) => void
 }) {
+  const t = useExtracted()
   const hasAvailableTokenAmount = typeof availableTokenAmount === 'number' && Number.isFinite(availableTokenAmount)
 
   function handleInputChange(rawValue: string) {
@@ -112,15 +114,18 @@ function WalletAmountStep({
             disabled={!hasAvailableTokenAmount}
             onClick={() => handleQuickFill(label)}
           >
-            {label}
+            {label === 'Max' ? t('Max') : label}
           </button>
         ))}
       </div>
       {isAmountExceedingBalance && (
         <p className="text-center text-sm font-medium text-destructive">
-          Amount exceeds the available balance
-          {selectedTokenSymbol ? ` for ${selectedTokenSymbol}` : ''}
-          {availableTokenLabel ? ` (${availableTokenLabel} ${selectedTokenSymbol ?? ''})` : ''}.
+          {selectedTokenSymbol && availableTokenLabel
+            ? t('Amount exceeds the available balance for {token}. Available: {amount} {token}.', {
+                token: selectedTokenSymbol,
+                amount: availableTokenLabel,
+              })
+            : t('Amount exceeds the available balance.')}
         </p>
       )}
       <div className="flex items-center justify-center">
@@ -145,8 +150,8 @@ function WalletAmountStep({
               </span>
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs text-muted-foreground">You send</p>
-              <p className="text-sm font-semibold text-foreground">{selectedTokenSymbol ?? 'Token'}</p>
+              <p className="text-xs text-muted-foreground">{t('You send')}</p>
+              <p className="text-sm font-semibold text-foreground">{selectedTokenSymbol ?? t('Token')}</p>
             </div>
           </div>
           <ArrowRightIcon className="size-4 text-muted-foreground" />
@@ -170,7 +175,7 @@ function WalletAmountStep({
               </span>
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs text-muted-foreground">You receive</p>
+              <p className="text-xs text-muted-foreground">{t('You receive')}</p>
               <p className="text-sm font-semibold text-foreground">USDC</p>
             </div>
           </div>
@@ -182,7 +187,7 @@ function WalletAmountStep({
         onClick={onContinue}
         disabled={isAmountExceedingBalance || isAmountInvalid}
       >
-        Continue
+        {t('Continue')}
       </Button>
     </div>
   )

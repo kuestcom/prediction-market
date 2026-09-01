@@ -8,6 +8,7 @@ import {
   formatDate,
   formatDollarValueLabel,
   formatPercent,
+  getRelativeTimeParts,
   formatSharePriceLabel,
   formatTimeAgo,
   formatVolume,
@@ -123,6 +124,20 @@ describe('money/price formatters', () => {
 
     expect(formatTimeAgo(activityDate, new Date('2026-08-06T12:00:02.000Z'))).toBe('2s ago')
     expect(formatTimeAgo(activityDate, new Date('2026-08-06T12:00:03.000Z'))).toBe('3s ago')
+  })
+
+  it('getRelativeTimeParts supports compact extended units', () => {
+    const now = new Date('2026-08-06T12:00:00.000Z')
+
+    expect(getRelativeTimeParts(new Date('2026-08-06T11:59:58.000Z'), now)).toEqual({ count: 2, unit: 'second' })
+    expect(getRelativeTimeParts(new Date('2026-07-23T12:00:00.000Z'), now, true)).toEqual({
+      count: 2,
+      unit: 'week',
+    })
+    expect(getRelativeTimeParts(new Date('2026-06-07T12:00:00.000Z'), now, true)).toEqual({
+      count: 2,
+      unit: 'month',
+    })
   })
 
   it('truncateAddress shortens and handles empty', () => {

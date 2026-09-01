@@ -915,6 +915,7 @@ function EventLiveSeriesChartContent({
               <PredictionChart
                 data={renderData}
                 series={series}
+                locale={locale}
                 dataSyncMode="replace"
                 width={chartWidth}
                 height={chartHeight}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
@@ -13,7 +14,7 @@ function WalletTokenList({
   isLoadingTokens,
   selectedId,
   onSelect,
-  emptyMessage = 'No LI.FI-supported tokens with balance found.',
+  emptyMessage,
 }: {
   onContinue: () => void
   items: Array<{
@@ -31,7 +32,9 @@ function WalletTokenList({
   onSelect: (id: string) => void
   emptyMessage?: string
 }) {
+  const t = useExtracted()
   const showEmptyState = !isLoadingTokens && items.length === 0
+  const resolvedEmptyMessage = emptyMessage ?? t('No LI.FI-supported tokens with balance found.')
   const selectedItem = items.find((item) => item.id === selectedId)
   const hasValidSelection = Boolean(selectedItem && !selectedItem.disabled)
 
@@ -65,7 +68,7 @@ function WalletTokenList({
             ))}
           {showEmptyState && (
             <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-              {emptyMessage}
+              {resolvedEmptyMessage}
             </div>
           )}
           {items.map((item) => {
@@ -128,7 +131,7 @@ function WalletTokenList({
                       }
                     />
                     <TooltipContent>
-                      {item.symbol} on {item.network}
+                      {t('{token} on {network}', { token: item.symbol, network: item.network })}
                     </TooltipContent>
                   </Tooltip>
                   <div className="space-y-0.5">
@@ -144,11 +147,13 @@ function WalletTokenList({
                       <TooltipTrigger
                         render={
                           <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            Low Balance
+                            {t('Low Balance')}
                           </span>
                         }
                       />
-                      <TooltipContent>Minimum required: ${MIN_USD_BALANCE.toFixed(2)}</TooltipContent>
+                      <TooltipContent>
+                        {t('Minimum required: ${amount}', { amount: MIN_USD_BALANCE.toFixed(2) })}
+                      </TooltipContent>
                     </Tooltip>
                   )}
                   <span className="text-lg font-semibold text-foreground">${item.usd}</span>
@@ -165,7 +170,7 @@ function WalletTokenList({
         onClick={onContinue}
         disabled={!hasValidSelection || isLoadingTokens || showEmptyState}
       >
-        Continue
+        {t('Continue')}
       </Button>
     </div>
   )

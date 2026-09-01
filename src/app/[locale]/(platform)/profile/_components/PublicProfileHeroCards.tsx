@@ -8,7 +8,7 @@ import { Group } from '@visx/group'
 import { scaleLinear, scaleTime } from '@visx/scale'
 import { AreaClosed, LinePath } from '@visx/shape'
 import { CircleHelpIcon, MinusIcon, TriangleIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 import type { ProfileForCards } from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
@@ -478,6 +478,7 @@ function ProfitLossCard({
   fallbackChartEndDate?: string
 }) {
   const t = useExtracted()
+  const locale = useLocale()
   const site = useSiteIdentity()
   const { userPnlUrl } = usePublicRuntimeConfig()
   const platformName = site.name ?? ''
@@ -554,9 +555,15 @@ function ProfitLossCard({
         '1M': t('Past Month'),
       } as const
     )[activeTimeframe] || t('All-Time')
+  const timeframeButtonLabels = {
+    ALL: t('ALL'),
+    '1D': t('1D'),
+    '1W': t('1W'),
+    '1M': t('1M'),
+  } as const
   const hoverDateLabel = cursorDate
-    ? `${cursorDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${cursorDate.toLocaleTimeString(
-        'en-US',
+    ? `${cursorDate.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })} ${cursorDate.toLocaleTimeString(
+        locale,
         { hour: 'numeric', minute: '2-digit' },
       )}`
     : null
@@ -602,7 +609,7 @@ function ProfitLossCard({
                 )}
                 onClick={() => setActiveTimeframe(timeframe)}
               >
-                {timeframe}
+                {timeframeButtonLabels[timeframe]}
               </button>
             ))}
           </div>

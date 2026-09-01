@@ -1,3 +1,6 @@
+'use client'
+
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 
 import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
@@ -21,7 +24,7 @@ interface ProfileActivityTooltipCardProps {
   isLoading?: boolean
 }
 
-function formatJoinedLabel(joinedAt?: string | null) {
+function formatJoinedDate(joinedAt: string | null | undefined, locale: string) {
   if (!joinedAt) {
     return null
   }
@@ -31,7 +34,7 @@ function formatJoinedLabel(joinedAt?: string | null) {
     return null
   }
 
-  return `Joined ${parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+  return parsed.toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 function normalizeStatValue(value?: number | string | null) {
@@ -106,8 +109,11 @@ export default function ProfileActivityTooltipCard({
   stats,
   isLoading = false,
 }: ProfileActivityTooltipCardProps) {
+  const t = useExtracted()
+  const locale = useLocale()
   const profileHref = profile.href as any
-  const joinedLabel = formatJoinedLabel(profile.joinedAt)
+  const joinedDate = formatJoinedDate(profile.joinedAt, locale)
+  const joinedLabel = joinedDate ? `${t('Joined')} ${joinedDate}` : null
   const positionsValue = formatStatValue(stats?.positionsValue)
   const volumeValue = formatStatValue(stats?.volume)
   const profitLossNumber =

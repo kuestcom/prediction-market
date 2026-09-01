@@ -6,6 +6,7 @@ import EventSeriesPills from '@/app/[locale]/(platform)/event/[slug]/_components
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
+  useLocale: () => 'en-US',
 }))
 
 vi.mock('@/i18n/navigation', () => ({

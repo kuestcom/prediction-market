@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, Clock3Icon, PlusIcon, SparkleIcon, TrophyIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useMemo } from 'react'
 
 import type { Event } from '@/types'
@@ -86,6 +86,7 @@ function useEventVolume(event: Event) {
 
 export default function EventMetaInformation({ event, currentTimestamp }: EventMetaInformationProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const resolvedVolume = useEventVolume(event)
 
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
@@ -178,7 +179,7 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
           <TooltipTrigger>
             <span className="flex items-center gap-1.5 text-sm/tight text-muted-foreground">
               <Clock3Icon className="size-4 text-muted-foreground" strokeWidth={2.5} />
-              <span>{formatDate(expiryTimestamp)}</span>
+              <span>{formatDate(expiryTimestamp, locale)}</span>
             </span>
           </TooltipTrigger>
           <TooltipContent side="bottom" collisionPadding={16} className="max-w-64 text-left">

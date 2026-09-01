@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 
 import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useMemo } from 'react'
 
@@ -40,7 +40,7 @@ interface ProfileOverviewCardProps {
   enableLiveValue?: boolean
 }
 
-function useJoinedDateLabel(joinedAt: string | undefined) {
+function useJoinedDateLabel(joinedAt: string | undefined, locale: string) {
   return useMemo(() => {
     if (!joinedAt) {
       return null
@@ -49,8 +49,8 @@ function useJoinedDateLabel(joinedAt: string | undefined) {
     if (Number.isNaN(date.getTime())) {
       return null
     }
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  }, [joinedAt])
+    return date.toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  }, [joinedAt, locale])
 }
 
 export default function ProfileOverviewCard({
@@ -64,6 +64,7 @@ export default function ProfileOverviewCard({
   enableLiveValue = true,
 }: ProfileOverviewCardProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const { copied, copy } = useClipboard()
   const liveWalletAddress = enableLiveValue ? profile.portfolioAddress : null
   const { value: livePositionsValue, isLoading } = usePortfolioValue(liveWalletAddress, {
@@ -90,7 +91,7 @@ export default function ProfileOverviewCard({
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const avatarSeed = profile.portfolioAddress || profile.username || 'user'
   const avatarFallbackStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
-  const joinedText = useJoinedDateLabel(profile.joinedAt)
+  const joinedText = useJoinedDateLabel(profile.joinedAt, locale)
   const positionsValueLabel =
     Math.abs(positionsValue) >= 100_000
       ? formatCompactCurrency(positionsValue)

@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronRightIcon, FuelIcon, InfoIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
 
@@ -42,6 +43,7 @@ function WalletConfirmStep({
   refreshIndex: number
   executionMode?: 'lifi' | 'direct-usdc'
 }) {
+  const t = useExtracted()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
   const formattedAmount = formatDisplayAmount(amountValue)
@@ -93,7 +95,7 @@ function WalletConfirmStep({
           extraRows={
             <>
               <WalletTransferSummaryDivider />
-              <WalletTransferSummaryRow label="Estimated time" value="< 1 min" />
+              <WalletTransferSummaryRow label={t('Estimated time')} value={t('< 1 min')} />
             </>
           }
         />
@@ -101,14 +103,14 @@ function WalletConfirmStep({
         <div className="rounded-lg border">
           <div className="px-4 py-1.5 text-sm">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span>You send</span>
+              <span>{t('You send')}</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
                 <span className="relative">
                   <Image src={sendIcon} alt={sendSymbol} width={18} height={18} className="rounded-full" unoptimized />
                   <span className="absolute -right-1 -bottom-1 rounded-full bg-background p-0.5">
                     <Image
                       src={chainIcon}
-                      alt={selectedToken?.network ?? 'Chain'}
+                      alt={selectedToken?.network ?? t('Chain')}
                       width={10}
                       height={10}
                       className="rounded-full"
@@ -123,7 +125,7 @@ function WalletConfirmStep({
           <div className="mx-auto h-px w-[90%] bg-border/60" />
           <div className="px-4 py-1.5 text-sm">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span>You receive</span>
+              <span>{t('You receive')}</span>
               {isQuoteLoading ? (
                 <Skeleton className="h-4 w-28 rounded-full" />
               ) : (
@@ -161,7 +163,7 @@ function WalletConfirmStep({
           onClick={() => setIsBreakdownOpen((current) => !current)}
           disabled={isQuoteLoading}
         >
-          <span>Transaction breakdown</span>
+          <span>{t('Transaction breakdown')}</span>
           <span className="flex items-center gap-1">
             {isQuoteLoading ? (
               <Skeleton className="h-3 w-20 rounded-full" />
@@ -177,21 +179,21 @@ function WalletConfirmStep({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1">
-                Network cost
+                {t('Network cost')}
                 <Tooltip>
                   <TooltipTrigger render={<InfoIcon className="size-3" />} />
                   <TooltipContent>
                     <div className="space-y-1 text-xs text-foreground">
                       <div className="flex items-center justify-between gap-4">
-                        <span>Total cost</span>
+                        <span>{t('Total cost')}</span>
                         <span className="text-right">{gasUsdDisplay ? `$${gasUsdDisplay}` : '—'}</span>
                       </div>
                       <div className="flex items-center justify-between gap-4">
-                        <span>Source chain gas</span>
+                        <span>{t('Source chain gas')}</span>
                         <span className="text-right">{gasUsdDisplay ? `$${gasUsdDisplay}` : '—'}</span>
                       </div>
                       <div className="flex items-center justify-between gap-4">
-                        <span>Destination chain gas</span>
+                        <span>{t('Destination chain gas')}</span>
                         <span className="text-right">—</span>
                       </div>
                     </div>
@@ -208,9 +210,9 @@ function WalletConfirmStep({
       </div>
 
       <Badge variant="outline" className="w-full p-3 text-muted-foreground">
-        By clicking on Confirm Order, you agree to our{' '}
+        {t('By clicking on Confirm Order, you agree to our')}{' '}
         <a href="/tos" target="_blank" rel="noreferrer" className="underline">
-          terms
+          {t('terms')}
         </a>
         .
       </Badge>
@@ -232,10 +234,10 @@ function WalletConfirmStep({
         }}
       >
         {(isLoadingQuote || isSubmitting || isExecuting) && <Spinner className="size-4" />}
-        {isSubmitting && 'Confirm transaction in your wallet'}
-        {!isSubmitting && status === 'quote' && 'Preparing your quote...'}
-        {!isSubmitting && status === 'gas' && 'Estimating gas...'}
-        {!isSubmitting && status === 'ready' && 'Confirm order'}
+        {isSubmitting && t('Confirm transaction in your wallet')}
+        {!isSubmitting && status === 'quote' && t('Preparing your quote...')}
+        {!isSubmitting && status === 'gas' && t('Estimating gas...')}
+        {!isSubmitting && status === 'ready' && t('Confirm order')}
       </Button>
     </div>
   )

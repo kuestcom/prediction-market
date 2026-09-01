@@ -23,6 +23,7 @@ import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { useNowTimestamp } from '@/hooks/useNowTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
@@ -30,7 +31,7 @@ import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'
 import { fetchEventTrades } from '@/lib/data-api/trades'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
-import { formatCurrency, formatSharePriceLabel, formatTimeAgo, fromMicro, toMicro } from '@/lib/formatters'
+import { formatCurrency, formatSharePriceLabel, fromMicro, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 
@@ -155,6 +156,7 @@ function useInfiniteScrollSentinel({
 
 export default function EventActivity({ event }: EventActivityProps) {
   const t = useExtracted()
+  const { formatTimeAgo } = useLocalizedTimeAgo()
   const [minAmountFilter, setMinAmountFilter] = useState('none')
   const [activityMarketFilter, setActivityMarketFilter] = useState(ALL_ACTIVITY_MARKETS_VALUE)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)

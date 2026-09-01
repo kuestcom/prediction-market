@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import useLocalizedTimeAgo from '@/hooks/useLocalizedTimeAgo'
 import { getAvatarPlaceholderStyle } from '@/lib/avatar'
 import { markTradeAlertsRead } from '@/lib/trade-alerts-idb'
 import { cn } from '@/lib/utils'
@@ -38,58 +39,17 @@ const WHEEL_DELTA_LINE_MODE = 1
 const WHEEL_DELTA_PAGE_MODE = 2
 const FALLBACK_WHEEL_LINE_HEIGHT = 16
 
-function getNotificationTimeLabel(notification: Notification, currentTimestamp: number | null) {
-  if (notification.time_ago) {
-    return notification.time_ago
-  }
-
-  const createdAt = new Date(notification.created_at)
-
-  if (Number.isNaN(createdAt.getTime())) {
-    return ''
-  }
-
+function getNotificationTimeLabel(
+  notification: Notification,
+  currentTimestamp: number | null,
+  formatCompactTimeAgo: (dateInput: string, nowInput: number) => string,
+) {
   if (currentTimestamp == null) {
     return ''
   }
 
-  const diffMs = Math.max(0, currentTimestamp - createdAt.getTime())
-  const diffMinutes = Math.floor(diffMs / (1000 * 60))
-
-  if (diffMinutes < 1) {
-    return 'now'
-  }
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m`
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60)
-
-  if (diffHours < 24) {
-    return `${diffHours}h`
-  }
-
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffDays < 7) {
-    return `${diffDays}d`
-  }
-
-  const diffWeeks = Math.floor(diffDays / 7)
-
-  if (diffWeeks < 4) {
-    return `${diffWeeks}w`
-  }
-
-  const diffMonths = Math.floor(diffDays / 30)
-
-  if (diffMonths < 12) {
-    return `${diffMonths}mo`
-  }
-
-  const diffYears = Math.floor(diffDays / 365)
-  return `${diffYears}y`
+  const formattedTimeAgo = formatCompactTimeAgo(notification.created_at, currentTimestamp)
+  return formattedTimeAgo === '—' ? (notification.time_ago ?? '') : formattedTimeAgo
 }
 
 function isLikelyTransactionHashSnippet(value: string | null | undefined) {
@@ -174,6 +134,7 @@ function useLoadNotificationsOnMount() {
 
 export default function HeaderNotifications() {
   const t = useExtracted()
+  const { formatCompactTimeAgo } = useLocalizedTimeAgo()
   const router = useRouter()
   const notificationsListRef = useRef<HTMLDivElement>(null)
   const previousTouchYRef = useRef<number | null>(null)
@@ -327,7 +288,7 @@ export default function HeaderNotifications() {
           {!isLoading && hasNotifications && (
             <div className="divide-y divide-border">
               {notifications.map((notification) => {
-                const timeLabel = getNotificationTimeLabel(notification, currentTimestamp)
+                const timeLabel = getNotificationTimeLabel(notification, currentTimestamp, formatCompactTimeAgo)
                 const hasLink = Boolean(notification.link_url)
                 const isFollowedTrade = isFollowedTradeNotification(notification)
                 const followedTrade = followedTradeDetails(notification)
