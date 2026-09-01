@@ -141,7 +141,7 @@ export default function ProfileActivityTooltipCard({
           ) : (
             <Image
               src={avatarUrl}
-              alt={`${profile.username} ${t('avatar')}`}
+              alt={t('{username} avatar', { username: profile.username })}
               fill
               sizes="56px"
               className="object-cover"

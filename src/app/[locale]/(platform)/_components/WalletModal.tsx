@@ -111,6 +111,10 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
   ) : (
     <>${formattedDepositWalletBalance}</>
   )
+  const balanceLabel = t.rich('{siteName} Balance: <balance></balance>', {
+    siteName: siteLabel,
+    balance: () => balanceDisplay,
+  })
 
   const selectedTokenId = getSelectedWalletTokenId(walletTokenItems, preferredSelectedTokenId)
   const selectedToken = walletTokenItems.find((item) => item.id === selectedTokenId) ?? null
@@ -243,9 +247,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
               </DrawerTitle>
               <span className="size-8" aria-hidden="true" />
             </div>
-            <DrawerDescription className="text-center text-xs text-muted-foreground">
-              {t('{siteName} Balance:', { siteName: siteLabel })} {balanceDisplay}
-            </DrawerDescription>
+            <DrawerDescription className="text-center text-xs text-muted-foreground">{balanceLabel}</DrawerDescription>
           </DrawerHeader>
           <div className="border-t" />
           <div className="w-full px-4 pb-4">
@@ -290,9 +292,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
             </DialogTitle>
             <span className="size-8" aria-hidden="true" />
           </div>
-          <DialogDescription className="text-center text-xs text-muted-foreground">
-            {t('{siteName} Balance:', { siteName: siteLabel })} {balanceDisplay}
-          </DialogDescription>
+          <DialogDescription className="text-center text-xs text-muted-foreground">{balanceLabel}</DialogDescription>
         </DialogHeader>
         <div className="-mx-6 border-t" />
         {content}
