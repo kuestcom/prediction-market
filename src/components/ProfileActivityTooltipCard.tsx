@@ -113,7 +113,7 @@ export default function ProfileActivityTooltipCard({
   const locale = useLocale()
   const profileHref = profile.href as any
   const joinedDate = formatJoinedDate(profile.joinedAt, locale)
-  const joinedLabel = joinedDate ? `${t('Joined')} ${joinedDate}` : null
+  const joinedLabel = joinedDate ? t('Joined {date}', { date: joinedDate }) : null
   const positionsValue = formatStatValue(stats?.positionsValue)
   const volumeValue = formatStatValue(stats?.volume)
   const profitLossNumber =
@@ -139,7 +139,13 @@ export default function ProfileActivityTooltipCard({
           {showPlaceholder ? (
             <div aria-hidden="true" className="absolute inset-0 rounded-full" style={fallbackStyle} />
           ) : (
-            <Image src={avatarUrl} alt={`${profile.username} avatar`} fill sizes="56px" className="object-cover" />
+            <Image
+              src={avatarUrl}
+              alt={`${profile.username} ${t('avatar')}`}
+              fill
+              sizes="56px"
+              className="object-cover"
+            />
           )}
         </div>
         <div className="min-w-0 flex-1 text-left">
@@ -171,15 +177,15 @@ export default function ProfileActivityTooltipCard({
           <>
             <div className="space-y-1">
               <div className="text-sm font-semibold text-foreground tabular-nums">{positionsValue}</div>
-              <div className="text-xs font-medium text-muted-foreground">Positions</div>
+              <div className="text-xs font-medium text-muted-foreground">{t('Positions')}</div>
             </div>
             <div className="space-y-1">
               <div className={cn('text-sm font-semibold tabular-nums', profitLossClassName)}>{profitLossValue}</div>
-              <div className="text-xs font-medium text-muted-foreground">Profit/loss</div>
+              <div className="text-xs font-medium text-muted-foreground">{t('Profit/loss')}</div>
             </div>
             <div className="space-y-1">
               <div className="text-sm font-semibold text-foreground tabular-nums">{volumeValue}</div>
-              <div className="text-xs font-medium text-muted-foreground">Volume</div>
+              <div className="text-xs font-medium text-muted-foreground">{t('Volume')}</div>
             </div>
           </>
         )}

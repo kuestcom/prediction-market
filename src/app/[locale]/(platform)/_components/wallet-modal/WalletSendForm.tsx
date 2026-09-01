@@ -179,7 +179,7 @@ function WalletSendForm({
           <div className="mx-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>${amountDisplay}</span>
             <span className="flex items-center gap-1">
-              <span>{t('Balance')}:</span>
+              <span>{t('Balance:')}</span>
               <span>{balanceDisplay}</span>
               <span>USDC</span>
             </span>

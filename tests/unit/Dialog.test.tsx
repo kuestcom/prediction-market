@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event'
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (message: string) => message,
+}))
+
 describe('Dialog', () => {
   it('uses Base UI transitions and closes cleanly', async () => {
     const user = userEvent.setup()

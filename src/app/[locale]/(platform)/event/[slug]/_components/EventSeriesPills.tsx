@@ -108,7 +108,6 @@ function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string, loca
     ? date.toLocaleTimeString(locale, {
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true,
         timeZone,
       })
     : '--'
@@ -126,7 +125,6 @@ function getSeriesEventPillTimeLabel(
     ? date.toLocaleTimeString(locale, {
         hour: padHour ? '2-digit' : 'numeric',
         ...(showMinutes ? { minute: '2-digit' as const } : {}),
-        hour12: true,
         timeZone,
       })
     : '--'

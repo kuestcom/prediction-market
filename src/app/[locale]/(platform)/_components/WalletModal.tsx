@@ -244,7 +244,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
               <span className="size-8" aria-hidden="true" />
             </div>
             <DrawerDescription className="text-center text-xs text-muted-foreground">
-              {siteLabel} {t('Balance')}: {balanceDisplay}
+              {t('{siteName} Balance:', { siteName: siteLabel })} {balanceDisplay}
             </DrawerDescription>
           </DrawerHeader>
           <div className="border-t" />
@@ -291,7 +291,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
             <span className="size-8" aria-hidden="true" />
           </div>
           <DialogDescription className="text-center text-xs text-muted-foreground">
-            {siteLabel} {t('Balance')}: {balanceDisplay}
+            {t('{siteName} Balance:', { siteName: siteLabel })} {balanceDisplay}
           </DialogDescription>
         </DialogHeader>
         <div className="-mx-6 border-t" />

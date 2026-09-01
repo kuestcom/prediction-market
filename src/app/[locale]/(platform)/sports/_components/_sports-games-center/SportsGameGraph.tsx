@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useState, useSyncExternalStore } from 'react'
 
@@ -102,6 +103,7 @@ export default function SportsGameGraph({
   variant?: SportsGameGraphVariant
   showControls?: boolean
 }) {
+  const locale = useLocale()
   const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
   const {
     cursorSnapshot,
@@ -202,6 +204,7 @@ export default function SportsGameGraph({
           <PredictionChart
             data={chartData}
             series={chartSeries}
+            locale={locale}
             width={chartWidth}
             height={chartHeight}
             margin={chartMargin}

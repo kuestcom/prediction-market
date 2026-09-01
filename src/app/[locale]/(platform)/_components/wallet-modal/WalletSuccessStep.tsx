@@ -128,16 +128,18 @@ function WalletSuccessStep({
         <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-xs text-foreground">
           <InfoIcon className="size-4 text-muted-foreground" />
           <span>
-            {t('Experiencing problems?')}{' '}
-            <a
-              href={supportUrl}
-              target={supportIsEmail ? undefined : '_blank'}
-              rel={supportIsEmail ? undefined : 'noreferrer'}
-              className="underline"
-            >
-              {t('Get help')}
-            </a>
-            .
+            {t.rich('Experiencing problems? <link>Get help</link>.', {
+              link: (chunks) => (
+                <a
+                  href={supportUrl}
+                  target={supportIsEmail ? undefined : '_blank'}
+                  rel={supportIsEmail ? undefined : 'noreferrer'}
+                  className="underline"
+                >
+                  {chunks}
+                </a>
+              ),
+            })}
           </span>
         </div>
       )}
