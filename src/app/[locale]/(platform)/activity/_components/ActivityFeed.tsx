@@ -846,8 +846,9 @@ export default function ActivityFeed() {
   })
   const visibleOrders = filteredOrders.slice(0, visibleCount)
 
+  const hasHistoricalActivityPages = (historicalActivityQuery.data?.pages.length ?? 0) > 0
   const isLoading = allowedCreatorWallets === null || (historicalActivityQuery.isFetching && items.length === 0)
-  const hasActivityError = historicalActivityQuery.isError && items.length === 0
+  const hasActivityError = historicalActivityQuery.isError && !hasHistoricalActivityPages
   const hasNoActivity =
     !isLoading && !hasActivityError && filteredOrders.length === 0 && !historicalActivityQuery.hasNextPage
 
@@ -890,6 +891,7 @@ export default function ActivityFeed() {
 
       <div className="divide-y divide-border/80">
         {isLoading &&
+          !hasActivityError &&
           Array.from({ length: 10 }).map((_, index) => (
             <div key={`activity-skeleton-${index}`} className={rowClassName}>
               <div className="flex min-w-0 flex-1 items-start gap-3">
