@@ -11,10 +11,19 @@ import { useEventVolumes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/u
 const mocks = vi.hoisted(() => ({
   clobUrl: 'https://clob.example',
   fetch: vi.fn(),
+  liveVolumeByCondition: {} as Record<string, number>,
+  resetLiveVolumes: vi.fn(),
 }))
 
 vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ clobUrl: mocks.clobUrl }),
+}))
+
+vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider', () => ({
+  useOptionalMarketChannelLiveVolumes: () => ({
+    liveVolumeByCondition: mocks.liveVolumeByCondition,
+    resetLiveVolumes: mocks.resetLiveVolumes,
+  }),
 }))
 
 interface VolumeRequestCondition {
@@ -76,6 +85,8 @@ describe('useEventVolumes', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', mocks.fetch)
     mocks.fetch.mockReset()
+    mocks.liveVolumeByCondition = {}
+    mocks.resetLiveVolumes.mockReset()
   })
 
   afterEach(() => {
@@ -213,5 +224,23 @@ describe('useEventVolumes', () => {
     await waitFor(() => expect(result.current.totalVolume).toBe(0))
 
     expect(result.current.volumeByCondition).toEqual({ 'condition-0': 0, 'condition-1': 0 })
+  })
+
+  it('adds live volume to a complete event total without changing the API base values', async () => {
+    const event = createEvent(2)
+    mocks.liveVolumeByCondition = { 'condition-0': 2.5, 'condition-1': 1 }
+    mocks.fetch.mockResolvedValue(
+      createResponse([
+        { condition_id: 'condition-0', status: 200, volume: '10' },
+        { condition_id: 'condition-1', status: 200, volume: '20' },
+      ]),
+    )
+
+    const { result } = renderEventVolumes(event)
+
+    await waitFor(() => expect(result.current.totalVolume).toBe(33.5))
+
+    expect(result.current.volumeByCondition).toEqual({ 'condition-0': 10, 'condition-1': 20 })
+    expect(result.current.liveVolumeByCondition).toEqual({ 'condition-0': 2.5, 'condition-1': 1 })
   })
 })

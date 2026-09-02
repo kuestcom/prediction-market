@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import type { Event } from '@/types'
 
+import { useOptionalMarketChannelLiveVolumes } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
 const MAX_VOLUME_CONDITIONS_PER_REQUEST = 100
@@ -151,12 +152,13 @@ async function fetchEventVolumes(conditions: VolumeConditionRequest[], clobUrl: 
 
 export function useEventVolumes(event: Event) {
   const { clobUrl } = usePublicRuntimeConfig()
+  const { liveVolumeByCondition, resetLiveVolumes } = useOptionalMarketChannelLiveVolumes()
   const conditions = useMemo(() => buildVolumeConditions(event), [event])
   const signature = useMemo(
     () => conditions.map((condition) => `${condition.condition_id}:${condition.token_ids.join(':')}`).join('|'),
     [conditions],
   )
-  const { data } = useQuery({
+  const { data, dataUpdatedAt } = useQuery({
     queryKey: ['trade-volumes', clobUrl, event.id, signature],
     queryFn: () => fetchEventVolumes(conditions, clobUrl),
     enabled: conditions.length > 0 && Boolean(clobUrl),
@@ -165,12 +167,29 @@ export function useEventVolumes(event: Event) {
     retry: false,
   })
 
+  const previousDataUpdatedAtRef = useRef(0)
+  useEffect(() => {
+    if (!dataUpdatedAt) {
+      return
+    }
+
+    const previousDataUpdatedAt = previousDataUpdatedAtRef.current
+    previousDataUpdatedAtRef.current = dataUpdatedAt
+
+    if (previousDataUpdatedAt !== dataUpdatedAt) {
+      resetLiveVolumes()
+    }
+  }, [dataUpdatedAt, resetLiveVolumes])
+
   const volumeByCondition = data?.volumeByCondition ?? {}
   const totalVolume = useMemo(
     () =>
-      data?.isComplete ? Object.values(data.volumeByCondition).reduce((total, volume) => total + volume, 0) : null,
-    [data],
+      data?.isComplete
+        ? conditions.reduce((total, condition) => total + (data.volumeByCondition[condition.condition_id] ?? 0), 0) +
+          Object.values(liveVolumeByCondition).reduce((total, volume) => total + volume, 0)
+        : null,
+    [conditions, data, liveVolumeByCondition],
   )
 
-  return { volumeByCondition, totalVolume }
+  return { liveVolumeByCondition, volumeByCondition, totalVolume }
 }

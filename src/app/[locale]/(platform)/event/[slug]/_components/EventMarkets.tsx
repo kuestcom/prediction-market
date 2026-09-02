@@ -628,7 +628,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const isNegRiskAugmented = Boolean(event.neg_risk_augmented)
-  const { volumeByCondition } = useEventVolumes(event)
+  const { liveVolumeByCondition, volumeByCondition } = useEventVolumes(event)
   const { rows: marketRows, hasChanceData } = useEventMarketRows(event)
   const { expandedMarketId, toggleMarket, expandMarket, selectDetailTab, getSelectedDetailTab } =
     useMarketDetailController(event.id)
@@ -828,6 +828,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                   onToggle={() => handleToggle(market)}
                   onBuy={(cardMarket, outcomeIndex, source) => handleBuy(cardMarket, outcomeIndex, source)}
                   chanceHighlightKey={chanceHighlightKey}
+                  liveVolume={liveVolumeByCondition[market.condition_id]}
                   volumeOverride={volumeByCondition[market.condition_id]}
                   positionTags={positionTags}
                   openOrdersCount={openOrdersCountByCondition[market.condition_id] ?? 0}
