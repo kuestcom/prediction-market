@@ -1604,7 +1604,7 @@ export default function EventOrderPanelForm({
                 price: submittedAvgSellPriceLabel,
               })}`
             : `${eventContextLabel} • ${t('{label} {amount} @ {price}', {
-                label: amountLabel,
+                label: t('Total'),
                 amount: buyAmountLabel,
                 price: priceLabel,
               })}`,
