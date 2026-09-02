@@ -165,6 +165,40 @@ describe('useEventVolumes', () => {
     expect(result.current.totalVolume).toBeNull()
   })
 
+  it('ignores malformed entries for conditions that were not requested', async () => {
+    const event = createEvent(2)
+    mocks.fetch.mockResolvedValue(
+      createResponse([
+        { condition_id: 'condition-0', status: 200, volume: '3' },
+        { condition_id: 'condition-1', status: 200, volume: '4' },
+        { condition_id: 'unrequested-condition', status: 'invalid' },
+      ]),
+    )
+
+    const { result } = renderEventVolumes(event)
+
+    await waitFor(() => expect(result.current.totalVolume).toBe(7))
+
+    expect(result.current.volumeByCondition).toEqual({ 'condition-0': 3, 'condition-1': 4 })
+  })
+
+  it('ignores a malformed duplicate after a requested condition already has a valid volume', async () => {
+    const event = createEvent(2)
+    mocks.fetch.mockResolvedValue(
+      createResponse([
+        { condition_id: 'condition-0', status: 200, volume: '3' },
+        { condition_id: 'condition-1', status: 200, volume: '4' },
+        { condition_id: 'condition-0', status: 200, volume: 'not-a-number' },
+      ]),
+    )
+
+    const { result } = renderEventVolumes(event)
+
+    await waitFor(() => expect(result.current.totalVolume).toBe(7))
+
+    expect(result.current.volumeByCondition).toEqual({ 'condition-0': 3, 'condition-1': 4 })
+  })
+
   it('exposes a complete total when every requested volume is legitimately zero', async () => {
     const event = createEvent(2)
     mocks.fetch.mockResolvedValue(

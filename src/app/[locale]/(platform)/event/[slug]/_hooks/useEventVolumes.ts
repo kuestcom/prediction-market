@@ -68,11 +68,9 @@ function parseVolumeResponse(payload: unknown, conditions: VolumeConditionReques
 
   const requestedConditionIds = new Set(conditions.map((condition) => condition.condition_id))
   const volumeByCondition: EventVolumesByCondition = {}
-  let hasMalformedEntry = false
 
   for (const entry of payload) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-      hasMalformedEntry = true
       continue
     }
 
@@ -85,7 +83,6 @@ function parseVolumeResponse(payload: unknown, conditions: VolumeConditionReques
       typeof responseEntry.status !== 'number' ||
       (responseEntry.volume !== undefined && volume === null)
     ) {
-      hasMalformedEntry = true
       continue
     }
 
@@ -96,8 +93,7 @@ function parseVolumeResponse(payload: unknown, conditions: VolumeConditionReques
     volumeByCondition[conditionId] = volume
   }
 
-  const isComplete =
-    !hasMalformedEntry && conditions.every((condition) => volumeByCondition[condition.condition_id] !== undefined)
+  const isComplete = conditions.every((condition) => volumeByCondition[condition.condition_id] !== undefined)
 
   return { volumeByCondition, isComplete }
 }
