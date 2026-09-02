@@ -13,6 +13,7 @@ import {
   resolveString,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import { formatValueOrDash } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFormatters'
+import { useLeaderboardTranslations } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTranslations'
 import ProfileLink from '@/components/ProfileLink'
 import { Link } from '@/i18n/navigation'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
@@ -29,6 +30,8 @@ export default function BiggestWinsSidebar({
   isBiggestWinsLoading,
   biggestWinsPeriodLabel,
 }: BiggestWinsSidebarProps) {
+  const { translateBiggestWins } = useLeaderboardTranslations()
+
   return (
     <aside
       className={cn(
@@ -37,7 +40,7 @@ export default function BiggestWinsSidebar({
     >
       <div className="max-h-152 min-h-88 overflow-y-auto">
         <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-2">
-          <h2 className="text-xl font-semibold text-foreground">Biggest wins {biggestWinsPeriodLabel}</h2>
+          <h2 className="text-xl font-semibold text-foreground">{translateBiggestWins(biggestWinsPeriodLabel)}</h2>
         </div>
         <div className="w-full px-5">
           {isBiggestWinsLoading && <BiggestWinsSkeleton count={6} />}

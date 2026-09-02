@@ -11,8 +11,10 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
+import AlertBanner from '@/components/AlertBanner'
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -639,7 +641,7 @@ function useHistoricalActivity({ allowedCreatorWallets }: { allowedCreatorWallet
     refetchOnMount: false,
     refetchOnReconnect: false,
     refetchOnWindowFocus: false,
-    staleTime: 'static',
+    staleTime: Infinity,
   })
 }
 
@@ -844,8 +846,10 @@ export default function ActivityFeed() {
   })
   const visibleOrders = filteredOrders.slice(0, visibleCount)
 
-  const isLoading = allowedCreatorWallets === null || (historicalActivityQuery.isPending && items.length === 0)
-  const hasNoActivity = !isLoading && filteredOrders.length === 0 && !historicalActivityQuery.hasNextPage
+  const isLoading = allowedCreatorWallets === null || (historicalActivityQuery.isFetching && items.length === 0)
+  const hasActivityError = historicalActivityQuery.isError && items.length === 0
+  const hasNoActivity =
+    !isLoading && !hasActivityError && filteredOrders.length === 0 && !historicalActivityQuery.hasNextPage
 
   const rowClassName = cn(
     `group relative z-0 flex w-full cursor-pointer flex-col gap-3 p-3 transition-all duration-200 ease-in-out before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-[''] hover:before:opacity-100 sm:flex-row sm:items-center sm:gap-4 dark:before:bg-white/5`,
@@ -904,6 +908,17 @@ export default function ActivityFeed() {
 
         {hasNoActivity && (
           <div className="py-8 text-center text-base text-muted-foreground">{t('No activity found.')}</div>
+        )}
+
+        {hasActivityError && (
+          <AlertBanner
+            title={t('Failed to load activity')}
+            description={
+              <Button type="button" onClick={() => void historicalActivityQuery.refetch()} size="sm" variant="link">
+                {t('Try again')}
+              </Button>
+            }
+          />
         )}
 
         {!isLoading &&

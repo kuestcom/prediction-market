@@ -81,6 +81,17 @@ function renderEventVolumes(event: Event) {
   })
 }
 
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 0,
+        retry: false,
+      },
+    },
+  })
+}
+
 describe('useEventVolumes', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', mocks.fetch)
@@ -242,5 +253,46 @@ describe('useEventVolumes', () => {
 
     expect(result.current.volumeByCondition).toEqual({ 'condition-0': 10, 'condition-1': 20 })
     expect(result.current.liveVolumeByCondition).toEqual({ 'condition-0': 2.5, 'condition-1': 1 })
+  })
+
+  it('does not add live volume from markets excluded from the API snapshot', async () => {
+    const event = {
+      ...createEvent(1),
+      markets: [
+        {
+          condition_id: 'condition-0',
+          volume: 100,
+          outcomes: [{ token_id: 'yes-token-0' }, { token_id: 'no-token-0' }],
+        },
+        {
+          condition_id: 'condition-with-one-token',
+          volume: 200,
+          outcomes: [{ token_id: 'yes-token-extra' }],
+        },
+      ],
+    } as unknown as Event
+    mocks.liveVolumeByCondition = { 'condition-0': 2, 'condition-with-one-token': 50 }
+    mocks.fetch.mockResolvedValue(createResponse([{ condition_id: 'condition-0', status: 200, volume: '10' }]))
+
+    const { result } = renderEventVolumes(event)
+
+    await waitFor(() => expect(result.current.totalVolume).toBe(12))
+  })
+
+  it('does not reset live volume when mounting after the shared snapshot is cached', async () => {
+    const event = createEvent(1)
+    const queryClient = createQueryClient()
+    queryClient.setQueryData(['trade-volumes', mocks.clobUrl, event.id, 'condition-0:yes-token-0:no-token-0'], {
+      volumeByCondition: { 'condition-0': 10 },
+      isComplete: true,
+    })
+    mocks.liveVolumeByCondition = { 'condition-0': 2 }
+
+    const { result } = renderHook(() => useEventVolumes(event), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.totalVolume).toBe(12))
+    expect(mocks.resetLiveVolumes).not.toHaveBeenCalled()
   })
 })

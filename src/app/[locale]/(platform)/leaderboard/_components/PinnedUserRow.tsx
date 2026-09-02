@@ -3,6 +3,7 @@
 import Image from 'next/image'
 
 import { LIST_ROW_COLUMNS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
+import { useLeaderboardTranslations } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTranslations'
 import ProfileLink from '@/components/ProfileLink'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
@@ -37,6 +38,7 @@ export default function PinnedUserRow({
   profitColumnClass,
   volumeColumnClass,
 }: PinnedUserRowProps) {
+  const { translateMedalAlt } = useLeaderboardTranslations()
   const pinnedRowClassName = cn(
     `relative z-0 grid w-full ${LIST_ROW_COLUMNS} min-h-[70px] items-center gap-4 py-4 pr-2 pl-3 text-sm shadow-sm before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-xl before:bg-muted before:content-[''] dark:before:bg-muted`,
   )
@@ -69,7 +71,7 @@ export default function PinnedUserRow({
                 <span className="absolute -bottom-1.5 -left-2">
                   <Image
                     src={pinnedEntry.medalSrc}
-                    alt={pinnedEntry.medalAlt}
+                    alt={translateMedalAlt(pinnedEntry.medalAlt)}
                     width={24}
                     height={24}
                     className="size-7"

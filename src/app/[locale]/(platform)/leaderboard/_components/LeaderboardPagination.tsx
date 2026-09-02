@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
+import { useLeaderboardTranslations } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTranslations'
 import { cn } from '@/lib/utils'
 
 interface LeaderboardPaginationProps {
@@ -24,6 +25,7 @@ function paginationChevronClass(isDisabled: boolean) {
 }
 
 export default function LeaderboardPagination({ page, setPageValue }: LeaderboardPaginationProps) {
+  const { translateNextPage, translatePreviousPage } = useLeaderboardTranslations()
   const pageWindowStart = Math.max(1, page - 3)
   const pageNumbers = Array.from({ length: 6 }, (_, index) => pageWindowStart + index)
 
@@ -34,7 +36,7 @@ export default function LeaderboardPagination({ page, setPageValue }: Leaderboar
         onClick={() => setPageValue((prev) => Math.max(1, prev - 1))}
         className={paginationChevronClass(page === 1)}
         disabled={page === 1}
-        aria-label="Previous page"
+        aria-label={translatePreviousPage()}
       >
         <ChevronLeftIcon className="size-4" />
       </button>
@@ -54,7 +56,7 @@ export default function LeaderboardPagination({ page, setPageValue }: Leaderboar
         type="button"
         onClick={() => setPageValue((prev) => prev + 1)}
         className={paginationChevronClass(false)}
-        aria-label="Next page"
+        aria-label={translateNextPage()}
       >
         <ChevronRightIcon className="size-4" />
       </button>

@@ -1,21 +1,21 @@
 export const CATEGORY_OPTIONS = [
-  { value: 'overall', label: 'All Categories', apiValue: 'overall' },
-  { value: 'politics', label: 'Politics', apiValue: 'politics' },
-  { value: 'sports', label: 'Sports', apiValue: 'sports' },
-  { value: 'crypto', label: 'Crypto', apiValue: 'crypto' },
-  { value: 'finance', label: 'Finance', apiValue: 'finance' },
-  { value: 'culture', label: 'Culture', apiValue: 'culture' },
-  { value: 'mentions', label: 'Mentions', apiValue: 'mentions' },
-  { value: 'weather', label: 'Weather', apiValue: 'weather' },
-  { value: 'economics', label: 'Economics', apiValue: 'economics' },
-  { value: 'tech', label: 'Tech', apiValue: 'tech' },
+  { value: 'overall', label: 'All Categories', apiValue: 'OVERALL' },
+  { value: 'politics', label: 'Politics', apiValue: 'POLITICS' },
+  { value: 'sports', label: 'Sports', apiValue: 'SPORTS' },
+  { value: 'crypto', label: 'Crypto', apiValue: 'CRYPTO' },
+  { value: 'finance', label: 'Finance', apiValue: 'FINANCE' },
+  { value: 'culture', label: 'Culture', apiValue: 'CULTURE' },
+  { value: 'mentions', label: 'Mentions', apiValue: 'MENTIONS' },
+  { value: 'weather', label: 'Weather', apiValue: 'WEATHER' },
+  { value: 'economics', label: 'Economics', apiValue: 'ECONOMICS' },
+  { value: 'tech', label: 'Tech', apiValue: 'TECH' },
 ] as const
 
 export const PERIOD_OPTIONS = [
-  { value: 'today', label: 'Today', apiValue: 'day' },
-  { value: 'weekly', label: 'Weekly', apiValue: 'week' },
-  { value: 'monthly', label: 'Monthly', apiValue: 'month' },
-  { value: 'all', label: 'All', apiValue: 'all' },
+  { value: 'today', label: 'Today', apiValue: 'DAY' },
+  { value: 'weekly', label: 'Weekly', apiValue: 'WEEK' },
+  { value: 'monthly', label: 'Monthly', apiValue: 'MONTH' },
+  { value: 'all', label: 'All', apiValue: 'ALL' },
 ] as const
 
 export const ORDER_OPTIONS = [

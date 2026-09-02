@@ -10,6 +10,7 @@ import {
   ORDER_OPTIONS,
   PERIOD_OPTIONS,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+import { useLeaderboardTranslations } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTranslations'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
@@ -42,7 +43,16 @@ export default function LeaderboardFiltersBar({
   onSearchInputChange,
   onUpdateFilters,
 }: LeaderboardFiltersBarProps) {
+  const { translateCategory, translateOrder, translatePeriod, translateSearchByName } = useLeaderboardTranslations()
   const selectedPeriod = filters.period
+  const translatedCategoryOptions = CATEGORY_OPTIONS.map((option) => ({
+    ...option,
+    label: translateCategory(option.value),
+  }))
+  const translatedOrderOptions = ORDER_OPTIONS.map((option) => ({
+    ...option,
+    label: translateOrder(option.value),
+  }))
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -66,14 +76,14 @@ export default function LeaderboardFiltersBar({
                   { 'rounded-r-lg': isLast },
                 )}
               >
-                {option.label}
+                {translatePeriod(option.value)}
               </button>
             )
           })}
         </div>
 
         <Select
-          items={CATEGORY_OPTIONS}
+          items={translatedCategoryOptions}
           value={filters.category}
           onValueChange={(value) =>
             value !== null && onUpdateFilters({ ...filters, category: value as LeaderboardFilters['category'] })
@@ -87,7 +97,7 @@ export default function LeaderboardFiltersBar({
             <SelectValue className="line-clamp-1">{categoryLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false} align="end">
-            {CATEGORY_OPTIONS.map((option) => (
+            {translatedCategoryOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} className="py-3 text-sm">
                 {option.label}
               </SelectItem>
@@ -111,8 +121,8 @@ export default function LeaderboardFiltersBar({
             type="text"
             value={searchInput}
             onChange={(event) => onSearchInputChange(event.target.value)}
-            placeholder="Search by name"
-            aria-label="Search by name"
+            placeholder={translateSearchByName()}
+            aria-label={translateSearchByName()}
             className={cn(
               `h-7 w-full bg-transparent pr-2 pl-6 text-sm text-foreground placeholder:text-muted-foreground focus:ring-0 focus:outline-none`,
             )}
@@ -120,7 +130,7 @@ export default function LeaderboardFiltersBar({
         </div>
         <div className="flex items-center justify-end md:hidden">
           <Select
-            items={ORDER_OPTIONS}
+            items={translatedOrderOptions}
             value={filters.order}
             onValueChange={(value) =>
               value !== null && onUpdateFilters({ ...filters, order: value as LeaderboardFilters['order'] })
@@ -134,7 +144,7 @@ export default function LeaderboardFiltersBar({
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false} align="end">
-              {ORDER_OPTIONS.map((option) => (
+              {translatedOrderOptions.map((option) => (
                 <SelectItem
                   key={option.value}
                   value={option.value}
@@ -152,7 +162,7 @@ export default function LeaderboardFiltersBar({
             onClick={() => onUpdateFilters({ ...filters, order: 'profit' })}
             className={cn('flex-1', headerButtonClass(filters.order === 'profit'))}
           >
-            <span className={headerButtonTextClass(filters.order === 'profit')}>{ORDER_OPTIONS[0].label}</span>
+            <span className={headerButtonTextClass(filters.order === 'profit')}>{translateOrder('profit')}</span>
           </button>
           <span className="text-muted-foreground">|</span>
           <button
@@ -160,7 +170,7 @@ export default function LeaderboardFiltersBar({
             onClick={() => onUpdateFilters({ ...filters, order: 'volume' })}
             className={cn('flex-1', headerButtonClass(filters.order === 'volume'))}
           >
-            <span className={headerButtonTextClass(filters.order === 'volume')}>{ORDER_OPTIONS[1].label}</span>
+            <span className={headerButtonTextClass(filters.order === 'volume')}>{translateOrder('volume')}</span>
           </button>
         </div>
       </div>

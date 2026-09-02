@@ -59,6 +59,22 @@ describe('live market trade volume', () => {
     )
   })
 
+  it('includes the stream id when deduplicating sequence-based trade events', () => {
+    const payload = {
+      event_type: 'last_trade_price',
+      asset_id: 'yes-token',
+      price: '0.5',
+      size: '4',
+      sequence: '123-0',
+      stream_id: 'stream-a',
+    }
+
+    expect(resolveLiveTradeEventKey(payload, tokenIdToConditionId)).toBe('condition-1:stream:stream-a:123-0:yes-token')
+    expect(resolveLiveTradeEventKey({ ...payload, stream_id: 'stream-b' }, tokenIdToConditionId)).not.toBe(
+      resolveLiveTradeEventKey(payload, tokenIdToConditionId),
+    )
+  })
+
   it.each([
     null,
     {},

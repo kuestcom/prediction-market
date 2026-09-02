@@ -167,7 +167,7 @@ export function useEventVolumes(event: Event) {
     retry: false,
   })
 
-  const previousDataUpdatedAtRef = useRef(0)
+  const previousDataUpdatedAtRef = useRef(dataUpdatedAt)
   useEffect(() => {
     if (!dataUpdatedAt) {
       return
@@ -186,7 +186,7 @@ export function useEventVolumes(event: Event) {
     () =>
       data?.isComplete
         ? conditions.reduce((total, condition) => total + (data.volumeByCondition[condition.condition_id] ?? 0), 0) +
-          Object.values(liveVolumeByCondition).reduce((total, volume) => total + volume, 0)
+          conditions.reduce((total, condition) => total + (liveVolumeByCondition[condition.condition_id] ?? 0), 0)
         : null,
     [conditions, data, liveVolumeByCondition],
   )

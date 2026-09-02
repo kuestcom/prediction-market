@@ -40,7 +40,7 @@ describe('leaderboard API helpers', () => {
 
     expect(entries).toHaveLength(1)
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://data-api.test/v1/leaderboard?limit=20&offset=20&category=overall&timePeriod=month&orderBy=PNL',
+      'https://data-api.test/v1/leaderboard?limit=20&offset=20&category=OVERALL&timePeriod=MONTH&orderBy=PNL',
       { signal },
     )
   })

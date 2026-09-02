@@ -1,3 +1,4 @@
+import { getExtracted } from 'next-intl/server'
 import { ImageResponse } from 'next/og'
 
 import type {
@@ -17,6 +18,7 @@ import {
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import OgImage from '@/app/api/og/_components/OgImage'
 import { normalizeOgText, resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
+import { resolveSupportedLocale } from '@/i18n/locales'
 import { formatSignedCurrency, formatCurrency as formatUsdCurrency, truncateAddress } from '@/lib/formatters'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -193,13 +195,35 @@ async function fetchLeaderboardRows({
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
+  const locale = resolveSupportedLocale(searchParams.get('locale'))
+  const t = await getExtracted({ locale })
   const category = resolveFilterCategory(searchParams.get('category'))
   const period = resolveFilterPeriod(searchParams.get('period'))
   const order = resolveFilterOrder(searchParams.get('order'))
 
-  const categoryLabel = CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? 'All Categories'
-  const periodLabel = PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? 'Monthly'
-  const metricLabel = ORDER_OPTIONS.find((option) => option.value === order)?.label ?? 'Profit/Loss'
+  const categoryLabel =
+    category === 'politics'
+      ? t('Politics')
+      : category === 'sports'
+        ? t('Sports')
+        : category === 'crypto'
+          ? t('Crypto')
+          : category === 'finance'
+            ? t('Finance')
+            : category === 'culture'
+              ? t('Culture')
+              : category === 'mentions'
+                ? t('Mentions')
+                : category === 'weather'
+                  ? t('Weather')
+                  : category === 'economics'
+                    ? t('Economics')
+                    : category === 'tech'
+                      ? t('Tech')
+                      : t('All Categories')
+  const periodLabel =
+    period === 'today' ? t('Today') : period === 'weekly' ? t('Weekly') : period === 'all' ? t('All') : t('Monthly')
+  const metricLabel = order === 'volume' ? t('Volume') : t('Profit/Loss')
 
   try {
     const [runtimeTheme, rows] = await Promise.all([
@@ -288,7 +312,7 @@ export async function GET(request: Request) {
                 letterSpacing: '-0.03em',
               }}
             >
-              Top traders on
+              {t('Top traders on')}
             </div>
             <div
               style={{
@@ -393,7 +417,7 @@ export async function GET(request: Request) {
                   fontWeight: 700,
                 }}
               >
-                You
+                {t('You')}
               </div>
               <div
                 style={{
@@ -484,8 +508,8 @@ export async function GET(request: Request) {
               fontWeight: 700,
             }}
           >
-            <div style={{ width: '70px', display: 'flex' }}>Rank</div>
-            <div style={{ flex: 1, display: 'flex' }}>Name</div>
+            <div style={{ width: '70px', display: 'flex' }}>{t('Rank')}</div>
+            <div style={{ flex: 1, display: 'flex' }}>{t('Name')}</div>
             <div style={{ width: '170px', display: 'flex', justifyContent: 'flex-end' }}>{metricLabel}</div>
           </div>
 

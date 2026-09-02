@@ -30,7 +30,6 @@ import {
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {
   buildLeaderboardPath,
-  CATEGORY_OPTIONS,
   resolveCategoryApiValue,
   resolvePeriodApiValue,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
@@ -43,12 +42,14 @@ import {
   LEADERBOARD_LAYOUT_CLASS_NAME,
   LEADERBOARD_ROW_CLASS_NAME,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardStyles'
+import { useLeaderboardTranslations } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTranslations'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useRouter } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 export default function LeaderboardClient({ initialFilters }: { initialFilters: LeaderboardFilters }) {
+  const { translateCategory, translateLeaderboardTitle, translatePeriodQualifier } = useLeaderboardTranslations()
   const router = useRouter()
   const user = useUser()
   const { dataUrl } = usePublicRuntimeConfig()
@@ -132,7 +133,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     hydratedEntries?.key === leaderboardRequestKey && hydratedEntries.source === leaderboardQuery.data
       ? hydratedEntries.entries
       : sortEntriesForDisplay(baseEntries, currentFilters, page)
-  const isLoading = leaderboardQuery.isPending && !leaderboardQuery.data
+  const isLoading = leaderboardQuery.isPending || leaderboardQuery.isPlaceholderData
   const isUserVisibleInLeaderboard =
     Boolean(userAddress) &&
     !leaderboardQuery.isPlaceholderData &&
@@ -196,8 +197,9 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     ],
   )
 
-  const userEntry =
-    hydratedUserEntry?.key === userEntryRequestKey && hydratedUserEntry.source === userEntryQuery.data
+  const userEntry = userEntryQuery.isPlaceholderData
+    ? null
+    : hydratedUserEntry?.key === userEntryRequestKey && hydratedUserEntry.source === userEntryQuery.data
       ? hydratedUserEntry.entry
       : (userEntryQuery.data ?? null)
 
@@ -216,7 +218,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   })
 
   const biggestWins = biggestWinsQuery.data ?? []
-  const isBiggestWinsLoading = biggestWinsQuery.isPending && !biggestWinsQuery.data
+  const isBiggestWinsLoading = biggestWinsQuery.isPending || biggestWinsQuery.isPlaceholderData
 
   useEffect(
     function debounceSearchInput() {
@@ -231,10 +233,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     [searchInput],
   )
 
-  const categoryLabel = useMemo(
-    () => CATEGORY_OPTIONS.find((option) => option.value === filters.category)?.label ?? 'All Categories',
-    [filters.category],
-  )
+  const categoryLabel = useMemo(() => translateCategory(filters.category), [filters.category, translateCategory])
 
   function updateFilters(next: LeaderboardFilters) {
     setFiltersState({
@@ -268,17 +267,17 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   const biggestWinsPeriodLabel = useMemo(() => {
     switch (filters.period) {
       case 'today':
-        return 'today'
+        return translatePeriodQualifier('today')
       case 'weekly':
-        return 'this week'
+        return translatePeriodQualifier('weekly')
       case 'monthly':
-        return 'this month'
+        return translatePeriodQualifier('monthly')
       case 'all':
-        return 'all time'
+        return translatePeriodQualifier('all')
       default:
-        return 'this month'
+        return translatePeriodQualifier('monthly')
     }
-  }, [filters.period])
+  }, [filters.period, translatePeriodQualifier])
 
   const pinnedEntry = useMemo(() => {
     if (!userAddress) {
@@ -286,9 +285,11 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     }
 
     const normalizedUserAddress = normalizeWalletAddress(userAddress)
-    const visibleEntry = entries.find((entry) => {
-      return normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)) === normalizedUserAddress
-    })
+    const visibleEntry = leaderboardQuery.isPlaceholderData
+      ? undefined
+      : entries.find((entry) => {
+          return normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)) === normalizedUserAddress
+        })
     const sourceEntry = visibleEntry ?? userEntry
     const address = resolveLeaderboardProxyWallet(sourceEntry) || userAddress
     const rawUsername = sourceEntry?.userName || sourceEntry?.xUsername || user?.username || ''
@@ -306,7 +307,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
       medalSrc,
       medalAlt,
     }
-  }, [entries, userAddress, userEntry, user?.image, user?.username])
+  }, [entries, leaderboardQuery.isPlaceholderData, userAddress, userEntry, user?.image, user?.username])
 
   const pinnedProfitValue = pinnedEntry?.pnl
   const pinnedVolumeValue = pinnedEntry?.vol
@@ -326,7 +327,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     <div className="relative w-full">
       <div className={LEADERBOARD_LAYOUT_CLASS_NAME}>
         <section className="flex min-w-0 flex-col gap-6">
-          <h1 className="text-2xl font-semibold text-foreground md:text-3xl">Leaderboard</h1>
+          <h1 className="text-2xl font-semibold text-foreground md:text-3xl">{translateLeaderboardTitle()}</h1>
 
           <div className={listWrapperClassName}>
             <LeaderboardFiltersBar

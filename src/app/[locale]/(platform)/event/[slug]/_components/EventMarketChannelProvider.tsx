@@ -137,12 +137,21 @@ export function resolveLiveTradeEventKey(payload: unknown, tokenIdToConditionId:
 
   const record = payload as Record<string, unknown>
   const assetId = typeof record.asset_id === 'string' ? record.asset_id : ''
-  const streamId = [record.sequence, record.stream_id, record.trade_id, record.tradeId, record.id].find(
+  const sequence = record.sequence
+  const streamId = record.stream_id
+  const tradeId = [record.trade_id, record.tradeId, record.id].find(
     (value): value is string | number =>
       (typeof value === 'string' && value.trim().length > 0) || typeof value === 'number',
   )
-  if (streamId !== undefined) {
-    return [trade.conditionId, 'stream', String(streamId), assetId].join(':')
+  const hasSequence = (typeof sequence === 'string' && sequence.trim().length > 0) || typeof sequence === 'number'
+  const hasStreamId = (typeof streamId === 'string' && streamId.trim().length > 0) || typeof streamId === 'number'
+  if (hasSequence) {
+    return hasStreamId
+      ? [trade.conditionId, 'stream', String(streamId), String(sequence), assetId].join(':')
+      : [trade.conditionId, 'stream', String(sequence), assetId].join(':')
+  }
+  if (tradeId !== undefined || hasStreamId) {
+    return [trade.conditionId, 'stream', hasStreamId ? String(streamId) : '', String(tradeId ?? ''), assetId].join(':')
   }
 
   const timestamp = Number(record.timestamp)

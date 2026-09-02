@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
 
 import { GLOBAL_ACTIVITY_MAX_OFFSET, GLOBAL_ACTIVITY_PAGE_SIZE, type GlobalActivityItem } from '@/lib/activity/global'
@@ -45,7 +45,7 @@ async function loadActivityMarketMetadata(conditionIds: string[]) {
   }
 
   const rows = await db.query.markets.findMany({
-    where: inArray(markets.condition_id, conditionIds),
+    where: inArray(sql<string>`LOWER(${markets.condition_id})`, conditionIds),
     columns: {
       condition_id: true,
       event_id: true,

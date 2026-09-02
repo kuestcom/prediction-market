@@ -11,6 +11,7 @@ import {
   formatVolumeCurrency,
   getMedalProps,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFormatters'
+import { useLeaderboardTranslations } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTranslations'
 import ProfileLink from '@/components/ProfileLink'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
@@ -32,6 +33,7 @@ export default function LeaderboardListRow({
   profitColumnClass,
   volumeColumnClass,
 }: LeaderboardListRowProps) {
+  const { translateMedalAlt } = useLeaderboardTranslations()
   const rank = entry.rank ?? index + 1
   const address = resolveLeaderboardProxyWallet(entry)
   const rawUsername = entry.userName || entry.xUsername || ''
@@ -66,7 +68,7 @@ export default function LeaderboardListRow({
           avatarBadge={
             medalSrc ? (
               <span className="absolute -bottom-1.5 -left-2">
-                <Image src={medalSrc} alt={medalAlt} width={24} height={24} className="size-7" />
+                <Image src={medalSrc} alt={translateMedalAlt(medalAlt)} width={24} height={24} className="size-7" />
               </span>
             ) : null
           }
