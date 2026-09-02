@@ -1576,7 +1576,7 @@ export default function EventOrderPanelForm({
             ? submittedSellSharesLabel.trim()
             : submittedAmountInput
         const displayBuyShares = submittedBuySharesLabel?.trim()
-        const amountPrefix = submittedIsLimitOrder ? 'Total' : 'Received'
+        const amountLabel = submittedIsLimitOrder ? t('Total') : t('Received')
         const eventContextLabel = submittedMarketTitle
           ? `${submittedEventTitle} • ${submittedMarketTitle}`
           : submittedEventTitle
@@ -1584,13 +1584,30 @@ export default function EventOrderPanelForm({
         addLocalOrderFillNotification({
           action: isSell ? 'sell' : 'buy',
           title: isSell
-            ? `Sell ${displayShares} shares on ${submittedOutcomeText}`
+            ? t('Sell {shares} shares on {outcome}', {
+                shares: displayShares,
+                outcome: submittedOutcomeText,
+              })
             : displayBuyShares
-              ? `Buy ${displayBuyShares} shares on ${submittedOutcomeText}`
-              : `Buy ${buyAmountLabel} on ${submittedOutcomeText}`,
+              ? t('Buy {shares} shares on {outcome}', {
+                  shares: displayBuyShares,
+                  outcome: submittedOutcomeText,
+                })
+              : t('Buy {amount} on {outcome}', {
+                  amount: buyAmountLabel,
+                  outcome: submittedOutcomeText,
+                }),
           description: isSell
-            ? `${eventContextLabel} • ${amountPrefix} ${sellAmountNotificationLabel} @ ${submittedAvgSellPriceLabel}`
-            : `${eventContextLabel} • Total ${buyAmountLabel} @ ${priceLabel}`,
+            ? `${eventContextLabel} • ${t('{label} {amount} @ {price}', {
+                label: amountLabel,
+                amount: sellAmountNotificationLabel,
+                price: submittedAvgSellPriceLabel,
+              })}`
+            : `${eventContextLabel} • ${t('{label} {amount} @ {price}', {
+                label: amountLabel,
+                amount: buyAmountLabel,
+                price: priceLabel,
+              })}`,
           eventPath: resolveEventPagePath(event),
           marketIconUrl: submittedMarketImage,
         })
