@@ -14,12 +14,17 @@ interface VolumeConditionRequest {
 }
 
 interface VolumeResponse {
-  condition_id?: string
-  status?: number
-  volume?: string
+  condition_id?: unknown
+  status?: unknown
+  volume?: unknown
 }
 
-export type EventVolumesByCondition = Record<string, number>
+type EventVolumesByCondition = Record<string, number>
+
+interface EventVolumesResult {
+  volumeByCondition: EventVolumesByCondition
+  isComplete: boolean
+}
 
 function buildVolumeConditions(event: Event): VolumeConditionRequest[] {
   const conditionsById = new Map<string, VolumeConditionRequest>()
@@ -43,12 +48,63 @@ function buildVolumeConditions(event: Event): VolumeConditionRequest[] {
   return Array.from(conditionsById.values())
 }
 
-async function fetchEventVolumes(
-  conditions: VolumeConditionRequest[],
-  clobUrl: string,
-): Promise<EventVolumesByCondition> {
+function parseVolumeValue(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null
+  }
+
+  const parsedValue = Number(value)
+  return Number.isFinite(parsedValue) ? parsedValue : null
+}
+
+function parseVolumeResponse(payload: unknown, conditions: VolumeConditionRequest[]): EventVolumesResult {
+  if (!Array.isArray(payload)) {
+    return { volumeByCondition: {}, isComplete: false }
+  }
+
+  const requestedConditionIds = new Set(conditions.map((condition) => condition.condition_id))
+  const volumeByCondition: EventVolumesByCondition = {}
+  let hasMalformedEntry = false
+
+  for (const entry of payload) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      hasMalformedEntry = true
+      continue
+    }
+
+    const responseEntry = entry as VolumeResponse
+    const conditionId = responseEntry.condition_id
+    const volume = parseVolumeValue(responseEntry.volume)
+
+    if (
+      typeof conditionId !== 'string' ||
+      typeof responseEntry.status !== 'number' ||
+      (responseEntry.volume !== undefined && volume === null)
+    ) {
+      hasMalformedEntry = true
+      continue
+    }
+
+    if (!requestedConditionIds.has(conditionId) || responseEntry.status !== 200 || volume === null) {
+      continue
+    }
+
+    volumeByCondition[conditionId] = volume
+  }
+
+  const isComplete =
+    !hasMalformedEntry && conditions.every((condition) => volumeByCondition[condition.condition_id] !== undefined)
+
+  return { volumeByCondition, isComplete }
+}
+
+async function fetchEventVolumes(conditions: VolumeConditionRequest[], clobUrl: string): Promise<EventVolumesResult> {
   if (!conditions.length || !clobUrl) {
-    return {}
+    return { volumeByCondition: {}, isComplete: false }
   }
 
   const chunks: VolumeConditionRequest[][] = []
@@ -56,7 +112,7 @@ async function fetchEventVolumes(
     chunks.push(conditions.slice(index, index + MAX_VOLUME_CONDITIONS_PER_REQUEST))
   }
 
-  const responses = await Promise.all(
+  const responses = await Promise.allSettled(
     chunks.map(async (chunk) => {
       const response = await fetch(`${clobUrl}/data/volumes`, {
         method: 'POST',
@@ -75,22 +131,26 @@ async function fetchEventVolumes(
       }
 
       const payload = (await response.json()) as unknown
-      return Array.isArray(payload) ? (payload as VolumeResponse[]) : []
+      return parseVolumeResponse(payload, chunk)
     }),
   )
 
-  return responses.flat().reduce<EventVolumesByCondition>((volumeByCondition, entry) => {
-    if (entry?.status !== 200 || !entry.condition_id) {
-      return volumeByCondition
+  const result: EventVolumesResult = {
+    volumeByCondition: {},
+    isComplete: true,
+  }
+
+  for (const response of responses) {
+    if (response.status === 'rejected') {
+      result.isComplete = false
+      continue
     }
 
-    const volume = Number(entry.volume ?? 0)
-    if (Number.isFinite(volume)) {
-      volumeByCondition[entry.condition_id] = volume
-    }
+    Object.assign(result.volumeByCondition, response.value.volumeByCondition)
+    result.isComplete = result.isComplete && response.value.isComplete
+  }
 
-    return volumeByCondition
-  }, {})
+  return result
 }
 
 export function useEventVolumes(event: Event) {
@@ -109,9 +169,10 @@ export function useEventVolumes(event: Event) {
     retry: false,
   })
 
-  const volumeByCondition = data ?? {}
+  const volumeByCondition = data?.volumeByCondition ?? {}
   const totalVolume = useMemo(
-    () => (data ? Object.values(data).reduce((total, volume) => total + volume, 0) : null),
+    () =>
+      data?.isComplete ? Object.values(data.volumeByCondition).reduce((total, volume) => total + volume, 0) : null,
     [data],
   )
 
