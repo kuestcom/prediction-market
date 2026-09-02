@@ -315,6 +315,41 @@ async function loadHomeFeaturedEvent(eventSlug: string, locale: SupportedLocale)
   return data ? resolveFeaturedSportsEventPayload(data, locale) : null
 }
 
+async function loadHomeFeaturedEvents(eventSlugs: string[], locale: SupportedLocale) {
+  'use cache'
+  const normalizedSlugs = Array.from(new Set(eventSlugs.map((slug) => slug.trim()).filter(Boolean)))
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(
+    cacheTags.eventsList,
+    cacheTags.homeFeaturedEvents,
+    ...normalizedSlugs.map((eventSlug) => cacheTags.event(eventSlug)),
+  )
+
+  if (normalizedSlugs.length === 0) {
+    return []
+  }
+
+  const { data, error } = await EventRepository.getEventsBySlugs(normalizedSlugs, '', locale)
+  if (error) {
+    const fallbackEvents = await Promise.all(
+      normalizedSlugs.map(async (requestedSlug) => {
+        const event = await loadHomeFeaturedEvent(requestedSlug, locale)
+        return event ? { requestedSlug, event } : null
+      }),
+    )
+    return fallbackEvents.filter((event): event is NonNullable<typeof event> => event !== null)
+  }
+
+  const eventsBySlug = new Map((data ?? []).map((event) => [event.slug, event]))
+  const resolvedEvents = await Promise.all(
+    normalizedSlugs.map(async (requestedSlug) => {
+      const event = eventsBySlug.get(requestedSlug)
+      return event ? { requestedSlug, event: await resolveFeaturedSportsEventPayload(event, locale) } : null
+    }),
+  )
+  return resolvedEvents.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+}
+
 async function loadHomeFeaturedLiveChartConfig(seriesSlug: string) {
   'use cache'
   cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
@@ -880,13 +915,17 @@ export async function listHomeFeaturedEvents(
     return []
   }
 
-  const events = await Promise.all(
-    targets.map(async (target) => {
-      const event = await loadHomeFeaturedEvent(target.eventSlug, locale)
-      return event ? { target, event } : null
-    }),
+  const featuredEvents = await loadHomeFeaturedEvents(
+    targets.map((target) => target.eventSlug),
+    locale,
   )
-  const resolvedEvents = events.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+  const eventsBySlug = new Map(featuredEvents.map(({ requestedSlug, event }) => [requestedSlug, event]))
+  const resolvedEvents = targets
+    .map((target) => {
+      const event = eventsBySlug.get(target.eventSlug)
+      return event ? { target, event } : null
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   if (resolvedEvents.length === 0) {
     console.warn(
       'Home featured targets were resolved, but their event payloads could not be loaded.',

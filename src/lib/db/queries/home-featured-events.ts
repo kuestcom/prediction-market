@@ -517,6 +517,41 @@ async function resolveEventTarget(eventId: string | null) {
   return rows[0] ?? null
 }
 
+type ResolvedEventTarget = NonNullable<Awaited<ReturnType<typeof resolveEventTarget>>>
+
+async function resolveEventTargetsById(eventIds: string[]) {
+  const normalizedEventIds = Array.from(new Set(eventIds.map((eventId) => eventId.trim()).filter(Boolean)))
+  const targetByEventId = new Map<string, ResolvedEventTarget>()
+
+  if (normalizedEventIds.length === 0) {
+    return targetByEventId
+  }
+
+  const rows = await db
+    .select({
+      id: events.id,
+      slug: events.slug,
+      title: events.title,
+      series_slug: events.series_slug,
+    })
+    .from(events)
+    .where(
+      and(
+        inArray(events.id, normalizedEventIds),
+        eq(events.status, 'active'),
+        eq(events.is_hidden, false),
+        buildPublicEventListVisibilityCondition(events.id),
+        hasActiveFeaturedMarketCondition(),
+      ),
+    )
+
+  for (const row of rows) {
+    targetByEventId.set(row.id, row)
+  }
+
+  return targetByEventId
+}
+
 function mapContextRow(row: typeof home_featured_event_context_items.$inferSelect): HomeFeaturedContextItem {
   return {
     id: row.id,
@@ -688,22 +723,35 @@ export const HomeFeaturedEventsRepository = {
         .orderBy(asc(home_featured_events.rank), asc(home_featured_events.created_at), asc(home_featured_events.id))
         .limit(safeLimit * 2)
 
+      const eligibleRows = rows.filter((row) => {
+        const targetType = normalizeTargetType(row.target_type)
+        return targetType !== 'series' || row.auto_rollover_enabled
+      })
+      const [seriesTargetBySlug, eventTargetById] = await Promise.all([
+        resolveSeriesTargetsBySlug(
+          eligibleRows
+            .filter((row) => normalizeTargetType(row.target_type) === 'series')
+            .map((row) => row.series_slug ?? ''),
+        ),
+        resolveEventTargetsById(
+          eligibleRows
+            .filter((row) => normalizeTargetType(row.target_type) !== 'series')
+            .map((row) => row.event_id ?? ''),
+        ),
+      ])
       const resolvedTargets: HomeFeaturedResolvedTarget[] = []
       const seenEventIds = new Set<string>()
 
-      for (const row of rows) {
+      for (const row of eligibleRows) {
         if (resolvedTargets.length >= safeLimit) {
           break
         }
 
         const targetType = normalizeTargetType(row.target_type)
-        if (targetType === 'series' && !row.auto_rollover_enabled) {
-          continue
-        }
         const resolvedEvent =
           targetType === 'series'
-            ? await resolveSeriesTarget(row.series_slug ?? '')
-            : await resolveEventTarget(row.event_id ?? null)
+            ? seriesTargetBySlug.get(row.series_slug?.trim() ?? '')
+            : eventTargetById.get(row.event_id?.trim() ?? '')
 
         if (!resolvedEvent || seenEventIds.has(resolvedEvent.id)) {
           continue

@@ -21,6 +21,7 @@ import { useChanceRefresh } from '@/app/[locale]/(platform)/event/[slug]/_hooks/
 import { useEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import { useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { useEventVolumes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventVolumes'
 import { useMarketDetailController } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
@@ -627,6 +628,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const isNegRiskAugmented = Boolean(event.neg_risk_augmented)
+  const { volumeByCondition } = useEventVolumes(event)
   const { rows: marketRows, hasChanceData } = useEventMarketRows(event)
   const { expandedMarketId, toggleMarket, expandMarket, selectDetailTab, getSelectedDetailTab } =
     useMarketDetailController(event.id)
@@ -826,6 +828,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                   onToggle={() => handleToggle(market)}
                   onBuy={(cardMarket, outcomeIndex, source) => handleBuy(cardMarket, outcomeIndex, source)}
                   chanceHighlightKey={chanceHighlightKey}
+                  volumeOverride={volumeByCondition[market.condition_id]}
                   positionTags={positionTags}
                   openOrdersCount={openOrdersCountByCondition[market.condition_id] ?? 0}
                   onCashOut={handleCashOut}

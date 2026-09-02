@@ -4030,6 +4030,61 @@ export const EventRepository = {
     })
   },
 
+  async getEventsBySlugs(
+    slugs: string[],
+    userId: string = '',
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<QueryResult<Event[]>> {
+    return runQuery(async () => {
+      const normalizedSlugs = Array.from(new Set(slugs.map((slug) => slug.trim()).filter(Boolean)))
+      if (normalizedSlugs.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const eventResults = (await db.query.events.findMany({
+        where: and(inArray(events.slug, normalizedSlugs), eq(events.is_hidden, false)),
+        with: {
+          markets: {
+            with: {
+              sports: true,
+              condition: {
+                with: { outcomes: true },
+              },
+            },
+          },
+          eventTags: {
+            with: { tag: true },
+          },
+          sports: true,
+          ...(userId && {
+            bookmarks: {
+              where: eq(bookmarks.user_id, userId),
+            },
+          }),
+        },
+      })) as DrizzleEventResult[]
+
+      if (eventResults.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const hydratedEventResults = await Promise.all(eventResults.map(hydrateSportsAuxiliaryEventContext))
+      const sportsSlugResolver = await getSportsSlugResolverFromDb()
+      const eventsWithMarkets = await hydrateEventListResults({
+        eventsData: hydratedEventResults,
+        locale,
+        sportsSlugResolver,
+        userId,
+      })
+      const eventsBySlug = new Map(eventsWithMarkets.map((event) => [event.slug, event]))
+
+      return {
+        data: normalizedSlugs.map((slug) => eventsBySlug.get(slug)).filter((event): event is Event => Boolean(event)),
+        error: null,
+      }
+    })
+  },
+
   async getSportsEventGroupBySlug(
     slug: string,
     userId: string = '',

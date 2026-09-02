@@ -24,7 +24,6 @@ import type {
 } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
-import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
@@ -84,6 +83,11 @@ const HOME_FEATURED_ROLLOVER_RETRY_MS = 5_000
 const HOME_FEATURED_ROLLOVER_MAX_RETRIES = 6
 const HOME_FEATURED_ROLLOVER_MAX_RETRY_DELAY_MS = 60_000
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
+
+const HomeEventChart = dynamic(() => import('@/app/[locale]/(platform)/event/[slug]/_components/EventChart'), {
+  ssr: false,
+  loading: () => <div className="h-full min-h-60 w-full animate-pulse rounded-md bg-muted/20" aria-hidden="true" />,
+})
 
 interface FeaturedViewportStore {
   getServerSnapshot: () => boolean
@@ -2200,7 +2204,7 @@ function FeaturedSlide({
               showControls={false}
             />
           ) : (
-            <EventChart
+            <HomeEventChart
               event={item.event}
               isMobile={isMobile}
               showControls={false}
