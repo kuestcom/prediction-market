@@ -16,6 +16,35 @@ afterEach(() => {
 })
 
 describe('leaderboard API helpers', () => {
+  it('loads leaderboard rows independently of the slower PNL hydration request', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              proxyWallet: '0x2222222222222222222222222222222222222222',
+              userName: 'leader',
+              pnl: 10,
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      ),
+    )
+    const signal = new AbortController().signal
+
+    const entries = await helpers.fetchLeaderboardEntries('https://data-api.test/v1', DEFAULT_FILTERS, '', 2, signal)
+
+    expect(entries).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://data-api.test/v1/leaderboard?limit=20&offset=20&category=overall&timePeriod=month&orderBy=PNL',
+      { signal },
+    )
+  })
+
   it('keeps proxyWallet entries from DATA_URL leaderboard responses', () => {
     const [entry] = helpers.normalizeLeaderboardResponse({
       data: [

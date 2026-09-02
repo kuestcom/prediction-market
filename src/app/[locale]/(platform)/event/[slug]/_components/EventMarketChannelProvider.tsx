@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import type { MarketQuote, MarketQuotesByMarket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import type {
@@ -25,13 +25,30 @@ interface MarketChannelContextValue {
   subscribe: (listener: MarketChannelListener) => () => void
 }
 
+interface MarketChannelLiveVolumeContextValue {
+  liveVolumeByCondition: Record<string, number>
+  resetLiveVolumes: () => void
+}
+
 interface TokenMapping {
   tokenIds: string[]
   tokenIdToConditionId: Map<string, string>
 }
 
+interface LiveVolumeState {
+  tokenIdsSignature: string
+  byCondition: Record<string, number>
+}
+
 const MarketChannelContext = createContext<MarketChannelContextValue | null>(null)
+const MarketChannelLiveVolumeContext = createContext<MarketChannelLiveVolumeContextValue | null>(null)
+const EMPTY_LIVE_VOLUME_CONTEXT: MarketChannelLiveVolumeContextValue = {
+  liveVolumeByCondition: {},
+  resetLiveVolumes: () => {},
+}
 const WEBSOCKET_PING_INTERVAL_MS = 10000
+const LIVE_VOLUME_FLUSH_INTERVAL_MS = 100
+const MAX_SEEN_LIVE_TRADE_KEYS = 4096
 
 function buildTokenMapping(markets: Market[]): TokenMapping {
   const tokenIds: string[] = []
@@ -81,6 +98,76 @@ function resolveQuote(bestBid: unknown, bestAsk: unknown): MarketQuote {
   const mid = bid != null && ask != null ? (bid + ask) / 2 : (ask ?? bid ?? null)
 
   return { bid, ask, mid }
+}
+
+export function resolveLiveTradeVolume(
+  payload: unknown,
+  tokenIdToConditionId: Map<string, string>,
+): { conditionId: string; volume: number } | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null
+  }
+
+  const record = payload as Record<string, unknown>
+  if (record.event_type !== 'last_trade_price') {
+    return null
+  }
+
+  const assetId = typeof record.asset_id === 'string' ? record.asset_id : ''
+  const conditionId = tokenIdToConditionId.get(assetId)
+  if (!conditionId) {
+    return null
+  }
+
+  const price = Number(record.price)
+  const size = Number(record.size)
+  const volume = price * size
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(size) || size <= 0 || !Number.isFinite(volume)) {
+    return null
+  }
+
+  return { conditionId, volume }
+}
+
+export function resolveLiveTradeEventKey(payload: unknown, tokenIdToConditionId: Map<string, string>) {
+  const trade = resolveLiveTradeVolume(payload, tokenIdToConditionId)
+  if (!trade || !payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null
+  }
+
+  const record = payload as Record<string, unknown>
+  const assetId = typeof record.asset_id === 'string' ? record.asset_id : ''
+  const streamId = [record.sequence, record.stream_id, record.trade_id, record.tradeId, record.id].find(
+    (value): value is string | number =>
+      (typeof value === 'string' && value.trim().length > 0) || typeof value === 'number',
+  )
+  if (streamId !== undefined) {
+    return [trade.conditionId, 'stream', String(streamId), assetId].join(':')
+  }
+
+  const timestamp = Number(record.timestamp)
+  if (!assetId || !Number.isFinite(timestamp)) {
+    return null
+  }
+
+  const side = typeof record.side === 'string' ? record.side.toUpperCase() : ''
+  return [trade.conditionId, assetId, timestamp, Number(record.price), Number(record.size), side].join(':')
+}
+
+export function accumulateLiveTradeVolume(
+  current: Record<string, number>,
+  payload: unknown,
+  tokenIdToConditionId: Map<string, string>,
+) {
+  const trade = resolveLiveTradeVolume(payload, tokenIdToConditionId)
+  if (!trade) {
+    return current
+  }
+
+  return {
+    ...current,
+    [trade.conditionId]: (current[trade.conditionId] ?? 0) + trade.volume,
+  }
 }
 
 function updateOrderBookCaches(
@@ -266,6 +353,103 @@ function useMarketChannelConnection({
   const listenersRef = useRef(new Set<MarketChannelListener>())
   const connectionStatusRef = useRef<MarketChannelStatus>('connecting')
   const connectionStatusListenersRef = useRef(new Set<() => void>())
+  const tokenIdsSignature = tokenIds.join(',')
+  const [liveVolumeState, setLiveVolumeState] = useState<LiveVolumeState>(() => ({
+    tokenIdsSignature,
+    byCondition: {},
+  }))
+  const pendingLiveVolumeRef = useRef<Record<string, number>>({})
+  const liveVolumeFlushTimerRef = useRef<number | null>(null)
+  const seenLiveTradeKeysRef = useRef<{ tokenIdsSignature: string; keys: Set<string> }>({
+    tokenIdsSignature,
+    keys: new Set(),
+  })
+  const liveVolumeByCondition =
+    liveVolumeState.tokenIdsSignature === tokenIdsSignature
+      ? liveVolumeState.byCondition
+      : EMPTY_LIVE_VOLUME_CONTEXT.liveVolumeByCondition
+
+  const clearPendingLiveVolume = useCallback(() => {
+    pendingLiveVolumeRef.current = {}
+    if (liveVolumeFlushTimerRef.current !== null) {
+      window.clearTimeout(liveVolumeFlushTimerRef.current)
+      liveVolumeFlushTimerRef.current = null
+    }
+  }, [])
+
+  const flushPendingLiveVolume = useCallback(() => {
+    liveVolumeFlushTimerRef.current = null
+    const pending = pendingLiveVolumeRef.current
+    pendingLiveVolumeRef.current = {}
+
+    if (Object.keys(pending).length === 0) {
+      return
+    }
+
+    setLiveVolumeState((current) => {
+      const byCondition =
+        current.tokenIdsSignature === tokenIdsSignature
+          ? current.byCondition
+          : EMPTY_LIVE_VOLUME_CONTEXT.liveVolumeByCondition
+      const next = { ...byCondition }
+
+      for (const [conditionId, volume] of Object.entries(pending)) {
+        next[conditionId] = (next[conditionId] ?? 0) + volume
+      }
+
+      return { tokenIdsSignature, byCondition: next }
+    })
+  }, [tokenIdsSignature])
+
+  const resetLiveVolumes = useCallback(() => {
+    clearPendingLiveVolume()
+    seenLiveTradeKeysRef.current = { tokenIdsSignature, keys: new Set() }
+    setLiveVolumeState((current) => {
+      if (current.tokenIdsSignature !== tokenIdsSignature || Object.keys(current.byCondition).length === 0) {
+        return current
+      }
+
+      return { tokenIdsSignature, byCondition: {} }
+    })
+  }, [clearPendingLiveVolume, tokenIdsSignature])
+
+  const addLiveTradeVolume = useCallback(
+    (payload: unknown) => {
+      const trade = resolveLiveTradeVolume(payload, tokenIdToConditionId)
+      if (!trade) {
+        return
+      }
+
+      if (seenLiveTradeKeysRef.current.tokenIdsSignature !== tokenIdsSignature) {
+        seenLiveTradeKeysRef.current = { tokenIdsSignature, keys: new Set() }
+      }
+
+      const eventKey = resolveLiveTradeEventKey(payload, tokenIdToConditionId)
+      if (eventKey) {
+        if (seenLiveTradeKeysRef.current.keys.has(eventKey)) {
+          return
+        }
+        seenLiveTradeKeysRef.current.keys.add(eventKey)
+        while (seenLiveTradeKeysRef.current.keys.size > MAX_SEEN_LIVE_TRADE_KEYS) {
+          const oldestKey = seenLiveTradeKeysRef.current.keys.values().next().value
+          if (oldestKey === undefined) {
+            break
+          }
+          seenLiveTradeKeysRef.current.keys.delete(oldestKey)
+        }
+      }
+
+      pendingLiveVolumeRef.current[trade.conditionId] =
+        (pendingLiveVolumeRef.current[trade.conditionId] ?? 0) + trade.volume
+
+      if (liveVolumeFlushTimerRef.current === null) {
+        liveVolumeFlushTimerRef.current = window.setTimeout(flushPendingLiveVolume, LIVE_VOLUME_FLUSH_INTERVAL_MS)
+      }
+    },
+    [flushPendingLiveVolume, tokenIdToConditionId, tokenIdsSignature],
+  )
+
+  useEffect(() => clearPendingLiveVolume, [clearPendingLiveVolume, tokenIdsSignature])
 
   const subscribe = useCallback(function subscribeToMarketChannelListeners(listener: MarketChannelListener) {
     listenersRef.current.add(listener)
@@ -348,6 +532,7 @@ function useMarketChannelConnection({
           if (tokenId) {
             updateOrderBookFromLastTrade(queryClient, tokenId, payload.price, payload.side)
           }
+          addLiveTradeVolume(payload)
         }
 
         if (payload?.event_type === 'best_bid_ask') {
@@ -453,11 +638,11 @@ function useMarketChannelConnection({
         }
       }
     },
-    [hasMarketChannel, queryClient, setConnectionStatus, tokenIds, tokenIdToConditionId, wsUrl],
+    [addLiveTradeVolume, hasMarketChannel, queryClient, setConnectionStatus, tokenIds, tokenIdToConditionId, wsUrl],
   )
 
   const status: MarketChannelStatus = hasMarketChannel ? connectionStatus : 'offline'
-  return { status, subscribe }
+  return { status, subscribe, liveVolumeByCondition, resetLiveVolumes }
 }
 
 function EventMarketChannelProvider({ markets, children }: { markets: Market[]; children: React.ReactNode }) {
@@ -467,7 +652,7 @@ function EventMarketChannelProvider({ markets, children }: { markets: Market[]; 
   const wsUrl = wsClobUrl
   const hasMarketChannel = tokenIds.length > 0 && Boolean(wsUrl)
 
-  const { status, subscribe } = useMarketChannelConnection({
+  const { status, subscribe, liveVolumeByCondition, resetLiveVolumes } = useMarketChannelConnection({
     tokenIds,
     tokenIdToConditionId,
     wsUrl,
@@ -476,8 +661,16 @@ function EventMarketChannelProvider({ markets, children }: { markets: Market[]; 
   })
 
   const contextValue = useMemo(() => ({ status, subscribe }), [status, subscribe])
+  const liveVolumeContextValue = useMemo(
+    () => ({ liveVolumeByCondition, resetLiveVolumes }),
+    [liveVolumeByCondition, resetLiveVolumes],
+  )
 
-  return <MarketChannelContext value={contextValue}>{children}</MarketChannelContext>
+  return (
+    <MarketChannelContext value={contextValue}>
+      <MarketChannelLiveVolumeContext value={liveVolumeContextValue}>{children}</MarketChannelLiveVolumeContext>
+    </MarketChannelContext>
+  )
 }
 
 export function useMarketChannelStatus() {
@@ -509,6 +702,11 @@ export function useOptionalMarketChannelSubscription(listener: MarketChannelList
     },
     [context, listener],
   )
+}
+
+export function useOptionalMarketChannelLiveVolumes(): MarketChannelLiveVolumeContextValue {
+  const context = use(MarketChannelLiveVolumeContext)
+  return context ?? EMPTY_LIVE_VOLUME_CONTEXT
 }
 
 export default EventMarketChannelProvider

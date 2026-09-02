@@ -33,6 +33,7 @@ interface EventMarketCardProps {
   onBuy: (market: EventMarketRow['market'], outcomeIndex: number, source: 'mobile' | 'desktop') => void
   chanceHighlightKey: string
   volumeOverride?: number
+  liveVolume?: number
   positionTags?: MarketPositionTag[]
   openOrdersCount?: number
   onCashOut?: (market: EventMarketRow['market'], tag: MarketPositionTag) => void
@@ -49,6 +50,7 @@ function EventMarketCardComponent({
   onBuy,
   chanceHighlightKey,
   volumeOverride,
+  liveVolume = 0,
   positionTags = [],
   openOrdersCount = 0,
   onCashOut,
@@ -62,8 +64,12 @@ function EventMarketCardComponent({
   const hasOpenOrders = openOrdersCount > 0
   const shouldShowTags = resolvedPositionTags.length > 0 || hasOpenOrders
   const shouldShowIcon = showMarketIcon && Boolean(market.icon_url)
-  const resolvedVolume =
+  const baseVolume =
     typeof volumeOverride === 'number' && Number.isFinite(volumeOverride) ? volumeOverride : market.volume
+  const resolvedVolume =
+    typeof baseVolume === 'number' && Number.isFinite(baseVolume) && Number.isFinite(liveVolume)
+      ? baseVolume + liveVolume
+      : baseVolume
 
   return (
     <EventMarketRowShell isExpanded={isExpanded} onToggle={onToggle}>

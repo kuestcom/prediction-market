@@ -5,9 +5,15 @@ import type {
   TimeframePnlBatchResponse,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
 
+import {
+  resolveCategoryApiValue,
+  resolveOrderApiValue,
+  resolvePeriodApiValue,
+} from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+
 export const PAGE_SIZE = 20
-export const BIGGEST_WINS_CACHE = new Map<string, BiggestWinEntry[]>()
-export const BIGGEST_WINS_IN_FLIGHT = new Map<string, Promise<BiggestWinEntry[]>>()
+export const LEADERBOARD_STALE_TIME = 5 * 60_000
+export const LEADERBOARD_GC_TIME = 15 * 60_000
 
 export const LIST_ROW_COLUMNS = 'grid-cols-[minmax(0,1fr)_7.5rem] md:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem]'
 
@@ -131,7 +137,64 @@ export function resolveLeaderboardApiUrl(dataApiUrl: string) {
   return dataApiUrl.endsWith('/v1') ? dataApiUrl : `${dataApiUrl}/v1`
 }
 
-export async function fetchBiggestWins(leaderboardApiUrl: string, category: string, period: string) {
+function buildLeaderboardParams(filters: LeaderboardFilters, page: number, searchQuery?: string, userAddress?: string) {
+  const params = new URLSearchParams({
+    limit: String(userAddress ? 1 : PAGE_SIZE),
+    offset: String(userAddress ? 0 : (page - 1) * PAGE_SIZE),
+    category: resolveCategoryApiValue(filters.category),
+    timePeriod: resolvePeriodApiValue(filters.period),
+    orderBy: resolveOrderApiValue(filters.order),
+  })
+
+  if (searchQuery) {
+    params.set('userName', searchQuery)
+  }
+  if (userAddress) {
+    params.set('user', userAddress)
+  }
+
+  return params
+}
+
+async function readLeaderboardResponse(response: Response, errorMessage: string) {
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null)
+    throw new Error(errorBody?.error || errorMessage)
+  }
+
+  return normalizeLeaderboardResponse(await response.json())
+}
+
+export async function fetchLeaderboardEntries(
+  leaderboardApiUrl: string,
+  filters: LeaderboardFilters,
+  searchQuery: string,
+  page: number,
+  signal: AbortSignal,
+) {
+  const params = buildLeaderboardParams(filters, page, searchQuery)
+  const response = await fetch(`${leaderboardApiUrl}/leaderboard?${params.toString()}`, { signal })
+  return readLeaderboardResponse(response, 'Failed to load leaderboard.')
+}
+
+export async function fetchLeaderboardUserEntry(
+  leaderboardApiUrl: string,
+  filters: LeaderboardFilters,
+  userAddress: string,
+  signal: AbortSignal,
+) {
+  const params = buildLeaderboardParams(filters, 1, undefined, userAddress)
+  const response = await fetch(`${leaderboardApiUrl}/leaderboard?${params.toString()}`, { signal })
+  const [entry] = await readLeaderboardResponse(response, 'Failed to load leaderboard user entry.')
+  return entry ?? null
+}
+
+export async function fetchBiggestWins(
+  leaderboardApiUrl: string,
+  category: string,
+  period: string,
+  signal?: AbortSignal,
+) {
   const params = new URLSearchParams({
     limit: '20',
     offset: '0',
@@ -139,7 +202,7 @@ export async function fetchBiggestWins(leaderboardApiUrl: string, category: stri
     timePeriod: period,
   })
 
-  const response = await fetch(`${leaderboardApiUrl}/biggest-winners?${params.toString()}`)
+  const response = await fetch(`${leaderboardApiUrl}/biggest-winners?${params.toString()}`, { signal })
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)
     throw new Error(errorBody?.error || 'Failed to load biggest winners.')
