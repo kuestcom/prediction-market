@@ -38,6 +38,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toast'
@@ -610,27 +611,39 @@ export default function SportsSidebarCategoriesManager({
                   setIsNewCategorySlugEdited(true)
                 }}
               />
-              <select
+              <Select
                 value={newCategoryParentId}
                 disabled={isSaving}
-                aria-label={vertical === 'esports' ? t('Parent game') : t('Parent sport')}
-                className={cn(
-                  `h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30`,
-                )}
-                onChange={(event) => {
-                  setNewCategoryParentId(event.target.value)
-                  setSaveError(null)
+                onValueChange={(value) => {
+                  if (value !== null) {
+                    setNewCategoryParentId(value)
+                    setSaveError(null)
+                  }
                 }}
               >
-                <option value={TOP_LEVEL_PARENT_VALUE}>
-                  {vertical === 'esports' ? t('Top-level game') : t('Top-level sport')}
-                </option>
-                {nestedLeagueParentOptions.map((category) => (
-                  <option key={category.id} value={category.id ?? TOP_LEVEL_PARENT_VALUE}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label={vertical === 'esports' ? t('Parent game') : t('Parent sport')}
+                  className="h-9 w-full"
+                >
+                  <SelectValue>
+                    {newCategoryParentId === TOP_LEVEL_PARENT_VALUE
+                      ? vertical === 'esports'
+                        ? t('Top-level game')
+                        : t('Top-level sport')
+                      : (parentNameById.get(newCategoryParentId) ?? newCategoryParentId)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectItem value={TOP_LEVEL_PARENT_VALUE}>
+                    {vertical === 'esports' ? t('Top-level game') : t('Top-level sport')}
+                  </SelectItem>
+                  {nestedLeagueParentOptions.map((category) => (
+                    <SelectItem key={category.id} value={category.id ?? TOP_LEVEL_PARENT_VALUE}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button type="button" variant="outline" disabled={isSaving} onClick={handleAddCategory}>
                 <PlusIcon className="mr-2 size-4" />
                 {t('Add')}
