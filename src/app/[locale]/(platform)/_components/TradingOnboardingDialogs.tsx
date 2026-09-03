@@ -435,6 +435,37 @@ function EmailDialog({
 }) {
   const t = useExtracted()
   const [email, setEmail] = useState(defaultValue)
+  const emailEditedRef = useRef(false)
+  const lastSyncedDefaultValueRef = useRef(defaultValue)
+
+  useEffect(
+    function resetEmailEditStateWhenClosed() {
+      if (!open) {
+        emailEditedRef.current = false
+      }
+    },
+    [open],
+  )
+
+  useEffect(
+    function syncEmailDefaultValue() {
+      const normalizedDefaultValue = defaultValue.trim()
+      if (!open || !normalizedDefaultValue || emailEditedRef.current) {
+        return
+      }
+
+      const previousDefaultValue = lastSyncedDefaultValueRef.current.trim()
+      setEmail((currentEmail) => {
+        const normalizedCurrentEmail = currentEmail.trim()
+        if (!normalizedCurrentEmail || normalizedCurrentEmail === previousDefaultValue) {
+          return defaultValue
+        }
+        return currentEmail
+      })
+      lastSyncedDefaultValueRef.current = defaultValue
+    },
+    [defaultValue, open],
+  )
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -457,7 +488,10 @@ function EmailDialog({
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <Input
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          onChange={(event) => {
+            emailEditedRef.current = true
+            setEmail(event.target.value)
+          }}
           placeholder={t('Email address')}
           type="email"
           className="h-12 text-base"

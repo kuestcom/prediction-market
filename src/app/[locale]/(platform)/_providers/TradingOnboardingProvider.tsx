@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 
+import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -498,6 +499,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   } | null>(null)
   const { signTypedDataAsync } = useSignTypedData()
   const { signMessageAsync } = useSignMessage()
+  const { embeddedWalletInfo } = useAppKitAccount({ namespace: 'eip155' })
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
   const signatureRejectedMessage = t('You rejected the signature request.')
@@ -604,6 +606,11 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   const needsSumsub = sumsubStatus.effective && !sumsubApproved
   const needsSumsubForFlow = needsSumsub && !(sumsubStatus.enforcement === 'observe' && sumsubObserveDismissed)
   const tradingReady = isTradingReady({ onboardingStatus: status, sumsubLoaded, sumsubStatus })
+  const reownEmail =
+    embeddedWalletInfo?.authProvider === 'email' && hasUsableUserEmail(embeddedWalletInfo.user?.email)
+      ? (embeddedWalletInfo.user?.email?.trim() ?? '')
+      : ''
+  const emailDefaultValue = hasUsableUserEmail(user?.email) ? (user?.email?.trim() ?? '') : reownEmail
 
   const runPendingTradingReadyAction = useCallback(() => {
     const action = pendingTradingReadyActionRef.current
@@ -1872,7 +1879,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
         usernameError={usernameError}
         isUsernameSubmitting={isUsernameSubmitting}
         onUsernameSubmit={handleUsernameSubmit}
-        emailDefaultValue={hasUsableUserEmail(user?.email) ? (user?.email ?? '') : ''}
+        emailDefaultValue={emailDefaultValue}
         emailError={emailError}
         isEmailSubmitting={isEmailSubmitting}
         onEmailSubmit={handleEmailSubmit}
