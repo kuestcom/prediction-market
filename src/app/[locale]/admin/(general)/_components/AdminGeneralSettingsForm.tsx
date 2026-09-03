@@ -1,22 +1,22 @@
 'use client'
 
 import { useExtracted } from 'next-intl'
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
+import type { SupportedLocale } from '@/i18n/locales'
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import type { TermsOfServiceTranslations } from '@/lib/terms-of-service'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 
-import {
-  removeTermsOfServicePdfAction,
-  updateGeneralSettingsAction,
-} from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
+import { updateGeneralSettingsAction } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { toast } from '@/components/ui/toast'
 import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
+import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import { DEFAULT_HOME_FEATURED_SETTINGS, serializeHomeFeaturedSideCardSlides } from '@/lib/home-featured-settings'
 import { optimizeSideCardImage } from '@/lib/side-card-image-client'
@@ -38,6 +38,12 @@ function formatBlockedCountriesValue(countries: string[]) {
   return countries.join(', ')
 }
 
+function createTermsOfServiceTranslations(value?: TermsOfServiceTranslations): TermsOfServiceTranslations {
+  return Object.fromEntries(
+    SUPPORTED_LOCALES.map((locale) => [locale, value?.[locale] ?? '']),
+  ) as TermsOfServiceTranslations
+}
+
 interface InitialGlobalAnnouncementSettings {
   message: string
   linkUrl: string
@@ -55,8 +61,8 @@ interface AdminGeneralSettingsFormProps {
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
   initialGlobalAnnouncement: InitialGlobalAnnouncementSettings
   initialBlockedCountries: string[]
-  initialTermsOfServicePdfPath: string
-  initialTermsOfServicePdfUrl: string | null
+  enabledLocales: SupportedLocale[]
+  initialTermsOfServiceTranslations?: TermsOfServiceTranslations
   initialMarketContextSettings: InitialMarketContextSettings
   marketContextVariables: MarketContextVariable[]
   initialHomeFeaturedSettings?: HomeFeaturedSettings
@@ -79,8 +85,8 @@ function AdminGeneralSettingsFormInner({
   initialThemeSiteSettings,
   initialGlobalAnnouncement,
   initialBlockedCountries,
-  initialTermsOfServicePdfPath,
-  initialTermsOfServicePdfUrl,
+  enabledLocales,
+  initialTermsOfServiceTranslations,
   initialMarketContextSettings,
   marketContextVariables,
   initialHomeFeaturedSettings,
@@ -125,6 +131,10 @@ function AdminGeneralSettingsFormInner({
   const initialHomeFeaturedIncludeSportsToday = resolvedInitialHomeFeaturedSettings.includeSportsToday
   const initialHomeFeaturedIncludeNewEvents = resolvedInitialHomeFeaturedSettings.includeNewEvents
   const initialHomeFeaturedSideCard = resolvedInitialHomeFeaturedSettings.sideCard
+  const initialTermsOfServiceContent = useMemo(
+    () => createTermsOfServiceTranslations(initialTermsOfServiceTranslations),
+    [initialTermsOfServiceTranslations],
+  )
 
   const optimizedSideCardImagesRef = useRef(new Map<string, File>())
   const sideCardImageProcessingRequestRef = useRef(new Map<string, number>())
@@ -157,7 +167,6 @@ function AdminGeneralSettingsFormInner({
     [settingsSavedMessage],
   )
   const [state, formAction, isPending] = useActionState(submitGeneralSettingsAction, initialState)
-  const [isRemovingTermsOfServicePdf, startRemovingTermsOfServicePdf] = useTransition()
   const [siteName, setSiteName] = useState(initialSiteName)
   const [siteDescription, setSiteDescription] = useState(initialSiteDescription)
   const [logoMode, setLogoMode] = useState(initialLogoMode)
@@ -182,7 +191,7 @@ function AdminGeneralSettingsFormInner({
   const [globalAnnouncementDisableFaucetBanner, setGlobalAnnouncementDisableFaucetBanner] = useState(
     initialGlobalAnnouncementDisableFaucetBanner,
   )
-  const [tosPdfPath, setTosPdfPath] = useState(initialTermsOfServicePdfPath)
+  const [termsOfServiceTranslations, setTermsOfServiceTranslations] = useState(initialTermsOfServiceContent)
   const [marketContextEnabled, setMarketContextEnabled] = useState(initialMarketContextEnabled)
   const [marketContextPrompt, setMarketContextPrompt] = useState(initialMarketContextPrompt)
   const [homeFeaturedEnabled, setHomeFeaturedEnabled] = useState(initialHomeFeaturedEnabled)
@@ -205,7 +214,6 @@ function AdminGeneralSettingsFormInner({
     resolvedInitialHomeFeaturedEvents,
   )
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
-  const [selectedTermsOfServicePdfFile, setSelectedTermsOfServicePdfFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
   const [pwaIcon192PreviewUrl, setPwaIcon192PreviewUrl] = useState<string | null>(null)
   const [pwaIcon512PreviewUrl, setPwaIcon512PreviewUrl] = useState<string | null>(null)
@@ -278,6 +286,15 @@ function AdminGeneralSettingsFormInner({
     () => JSON.stringify(globalAnnouncementDisabledOn),
     [globalAnnouncementDisabledOn],
   )
+  const serializedTermsOfServiceTranslations = useMemo(
+    () => JSON.stringify(termsOfServiceTranslations),
+    [termsOfServiceTranslations],
+  )
+  const serializedInitialTermsOfServiceContent = useMemo(
+    () => JSON.stringify(initialTermsOfServiceContent),
+    [initialTermsOfServiceContent],
+  )
+  const hasTermsOfServiceChanges = serializedTermsOfServiceTranslations !== serializedInitialTermsOfServiceContent
   const blockedCountriesValue = useMemo(() => formatBlockedCountriesValue(blockedCountries), [blockedCountries])
   const serializedHomeFeaturedEvents = useMemo(
     () => JSON.stringify(serializeHomeFeaturedEventsForSave(homeFeaturedEvents, locale)),
@@ -301,7 +318,9 @@ function AdminGeneralSettingsFormInner({
     [sanitizedLogoSvg],
   )
 
-  const hasUploadedTermsOfServicePdf = Boolean(initialTermsOfServicePdfUrl && tosPdfPath.trim())
+  function handleTermsOfServiceTranslationChange(locale: SupportedLocale, content: string) {
+    setTermsOfServiceTranslations((previous) => ({ ...previous, [locale]: content }))
+  }
   function handleToggleBlockedCountry(code: string, checked: boolean) {
     setBlockedCountries((previous) => {
       if (checked) {
@@ -380,26 +399,6 @@ function AdminGeneralSettingsFormInner({
     })
   }
 
-  function handleRemoveTermsOfServicePdf() {
-    startRemovingTermsOfServicePdf(async () => {
-      try {
-        const result = await removeTermsOfServicePdfAction()
-
-        if (result.error) {
-          toast.error(result.error)
-          return
-        }
-
-        setTosPdfPath('')
-        setSelectedTermsOfServicePdfFile(null)
-        toast.success(t('Terms of Use PDF removed.'))
-      } catch (error) {
-        console.error('Failed to remove Terms of Use PDF', error)
-        toast.error(t('Unable to remove the Terms of Use PDF right now.'))
-      }
-    })
-  }
-
   return (
     <form action={formAction} className="grid max-w-full min-w-0 gap-6">
       <input type="hidden" name="logo_mode" value={logoMode} />
@@ -409,7 +408,9 @@ function AdminGeneralSettingsFormInner({
       <input type="hidden" name="pwa_icon_512_path" value={pwaIcon512Path} />
       <input type="hidden" name="market_context_enabled" value={String(marketContextEnabled)} />
       <input type="hidden" name="market_context_prompt" value={marketContextPrompt} />
-      <input type="hidden" name="tos_pdf_path" value={tosPdfPath} />
+      {hasTermsOfServiceChanges ? (
+        <input type="hidden" name="terms_of_service_translations_json" value={serializedTermsOfServiceTranslations} />
+      ) : null}
       <input type="hidden" name="global_announcement_disabled_on_json" value={serializedGlobalAnnouncementDisabledOn} />
       <input
         type="hidden"
@@ -568,14 +569,11 @@ function AdminGeneralSettingsFormInner({
 
         <LegalSection
           isPending={isPending}
-          isRemovingTermsOfServicePdf={isRemovingTermsOfServicePdf}
           openSections={visibleOpenSections}
           onToggleSection={toggleSection}
-          selectedTermsOfServicePdfFile={selectedTermsOfServicePdfFile}
-          setSelectedTermsOfServicePdfFile={setSelectedTermsOfServicePdfFile}
-          hasUploadedTermsOfServicePdf={hasUploadedTermsOfServicePdf}
-          initialTermsOfServicePdfUrl={initialTermsOfServicePdfUrl}
-          onRemoveTermsOfServicePdf={handleRemoveTermsOfServicePdf}
+          enabledLocales={enabledLocales}
+          termsOfServiceTranslations={termsOfServiceTranslations}
+          onTermsOfServiceTranslationChange={handleTermsOfServiceTranslationChange}
           blockedCountries={blockedCountries}
           onToggleBlockedCountry={handleToggleBlockedCountry}
           onClearBlockedCountries={handleClearBlockedCountries}
@@ -585,11 +583,7 @@ function AdminGeneralSettingsFormInner({
       {state.error && <InputError message={state.error} />}
 
       <div className="flex justify-end">
-        <Button
-          type="submit"
-          className="w-full sm:w-40"
-          disabled={isPending || isRemovingTermsOfServicePdf || isSideCardImageProcessing}
-        >
+        <Button type="submit" className="w-full sm:w-40" disabled={isPending || isSideCardImageProcessing}>
           {isPending ? t('Saving...') : t('Save settings')}
         </Button>
       </div>
@@ -603,8 +597,8 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     locale: props.locale,
     initialGlobalAnnouncement: props.initialGlobalAnnouncement,
     initialBlockedCountries: props.initialBlockedCountries,
-    initialTermsOfServicePdfPath: props.initialTermsOfServicePdfPath,
-    initialTermsOfServicePdfUrl: props.initialTermsOfServicePdfUrl,
+    enabledLocales: props.enabledLocales,
+    initialTermsOfServiceTranslations: props.initialTermsOfServiceTranslations,
     initialMarketContextSettings: props.initialMarketContextSettings,
     marketContextVariables: props.marketContextVariables,
     initialHomeFeaturedSettings: props.initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS,

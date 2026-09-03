@@ -1,11 +1,13 @@
 'use client'
 
-import type { Dispatch, SetStateAction } from 'react'
-
-import { SearchIcon, ShieldIcon, XIcon } from 'lucide-react'
+import { FileTextIcon, MapPinOffIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 
+import type { SupportedLocale } from '@/i18n/locales'
+import type { TermsOfServiceTranslations } from '@/lib/terms-of-service'
+
+import LocaleFlag from '@/components/LocaleFlag'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,22 +29,23 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { LOCALE_LABELS } from '@/i18n/locales'
 import { GEOBLOCK_COUNTRY_OPTIONS } from '@/lib/geoblock-country-options'
+import { TERMS_OF_SERVICE_CONTENT_MAX_LENGTH } from '@/lib/terms-of-service'
 import { cn } from '@/lib/utils'
 
 import SettingsAccordionSection from './SettingsAccordionSection'
 
 interface LegalSectionProps {
   isPending: boolean
-  isRemovingTermsOfServicePdf: boolean
   openSections: string[]
   onToggleSection: (value: string) => void
-  selectedTermsOfServicePdfFile: File | null
-  setSelectedTermsOfServicePdfFile: Dispatch<SetStateAction<File | null>>
-  hasUploadedTermsOfServicePdf: boolean
-  initialTermsOfServicePdfUrl: string | null
-  onRemoveTermsOfServicePdf: () => void
+  enabledLocales: SupportedLocale[]
+  termsOfServiceTranslations: TermsOfServiceTranslations
+  onTermsOfServiceTranslationChange: (locale: SupportedLocale, content: string) => void
   blockedCountries: string[]
   onToggleBlockedCountry: (code: string, checked: boolean) => void
   onClearBlockedCountries: () => void
@@ -50,14 +53,11 @@ interface LegalSectionProps {
 
 function LegalSection({
   isPending,
-  isRemovingTermsOfServicePdf,
   openSections,
   onToggleSection,
-  selectedTermsOfServicePdfFile,
-  setSelectedTermsOfServicePdfFile,
-  hasUploadedTermsOfServicePdf,
-  initialTermsOfServicePdfUrl,
-  onRemoveTermsOfServicePdf,
+  enabledLocales,
+  termsOfServiceTranslations,
+  onTermsOfServiceTranslationChange,
   blockedCountries,
   onToggleBlockedCountry,
   onClearBlockedCountries,
@@ -66,6 +66,10 @@ function LegalSection({
   const isMobile = useIsMobile()
   const [isBlockedCountriesDialogOpen, setIsBlockedCountriesDialogOpen] = useState(false)
   const [blockedCountrySearch, setBlockedCountrySearch] = useState('')
+  const termsOfServiceLocales = enabledLocales.length > 0 ? enabledLocales : (['en'] as SupportedLocale[])
+  const [selectedTermsOfServiceLocale, setSelectedTermsOfServiceLocale] = useState<SupportedLocale>(
+    termsOfServiceLocales[0] ?? 'en',
+  )
   const blockedCountryOptionsByCode = useMemo(
     () => new Map(GEOBLOCK_COUNTRY_OPTIONS.map((option) => [option.code, option])),
     [],
@@ -159,72 +163,87 @@ function LegalSection({
   )
 
   return (
-    <SettingsAccordionSection
-      value="legal"
-      isOpen={openSections.includes('legal')}
-      onToggle={onToggleSection}
-      header={
-        <h3 className="flex items-center gap-2 text-base font-medium">
-          <ShieldIcon className="size-4 text-muted-foreground" />
-          {t('Legal & Geoblocking')}
-        </h3>
-      }
-    >
-      <div className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="terms-of-service-pdf">{t('Terms of Use PDF')}</Label>
-          <Input
-            id="terms-of-service-pdf"
-            type="file"
-            name="tos_pdf"
-            accept="application/pdf"
-            disabled={isPending || isRemovingTermsOfServicePdf}
-            onChange={(event) => {
-              const file = event.target.files?.[0] ?? null
-              setSelectedTermsOfServicePdfFile(file)
-            }}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t('Upload a PDF to replace the default /tos page content. PDF only, up to 2MB.')}
-          </p>
-        </div>
-
-        {selectedTermsOfServicePdfFile ? (
-          <p className="text-xs text-muted-foreground">
-            {t('Selected file:')} {selectedTermsOfServicePdfFile.name}
-          </p>
-        ) : null}
-
-        {hasUploadedTermsOfServicePdf && (
-          <div
-            className={cn(
-              `flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between`,
-            )}
-          >
-            <div className="grid gap-1">
-              <p className="text-sm font-medium">{t('An uploaded Terms of Use PDF is currently active on /tos.')}</p>
-              <a
-                href={initialTermsOfServicePdfUrl ?? '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-muted-foreground underline underline-offset-2"
+    <>
+      <SettingsAccordionSection
+        value="terms-of-service"
+        isOpen={openSections.includes('terms-of-service')}
+        onToggle={onToggleSection}
+        header={
+          <h3 className="flex items-center gap-2 text-base font-medium">
+            <FileTextIcon className="size-4 text-muted-foreground" />
+            {t('Terms of Service')}
+          </h3>
+        }
+      >
+        <div className="grid gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Label htmlFor="terms-of-service-locale" className="shrink-0">
+              {t('Choose the language')}
+            </Label>
+            <div className="flex min-w-0 items-center gap-2 sm:w-40">
+              <Select
+                value={selectedTermsOfServiceLocale}
+                disabled={isPending}
+                onValueChange={(value) => {
+                  if (value !== null && termsOfServiceLocales.includes(value as SupportedLocale)) {
+                    setSelectedTermsOfServiceLocale(value as SupportedLocale)
+                  }
+                }}
               >
-                {t('Open current PDF')}
-              </a>
+                <SelectTrigger id="terms-of-service-locale" className="w-40">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <LocaleFlag locale={selectedTermsOfServiceLocale} />
+                    <SelectValue className="min-w-0 truncate">
+                      {LOCALE_LABELS[selectedTermsOfServiceLocale]}
+                    </SelectValue>
+                  </span>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false} className="w-full">
+                  {termsOfServiceLocales.map((locale) => (
+                    <SelectItem key={locale} value={locale}>
+                      <span className="flex items-center gap-2">
+                        <LocaleFlag locale={locale} />
+                        <span>{LOCALE_LABELS[locale]}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isPending || isRemovingTermsOfServicePdf}
-              onClick={onRemoveTermsOfServicePdf}
-            >
-              {isRemovingTermsOfServicePdf ? t('Removing...') : t('Remove uploaded PDF')}
-            </Button>
           </div>
-        )}
 
-        <div className="grid gap-3 border-t border-border/50 pt-4">
+          <div className="grid gap-2">
+            <Textarea
+              id={`terms-of-service-${selectedTermsOfServiceLocale}`}
+              aria-label={`${LOCALE_LABELS[selectedTermsOfServiceLocale]} terms of service content`}
+              value={termsOfServiceTranslations[selectedTermsOfServiceLocale]}
+              disabled={isPending}
+              maxLength={TERMS_OF_SERVICE_CONTENT_MAX_LENGTH}
+              rows={14}
+              className="max-h-[min(32rem,60vh)] min-h-64 resize-y overflow-y-auto font-mono text-sm leading-relaxed"
+              onChange={(event) => onTermsOfServiceTranslationChange(selectedTermsOfServiceLocale, event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('Available variables')}: <code>{'{{siteName}}'}</code>, <code>{'{{siteNameUpper}}'}</code>,{' '}
+              <code>{'{{siteUrl}}'}</code>. Use <code>#</code> for titles, <code>##</code> for topics, <code>-</code>{' '}
+              for bullets, blank lines for paragraphs, and <code>**text**</code> for bold.
+            </p>
+          </div>
+        </div>
+      </SettingsAccordionSection>
+
+      <SettingsAccordionSection
+        value="geoblocking"
+        isOpen={openSections.includes('geoblocking')}
+        onToggle={onToggleSection}
+        header={
+          <h3 className="flex items-center gap-2 text-base font-medium">
+            <MapPinOffIcon className="size-4 text-muted-foreground" />
+            {t('Geoblocking')}
+          </h3>
+        }
+      >
+        <div className="grid gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="grid gap-1">
               <Label>{t('Blocked countries')}</Label>
@@ -235,7 +254,7 @@ function LegalSection({
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={isPending || isRemovingTermsOfServicePdf}
+                  disabled={isPending}
                   onClick={() => setIsBlockedCountriesDialogOpen(true)}
                 >
                   {blockedCountriesButtonLabel}
@@ -269,7 +288,7 @@ function LegalSection({
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={isPending || isRemovingTermsOfServicePdf}
+                  disabled={isPending}
                   onClick={() => setIsBlockedCountriesDialogOpen(true)}
                 >
                   {blockedCountriesButtonLabel}
@@ -319,8 +338,8 @@ function LegalSection({
             <p className="text-sm text-muted-foreground">{t('No blocked countries selected.')}</p>
           )}
         </div>
-      </div>
-    </SettingsAccordionSection>
+      </SettingsAccordionSection>
+    </>
   )
 }
 

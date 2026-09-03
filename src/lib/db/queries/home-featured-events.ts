@@ -2,6 +2,7 @@ import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, not, or, sql } fr
 import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag, revalidateTag } from 'next/cache'
 
+import type { TermsOfServiceTranslationsPatch } from '@/lib/terms-of-service'
 import type {
   HomeFeaturedContextItem,
   HomeFeaturedContextMode,
@@ -13,6 +14,7 @@ import type {
 
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
+import { upsertTermsOfServiceTranslationsInTransaction } from '@/lib/db/queries/terms-of-service'
 import {
   event_sports,
   events,
@@ -677,6 +679,7 @@ export const HomeFeaturedEventsRepository = {
   async replaceFeaturedEventsWithSettings(
     items: ReplaceHomeFeaturedEventsInput[],
     settingsRows: HomeFeaturedSettingsUpdateRow[],
+    termsOfServiceTranslations?: TermsOfServiceTranslationsPatch,
   ): Promise<QueryResult<null>> {
     return runQuery(async () => {
       await db.transaction(async (tx) => {
@@ -693,10 +696,17 @@ export const HomeFeaturedEventsRepository = {
         }
 
         await replaceFeaturedEventsInTransaction(tx, items)
+
+        if (termsOfServiceTranslations) {
+          await upsertTermsOfServiceTranslationsInTransaction(tx, termsOfServiceTranslations)
+        }
       })
 
       revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
       revalidateTag(cacheTags.settings, { expire: 0 })
+      if (termsOfServiceTranslations) {
+        revalidateTag(cacheTags.termsOfService, { expire: 0 })
+      }
 
       return { data: null, error: null }
     })

@@ -233,7 +233,8 @@ describe('sportsSidebarCategoriesManager', () => {
     renderManager()
 
     await screen.findByDisplayValue('Golf')
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Parent sport' }), 'golf')
+    await user.click(screen.getByRole('combobox', { name: 'Parent sport' }))
+    await user.click(await screen.findByRole('option', { name: 'Golf' }))
     await user.type(screen.getByRole('textbox', { name: 'New category name' }), 'PGA Tour')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
@@ -315,6 +316,7 @@ describe('sportsSidebarCategoriesManager', () => {
   })
 
   it('lists every top-level sport as a possible parent', async () => {
+    const user = userEvent.setup()
     mocks.getCategories.mockResolvedValue({
       success: true,
       data: Array.from({ length: 15 }, (_, index) => ({
@@ -332,7 +334,8 @@ describe('sportsSidebarCategoriesManager', () => {
     renderManager()
 
     const parentSelect = await screen.findByRole('combobox', { name: 'Parent sport' })
-    expect(within(parentSelect).getAllByRole('option')).toHaveLength(16)
+    await user.click(parentSelect)
+    expect(await screen.findAllByRole('option')).toHaveLength(16)
   })
 
   it('keeps the manager open when the parent picker loses focus inside it', async () => {
@@ -341,7 +344,7 @@ describe('sportsSidebarCategoriesManager', () => {
     renderManager(onOpenChange)
 
     const parentSelect = await screen.findByRole('combobox', { name: 'Parent sport' })
-    expect(parentSelect.tagName).toBe('SELECT')
+    expect(parentSelect.tagName).toBe('BUTTON')
     await user.click(parentSelect)
     await user.click(screen.getByRole('textbox', { name: 'New category name' }))
 
@@ -409,10 +412,8 @@ describe('sportsSidebarCategoriesManager', () => {
     renderManager(vi.fn(), 'esports')
 
     expect(await screen.findByRole('heading', { name: 'Manage esports sidebar' })).toBeInTheDocument()
-    await user.selectOptions(
-      await screen.findByRole('combobox', { name: 'Parent game' }),
-      'group-esports-league-of-legends',
-    )
+    await user.click(await screen.findByRole('combobox', { name: 'Parent game' }))
+    await user.click(await screen.findByRole('option', { name: 'LoL' }))
     await user.type(screen.getByRole('textbox', { name: 'New game or league name' }), 'LCS')
     await user.click(screen.getByRole('button', { name: 'Add' }))
     await user.click(screen.getByRole('button', { name: 'Save sidebar' }))

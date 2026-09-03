@@ -102,7 +102,6 @@ describe('updateIntegrationsSettingsAction', () => {
           'site_logo_mode',
           'site_discord_link',
           'global_announcement_message',
-          'terms_of_service_pdf_path',
         ].includes(row.key),
       ),
     ).toBe(false)

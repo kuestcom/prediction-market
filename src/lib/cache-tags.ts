@@ -27,6 +27,8 @@ export const cacheTags = {
   mainTags: (locale: string) => `main-tags:${locale}`,
   /** Site settings (admin-edited identity, branding, integrations). */
   settings: 'settings',
+  /** Localized Terms of Use content. */
+  termsOfService: 'terms-of-service',
   /** Sports sidebar menu structure and counts (independent of homepage list). */
   sportsMenu: 'sports:menu',
   /** Public sitemap entries (event/market URL lists). */
