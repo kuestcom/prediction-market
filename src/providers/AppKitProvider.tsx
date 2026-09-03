@@ -151,6 +151,21 @@ function installSiwxRequestSignMessageLock() {
   hasInstalledSiwxRequestSignMessageLock = true
 }
 
+function installSiweSignInLock(siweClient: AppKitSIWEClient) {
+  const signIn = siweClient.signIn.bind(siweClient)
+  let signInPromise: Promise<SIWESession> | null = null
+
+  siweClient.signIn = () => {
+    if (!signInPromise) {
+      signInPromise = signIn().finally(() => {
+        signInPromise = null
+      })
+    }
+
+    return signInPromise
+  }
+}
+
 function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }) {
   const t = useExtracted()
   const { address, embeddedWalletInfo, isConnected } = useAppKitAccount({ namespace: 'eip155' })
@@ -170,10 +185,25 @@ function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }
 
     attemptedAddressRef.current = normalizedAddress
     let cancelled = false
+    let attemptInFlight = true
+    function resetAttemptedAddress() {
+      if (attemptedAddressRef.current === normalizedAddress) {
+        attemptedAddressRef.current = null
+      }
+    }
 
     void (async () => {
       const session = await authClient.getSession()
-      if (cancelled || session.error || session.data?.user) {
+      if (cancelled) {
+        return
+      }
+      if (session.error) {
+        attemptInFlight = false
+        resetAttemptedAddress()
+        return
+      }
+      if (session.data?.user) {
+        attemptInFlight = false
         return
       }
 
@@ -183,13 +213,35 @@ function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }
       }
 
       const latestSession = await authClient.getSession()
-      if (cancelled || latestSession.error || latestSession.data?.user) {
+      if (cancelled) {
+        return
+      }
+      if (latestSession.error) {
+        attemptInFlight = false
+        resetAttemptedAddress()
+        return
+      }
+      if (latestSession.data?.user) {
+        attemptInFlight = false
+        return
+      }
+
+      if (await isCurrentRegionBlocked()) {
+        if (cancelled) {
+          return
+        }
+
+        attemptInFlight = false
+        toast.warning(t('This platform is not currently available in your region.'))
         return
       }
 
       await siweClient.signIn()
+      attemptInFlight = false
     })().catch((error) => {
       if (!cancelled) {
+        attemptInFlight = false
+        resetAttemptedAddress()
         console.warn('[SIWE] Automatic wallet authentication failed', error)
         toast.error(t('An unexpected error occurred. Please try again.'))
       }
@@ -197,6 +249,9 @@ function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }
 
     return () => {
       cancelled = true
+      if (attemptInFlight) {
+        resetAttemptedAddress()
+      }
     }
   }, [address, embeddedWalletInfo, isConnected, siweClient, t])
 
@@ -462,6 +517,7 @@ function initializeAppKitSingleton(
 
     appKitSiweClient = siweClient
     installSiwxRequestSignMessageLock()
+    installSiweSignInLock(siweClient)
     hasInitializedAppKit = true
     notifyAppKitStateChange()
     return appKitInstance
