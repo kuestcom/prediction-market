@@ -439,6 +439,15 @@ function EmailDialog({
   const lastSyncedDefaultValueRef = useRef(defaultValue)
 
   useEffect(
+    function resetEmailEditStateWhenClosed() {
+      if (!open) {
+        emailEditedRef.current = false
+      }
+    },
+    [open],
+  )
+
+  useEffect(
     function syncEmailDefaultValue() {
       const normalizedDefaultValue = defaultValue.trim()
       if (!open || !normalizedDefaultValue || emailEditedRef.current) {
