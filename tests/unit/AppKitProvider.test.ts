@@ -1,3 +1,4 @@
+import { SIWXUtil } from '@reown/appkit-controllers'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,14 +14,28 @@ const mocks = vi.hoisted(() => ({
   createAppKit: vi.fn(),
   createSIWEConfig: vi.fn(),
   setThemeMode: vi.fn(),
+  siwxRequestSignMessage: vi.fn(),
+  useAppKitAccount: vi.fn(),
   WagmiProvider: vi.fn(({ children }: any) => children),
 }))
 
 vi.mock('@reown/appkit/react', () => ({
   __esModule: true,
   createAppKit: mocks.createAppKit,
+  useAppKitAccount: mocks.useAppKitAccount,
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
+
+vi.mock('@reown/appkit-controllers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@reown/appkit-controllers')>()
+  return {
+    ...actual,
+    SIWXUtil: {
+      ...actual.SIWXUtil,
+      requestSignMessage: mocks.siwxRequestSignMessage,
+    },
+  }
+})
 
 vi.mock('@reown/appkit-siwe', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@reown/appkit-siwe')>()
@@ -90,8 +105,19 @@ describe('appKitProvider SSR guard', () => {
     mocks.cookieToInitialState.mockReset()
     mocks.createAppKit.mockReset()
     mocks.createSIWEConfig.mockReset()
-    mocks.createSIWEConfig.mockImplementation((config) => config)
+    mocks.createSIWEConfig.mockImplementation((config) => ({
+      ...config,
+      signIn: () => SIWXUtil.requestSignMessage().then(() => ({ address: '0x123', chainId: 1 })),
+    }))
     mocks.setThemeMode.mockReset()
+    mocks.siwxRequestSignMessage.mockReset()
+    mocks.siwxRequestSignMessage.mockResolvedValue(undefined)
+    mocks.useAppKitAccount.mockReset()
+    mocks.useAppKitAccount.mockReturnValue({
+      address: undefined,
+      embeddedWalletInfo: undefined,
+      isConnected: false,
+    })
     mocks.WagmiProvider.mockClear()
   })
 
@@ -226,5 +252,86 @@ describe('appKitProvider SSR guard', () => {
     } finally {
       warnSpy.mockRestore()
     }
+  })
+
+  it('automatically starts SIWE after an external wallet connects', async () => {
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+  })
+
+  it('shares the in-flight SIWE request with the manual Sign action', async () => {
+    let releaseSignIn: (() => void) | undefined
+    mocks.siwxRequestSignMessage.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSignIn = resolve
+        }),
+    )
+    mocks.createAppKit.mockImplementationOnce(() => {
+      return {
+        open: vi.fn(),
+        close: vi.fn(),
+      }
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    const view = render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+
+    const manualSignIn = SIWXUtil.requestSignMessage()
+    expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+    releaseSignIn?.()
+    await manualSignIn
+    view.unmount()
   })
 })
