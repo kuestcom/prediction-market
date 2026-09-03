@@ -5,7 +5,7 @@ import type { AppKitSIWEClient, SIWECreateMessageArgs, SIWESession, SIWEVerifyMe
 import type { ReactNode } from 'react'
 import type { Config } from 'wagmi'
 
-import { SIWXUtil } from '@reown/appkit-controllers'
+import { ChainController, SIWXUtil } from '@reown/appkit-controllers'
 import { createSIWEConfig, formatMessage, getAddressFromMessage, getDidAddress } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitAccount, useAppKitTheme } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
@@ -131,21 +131,35 @@ function waitForAutomaticSiwe(delayMs: number) {
   })
 }
 
+function getSiweAccountLockKey() {
+  return ChainController.getActiveCaipAddress()?.toLowerCase() ?? null
+}
+
 function installSiwxRequestSignMessageLock() {
   if (hasInstalledSiwxRequestSignMessageLock) {
     return
   }
 
   const requestSignMessage = SIWXUtil.requestSignMessage.bind(SIWXUtil)
-  let requestPromise: Promise<void> | null = null
+  const requestPromises = new Map<string, Promise<void>>()
 
   SIWXUtil.requestSignMessage = () => {
-    if (!requestPromise) {
-      requestPromise = requestSignMessage().finally(() => {
-        requestPromise = null
-      })
+    const accountKey = getSiweAccountLockKey()
+    if (!accountKey) {
+      return requestSignMessage()
     }
 
+    const existingRequest = requestPromises.get(accountKey)
+    if (existingRequest) {
+      return existingRequest
+    }
+
+    const requestPromise = requestSignMessage().finally(() => {
+      if (requestPromises.get(accountKey) === requestPromise) {
+        requestPromises.delete(accountKey)
+      }
+    })
+    requestPromises.set(accountKey, requestPromise)
     return requestPromise
   }
   hasInstalledSiwxRequestSignMessageLock = true
@@ -153,15 +167,25 @@ function installSiwxRequestSignMessageLock() {
 
 function installSiweSignInLock(siweClient: AppKitSIWEClient) {
   const signIn = siweClient.signIn.bind(siweClient)
-  let signInPromise: Promise<SIWESession> | null = null
+  const signInPromises = new Map<string, Promise<SIWESession>>()
 
   siweClient.signIn = () => {
-    if (!signInPromise) {
-      signInPromise = signIn().finally(() => {
-        signInPromise = null
-      })
+    const accountKey = getSiweAccountLockKey()
+    if (!accountKey) {
+      return signIn()
     }
 
+    const existingSignIn = signInPromises.get(accountKey)
+    if (existingSignIn) {
+      return existingSignIn
+    }
+
+    const signInPromise = signIn().finally(() => {
+      if (signInPromises.get(accountKey) === signInPromise) {
+        signInPromises.delete(accountKey)
+      }
+    })
+    signInPromises.set(accountKey, signInPromise)
     return signInPromise
   }
 }

@@ -10,6 +10,7 @@ function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>; onValue?: (v
 }
 
 const mocks = vi.hoisted(() => ({
+  chainControllerGetActiveCaipAddress: vi.fn(),
   cookieToInitialState: vi.fn(),
   createAppKit: vi.fn(),
   createSIWEConfig: vi.fn(),
@@ -31,6 +32,10 @@ vi.mock('@reown/appkit-controllers', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@reown/appkit-controllers')>()
   return {
     ...actual,
+    ChainController: {
+      ...actual.ChainController,
+      getActiveCaipAddress: mocks.chainControllerGetActiveCaipAddress,
+    },
     SIWXUtil: {
       ...actual.SIWXUtil,
       requestSignMessage: mocks.siwxRequestSignMessage,
@@ -103,6 +108,8 @@ describe('appKitProvider SSR guard', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllGlobals()
+    mocks.chainControllerGetActiveCaipAddress.mockReset()
+    mocks.chainControllerGetActiveCaipAddress.mockReturnValue('eip155:1:0x123')
     mocks.cookieToInitialState.mockReset()
     mocks.createAppKit.mockReset()
     mocks.createSIWEConfig.mockReset()
@@ -336,6 +343,71 @@ describe('appKitProvider SSR guard', () => {
 
     releaseSignIn?.()
     await manualSignIn
+    view.unmount()
+  })
+
+  it('does not share a pending SIWE sign-in between different accounts', async () => {
+    const pendingSignatures: Array<() => void> = []
+    mocks.siwxRequestSignMessage.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          pendingSignatures.push(resolve)
+        }),
+    )
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    const view = render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+
+    mocks.chainControllerGetActiveCaipAddress.mockReturnValue('eip155:1:0x456')
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x456',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+    view.rerender(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(2)
+        expect(mocks.siweClientSignIn).toHaveBeenCalledTimes(2)
+      },
+      { timeout: 2000 },
+    )
+    expect(pendingSignatures).toHaveLength(2)
+    pendingSignatures.forEach((release) => release())
     view.unmount()
   })
 
