@@ -435,6 +435,27 @@ function EmailDialog({
 }) {
   const t = useExtracted()
   const [email, setEmail] = useState(defaultValue)
+  const lastSyncedDefaultValueRef = useRef(defaultValue)
+
+  useEffect(
+    function syncEmailDefaultValue() {
+      const normalizedDefaultValue = defaultValue.trim()
+      if (!open || !normalizedDefaultValue) {
+        return
+      }
+
+      const previousDefaultValue = lastSyncedDefaultValueRef.current.trim()
+      setEmail((currentEmail) => {
+        const normalizedCurrentEmail = currentEmail.trim()
+        if (!normalizedCurrentEmail || normalizedCurrentEmail === previousDefaultValue) {
+          return defaultValue
+        }
+        return currentEmail
+      })
+      lastSyncedDefaultValueRef.current = defaultValue
+    },
+    [defaultValue, open],
+  )
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
