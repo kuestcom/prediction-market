@@ -37,6 +37,7 @@
     "@polymarket/clob-client-v2": "1.1.0",
     "@reown/appkit": "1.8.23",
     "@reown/appkit-adapter-wagmi": "1.8.23",
+    "@reown/appkit-controllers": "1.8.23",
     "@reown/appkit-siwe": "1.8.23",
     "@sentry/nextjs": "10.70.0",
     "@sumsub/websdk": "2.9.0",

@@ -219,7 +219,10 @@ export const auth = betterAuth({
       domain: SIWE_DOMAIN,
       emailDomainName: SIWE_EMAIL_DOMAIN,
       anonymous: true,
-      getNonce: async () => generateRandomString(32),
+      // ERC-4361 only permits alphanumeric characters in a SIWE nonce.
+      // Better Auth's default alphabet also includes `-` and `_`, which
+      // makes Reown reject the message before it reaches the wallet.
+      getNonce: async () => generateRandomString(32, 'a-z', 'A-Z', '0-9'),
       verifyMessage: async ({ message, signature, address }) => {
         const chainId = getChainIdFromMessage(message)
         const { reownAppKitProjectId } = resolvePublicRuntimeEnv(process.env)

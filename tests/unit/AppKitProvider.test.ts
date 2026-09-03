@@ -1,3 +1,4 @@
+import { SIWXUtil } from '@reown/appkit-controllers'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,18 +10,38 @@ function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>; onValue?: (v
 }
 
 const mocks = vi.hoisted(() => ({
+  chainControllerGetActiveCaipAddress: vi.fn(),
   cookieToInitialState: vi.fn(),
   createAppKit: vi.fn(),
   createSIWEConfig: vi.fn(),
   setThemeMode: vi.fn(),
+  siweClientSignIn: vi.fn(),
+  siwxRequestSignMessage: vi.fn(),
+  useAppKitAccount: vi.fn(),
   WagmiProvider: vi.fn(({ children }: any) => children),
 }))
 
 vi.mock('@reown/appkit/react', () => ({
   __esModule: true,
   createAppKit: mocks.createAppKit,
+  useAppKitAccount: mocks.useAppKitAccount,
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
+
+vi.mock('@reown/appkit-controllers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@reown/appkit-controllers')>()
+  return {
+    ...actual,
+    ChainController: {
+      ...actual.ChainController,
+      getActiveCaipAddress: mocks.chainControllerGetActiveCaipAddress,
+    },
+    SIWXUtil: {
+      ...actual.SIWXUtil,
+      requestSignMessage: mocks.siwxRequestSignMessage,
+    },
+  }
+})
 
 vi.mock('@reown/appkit-siwe', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@reown/appkit-siwe')>()
@@ -87,11 +108,25 @@ describe('appKitProvider SSR guard', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllGlobals()
+    mocks.chainControllerGetActiveCaipAddress.mockReset()
+    mocks.chainControllerGetActiveCaipAddress.mockReturnValue('eip155:1:0x123')
     mocks.cookieToInitialState.mockReset()
     mocks.createAppKit.mockReset()
     mocks.createSIWEConfig.mockReset()
-    mocks.createSIWEConfig.mockImplementation((config) => config)
+    mocks.createSIWEConfig.mockImplementation((config) => ({ ...config, signIn: mocks.siweClientSignIn }))
     mocks.setThemeMode.mockReset()
+    mocks.siweClientSignIn.mockReset()
+    mocks.siweClientSignIn.mockImplementation(() =>
+      SIWXUtil.requestSignMessage().then(() => ({ address: '0x123', chainId: 1 })),
+    )
+    mocks.siwxRequestSignMessage.mockReset()
+    mocks.siwxRequestSignMessage.mockResolvedValue(undefined)
+    mocks.useAppKitAccount.mockReset()
+    mocks.useAppKitAccount.mockReturnValue({
+      address: undefined,
+      embeddedWalletInfo: undefined,
+      isConnected: false,
+    })
     mocks.WagmiProvider.mockClear()
   })
 
@@ -226,5 +261,286 @@ describe('appKitProvider SSR guard', () => {
     } finally {
       warnSpy.mockRestore()
     }
+  })
+
+  it('automatically starts SIWE after an external wallet connects', async () => {
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+  })
+
+  it('deduplicates the complete SIWE sign-in orchestration', async () => {
+    let releaseSignIn: (() => void) | undefined
+    mocks.siwxRequestSignMessage.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSignIn = resolve
+        }),
+    )
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    const view = render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+        expect(mocks.siweClientSignIn).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+
+    const siweClient = mocks.createSIWEConfig.mock.results[0]?.value as { signIn: () => Promise<unknown> }
+    const manualSignIn = siweClient.signIn()
+    expect(mocks.siweClientSignIn).toHaveBeenCalledTimes(1)
+    expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+
+    releaseSignIn?.()
+    await manualSignIn
+    view.unmount()
+  })
+
+  it('does not share a pending SIWE sign-in between different accounts', async () => {
+    const pendingSignatures: Array<() => void> = []
+    mocks.siwxRequestSignMessage.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          pendingSignatures.push(resolve)
+        }),
+    )
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    const view = render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+
+    mocks.chainControllerGetActiveCaipAddress.mockReturnValue('eip155:1:0x456')
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x456',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+    view.rerender(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(2)
+        expect(mocks.siweClientSignIn).toHaveBeenCalledTimes(2)
+      },
+      { timeout: 2000 },
+    )
+    expect(pendingSignatures).toHaveLength(2)
+    pendingSignatures.forEach((release) => release())
+    view.unmount()
+  })
+
+  it('retries automatic SIWE when the previous attempt is cancelled', async () => {
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    const view = render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 25))
+    view.rerender(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+    view.unmount()
+  })
+
+  it('does not automatically start SIWE when the current region is blocked', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ blocked: true }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    mocks.createAppKit.mockReturnValueOnce({
+      open: vi.fn(),
+      close: vi.fn(),
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(fetchMock).toHaveBeenCalledWith('/api/geoblock-status', {
+          cache: 'no-store',
+          headers: { accept: 'application/json' },
+        })
+      },
+      { timeout: 2000 },
+    )
+    expect(mocks.siwxRequestSignMessage).not.toHaveBeenCalled()
+  })
+
+  it('shares the in-flight SIWE request with the manual Sign action', async () => {
+    let releaseSignIn: (() => void) | undefined
+    mocks.siwxRequestSignMessage.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseSignIn = resolve
+        }),
+    )
+    mocks.createAppKit.mockImplementationOnce(() => {
+      return {
+        open: vi.fn(),
+        close: vi.fn(),
+      }
+    })
+    mocks.useAppKitAccount.mockReturnValue({
+      address: '0x123',
+      embeddedWalletInfo: undefined,
+      isConnected: true,
+    })
+
+    const { AppKitContext } = await import('@/hooks/useAppKit')
+    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
+
+    const view = render(
+      React.createElement(
+        TestAppKitProvider,
+        { wagmiCookie: 'test-state' },
+        React.createElement(ReadyConsumer, { ctx: AppKitContext }),
+      ),
+    )
+
+    await waitFor(
+      () => {
+        expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+      },
+      { timeout: 2000 },
+    )
+
+    const manualSignIn = SIWXUtil.requestSignMessage()
+    expect(mocks.siwxRequestSignMessage).toHaveBeenCalledTimes(1)
+    releaseSignIn?.()
+    await manualSignIn
+    view.unmount()
   })
 })

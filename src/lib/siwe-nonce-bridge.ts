@@ -28,7 +28,9 @@ function createExpiry() {
 }
 
 export async function createPendingSiweNonce() {
-  const nonce = generateRandomString(32)
+  // Keep this nonce compliant with ERC-4361 as it is embedded in the SIWE
+  // message before Better Auth receives the verification request.
+  const nonce = generateRandomString(32, 'a-z', 'A-Z', '0-9')
   const now = new Date()
 
   await db.delete(verifications).where(lt(verifications.expires_at, now))
