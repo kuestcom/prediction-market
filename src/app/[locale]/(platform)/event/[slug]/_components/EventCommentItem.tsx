@@ -208,7 +208,7 @@ export default function EventCommentItem({
                     <button
                       type="button"
                       className="text-muted-foreground transition-colors hover:text-foreground"
-                      aria-label="Comment options"
+                      aria-label={t('Comment options')}
                     />
                   }
                 >

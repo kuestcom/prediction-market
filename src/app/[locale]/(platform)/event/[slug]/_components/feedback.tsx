@@ -9,9 +9,19 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsValueLabel, formatDollarValueLabel } from '@/lib/formatters'
 import { triggerConfetti } from '@/lib/utils'
 
+type Translate = (message: string, values?: Record<string, string | number | Date>) => string
+
+function defaultTranslate(message: string, values?: Record<string, string | number | Date>) {
+  return message.replace(/\{(\w+)\}/g, (placeholder, key) => {
+    const value = values?.[key]
+    return value == null ? placeholder : String(value)
+  })
+}
+
 interface HandleValidationErrorArgs {
   openWalletModal: () => Promise<void> | void
   shareLabel?: string
+  translate: Translate
 }
 
 interface OrderSuccessFeedbackArgs {
@@ -31,67 +41,70 @@ interface OrderSuccessFeedbackArgs {
   queryClient: QueryClient
   outcomeIndex: number
   lastMouseEvent: any
+  translate?: Translate
 }
 
 export function handleValidationError(
   reason: OrderValidationError,
-  { openWalletModal, shareLabel }: HandleValidationErrorArgs,
+  { openWalletModal, shareLabel, translate }: HandleValidationErrorArgs,
 ) {
   switch (reason) {
     case 'IS_LOADING':
-      toast.info('Order already processing')
+      toast.info(translate('Order already processing'))
       break
     case 'NOT_CONNECTED':
-      toast.error('Connect your wallet to continue.')
+      toast.error(translate('Connect your wallet to continue.'))
       void openWalletModal()
       break
     case 'MISSING_USER':
-      toast.error('Sign in to place orders.')
+      toast.error(translate('Sign in to place orders.'))
       void openWalletModal()
       break
     case 'MISSING_MARKET':
     case 'MISSING_OUTCOME':
-      toast.error('Market not available', {
-        description: 'Please select a valid market and outcome.',
+      toast.error(translate('Market not available'), {
+        description: translate('Please select a valid market and outcome.'),
       })
       break
     case 'INVALID_AMOUNT':
-      toast.error('Invalid amount', {
-        description: 'Please enter an amount greater than 0.',
+      toast.error(translate('Invalid amount'), {
+        description: translate('Please enter an amount greater than 0.'),
       })
       break
     case 'INVALID_LIMIT_PRICE':
-      toast.error('Invalid limit price', {
-        description: 'Enter a valid limit price before submitting.',
+      toast.error(translate('Invalid limit price'), {
+        description: translate('Enter a valid limit price before submitting.'),
       })
       break
     case 'INVALID_LIMIT_SHARES':
-      toast.error('Invalid shares', {
-        description: 'Enter the number of shares for your limit order.',
+      toast.error(translate('Invalid shares'), {
+        description: translate('Enter the number of shares for your limit order.'),
       })
       break
     case 'INVALID_LIMIT_EXPIRATION':
-      toast.error('Expiration must be in future. Try again', {
-        description: 'Pick a future date and time for your custom expiration.',
+      toast.error(translate('Expiration must be in future. Try again'), {
+        description: translate('Pick a future date and time for your custom expiration.'),
       })
       break
     case 'MARKET_MIN_AMOUNT':
-      toast.error('Market buys must be at least $1')
+      toast.error(translate('Market buys must be at least $1'))
       break
     case 'INSUFFICIENT_BALANCE':
-      toast.error('Insufficient balance', {
-        description: 'Reduce the order size or deposit more into your Deposit Wallet.',
+      toast.error(translate('Insufficient balance'), {
+        description: translate('Reduce the order size or deposit more into your Deposit Wallet.'),
       })
       break
     case 'INSUFFICIENT_SHARES': {
-      const title = shareLabel ? `Insufficient ${shareLabel} shares` : 'Insufficient shares'
+      const title = shareLabel
+        ? translate('Insufficient {shareLabel} shares', { shareLabel })
+        : translate('Insufficient shares')
       toast.error(title, {
-        description: 'Reduce the order size or split more shares before selling.',
+        description: translate('Reduce the order size or split more shares before selling.'),
       })
       break
     }
     default:
-      toast.error('Unable to submit order. Please review your inputs.')
+      toast.error(translate('Unable to submit order. Please review your inputs.'))
   }
 }
 
@@ -112,14 +125,19 @@ export function handleOrderSuccessFeedback({
   queryClient,
   outcomeIndex,
   lastMouseEvent,
+  translate = defaultTranslate,
 }: OrderSuccessFeedbackArgs) {
   if (side === ORDER_SIDE.SELL) {
     const displayShares = sellSharesLabel && sellSharesLabel.trim().length > 0 ? sellSharesLabel.trim() : amountInput
-    const amountPrefix = isLimitOrder ? 'Total' : 'Received'
-    toast.success(`Sell ${displayShares} shares on ${outcomeText}`, {
+    const amountPrefix = isLimitOrder ? translate('Total') : translate('Received')
+    toast.success(translate('Sell {shares} shares on {outcome}', { shares: displayShares, outcome: outcomeText }), {
       description: (
         <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
-          {amountPrefix} {formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })} @ {avgSellPrice}
+          {translate('{label} {amount} @ {price}', {
+            label: amountPrefix,
+            amount: formatDollarValueLabel(sellAmountValue, { fallback: '0¢' }),
+            price: avgSellPrice,
+          })}
         </EventTradeToast>
       ),
     })
@@ -131,12 +149,16 @@ export function handleOrderSuccessFeedback({
 
     toast.success(
       normalizedBuySharesLabel
-        ? `Buy ${normalizedBuySharesLabel} shares on ${outcomeText}`
-        : `Buy ${buyAmountLabel} on ${outcomeText}`,
+        ? translate('Buy {shares} shares on {outcome}', { shares: normalizedBuySharesLabel, outcome: outcomeText })
+        : translate('Buy {amount} on {outcome}', { amount: buyAmountLabel, outcome: outcomeText }),
       {
         description: (
           <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
-            Total {buyAmountLabel} @ {priceLabel}
+            {translate('{label} {amount} @ {price}', {
+              label: translate('Total'),
+              amount: buyAmountLabel,
+              price: priceLabel,
+            })}
           </EventTradeToast>
         ),
       },
@@ -154,8 +176,8 @@ export function handleOrderErrorFeedback(message: string, description?: string) 
   toast.error(message, description ? { description } : undefined)
 }
 
-export function handleOrderCancelledFeedback() {
-  toast.error('Trade cancelled', {
-    description: 'You rejected the request in your wallet.',
+export function handleOrderCancelledFeedback(translate: Translate) {
+  toast.error(translate('Trade cancelled'), {
+    description: translate('You rejected the request in your wallet.'),
   })
 }

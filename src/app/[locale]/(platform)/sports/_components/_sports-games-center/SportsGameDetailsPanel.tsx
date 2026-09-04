@@ -63,6 +63,23 @@ export default function SportsGameDetailsPanel({
   const isMobile = useIsMobile()
   const linePickerSpacerWidth = 'calc(50% - 28px)'
 
+  function translateMarketTypeLabel(label: string) {
+    switch (label) {
+      case 'Moneyline':
+        return t('Moneyline')
+      case 'Spread':
+        return t('Spread')
+      case 'Total':
+        return t('Total')
+      case 'Market':
+        return t('Market')
+      case 'Both Teams to Score':
+        return t('Both Teams to Score')
+      default:
+        return label
+    }
+  }
+
   const orderStore = useSportsGameDetailsPanelOrderStore()
   const { orderMarketConditionId, orderOutcomeIndex, setOrderMarket, setOrderOutcome, setOrderAmount } = orderStore
 
@@ -218,7 +235,7 @@ export default function SportsGameDetailsPanel({
                       ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                       : 'cursor-not-allowed opacity-40',
                   )}
-                  aria-label="Previous line"
+                  aria-label={t('Previous line')}
                 >
                   <ChevronLeftIcon className="size-4.5" />
                 </button>
@@ -270,7 +287,7 @@ export default function SportsGameDetailsPanel({
                       ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                       : 'cursor-not-allowed opacity-40',
                   )}
-                  aria-label="Next line"
+                  aria-label={t('Next line')}
                 >
                   <ChevronRightIcon className="size-4.5" />
                 </button>
@@ -315,8 +332,8 @@ export default function SportsGameDetailsPanel({
                     'hover:bg-muted/70 hover:text-foreground',
                     'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
                   )}
-                  aria-label="Refresh order book"
-                  title="Refresh order book"
+                  aria-label={t('Refresh order book')}
+                  title={t('Refresh order book')}
                   onClick={() => {
                     void refetchOrderBook()
                   }}
@@ -439,7 +456,7 @@ export default function SportsGameDetailsPanel({
                               'transition-all duration-150 group-hover/position:w-3 group-hover/position:opacity-100',
                               'pointer-events-none group-hover/position:pointer-events-auto',
                             )}
-                            aria-label={`Cash out ${tag.summaryLabel}`}
+                            aria-label={t('Cash out {label}', { label: tag.summaryLabel })}
                             onClick={(event) => void handleCashOutTag(tag, event)}
                           >
                             <XIcon className="size-3" />
@@ -451,7 +468,7 @@ export default function SportsGameDetailsPanel({
 
                   {hiddenPositionTagsCount > 0 && (
                     <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                      {`+${hiddenPositionTagsCount} more`}
+                      {t('+{count} more', { count: String(hiddenPositionTagsCount) })}
                     </span>
                   )}
                 </>
@@ -473,11 +490,11 @@ export default function SportsGameDetailsPanel({
                   <table className="w-full border-collapse text-xs">
                     <thead>
                       <tr className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-                        <th className="py-2 text-left">Type</th>
-                        <th className="p-2 text-left">Outcome</th>
-                        <th className="p-2 text-right">Avg</th>
+                        <th className="py-2 text-left">{t('Type')}</th>
+                        <th className="p-2 text-left">{t('Outcome')}</th>
+                        <th className="p-2 text-right">{t('Avg')}</th>
                         <th className="p-2 text-right">{t('Value')}</th>
-                        <th className="p-2 text-right">To Win</th>
+                        <th className="p-2 text-right">{t('To Win')}</th>
                         <th className="p-2 text-right">{t('Return')}</th>
                         <th className="py-2 text-right" />
                       </tr>
@@ -538,7 +555,7 @@ export default function SportsGameDetailsPanel({
 
                         return (
                           <tr key={tag.key} className="text-xs text-foreground">
-                            <td className="py-2 font-medium">{tag.marketTypeLabel}</td>
+                            <td className="py-2 font-medium">{translateMarketTypeLabel(tag.marketTypeLabel)}</td>
                             <td className="p-2">
                               <span
                                 className={cn(
@@ -578,7 +595,7 @@ export default function SportsGameDetailsPanel({
                                     )}
                                     onClick={(event) => handleOpenConvert(tag, event)}
                                   >
-                                    Convert
+                                    {t('Convert')}
                                   </button>
                                 )}
                                 {canRedeem ? (
@@ -593,7 +610,7 @@ export default function SportsGameDetailsPanel({
                                       onOpenRedeemForCondition?.(tag.conditionId)
                                     }}
                                   >
-                                    Redeem
+                                    {t('Redeem')}
                                   </button>
                                 ) : (
                                   <button
@@ -604,7 +621,7 @@ export default function SportsGameDetailsPanel({
                                     )}
                                     onClick={(event) => void handleCashOutTag(tag, event)}
                                   >
-                                    Sell
+                                    {t('Sell')}
                                   </button>
                                 )}
                               </div>

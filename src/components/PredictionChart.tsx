@@ -2,6 +2,7 @@
 
 import type { PointerEvent as ReactPointerEvent, ReactElement, SetStateAction } from 'react'
 
+import { useExtracted } from 'next-intl'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import type { DataPoint, PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
@@ -239,6 +240,7 @@ export default function PredictionChart({
   tooltipHeader,
   watermark,
 }: PredictionChartProps): ReactElement {
+  const t = useExtracted()
   const series = useMemo(() => providedSeries ?? [], [providedSeries])
   const normalizedSignature = dataSignature ?? '__default__'
   const { data, isClient, lastDataUpdateTypeRef, previousDataRef } = usePredictionChartData(
@@ -836,7 +838,7 @@ export default function PredictionChart({
           className="block w-full touch-pan-y"
           style={{ height }}
           role="img"
-          aria-label="Interactive prediction chart"
+          aria-label={t('Interactive prediction chart')}
           data-chart-renderer="canvas"
           onPointerDown={handlePointerMove}
           onPointerMove={handlePointerMove}

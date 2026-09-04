@@ -1,7 +1,7 @@
 'use client'
 
 import { CheckIcon } from 'lucide-react'
-import { useLocale } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -104,6 +104,7 @@ function useLocaleCarousel() {
 }
 
 export default function LocaleSwitcherMenuItem() {
+  const t = useExtracted()
   const locale = useLocale()
   const {
     isPending,
@@ -135,7 +136,7 @@ export default function LocaleSwitcherMenuItem() {
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger disabled={isPending} className="py-2 text-sm font-semibold text-muted-foreground">
-        <span className="sr-only">Language</span>
+        <span className="sr-only">{t('Language')}</span>
         <span className="h-5 overflow-hidden text-sm">
           <span
             className="block transition-transform duration-200 ease-in-out"

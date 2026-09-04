@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 
 import { formatCompactCount } from '@/lib/formatters'
@@ -121,6 +122,7 @@ export default function EventTweetMarketsPanel({
   countdownTargetMs,
   isFinal = false,
 }: EventTweetMarketsPanelProps) {
+  const t = useExtracted()
   const { nowMs, countdownUnits } = useCountdown(countdownTargetMs, isFinal)
   const hasReachedCountdownTarget =
     countdownTargetMs != null && Number.isFinite(countdownTargetMs) && nowMs >= countdownTargetMs
@@ -173,7 +175,7 @@ export default function EventTweetMarketsPanel({
         </div>
 
         <div className="flex items-center gap-4 self-end sm:self-auto">
-          <span className="text-sm font-medium text-muted-foreground">Time left</span>
+          <span className="text-sm font-medium text-muted-foreground">{t('Time left')}</span>
           <div className="grid grid-cols-4 gap-3 text-center sm:gap-4">
             {countdownUnits.map((unit) => (
               <div key={unit.label} className="min-w-10">

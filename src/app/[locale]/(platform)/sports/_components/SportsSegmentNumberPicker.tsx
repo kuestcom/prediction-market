@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useLayoutEffect, useRef } from 'react'
 
 import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
@@ -19,6 +20,7 @@ function SportsSegmentNumberPicker({
   segmentLabel: string
   onPick: (number: number) => void
 }) {
+  const t = useExtracted()
   const { activeOptionIndex, pickOption } = useSportsSegmentNumberPicker({
     options,
     activeNumber,
@@ -79,7 +81,7 @@ function SportsSegmentNumberPicker({
                 ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                 : 'cursor-not-allowed opacity-40',
             )}
-            aria-label={`Previous ${segmentLabel.toLowerCase()}`}
+            aria-label={t('Previous {label}', { label: segmentLabel.toLowerCase() })}
           >
             <ChevronLeftIcon className="size-4.5" />
           </button>
@@ -103,7 +105,7 @@ function SportsSegmentNumberPicker({
                         ? 'text-base font-semibold text-foreground'
                         : 'cursor-pointer hover:bg-muted/70 hover:text-foreground/80',
                     )}
-                    aria-label={`${segmentLabel} ${option.number}`}
+                    aria-label={t('{label} {number}', { label: segmentLabel, number: String(option.number) })}
                     aria-pressed={isActive}
                   >
                     {isActive && (
@@ -129,7 +131,7 @@ function SportsSegmentNumberPicker({
                 ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                 : 'cursor-not-allowed opacity-40',
             )}
-            aria-label={`Next ${segmentLabel.toLowerCase()}`}
+            aria-label={t('Next {label}', { label: segmentLabel.toLowerCase() })}
           >
             <ChevronRightIcon className="size-4.5" />
           </button>

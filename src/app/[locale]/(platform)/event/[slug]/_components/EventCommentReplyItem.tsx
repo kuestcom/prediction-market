@@ -200,7 +200,7 @@ export default function EventCommentReplyItem({
                     <button
                       type="button"
                       className="text-muted-foreground transition-colors hover:text-foreground"
-                      aria-label="Reply options"
+                      aria-label={t('Reply options')}
                     />
                   }
                 >

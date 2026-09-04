@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -30,6 +31,7 @@ function SportsEventRelatedGames({
   locale: string
   vertical: SportsVertical
 }) {
+  const t = useExtracted()
   const verticalConfig = getSportsVerticalConfig(vertical)
   const hasHydrated = useHasHydrated()
 
@@ -40,11 +42,10 @@ function SportsEventRelatedGames({
   return (
     <div className="grid gap-2.5">
       <p className="text-sm font-normal text-muted-foreground">
-        {'More '}
+        {t('More')}{' '}
         <Link href={`${verticalConfig.basePath}/${sportSlug}/games`} className="underline-offset-2 hover:underline">
-          {sportLabel}
+          {t('{sport} Games', { sport: sportLabel })}
         </Link>
-        {' Games'}
       </p>
 
       <div className="grid gap-2">
@@ -56,7 +57,7 @@ function SportsEventRelatedGames({
               ? (formatSportsRelatedGameLocalStartLabel(startTime as Date, locale) ??
                 formatSportsRelatedGameStartLabel(startTime as Date, locale))
               : formatSportsRelatedGameStartLabel(startTime as Date, locale)
-            : 'Date TBD'
+            : t('Date TBD')
           const { team1Cents, team2Cents } = resolveRelatedTeamOdds(relatedCard)
           const team1 = relatedCard.teams[0] ?? null
           const team2 = relatedCard.teams[1] ?? null

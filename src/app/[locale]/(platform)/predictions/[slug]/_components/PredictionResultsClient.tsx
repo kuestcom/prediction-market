@@ -353,6 +353,7 @@ function usePredictionResultsQuery({
   hasNextPage,
   infiniteScrollScopeKey,
   isFetchingNextPage,
+  fallbackErrorMessage,
   setCanRetryLoadMoreState,
   setInfiniteScrollErrorState,
 }: {
@@ -361,6 +362,7 @@ function usePredictionResultsQuery({
   hasNextPage: boolean
   infiniteScrollScopeKey: string
   isFetchingNextPage: boolean
+  fallbackErrorMessage: string
   setCanRetryLoadMoreState: React.Dispatch<React.SetStateAction<{ key: string; value: boolean }>>
   setInfiniteScrollErrorState: React.Dispatch<React.SetStateAction<{ key: string; value: string | null }>>
 }) {
@@ -383,7 +385,7 @@ function usePredictionResultsQuery({
             setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: false })
             setInfiniteScrollErrorState({
               key: infiniteScrollScopeKey,
-              value: fetchError.message || 'Failed to load more results.',
+              value: fetchError.message || fallbackErrorMessage,
             })
           })
         },
@@ -402,6 +404,7 @@ function usePredictionResultsQuery({
       hasNextPage,
       isFetchingNextPage,
       infiniteScrollScopeKey,
+      fallbackErrorMessage,
       setCanRetryLoadMoreState,
       setInfiniteScrollErrorState,
     ],
@@ -567,6 +570,7 @@ export default function PredictionResultsClient({
     hasNextPage,
     infiniteScrollScopeKey,
     isFetchingNextPage,
+    fallbackErrorMessage: t('Failed to load more results.'),
     setCanRetryLoadMoreState,
     setInfiniteScrollErrorState,
   })

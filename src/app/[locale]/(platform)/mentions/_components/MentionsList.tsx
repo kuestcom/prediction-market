@@ -1,5 +1,7 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
+
 import type { Event } from '@/types'
 
 import EventIconImage from '@/components/EventIconImage'
@@ -42,9 +44,10 @@ interface MentionsListItemProps {
 }
 
 function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
+  const t = useExtracted()
   const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
   const eventTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
-  const dayLabel = eventTimestamp !== null ? DAY_FORMATTER.format(eventTimestamp) : 'TBD'
+  const dayLabel = eventTimestamp !== null ? DAY_FORMATTER.format(eventTimestamp) : t('TBD')
   const monthLabel = eventTimestamp !== null ? MONTH_FORMATTER.format(eventTimestamp).toUpperCase() : undefined
   const scheduleLabel = eventTimestamp !== null ? SCHEDULE_FORMATTER.format(eventTimestamp) : undefined
 
@@ -201,7 +204,7 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
       </div>
 
       <div className="hidden md:flex md:w-45 md:shrink-0 md:flex-col md:items-center md:justify-center">
-        <Button size="lg" className="px-6" nativeButton={false} render={<span>Trade</span>} />
+        <Button size="lg" className="px-6" nativeButton={false} render={<span>{t('Trade')}</span>} />
       </div>
     </Link>
   )

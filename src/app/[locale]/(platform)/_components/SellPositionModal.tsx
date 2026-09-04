@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
@@ -129,6 +130,7 @@ export default function SellPositionModal({
   onEditOrder,
   onSharesChange,
 }: SellPositionModalProps) {
+  const t = useExtracted()
   const isMobile = useIsMobile()
 
   const iconUrl = outcomeIconUrl || fallbackIconUrl || ''
@@ -174,17 +176,20 @@ export default function SellPositionModal({
           </div>
         )}
         <div className="min-w-0 text-left">
-          <div className="text-xl font-semibold text-foreground">Sell {outcomeLabel}</div>
+          <div className="text-xl font-semibold text-foreground">{t('Sell {outcome}', { outcome: outcomeLabel })}</div>
           <div className="line-clamp-2 text-sm text-muted-foreground">{outcomeShortLabel}</div>
         </div>
       </div>
 
       <div className="space-y-1 text-left">
         <div className="text-lg font-semibold text-foreground">
-          Receive <span className="text-yes">{receiveLabel}</span>
+          {t('Receive')} <span className="text-yes">{receiveLabel}</span>
         </div>
         <div className="text-sm text-muted-foreground">
-          Selling {hasPartialFill ? `${filledSharesLabel} of ${sharesLabel}` : sharesLabel} shares @ {avgPriceLabel}
+          {t('Selling {shares} shares @ {price}', {
+            shares: hasPartialFill ? `${filledSharesLabel} of ${sharesLabel}` : sharesLabel,
+            price: avgPriceLabel,
+          })}
         </div>
       </div>
 
@@ -200,7 +205,7 @@ export default function SellPositionModal({
               controlClassName="h-full"
               trackClassName="h-1 bg-muted-foreground"
               thumbClassName="size-5 border-2 border-primary bg-primary shadow-sm"
-              thumbAriaLabel="Sell percentage"
+              thumbAriaLabel={t('Sell percentage')}
               trackChildren={PROGRESS_STOPS.map((stop) => {
                 const isFilled = sellPercent >= stop
                 return (
@@ -241,7 +246,7 @@ export default function SellPositionModal({
             className="h-11 border-border/70 bg-transparent text-sm font-semibold text-foreground hover:bg-muted/40"
             onClick={() => onEditOrder(selectedShares)}
           >
-            Edit order
+            {t('Edit order')}
           </Button>
           <Button
             type="button"
@@ -249,7 +254,7 @@ export default function SellPositionModal({
             onClick={() => onCashOut(selectedShares)}
             disabled={!canCashOut}
           >
-            Cash out {receiveLabel}
+            {t('Cash out {amount}', { amount: receiveLabel })}
           </Button>
         </div>
       </div>

@@ -374,7 +374,7 @@ export default function HeaderSearch({
               setIsResultsDismissed(false)
               inputRef.current?.focus()
             }}
-            aria-label="Clear search"
+            aria-label={t('Clear search')}
           >
             <XIcon className="size-4" />
           </button>

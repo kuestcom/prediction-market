@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 import type { SportsSidebarMode } from './sports-sidebar-menu-utils'
 
+import { useLocalizedSportsLabel } from '../useLocalizedSportsLabel'
 import {
   isFutureMenuLinkHref,
   isLiveMenuHref,
@@ -30,6 +31,7 @@ function SportsMobileQuickLink({
   mode: SportsSidebarMode
   activeTagSlug: string | null
 }) {
+  const translateSportsLabel = useLocalizedSportsLabel()
   const href = normalizeTagSlug(entry.href)
   const isLiveLink = isLiveMenuHref(href, vertical)
   const isSoonLink = isSoonMenuLinkHref(href, vertical)
@@ -56,7 +58,9 @@ function SportsMobileQuickLink({
           className="size-full"
         />
       </span>
-      <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">{entry.label}</span>
+      <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">
+        {translateSportsLabel(entry.label)}
+      </span>
     </Link>
   )
 }

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 
 import type { SportsMenuRenderableLinkEntry, SportsSidebarMode } from './sports-sidebar-menu-utils'
 
+import { useLocalizedSportsLabel } from '../useLocalizedSportsLabel'
 import { resolveSportsMenuLinkState } from './sports-sidebar-menu-utils'
 import SportsMenuIcon from './SportsMenuIcon'
 
@@ -29,6 +30,7 @@ function SportsMenuLink({
   countByTagSlug?: Record<string, number>
   onActionComplete?: () => void
 }) {
+  const translateSportsLabel = useLocalizedSportsLabel()
   const { displayCount, futureIconVariant, isActive, isFutureLink, isLiveLink } = resolveSportsMenuLinkState({
     entry,
     vertical,
@@ -65,7 +67,9 @@ function SportsMenuLink({
                 />
               </span>
             )}
-            <span className="truncate pr-4 text-sm font-medium whitespace-nowrap">{entry.label}</span>
+            <span className="truncate pr-4 text-sm font-medium whitespace-nowrap">
+              {translateSportsLabel(entry.label)}
+            </span>
           </div>
 
           {displayCount !== null && (
@@ -99,7 +103,7 @@ function SportsMenuLink({
             className="size-full"
           />
         </span>
-        <span className="truncate text-sm font-semibold">{entry.label}</span>
+        <span className="truncate text-sm font-semibold">{translateSportsLabel(entry.label)}</span>
       </span>
 
       {displayCount !== null && (

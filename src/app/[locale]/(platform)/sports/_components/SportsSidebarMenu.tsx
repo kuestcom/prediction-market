@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronDownIcon, MoreHorizontalIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
@@ -25,6 +26,7 @@ import {
 import SportsMenuLink from './sports-sidebar-menu/SportsMenuLink'
 import SportsMobileQuickLink from './sports-sidebar-menu/SportsMobileQuickLink'
 import SportsMobileSheetLink from './sports-sidebar-menu/SportsMobileSheetLink'
+import { useLocalizedSportsLabel } from './useLocalizedSportsLabel'
 
 export type { SportsSidebarMode } from './sports-sidebar-menu/sports-sidebar-menu-utils'
 
@@ -37,6 +39,8 @@ export default function SportsSidebarMenu({
   documentScroll = false,
   independentScroll = false,
 }: SportsSidebarMenuProps) {
+  const t = useExtracted()
+  const translateSportsLabel = useLocalizedSportsLabel()
   const verticalConfig = getSportsVerticalConfig(vertical)
   const { visibleEntries, primaryTopLevelLinks, allMenuEntries } = useSidebarEntryDerivations({
     entries,
@@ -82,7 +86,7 @@ export default function SportsSidebarMenu({
               `mt-2 mb-1.5 flex items-center px-3 py-1.5 text-[11px] font-medium tracking-wider whitespace-nowrap text-muted-foreground uppercase`,
             )}
           >
-            {entry.label}
+            {translateSportsLabel(entry.label)}
           </div>
         )
       }
@@ -125,7 +129,7 @@ export default function SportsSidebarMenu({
               <span className="size-5 shrink-0 text-muted-foreground [&_svg]:size-5">
                 <Image src={entry.iconPath} alt="" width={20} height={20} className="size-full object-contain" />
               </span>
-              <span className="truncate text-sm font-semibold">{entry.label}</span>
+              <span className="truncate text-sm font-semibold">{translateSportsLabel(entry.label)}</span>
             </span>
             <ChevronDownIcon
               className={cn(
@@ -179,7 +183,7 @@ export default function SportsSidebarMenu({
               `mt-1.5 mb-0.5 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase`,
             )}
           >
-            {entry.label}
+            {translateSportsLabel(entry.label)}
           </div>
         )
       }
@@ -226,7 +230,9 @@ export default function SportsSidebarMenu({
               <Image src={entry.iconPath} alt="" width={20} height={20} className="size-full object-contain" />
             </span>
 
-            <span className="min-w-0 truncate text-sm font-semibold text-foreground">{entry.label}</span>
+            <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+              {translateSportsLabel(entry.label)}
+            </span>
 
             {groupCount != null && (
               <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">({groupCount})</span>
@@ -300,20 +306,22 @@ export default function SportsSidebarMenu({
                     `flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center transition-colors`,
                     isMobileMoreButtonActive || isMobileMoreMenuOpen ? 'bg-muted' : 'bg-transparent hover:bg-muted',
                   )}
-                  aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
+                  aria-label={t('Open more {vertical}', {
+                    vertical: translateSportsLabel(verticalConfig.label).toLowerCase(),
+                  })}
                 />
               }
             >
               <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
                 <MoreHorizontalIcon className="size-5 text-foreground" />
               </span>
-              <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">More</span>
+              <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">{t('More')}</span>
             </DrawerTrigger>
           </div>
         </nav>
 
         <DrawerContent className="max-h-[88vh] w-full border-border/70 bg-background px-0 pt-2 pb-4">
-          <DrawerTitle className="sr-only">{verticalConfig.label}</DrawerTitle>
+          <DrawerTitle className="sr-only">{translateSportsLabel(verticalConfig.label)}</DrawerTitle>
           <div className="mt-4 max-h-[72dvh] overflow-y-auto px-2">{renderMobileSheetMenuEntries()}</div>
         </DrawerContent>
       </Drawer>

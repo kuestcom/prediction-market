@@ -428,6 +428,7 @@ interface UseInfiniteScrollLoadMoreParams {
   isFetching: boolean
   isFetchingNextPage: boolean
   loadMoreStateKey: string
+  fallbackErrorMessage: string
 }
 
 function useInfiniteScrollLoadMore({
@@ -437,6 +438,7 @@ function useInfiniteScrollLoadMore({
   isFetching,
   isFetchingNextPage,
   loadMoreStateKey,
+  fallbackErrorMessage,
 }: UseInfiniteScrollLoadMoreParams) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const canRetryLoadMoreAfterErrorRef = useRef(true)
@@ -490,7 +492,7 @@ function useInfiniteScrollLoadMore({
             canRetryLoadMoreAfterErrorRef.current = false
             setInfiniteScrollErrorState({
               key: loadMoreStateKey,
-              value: error?.message || 'Failed to load more events.',
+              value: error?.message || fallbackErrorMessage,
             })
           })
         },
@@ -505,6 +507,7 @@ function useInfiniteScrollLoadMore({
     [
       enabled,
       fetchNextPage,
+      fallbackErrorMessage,
       hasNextPage,
       infiniteScrollError,
       infiniteScrollErrorState.key,
@@ -692,6 +695,7 @@ export default function EventsGrid({
     isFetching,
     isFetchingNextPage,
     loadMoreStateKey,
+    fallbackErrorMessage: t('Failed to load more events.'),
   })
 
   async function handleLoadMore() {
@@ -732,7 +736,7 @@ export default function EventsGrid({
   }
 
   if (status === 'error') {
-    return <p className="text-center text-sm text-muted-foreground">Could not load more events.</p>
+    return <p className="text-center text-sm text-muted-foreground">{t('Could not load more events.')}</p>
   }
 
   if (hydrationSafeEventsToRender.length === 0 && (!allEvents || allEvents.length === 0)) {
@@ -742,7 +746,7 @@ export default function EventsGrid({
   if (hydrationSafeEventsToRender.length === 0) {
     return (
       <div ref={parentRef} className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">
-        No events match your filters.
+        {t('No events match your filters.')}
       </div>
     )
   }

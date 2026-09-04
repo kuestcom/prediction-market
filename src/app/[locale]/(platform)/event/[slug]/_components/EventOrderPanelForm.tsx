@@ -1399,6 +1399,7 @@ export default function EventOrderPanelForm({
       handleValidationError(validation.reason, {
         openWalletModal: openAppKit,
         shareLabel: selectedShareLabel,
+        translate: t,
       })
       return
     }
@@ -1532,7 +1533,7 @@ export default function EventOrderPanelForm({
       )
     } catch (error) {
       if (isUserRejectedRequestError(error)) {
-        handleOrderCancelledFeedback()
+        handleOrderCancelledFeedback(t)
         return
       }
 
@@ -1630,6 +1631,7 @@ export default function EventOrderPanelForm({
         queryClient,
         outcomeIndex: submittedOutcomeIndex as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
         lastMouseEvent: submittedLastMouseEvent,
+        translate: t,
       })
 
       refreshTradingPositionsAfterMutation(queryClient)

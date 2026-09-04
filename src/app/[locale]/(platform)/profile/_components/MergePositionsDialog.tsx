@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,7 @@ export function MergePositionsDialog({
   onOpenChange,
   onConfirm,
 }: MergePositionsDialogProps) {
+  const t = useExtracted()
   const isMobile = useIsMobile()
 
   function formatMergeValue(value: number) {
@@ -63,20 +65,20 @@ export function MergePositionsDialog({
   const totalValue = markets.reduce((total, market) => total + (market.mergeAmount || 0), 0)
   const totalCount = markets.length
   const progressCount = mergeCount > 0 ? mergeCount : 0
-  const dialogTitle = `Merge ${formatMergeValue(totalValue || 0)} in positions`
-  const dialogDescription = 'This will merge all eligible market positions.'
+  const dialogTitle = t('Merge {amount} in positions', { amount: formatMergeValue(totalValue || 0) })
+  const dialogDescription = t('This will merge all eligible market positions.')
   const actionLabel = isSuccess
-    ? 'Done'
+    ? t('Done')
     : isProcessing && totalCount > 0
-      ? `Processing... ${progressCount}/${totalCount}`
-      : 'Merge positions'
+      ? t('Processing... {current}/{total}', { current: String(progressCount), total: String(totalCount) })
+      : t('Merge positions')
 
   const dialogBody = isSuccess ? (
     <div className="flex flex-col items-center gap-4 py-4 text-center">
       <div className="grid size-16 place-items-center rounded-full bg-yes">
         <CheckIcon className="size-8 text-white" />
       </div>
-      <p className="text-sm text-muted-foreground">You successfully merged all your eligible positions.</p>
+      <p className="text-sm text-muted-foreground">{t('You successfully merged all your eligible positions.')}</p>
     </div>
   ) : (
     <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
@@ -95,7 +97,7 @@ export function MergePositionsDialog({
                 containerClassName="size-full"
               />
             ) : (
-              <div className="grid size-full place-items-center text-xs text-muted-foreground">No image</div>
+              <div className="grid size-full place-items-center text-xs text-muted-foreground">{t('No image')}</div>
             )}
           </div>
 

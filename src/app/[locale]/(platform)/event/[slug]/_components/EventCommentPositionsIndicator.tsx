@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 
 import type { Comment, Market } from '@/types'
@@ -205,6 +206,7 @@ export function CommentPositionsIndicator({
   marketsByConditionId?: Map<string, Market>
   usePrimaryTone?: boolean
 }) {
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const entries = getCommentPositionEntries(positions, marketsByConditionId, isSingleMarket)
   const { open, setOpen } = usePositionsDropdown()
@@ -235,7 +237,7 @@ export function CommentPositionsIndicator({
           <button
             type="button"
             className={cn(badgeBaseClassName, 'gap-1 pr-1.5 transition-colors', primaryBadgeToneClass)}
-            aria-label={open ? 'Hide positions' : 'Show positions'}
+            aria-label={open ? t('Hide positions') : t('Show positions')}
             aria-expanded={open}
             title={`${primaryPosition.amountLabel} ${primaryInlineLabel}`}
           />

@@ -1,9 +1,11 @@
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
 
 export default function ThemeSelector() {
+  const t = useExtracted()
   const { theme, setTheme } = useTheme()
 
   return (
@@ -17,7 +19,7 @@ export default function ThemeSelector() {
           setTheme('light')
         }}
         className="size-7"
-        title="System mode"
+        title={t('Light mode')}
       >
         <SunIcon className="size-3.5" />
       </Button>
@@ -31,7 +33,7 @@ export default function ThemeSelector() {
           setTheme('system')
         }}
         className="size-7"
-        title="System mode"
+        title={t('System mode')}
       >
         <MonitorIcon className="size-3.5" />
       </Button>
@@ -45,7 +47,7 @@ export default function ThemeSelector() {
           setTheme('dark')
         }}
         className="size-7"
-        title="Dark mode"
+        title={t('Dark mode')}
       >
         <MoonIcon className="size-3.5" />
       </Button>

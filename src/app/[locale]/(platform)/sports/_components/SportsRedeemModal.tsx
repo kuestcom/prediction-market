@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
 
@@ -282,6 +283,7 @@ function useRedeemClaimSubmission({
   onClaimSuccess?: (conditionIds: string[]) => void
   onOpenChange: (open: boolean) => void
 }) {
+  const t = useExtracted()
   const user = useUser()
   const queryClient = useQueryClient()
   const { signTypedDataAsync } = useSignTypedData()
@@ -324,7 +326,7 @@ function useRedeemClaimSubmission({
     }
 
     if (selectedGroups.length === 0) {
-      toast.info('No claimable winnings selected.')
+      toast.info(t('No claimable winnings selected.'))
       return
     }
 
@@ -333,7 +335,7 @@ function useRedeemClaimSubmission({
     }
 
     if (!user?.deposit_wallet_address || !user?.address) {
-      toast.error('Set up your Deposit Wallet before claiming.')
+      toast.error(t('Set up your Deposit Wallet before claiming.'))
       return
     }
 
@@ -343,7 +345,7 @@ function useRedeemClaimSubmission({
       }
 
       if (!isCurrentNegRiskAdapterAddress(normalizeAddress(group.negRiskAdapterAddress))) {
-        toast.error('This action is currently unavailable for this market.')
+        toast.error(t('This action is currently unavailable for this market.'))
         return
       }
     }
@@ -380,14 +382,14 @@ function useRedeemClaimSubmission({
         return
       }
 
-      toast.success('Claim submitted', {
+      toast.success(t('Claim submitted'), {
         description:
           response.successfulItems.length > 1
-            ? 'We sent claims for your selected markets.'
-            : 'We sent your claim transaction.',
+            ? t('We sent claims for your selected markets.')
+            : t('We sent your claim transaction.'),
       })
       if (response.partialFailure) {
-        toast.error('We could not submit your claim. Please try again.')
+        toast.error(t('We could not submit your claim. Please try again.'))
       }
 
       const claimedConditionIds = new Set(response.successfulItems.map((group) => group.conditionId))
@@ -414,18 +416,18 @@ function useRedeemClaimSubmission({
         syncClaimedConditionIds(claimedConditionIds)
         onPartialClaimSuccess(Array.from(claimedConditionIds))
         if (claimedConditionIds.size > 0) {
-          toast.success('Claim submitted', {
+          toast.success(t('Claim submitted'), {
             description:
               claimedConditionIds.size > 1
-                ? 'We sent claims for your selected markets.'
-                : 'We sent your claim transaction.',
+                ? t('We sent claims for your selected markets.')
+                : t('We sent your claim transaction.'),
           })
-          toast.error('We could not submit your claim. Please try again.')
+          toast.error(t('We could not submit your claim. Please try again.'))
           return
         }
       }
       console.error('Failed to submit claim.', error)
-      toast.error('We could not submit your claim. Please try again.')
+      toast.error(t('We could not submit your claim. Please try again.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -445,6 +447,7 @@ export default function SportsRedeemModal({
   onClaimSuccess,
 }: SportsRedeemModalProps) {
   const isMobile = useIsMobile()
+  const t = useExtracted()
   const {
     normalizedSections,
     selectedConditionIds,
@@ -466,7 +469,9 @@ export default function SportsRedeemModal({
     onClaimSuccess,
     onOpenChange,
   })
-  const submitLabel = `Cash out ${formatCurrency(selectedAmount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const submitLabel = t('Cash out {amount}', {
+    amount: formatCurrency(selectedAmount, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  })
 
   const content = (
     <div className="grid gap-4">
@@ -501,7 +506,7 @@ export default function SportsRedeemModal({
                                 isChecked && 'border-primary bg-primary text-foreground',
                               )}
                               onCheckedChange={() => toggleConditionSelection(group.conditionId)}
-                              aria-label={`Select ${group.title}`}
+                              aria-label={t('Select {title}', { title: group.title })}
                             />
                             <button
                               type="button"

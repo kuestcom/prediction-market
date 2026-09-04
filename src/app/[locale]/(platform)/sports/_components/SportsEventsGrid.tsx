@@ -1,7 +1,7 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { useLocale } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
@@ -383,11 +383,13 @@ function useSportsInfiniteScrollSentinel({
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
+  fallbackErrorMessage,
 }: {
   queryScopeKey: string
   hasNextPage: boolean
   isFetchingNextPage: boolean
   fetchNextPage: () => Promise<unknown>
+  fallbackErrorMessage: string
 }) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{ key: string; error: string | null }>({
@@ -438,7 +440,7 @@ function useSportsInfiniteScrollSentinel({
             setCanRetryState({ key: queryScopeKey, canRetry: false })
             setInfiniteScrollErrorState({
               key: queryScopeKey,
-              error: error?.message || 'Failed to load more events.',
+              error: error?.message || fallbackErrorMessage,
             })
           })
         },
@@ -450,7 +452,15 @@ function useSportsInfiniteScrollSentinel({
         observer.disconnect()
       }
     },
-    [canRetryLoadMore, fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, queryScopeKey],
+    [
+      canRetryLoadMore,
+      fallbackErrorMessage,
+      fetchNextPage,
+      hasNextPage,
+      infiniteScrollError,
+      isFetchingNextPage,
+      queryScopeKey,
+    ],
   )
 
   return { loadMoreRef, infiniteScrollError }
@@ -466,6 +476,7 @@ export default function SportsEventsGrid({
   sportsSportSlug = null,
   sportsSection = null,
 }: SportsEventsGridProps) {
+  const t = useExtracted()
   const locale = useLocale()
   const user = useUser()
   const userCacheKey = user?.id ?? 'guest'
@@ -548,6 +559,7 @@ export default function SportsEventsGrid({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
+    fallbackErrorMessage: t('Failed to load more events.'),
   })
 
   const columns = useColumns()
@@ -567,7 +579,7 @@ export default function SportsEventsGrid({
   if (status === 'error') {
     return (
       <div className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">
-        Could not load events.
+        {t('Could not load events.')}
       </div>
     )
   }
@@ -579,7 +591,7 @@ export default function SportsEventsGrid({
   if (!visibleEvents || visibleEvents.length === 0) {
     return (
       <div className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">
-        No events match your filters.
+        {t('No events match your filters.')}
       </div>
     )
   }

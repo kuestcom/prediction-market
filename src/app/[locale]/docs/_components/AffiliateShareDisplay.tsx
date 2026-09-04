@@ -1,5 +1,7 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
+
 import { useAffiliateData } from '@/hooks/useAffiliateData'
 
 import { ErrorDisplay } from './ErrorDisplay'
@@ -13,10 +15,11 @@ export function AffiliateShareDisplay({
   showSymbol = true,
   className = 'font-semibold text-primary',
 }: AffiliateShareDisplayProps) {
+  const t = useExtracted()
   const { data, isLoading } = useAffiliateData()
 
   if (isLoading) {
-    return <span className={className}>Loading...</span>
+    return <span className={className}>{t('Loading...')}</span>
   }
 
   if (data && !data.success) {

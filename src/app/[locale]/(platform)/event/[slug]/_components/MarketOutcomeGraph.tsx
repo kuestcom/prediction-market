@@ -577,7 +577,7 @@ function MarketOutcomeMetaInformation({
       {shouldShowNew && (
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
           <SparkleIcon className="size-3.5 fill-current" stroke="currentColor" fill="currentColor" />
-          <span>New</span>
+          <span>{t('New')}</span>
         </span>
       )}
       {shouldShowNew && <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />}

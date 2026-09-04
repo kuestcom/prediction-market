@@ -29,10 +29,11 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const eventSlug = activity.market.event?.slug || activity.market.slug
   const marketSlug = activity.market.event?.slug ? activity.market.slug : null
   const eventHref = (marketSlug ? `/event/${eventSlug}/${marketSlug}` : `/event/${eventSlug}`) as Route
-  const outcomeText = activity.outcome?.text || 'Outcome'
+  const fallbackOutcomeLabel = t('Outcome')
+  const outcomeText = activity.outcome?.text || fallbackOutcomeLabel
   const outcomeIsYes = outcomeText.toLowerCase().includes('yes') || activity.outcome?.index === 0
   const outcomeColor = outcomeIsYes ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
-  const showOutcomeBadge = (variant === 'buy' || variant === 'sell') && outcomeText !== 'Outcome'
+  const showOutcomeBadge = (variant === 'buy' || variant === 'sell') && outcomeText !== fallbackOutcomeLabel
   const imageUrl = activity.market.icon_url
     ? activity.market.icon_url.startsWith('http')
       ? activity.market.icon_url
@@ -85,9 +86,9 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
       <div className="min-w-0 flex-1 space-y-1">
         <div className="block max-w-full truncate text-sm/tight font-semibold text-foreground">
           {variant === 'deposit'
-            ? 'Deposited funds'
+            ? t('Deposited funds')
             : variant === 'withdraw'
-              ? 'Withdrew funds'
+              ? t('Withdrew funds')
               : variant === 'resolution_bond'
                 ? t('Resolution bond')
                 : variant === 'resolution_reward'
@@ -108,7 +109,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
             <CircleDollarSignIcon className="size-5" />
           </div>
         ) : (
-          <div className="grid size-full place-items-center text-2xs text-muted-foreground">No image</div>
+          <div className="grid size-full place-items-center text-2xs text-muted-foreground">{t('No image')}</div>
         )}
       </Link>
 

@@ -47,7 +47,7 @@ export default function TestModeBanner({ persistKey = 'test_mode_banner_closed_s
             className={cn(
               `absolute -top-2 -right-2 inline-flex size-7 items-center justify-center rounded-full border bg-background text-sm text-foreground/80 shadow-md transition-colors hover:text-foreground`,
             )}
-            aria-label="Dismiss test mode banner"
+            aria-label={t('Dismiss test mode banner')}
           >
             &times;
           </button>
