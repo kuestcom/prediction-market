@@ -1,12 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as actualNextCache from 'next/cache'
 
-const mocks = vi.hoisted(() => ({
-  getSettings: vi.fn(),
-  getPublicAssetUrl: vi.fn((path: string | null) => (path ? `https://assets.example/${path}` : '')),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getSettings: mock(),
+  getPublicAssetUrl: mock((path: string | null) => (path ? `https://assets.example/${path}` : '')),
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   getExtracted:
     async ({ locale }: { locale: string }) =>
     (message: string, values?: Record<string, string>) => {
@@ -20,21 +22,21 @@ vi.mock('next-intl/server', () => ({
     },
 }))
 
-vi.mock('next/cache', () => {
+void mock.module('next/cache', () => {
   return {
     ...actualNextCache,
-    cacheLife: vi.fn(),
-    cacheTag: vi.fn(),
+    cacheLife: mock(),
+    cacheTag: mock(),
   }
 })
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: unknown[]) => mocks.getSettings(...args),
   },
 }))
 
-vi.mock('@/lib/storage', () => ({
+void mock.module('@/lib/storage', () => ({
   getPublicAssetUrl: (path: string | null) => mocks.getPublicAssetUrl(path),
 }))
 

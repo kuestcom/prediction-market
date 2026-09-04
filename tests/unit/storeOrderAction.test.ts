@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as actualViem from 'viem'
 
 import type { storeOrderAction, storeOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
@@ -6,9 +6,11 @@ import type { storeOrderAction, storeOrdersAction } from '@/app/[locale]/(platfo
 import { MAX_CLOB_BATCH_ORDERS, MAX_ORDER_SUBMISSION_ORDERS } from '@/lib/constants'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 
-const sumsubMocks = vi.hoisted(() => ({ requireApproval: vi.fn() }))
+import { hoisted, spyOn } from '../bun-test-helpers'
 
-vi.mock('@/lib/sumsub/enforcement', () => ({
+const sumsubMocks = hoisted(() => ({ requireApproval: mock() }))
+
+void mock.module('@/lib/sumsub/enforcement', () => ({
   requireSumsubTradingApproval: sumsubMocks.requireApproval,
   SUMSUB_APPROVAL_REQUIRED_MESSAGE: 'Complete identity verification to continue.',
 }))
@@ -16,50 +18,50 @@ vi.mock('@/lib/sumsub/enforcement', () => ({
 type StoreOrderInput = Parameters<typeof storeOrderAction>[0]
 type StoreOrdersInput = Parameters<typeof storeOrdersAction>[0]
 
-const mocks = vi.hoisted(() => ({
-  updateTag: vi.fn(),
-  createPublicClient: vi.fn(),
-  http: vi.fn(() => ({ transport: 'http' })),
-  buildClobHmacSignature: vi.fn(() => 'sig'),
-  getUserTradingAuthSecrets: vi.fn(),
-  getExtracted: vi.fn(),
-  getCurrentUser: vi.fn(),
-  createOrder: vi.fn(),
-  fetch: vi.fn(),
+const mocks = hoisted(() => ({
+  updateTag: mock(),
+  createPublicClient: mock(),
+  http: mock(() => ({ transport: 'http' })),
+  buildClobHmacSignature: mock(() => 'sig'),
+  getUserTradingAuthSecrets: mock(),
+  getExtracted: mock(),
+  getCurrentUser: mock(),
+  createOrder: mock(),
+  fetch: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   updateTag: mocks.updateTag,
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   getExtracted: (...args: any[]) => mocks.getExtracted(...args),
 }))
 
-vi.mock('viem', () => ({
+void mock.module('viem', () => ({
   ...actualViem,
   createPublicClient: mocks.createPublicClient,
   erc1155Abi: [],
   http: mocks.http,
 }))
 
-vi.mock('@/lib/appkit', () => ({
+void mock.module('@/lib/appkit', () => ({
   defaultNetwork: { rpcUrls: { default: { http: ['https://rpc.local'] } } },
 }))
 
-vi.mock('@/lib/hmac', () => ({
+void mock.module('@/lib/hmac', () => ({
   buildClobHmacSignature: mocks.buildClobHmacSignature,
 }))
 
-vi.mock('@/lib/trading-auth/server', () => ({
+void mock.module('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: mocks.getUserTradingAuthSecrets,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
-vi.mock('@/lib/db/queries/order', () => ({
+void mock.module('@/lib/db/queries/order', () => ({
   OrderRepository: { createOrder: (...args: any[]) => mocks.createOrder(...args) },
 }))
 
@@ -120,7 +122,7 @@ describe('storeOrderAction', () => {
     process.env.CLOB_URL = 'https://clob.local'
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     sumsubMocks.requireApproval.mockResolvedValueOnce({ allowed: false })
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = spyOn(globalThis, 'fetch')
     fetchSpy.mockClear()
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
@@ -190,7 +192,7 @@ describe('storeOrderAction', () => {
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
-    const fetchMock = vi.fn().mockResolvedValueOnce({
+    const fetchMock = mock().mockResolvedValueOnce({
       status: 422,
       statusText: 'Unprocessable Entity',
       ok: false,
@@ -229,7 +231,7 @@ describe('storeOrderAction', () => {
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
-    const fetchMock = vi.fn().mockResolvedValueOnce({
+    const fetchMock = mock().mockResolvedValueOnce({
       status: 422,
       statusText: 'Unprocessable Entity',
       ok: false,
@@ -269,8 +271,7 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce({
         status: 201,
         statusText: 'Created',
@@ -325,7 +326,7 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    const fetchMock = vi.fn().mockResolvedValueOnce({
+    const fetchMock = mock().mockResolvedValueOnce({
       status: 200,
       statusText: 'OK',
       ok: true,
@@ -405,8 +406,7 @@ describe('storeOrderAction', () => {
       orderID: `order-${index + 1}`,
       status: 'matched',
     }))
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce({
         status: 200,
         statusText: 'OK',
@@ -461,8 +461,7 @@ describe('storeOrderAction', () => {
       orderID: `order-${index + 1}`,
       status: 'live',
     }))
-    globalThis.fetch = vi
-      .fn()
+    globalThis.fetch = mock()
       .mockResolvedValueOnce({
         status: 200,
         statusText: 'OK',
@@ -518,7 +517,7 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = mock().mockResolvedValue({
       status: 503,
       statusText: 'Service Unavailable',
       ok: false,
@@ -571,7 +570,7 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+    globalThis.fetch = mock().mockResolvedValueOnce({
       status: 200,
       statusText: 'OK',
       ok: true,
@@ -616,7 +615,7 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    const fetchMock = vi.fn().mockResolvedValueOnce({
+    const fetchMock = mock().mockResolvedValueOnce({
       status: 200,
       statusText: 'OK',
       ok: true,

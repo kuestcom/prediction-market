@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
 
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'bun:test'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { isRecoverableWalletConnectorError, WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
-const openAppKit = vi.fn()
+const openAppKit = mock()
 
 function AppKitWrapper({ children }: { children: ReactNode }) {
   return <AppKitContext value={{ ...defaultAppKitValue, open: openAppKit }}>{children}</AppKitContext>

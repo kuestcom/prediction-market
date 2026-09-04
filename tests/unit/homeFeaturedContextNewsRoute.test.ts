@@ -1,36 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  assertHomeFeaturedNewsMetadataUrlAllowed: vi.fn(),
-  fetchHomeFeaturedNewsMetadata: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  parseOpenRouterProviderSettings: vi.fn(),
-  requestOpenRouterCompletion: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  assertHomeFeaturedNewsMetadataUrlAllowed: mock(),
+  fetchHomeFeaturedNewsMetadata: mock(),
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  parseOpenRouterProviderSettings: mock(),
+  requestOpenRouterCompletion: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: unknown[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: unknown[]) => mocks.getSettings(...args),
   },
 }))
 
-vi.mock('@/lib/ai/market-context-config', () => ({
+void mock.module('@/lib/ai/market-context-config', () => ({
   parseOpenRouterProviderSettings: (...args: unknown[]) => mocks.parseOpenRouterProviderSettings(...args),
 }))
 
-vi.mock('@/lib/ai/openrouter', () => ({
+void mock.module('@/lib/ai/openrouter', () => ({
   requestOpenRouterCompletion: (...args: unknown[]) => mocks.requestOpenRouterCompletion(...args),
   sanitizeForPrompt: (value: string) => value,
 }))
 
-vi.mock('@/lib/home-featured-context-metadata', () => ({
+void mock.module('@/lib/home-featured-context-metadata', () => ({
   assertHomeFeaturedNewsMetadataUrlAllowed: (...args: unknown[]) =>
     mocks.assertHomeFeaturedNewsMetadataUrlAllowed(...args),
   fetchHomeFeaturedNewsMetadata: (...args: unknown[]) => mocks.fetchHomeFeaturedNewsMetadata(...args),

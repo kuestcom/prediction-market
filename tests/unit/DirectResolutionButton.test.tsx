@@ -1,19 +1,21 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS } from '@/lib/contracts'
 
-const mocks = vi.hoisted(() => ({
-  fetch: vi.fn(),
-  readContract: vi.fn(),
-  readWhitelist: vi.fn(),
-  runWithSignaturePrompt: vi.fn(),
-  signAndSubmit: vi.fn(),
-  signTypedDataAsync: vi.fn(),
+import { hoisted, spyOn, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetch: mock(),
+  readContract: mock(),
+  readWhitelist: mock(),
+  runWithSignaturePrompt: mock(),
+  signAndSubmit: mock(),
+  signTypedDataAsync: mock(),
   balanceRaw: 1000,
   balanceLoading: false,
   balanceError: false,
-  refetchBalance: vi.fn(),
+  refetchBalance: mock(),
   user: {
     id: 'user-1',
     address: '0x1111111111111111111111111111111111111111',
@@ -23,11 +25,11 @@ const mocks = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@reown/appkit/react', () => ({
+void mock.module('@reown/appkit/react', () => ({
   useAppKitAccount: () => ({ address: '0x1111111111111111111111111111111111111111' }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string, values?: Record<string, string>) =>
     Object.entries(values ?? {}).reduce(
       (translated, [key, replacement]) => translated.replaceAll(`{${key}}`, replacement),
@@ -35,7 +37,7 @@ vi.mock('next-intl', () => ({
     ),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -43,29 +45,29 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   usePublicClient: () => ({ readContract: mocks.readContract }),
   useSignTypedData: () => ({ signTypedDataAsync: mocks.signTypedDataAsync }),
   useWalletClient: () => ({ data: {} }),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.user,
 }))
 
-vi.mock('@/lib/wallet/client', () => ({
+void mock.module('@/lib/wallet/client', () => ({
   signAndSubmitDepositWalletCalls: mocks.signAndSubmit,
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ polygonRpcUrl: '' }),
 }))
 
-vi.mock('@/hooks/useBalance', () => ({
+void mock.module('@/hooks/useBalance', () => ({
   useBalance: () => ({
     balance: { raw: mocks.balanceRaw, text: mocks.balanceRaw.toFixed(2), symbol: 'USDC' },
     isLoadingBalance: mocks.balanceLoading,
@@ -74,11 +76,11 @@ vi.mock('@/hooks/useBalance', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({ runWithSignaturePrompt: mocks.runWithSignaturePrompt }),
 }))
 
-vi.mock('@/lib/proposer-whitelist', () => ({
+void mock.module('@/lib/proposer-whitelist', () => ({
   readCreatorProposerWhitelistStatus: mocks.readWhitelist,
 }))
 
@@ -158,16 +160,16 @@ describe('DirectResolutionButton', () => {
     })
     mocks.runWithSignaturePrompt.mockImplementation(async (callback: () => Promise<unknown>) => callback())
     mocks.signAndSubmit.mockResolvedValue({ error: null, txHash: `0x${'b'.repeat(64)}` })
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    unstubAllGlobals()
+    jest.restoreAllMocks()
   })
 
   it('reuses the inline report summary when the review dialog opens', async () => {
-    const onResolutionRewardAmountChange = vi.fn()
+    const onResolutionRewardAmountChange = mock()
     const eventWithIcon = { ...(event as any), icon_url: 'https://example.test/event.png' } as never
     mocks.fetch.mockResolvedValue({
       ok: true,
@@ -216,7 +218,7 @@ describe('DirectResolutionButton', () => {
   })
 
   it('loads the reward badge for NegRisk direct-resolution markets', async () => {
-    const onResolutionRewardAmountChange = vi.fn()
+    const onResolutionRewardAmountChange = mock()
     const negRiskRequestId = `0x${'d'.repeat(64)}`
     const negRiskMarket = {
       ...(market as any),
@@ -352,7 +354,7 @@ describe('DirectResolutionButton', () => {
   })
 
   it('shows resolved outcome names without percentages, keeps them non-interactive, and grays out the loser', async () => {
-    const onResolutionRewardAmountChange = vi.fn()
+    const onResolutionRewardAmountChange = mock()
     const resolvedMarket = {
       ...(market as any),
       is_active: false,
@@ -524,7 +526,7 @@ describe('DirectResolutionButton', () => {
   })
 
   it('hides the reward badge when the on-chain rewards market is inactive', async () => {
-    const onResolutionRewardAmountChange = vi.fn()
+    const onResolutionRewardAmountChange = mock()
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -576,7 +578,7 @@ describe('DirectResolutionButton', () => {
           eligibility: 'eligible',
         }),
       })
-    const onResolutionRewardAmountChange = vi.fn()
+    const onResolutionRewardAmountChange = mock()
     const { rerender } = render(
       <DirectResolutionButton
         market={market}
@@ -626,7 +628,7 @@ describe('DirectResolutionButton', () => {
   })
 
   it('invalidates the report summary when the authenticated identity changes', async () => {
-    const onResolutionRewardAmountChange = vi.fn()
+    const onResolutionRewardAmountChange = mock()
     const { rerender } = render(
       <DirectResolutionButton
         market={market}
@@ -1004,7 +1006,7 @@ describe('DirectResolutionButton', () => {
   )
 
   it('does not expose Viem details when the wallet rejects the proposal', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const consoleError = spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -1038,8 +1040,8 @@ describe('DirectResolutionButton', () => {
   })
 
   it('explains when the rewards contract no longer accepts proposals', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    const onResolutionRewardAmountChange = vi.fn()
+    const consoleError = spyOn(console, 'error').mockImplementation(() => undefined)
+    const onResolutionRewardAmountChange = mock()
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({

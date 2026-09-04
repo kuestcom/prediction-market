@@ -1,24 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  actions: vi.fn(),
-  createClient: vi.fn(),
-  decryptSecret: vi.fn(),
-  getSettings: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  actions: mock(),
+  createClient: mock(),
+  decryptSecret: mock(),
+  getSettings: mock(),
 }))
 
-vi.mock('@lifi/sdk', () => ({
+void mock.module('@lifi/sdk', () => ({
   actions: (...args: any[]) => mocks.actions(...args),
   createClient: (...args: any[]) => mocks.createClient(...args),
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
   },
 }))
 
-vi.mock('@/lib/encryption', () => ({
+void mock.module('@/lib/encryption', () => ({
   decryptSecret: (...args: any[]) => mocks.decryptSecret(...args),
 }))
 
@@ -32,7 +34,7 @@ describe('getLiFiServerActions', () => {
     mocks.createClient.mockImplementation((config: unknown) => ({ config }))
     mocks.actions.mockImplementation((client: unknown) => ({
       client,
-      getQuote: vi.fn(),
+      getQuote: mock(),
     }))
   })
 

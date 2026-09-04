@@ -2,8 +2,10 @@ import { SIWXUtil } from '@reown/appkit-controllers'
 import * as actualAppKitControllers from '@reown/appkit-controllers'
 import * as actualAppKitSiwe from '@reown/appkit-siwe'
 import { act, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
+
+import { hoisted, spyOn, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
 
 function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>; onValue?: (value: any) => void }) {
   const value = React.use(ctx)
@@ -11,17 +13,17 @@ function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>; onValue?: (v
   return React.createElement('div', { 'data-testid': 'ready' }, value.isReady ? 'yes' : 'no')
 }
 
-const mocks = vi.hoisted(() => ({
-  chainControllerGetActiveCaipAddress: vi.fn(),
-  cookieToInitialState: vi.fn(),
-  createAppKit: vi.fn(),
-  createSIWEConfig: vi.fn(),
-  setThemeMode: vi.fn(),
-  siweClientSignIn: vi.fn(),
-  siwxRequestSignMessage: vi.fn(),
-  useAppKitAccount: vi.fn(),
-  useSignMessage: vi.fn(),
-  WagmiProvider: vi.fn(({ children }: any) => children),
+const mocks = hoisted(() => ({
+  chainControllerGetActiveCaipAddress: mock(),
+  cookieToInitialState: mock(),
+  createAppKit: mock(),
+  createSIWEConfig: mock(),
+  setThemeMode: mock(),
+  siweClientSignIn: mock(),
+  siwxRequestSignMessage: mock(),
+  useAppKitAccount: mock(),
+  useSignMessage: mock(),
+  WagmiProvider: mock(({ children }: any) => children),
 }))
 
 let providerImportId = 0
@@ -30,14 +32,14 @@ async function importAppKitProvider() {
   return (await import(`@/providers/AppKitProvider?test=${++providerImportId}`)).default
 }
 
-vi.mock('@reown/appkit/react', () => ({
+void mock.module('@reown/appkit/react', () => ({
   __esModule: true,
   createAppKit: mocks.createAppKit,
   useAppKitAccount: mocks.useAppKitAccount,
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
 
-vi.mock('@reown/appkit-controllers', () => {
+void mock.module('@reown/appkit-controllers', () => {
   return {
     ...actualAppKitControllers,
     ChainController: {
@@ -51,47 +53,47 @@ vi.mock('@reown/appkit-controllers', () => {
   }
 })
 
-vi.mock('@reown/appkit-siwe', () => {
+void mock.module('@reown/appkit-siwe', () => {
   return {
     ...actualAppKitSiwe,
     createSIWEConfig: mocks.createSIWEConfig,
   }
 })
 
-vi.mock('@/lib/appkit', () => ({
+void mock.module('@/lib/appkit', () => ({
   __esModule: true,
-  createAppKitWagmiAdapter: vi.fn(() => ({ wagmiConfig: {} })),
+  createAppKitWagmiAdapter: mock(() => ({ wagmiConfig: {} })),
   defaultNetwork: { id: 1 },
   networks: [{ id: 1 }],
 }))
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({
     reownAppKitProjectId: 'test-project',
     siteUrl: 'https://markets.test',
   }),
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   cookieToInitialState: mocks.cookieToInitialState,
   WagmiProvider: mocks.WagmiProvider,
   useConnections: () => [],
   useSignMessage: mocks.useSignMessage,
 }))
 
-vi.mock('next-themes', () => ({
+void mock.module('next-themes', () => ({
   useTheme: () => ({ resolvedTheme: 'dark' }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('next/navigation', () => ({
-  redirect: vi.fn(),
+void mock.module('next/navigation', () => ({
+  redirect: mock(),
 }))
 
-vi.mock('next/dynamic', () => ({
+void mock.module('next/dynamic', () => ({
   __esModule: true,
   default: (loader: () => Promise<{ default: React.ComponentType<any> }>) => {
     const LazyComponent = React.lazy(loader)
@@ -101,20 +103,20 @@ vi.mock('next/dynamic', () => ({
   },
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+void mock.module('@/lib/auth-client', () => ({
   authClient: {
-    getSession: vi.fn().mockResolvedValue({ data: { user: null } }),
-    signOut: vi.fn(),
+    getSession: mock().mockResolvedValue({ data: { user: null } }),
+    signOut: mock(),
     siwe: {
-      nonce: vi.fn(),
-      verify: vi.fn().mockResolvedValue({ data: { success: true } }),
+      nonce: mock(),
+      verify: mock().mockResolvedValue({ data: { success: true } }),
     },
   },
 }))
 
 describe('appKitProvider SSR guard', () => {
   beforeEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
     mocks.chainControllerGetActiveCaipAddress.mockReset()
     mocks.chainControllerGetActiveCaipAddress.mockReturnValue('eip155:1:0x123')
     mocks.cookieToInitialState.mockReset()
@@ -138,13 +140,13 @@ describe('appKitProvider SSR guard', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('initializes AppKit in the browser and synchronizes theme', async () => {
     const appKitInstance = {
-      open: vi.fn(),
-      close: vi.fn(),
+      open: mock(),
+      close: mock(),
     }
     mocks.createAppKit.mockReturnValueOnce(appKitInstance)
 
@@ -218,7 +220,7 @@ describe('appKitProvider SSR guard', () => {
   })
 
   it('keeps defaults when AppKit initialization fails', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warnSpy = spyOn(console, 'warn').mockImplementation(() => {})
     try {
       mocks.createAppKit.mockImplementationOnce(() => {
         throw new Error('boom')
@@ -258,8 +260,8 @@ describe('appKitProvider SSR guard', () => {
 
   it('automatically starts SIWE after an external wallet connects', async () => {
     mocks.createAppKit.mockReturnValueOnce({
-      open: vi.fn(),
-      close: vi.fn(),
+      open: mock(),
+      close: mock(),
     })
     mocks.useAppKitAccount.mockReturnValue({
       address: '0x123',
@@ -298,8 +300,8 @@ describe('appKitProvider SSR guard', () => {
         }),
     )
     mocks.createAppKit.mockReturnValueOnce({
-      open: vi.fn(),
-      close: vi.fn(),
+      open: mock(),
+      close: mock(),
     })
     mocks.useAppKitAccount.mockReturnValue({
       address: '0x123',
@@ -348,8 +350,8 @@ describe('appKitProvider SSR guard', () => {
         }),
     )
     mocks.createAppKit.mockReturnValueOnce({
-      open: vi.fn(),
-      close: vi.fn(),
+      open: mock(),
+      close: mock(),
     })
     mocks.useAppKitAccount.mockReturnValue({
       address: '0x123',
@@ -406,8 +408,8 @@ describe('appKitProvider SSR guard', () => {
 
   it('retries automatic SIWE when the previous attempt is cancelled', async () => {
     mocks.createAppKit.mockReturnValueOnce({
-      open: vi.fn(),
-      close: vi.fn(),
+      open: mock(),
+      close: mock(),
     })
     mocks.useAppKitAccount.mockReturnValue({
       address: '0x123',
@@ -448,14 +450,14 @@ describe('appKitProvider SSR guard', () => {
   })
 
   it('does not automatically start SIWE when the current region is blocked', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => ({ blocked: true }),
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
     mocks.createAppKit.mockReturnValueOnce({
-      open: vi.fn(),
-      close: vi.fn(),
+      open: mock(),
+      close: mock(),
     })
     mocks.useAppKitAccount.mockReturnValue({
       address: '0x123',
@@ -499,8 +501,8 @@ describe('appKitProvider SSR guard', () => {
     )
     mocks.createAppKit.mockImplementationOnce(() => {
       return {
-        open: vi.fn(),
-        close: vi.fn(),
+        open: mock(),
+        close: mock(),
       }
     })
     mocks.useAppKitAccount.mockReturnValue({

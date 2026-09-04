@@ -110,8 +110,11 @@
   },
   "lint-staged": {
     "*": [
-      "oxlint --fix --no-error-on-unmatched-pattern",
+      "oxlint --fix --ignore-pattern 'tests/**' --no-error-on-unmatched-pattern",
       "oxfmt --no-error-on-unmatched-pattern"
+    ],
+    "tests/**/*.{ts,tsx}": [
+      "oxlint --config .oxlintrc.tests.json --fix --no-error-on-unmatched-pattern"
     ]
   },
   "engines": {

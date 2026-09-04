@@ -1,18 +1,20 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as actualReact from 'react'
+
+import { hoisted } from '../bun-test-helpers'
 
 const originalStartTransition = actualReact.startTransition
 
-const mocks = vi.hoisted(() => ({
+const mocks = hoisted(() => ({
   inTransition: false,
   pathname: '/@ibruno',
-  replace: vi.fn(),
+  replace: mock(),
   replaceWasInTransition: false,
   searchParams: new URLSearchParams(),
 }))
 
-vi.mock('react', () => {
+void mock.module('react', () => {
   return {
     ...actualReact,
     startTransition: (action: () => void) => {
@@ -28,21 +30,21 @@ vi.mock('react', () => {
   }
 })
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   usePathname: () => mocks.pathname,
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicPositionsList', () => ({
+void mock.module('@/app/[locale]/(platform)/profile/_components/PublicPositionsList', () => ({
   default: () => <div>Positions content</div>,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () => ({
+void mock.module('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () => ({
   default: () => <div>Activity content</div>,
 }))
 

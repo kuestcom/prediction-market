@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from 'bun:test'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { resolveEventMarketSlugsMainTag, resolveEventTagCadenceRoute } from '@/lib/db/queries/event'
 
-vi.mock('next/cache', () => ({
-  cacheTag: vi.fn(),
+void mock.module('next/cache', () => ({
+  cacheTag: mock(),
   unstable_cache: (callback: unknown) => callback,
 }))
 

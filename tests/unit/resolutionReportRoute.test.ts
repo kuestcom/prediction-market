@@ -1,26 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { NextRequest } from 'next/server'
+
+import { hoisted } from '../bun-test-helpers'
 
 const MARKET_ID = `0x${'a'.repeat(64)}`
 const DEPOSIT_WALLET = '0x2222222222222222222222222222222222222222'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  fetchResolutionRewardAccount: vi.fn(),
-  fetchResolutionRewardMarket: vi.fn(),
-  getMarketConfiguration: vi.fn(),
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  fetchResolutionRewardAccount: mock(),
+  fetchResolutionRewardMarket: mock(),
+  getMarketConfiguration: mock(),
 }))
 
-vi.mock('@/lib/data-api/resolution-rewards', () => ({
+void mock.module('@/lib/data-api/resolution-rewards', () => ({
   fetchResolutionRewardAccount: mocks.fetchResolutionRewardAccount,
   fetchResolutionRewardMarket: mocks.fetchResolutionRewardMarket,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: mocks.getCurrentUser },
 }))
 
-vi.mock('@/lib/db/queries/resolution-report-context', () => ({
+void mock.module('@/lib/db/queries/resolution-report-context', () => ({
   ResolutionReportContextRepository: { getMarketConfiguration: mocks.getMarketConfiguration },
 }))
 

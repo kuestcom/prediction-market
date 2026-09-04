@@ -1,24 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import * as actualHomeEvents from '@/lib/home-events'
 
-const mocks = vi.hoisted(() => ({
-  cacheTag: vi.fn(),
-  filterHomeEvents: vi.fn(),
-  listEvents: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  cacheTag: mock(),
+  filterHomeEvents: mock(),
+  listEvents: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   cacheTag: (...args: any[]) => mocks.cacheTag(...args),
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     listEvents: (...args: any[]) => mocks.listEvents(...args),
   },
 }))
 
-vi.mock('@/lib/home-events', () => {
+void mock.module('@/lib/home-events', () => {
   return {
     ...actualHomeEvents,
     filterHomeEvents: (...args: any[]) => mocks.filterHomeEvents(...args),

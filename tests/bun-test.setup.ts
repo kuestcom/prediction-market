@@ -1,7 +1,5 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
-import { afterEach, expect, mock, vi } from 'bun:test'
-
-import './bun-test-compat'
+import { afterEach, expect, mock } from 'bun:test'
 
 if (process.env.BUN_TEST_VERBOSE !== '1') {
   for (const method of ['debug', 'error', 'info', 'log', 'warn'] as const) {
@@ -15,15 +13,15 @@ const matchers = await import('@testing-library/jest-dom/matchers')
 const { cleanup } = await import('@testing-library/react')
 const actualNextIntl = await import('next-intl')
 
-expect.extend(matchers)
+expect.extend(matchers as unknown as Parameters<typeof expect.extend>[0])
 
-mock.module('server-only', () => ({}))
+void mock.module('server-only', () => ({}))
 
-mock.module('next/root-params', () => ({
-  locale: vi.fn(async () => 'en'),
+void mock.module('next/root-params', () => ({
+  locale: mock(async () => 'en'),
 }))
 
-mock.module('next-intl', () => ({
+void mock.module('next-intl', () => ({
   ...actualNextIntl,
   useExtracted: () => (message: string | { message: string }, values?: Record<string, unknown>) => {
     const text = typeof message === 'string' ? message : message.message

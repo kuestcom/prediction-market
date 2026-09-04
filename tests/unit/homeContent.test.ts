@@ -1,29 +1,31 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as actualNextCache from 'next/cache'
 
-const mocks = vi.hoisted(() => ({
-  listHomeEventsPage: vi.fn(),
+import { hoisted, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  listHomeEventsPage: mock(),
 }))
 
-vi.mock('@/lib/home-events-page', () => ({
+void mock.module('@/lib/home-events-page', () => ({
   listHomeEventsPage: (...args: any[]) => mocks.listHomeEventsPage(...args),
 }))
 
-vi.mock('@/lib/home-featured-events', () => ({
-  getHomeFeaturedSideCard: vi.fn().mockResolvedValue({ slides: [] }),
-  listHomeFeaturedEvents: vi.fn().mockResolvedValue([]),
-  listHomeFeaturedHotTopics: vi.fn().mockResolvedValue([]),
+void mock.module('@/lib/home-featured-events', () => ({
+  getHomeFeaturedSideCard: mock().mockResolvedValue({ slides: [] }),
+  listHomeFeaturedEvents: mock().mockResolvedValue([]),
+  listHomeFeaturedHotTopics: mock().mockResolvedValue([]),
 }))
 
-vi.mock('next/cache', () => {
+void mock.module('next/cache', () => {
   return {
     ...actualNextCache,
-    cacheLife: vi.fn(),
-    cacheTag: vi.fn(),
+    cacheLife: mock(),
+    cacheTag: mock(),
   }
 })
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/HomeClient', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/HomeClient', () => ({
   default: () => null,
 }))
 
@@ -33,7 +35,7 @@ describe('homeContent', () => {
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('uses the route main tag when fetching initial subcategory events', async () => {

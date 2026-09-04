@@ -1,23 +1,23 @@
 import type { AnchorHTMLAttributes } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'bun:test'
+import { describe, expect, it, mock } from 'bun:test'
 import { createElement } from 'react'
 
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
 import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: function MockImage({ unoptimized: _unoptimized, ...props }: any) {
     return createElement('img', props)
   },
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
     return (
       <a href={href} {...props}>

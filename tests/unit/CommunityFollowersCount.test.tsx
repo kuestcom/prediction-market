@@ -1,14 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import CommunityFollowersCount from '@/components/CommunityFollowersCount'
 import * as actualCommunityFollows from '@/lib/community-follows'
 
-const WALLET = '0x1111111111111111111111111111111111111111'
-const mocks = vi.hoisted(() => ({ fetchCommunityFollowStats: vi.fn() }))
+import { hoisted } from '../bun-test-helpers'
 
-vi.mock('next-intl', () => ({
+const WALLET = '0x1111111111111111111111111111111111111111'
+const mocks = hoisted(() => ({ fetchCommunityFollowStats: mock() }))
+
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string, values?: { count?: number }) => {
     if (message.includes('plural')) {
       return `${values?.count} ${values?.count === 1 ? 'follower' : 'followers'}`
@@ -17,11 +19,11 @@ vi.mock('next-intl', () => ({
   },
 }))
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ communityUrl: 'https://community.example' }),
 }))
 
-vi.mock('@/lib/community-follows', () => {
+void mock.module('@/lib/community-follows', () => {
   return {
     ...actualCommunityFollows,
     fetchCommunityFollowStats: (...args: unknown[]) => mocks.fetchCommunityFollowStats(...args),

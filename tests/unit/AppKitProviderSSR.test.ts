@@ -1,45 +1,47 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const createAppKit = vi.fn()
+import { unstubAllGlobals } from '../bun-test-helpers'
 
-vi.mock('@reown/appkit/react', () => ({
+const createAppKit = mock()
+
+void mock.module('@reown/appkit/react', () => ({
   createAppKit,
-  useAppKitAccount: vi.fn(),
-  useAppKitTheme: () => ({ setThemeMode: vi.fn() }),
+  useAppKitAccount: mock(),
+  useAppKitTheme: () => ({ setThemeMode: mock() }),
 }))
 
-vi.mock('@reown/appkit-controllers', () => ({
-  ChainController: { getActiveCaipAddress: vi.fn() },
-  SIWXUtil: { requestSignMessage: vi.fn() },
+void mock.module('@reown/appkit-controllers', () => ({
+  ChainController: { getActiveCaipAddress: mock() },
+  SIWXUtil: { requestSignMessage: mock() },
 }))
 
-vi.mock('@reown/appkit-siwe', () => ({
-  createSIWEConfig: vi.fn(),
-  formatMessage: vi.fn(),
-  getAddressFromMessage: vi.fn(),
-  getDidAddress: vi.fn(),
+void mock.module('@reown/appkit-siwe', () => ({
+  createSIWEConfig: mock(),
+  formatMessage: mock(),
+  getAddressFromMessage: mock(),
+  getDidAddress: mock(),
 }))
 
-vi.mock('@/lib/appkit', () => ({
-  createAppKitWagmiAdapter: vi.fn(() => ({ wagmiConfig: {} })),
+void mock.module('@/lib/appkit', () => ({
+  createAppKitWagmiAdapter: mock(() => ({ wagmiConfig: {} })),
   defaultNetwork: { id: 1 },
   networks: [{ id: 1 }],
 }))
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ reownAppKitProjectId: 'test-project', siteUrl: 'https://markets.test' }),
 }))
 
-vi.mock('wagmi', () => ({
-  cookieToInitialState: vi.fn(),
+void mock.module('wagmi', () => ({
+  cookieToInitialState: mock(),
   WagmiProvider: ({ children }: { children: unknown }) => children,
   useConnections: () => [],
-  useSignMessage: vi.fn(),
+  useSignMessage: mock(),
 }))
 
-vi.mock('next-intl', () => ({ useExtracted: () => (value: string) => value }))
-vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'dark' }) }))
-vi.mock('@/lib/auth-client', () => ({ authClient: {} }))
+void mock.module('next-intl', () => ({ useExtracted: () => (value: string) => value }))
+void mock.module('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'dark' }) }))
+void mock.module('@/lib/auth-client', () => ({ authClient: {} }))
 
 describe('appKitProvider SSR guard', () => {
   beforeEach(() => {
@@ -47,7 +49,7 @@ describe('appKitProvider SSR guard', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('does not initialize AppKit during SSR import', async () => {

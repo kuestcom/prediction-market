@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  requestOpenRouterCompletion: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  requestOpenRouterCompletion: mock(),
 }))
 
-vi.mock('@/lib/ai/openrouter', () => ({
+void mock.module('@/lib/ai/openrouter', () => ({
   requestOpenRouterCompletion: (...args: unknown[]) => mocks.requestOpenRouterCompletion(...args),
 }))
 

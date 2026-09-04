@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'bun:test'
+import { describe, expect, it, mock } from 'bun:test'
 
 import type { Event } from '@/types'
 
-vi.mock('next/dynamic', () => ({
+void mock.module('next/dynamic', () => ({
   __esModule: true,
   default: () =>
     function MockEventMarketContext() {

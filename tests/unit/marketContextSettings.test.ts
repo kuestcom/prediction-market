@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  decryptSecret: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  decryptSecret: mock(),
 }))
 
-vi.mock('@/lib/encryption', () => ({
+void mock.module('@/lib/encryption', () => ({
   decryptSecret: (...args: any[]) => mocks.decryptSecret(...args),
 }))
 
