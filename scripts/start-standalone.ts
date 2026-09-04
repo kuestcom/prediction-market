@@ -9,7 +9,7 @@ function copyDirectory(source: string, destination: string): void {
     return
   }
 
-  cpSync(source, destination, { recursive: true })
+  cpSync(source, destination, { recursive: true, dereference: true })
 }
 
 copyDirectory(resolve('public'), resolve(standaloneDirectory, 'public'))
