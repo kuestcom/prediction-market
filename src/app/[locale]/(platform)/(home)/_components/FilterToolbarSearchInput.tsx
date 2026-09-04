@@ -1,6 +1,6 @@
 'use client'
 
-import type { ChangeEvent, RefObject } from 'react'
+import type { ChangeEvent, KeyboardEvent, RefObject } from 'react'
 
 import { SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -41,7 +41,7 @@ export default function FilterToolbarSearchInput({
       return undefined
     }
 
-    function handlePointerDown(event: PointerEvent) {
+    function handleClick(event: MouseEvent) {
       const target = event.target
       if (!(target instanceof Node) || searchShellRef.current?.contains(target)) {
         return
@@ -64,8 +64,8 @@ export default function FilterToolbarSearchInput({
       closeSearch()
     }
 
-    window.addEventListener('pointerdown', handlePointerDown)
-    return () => window.removeEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('click', handleClick)
+    return () => window.removeEventListener('click', handleClick)
   }, [closeSearch, collapsible, isOpen, onSearchChange, search])
 
   if (collapsible && !isOpen) {
@@ -94,13 +94,27 @@ export default function FilterToolbarSearchInput({
       shellRef={searchShellRef}
       search={search}
       onSearchChange={onSearchChange}
-      onEscape={(currentInputValue) => {
-        if (!currentInputValue.trim()) {
-          if (currentInputValue !== search) {
+      onEscape={(currentInputValue, clearInput) => {
+        if (!collapsible) {
+          if (!currentInputValue.trim() && currentInputValue !== search) {
             onSearchChange('')
           }
-          closeSearch()
+
+          return !currentInputValue.trim()
         }
+
+        if (currentInputValue.trim()) {
+          clearInput()
+          onSearchChange('')
+          return true
+        }
+
+        if (currentInputValue !== search) {
+          onSearchChange('')
+        }
+
+        closeSearch()
+        return true
       }}
     />
   )
@@ -111,7 +125,7 @@ interface FilterToolbarSearchInputFieldProps {
   search: string
   shellRef?: RefObject<HTMLDivElement | null>
   onSearchChange: (search: string) => void
-  onEscape?: (currentInputValue: string) => void
+  onEscape?: (currentInputValue: string, clearInput: () => void) => boolean
 }
 
 interface SearchDebounceTimeoutRef {
@@ -125,7 +139,11 @@ function clearPendingSearchDebounce(debounceTimeoutRef: SearchDebounceTimeoutRef
   }
 }
 
-function useFilterToolbarSearchInputFieldState({ search, onSearchChange }: FilterToolbarSearchInputFieldProps) {
+function useFilterToolbarSearchInputFieldState({
+  onEscape,
+  search,
+  onSearchChange,
+}: FilterToolbarSearchInputFieldProps) {
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSubmittedSearchRef = useRef(search)
   const t = useExtracted()
@@ -163,7 +181,23 @@ function useFilterToolbarSearchInputFieldState({ search, onSearchChange }: Filte
     [onSearchChange],
   )
 
+  const handleEscape = useCallback(
+    function handleEscape(event: KeyboardEvent<HTMLInputElement>) {
+      const inputElement = event.currentTarget
+      const shouldCancelPendingSearch = onEscape?.(inputElement.value, () => {
+        inputElement.value = ''
+        lastSubmittedSearchRef.current = ''
+      })
+
+      if (shouldCancelPendingSearch) {
+        clearPendingSearchDebounce(debounceTimeoutRef)
+      }
+    },
+    [onEscape],
+  )
+
   return {
+    handleEscape,
     inputRef,
     handleInputChange,
     searchPlaceholder: t('Search'),
@@ -177,7 +211,8 @@ function FilterToolbarSearchInputField({
   search,
   onSearchChange,
 }: FilterToolbarSearchInputFieldProps) {
-  const { inputRef, handleInputChange, searchPlaceholder } = useFilterToolbarSearchInputFieldState({
+  const { handleEscape, inputRef, handleInputChange, searchPlaceholder } = useFilterToolbarSearchInputFieldState({
+    onEscape,
     search,
     onSearchChange,
   })
@@ -195,7 +230,7 @@ function FilterToolbarSearchInputField({
         onChange={handleInputChange}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
-            onEscape?.(event.currentTarget.value)
+            handleEscape(event)
           }
         }}
         className={cn(
