@@ -18,7 +18,7 @@ export default function PrefetchLink({
   onFocus,
   onPointerDown,
   onPointerEnter,
-  prefetch = true,
+  prefetch = 'auto',
   ...props
 }: PrefetchLinkProps) {
   const router = useRouter()
