@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 import { createElement } from 'react'
 
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
@@ -101,7 +102,7 @@ describe('categorySidebar', () => {
     )
 
     for (const label of ['All', 'Privates', 'KPIs']) {
-      const link = screen.getByRole('link', { name: new RegExp(`^${label}\\d+$`) })
+      const link = screen.getByRole('link', { name: new RegExp(`^${label}\\s?\\d+$`) })
       const icon = link.querySelector('svg')
       expect(icon).not.toBeNull()
       expect(icon?.querySelector('[stroke="currentColor"], [fill="currentColor"]')).not.toBeNull()
@@ -155,7 +156,7 @@ describe('categorySidebar', () => {
       expect(icon?.parentElement).toHaveClass('text-foreground')
     }
 
-    const precipitationIcon = screen.getByRole('link', { name: /^Precipitation3$/ }).querySelector('svg')
+    const precipitationIcon = screen.getByRole('link', { name: /^Precipitation\s?3$/ }).querySelector('svg')
     expect(precipitationIcon?.querySelector('[stroke="currentColor"]')).not.toBeNull()
     expect(precipitationIcon?.parentElement).toHaveClass('text-foreground')
   })
@@ -195,7 +196,7 @@ describe('categorySidebar', () => {
       'Protocol Metrics',
     ]
     for (const label of inlineIconLabels) {
-      const link = screen.getByRole('link', { name: new RegExp(`^${label}\\d+$`) })
+      const link = screen.getByRole('link', { name: new RegExp(`^${label}\\s?\\d+$`) })
       const icon = link.querySelector('svg')
       expect(icon).not.toBeNull()
       expect(icon?.querySelector('[stroke="currentColor"], [fill="currentColor"]')).not.toBeNull()

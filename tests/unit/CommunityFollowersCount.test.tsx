@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import CommunityFollowersCount from '@/components/CommunityFollowersCount'
+import * as actualCommunityFollows from '@/lib/community-follows'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 const mocks = vi.hoisted(() => ({ fetchCommunityFollowStats: vi.fn() }))
@@ -19,10 +21,9 @@ vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ communityUrl: 'https://community.example' }),
 }))
 
-vi.mock('@/lib/community-follows', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/lib/community-follows')>()
+vi.mock('@/lib/community-follows', () => {
   return {
-    ...original,
+    ...actualCommunityFollows,
     fetchCommunityFollowStats: (...args: unknown[]) => mocks.fetchCommunityFollowStats(...args),
   }
 })

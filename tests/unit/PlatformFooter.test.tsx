@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import PlatformFooter, { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import { createDefaultThemeSiteIdentity } from '@/lib/theme-site-identity'

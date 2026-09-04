@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   cacheTag: vi.fn(),
@@ -17,7 +17,6 @@ vi.mock('@/lib/db/utils/run-query', () => ({
 
 describe('tagRepository.getMainTags', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.revalidatePath.mockReset()
     mocks.runQuery.mockReset()
@@ -601,7 +600,6 @@ describe('tagRepository.getMainTags', () => {
 
 describe('tagRepository.listTags', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.revalidatePath.mockReset()
     mocks.runQuery.mockReset()
@@ -726,7 +724,6 @@ describe('tagRepository.listTags', () => {
 
 describe('tagRepository.updateMainCategoriesDisplayOrder', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.revalidatePath.mockReset()
     mocks.runQuery.mockReset()

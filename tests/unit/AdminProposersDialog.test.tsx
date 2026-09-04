@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { getAddress } from 'viem'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminProposersDialog from '@/app/[locale]/admin/events/calendar/_components/AdminProposersDialog'
 

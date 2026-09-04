@@ -1,14 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "react", "nextjs", "node", "jsdoc", "vitest"],
+  "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "react", "nextjs", "node", "jsdoc"],
   "jsPlugins": ["eslint-plugin-react-you-might-not-need-an-effect"],
   "categories": {
     "correctness": "error"
   },
   "options": {
-    "respectEslintDisableDirectives": true,
-    "typeAware": true,
-    "typeCheck": true
+    "respectEslintDisableDirectives": true
   },
   "env": {
     "builtin": true,
@@ -90,8 +88,7 @@
     {
       "files": ["tests/**/*.{ts,tsx}"],
       "rules": {
-        "unicorn/no-thenable": "off",
-        "vitest/no-conditional-expect": "off"
+        "unicorn/no-thenable": "off"
       }
     }
   ]

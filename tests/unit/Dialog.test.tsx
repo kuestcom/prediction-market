@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'bun:test'
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 const confettiMock = vi.hoisted(() => ({
   fn: vi.fn(),

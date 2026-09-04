@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'bun:test'
 
 import { Slider } from '@/components/ui/slider'
 

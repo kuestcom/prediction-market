@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   actions: vi.fn(),
@@ -24,7 +24,6 @@ vi.mock('@/lib/encryption', () => ({
 
 describe('getLiFiServerActions', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.actions.mockReset()
     mocks.createClient.mockReset()
     mocks.decryptSecret.mockReset()

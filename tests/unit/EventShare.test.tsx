@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import type { Event } from '@/types'
 
@@ -152,10 +153,9 @@ describe('eventShare', () => {
     mocks.useUser.mockReset()
 
     writeText.mockReset()
-    Object.assign(navigator, {
-      clipboard: {
-        writeText,
-      },
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
     })
 
     mocks.useSiteIdentity.mockReturnValue({ name: 'Kuest' })

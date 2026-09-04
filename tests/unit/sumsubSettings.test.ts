@@ -1,5 +1,5 @@
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 import { readFile } from 'node:fs/promises'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
 import { parseSumsubSettings, validateSumsubInput } from '@/lib/sumsub/settings'

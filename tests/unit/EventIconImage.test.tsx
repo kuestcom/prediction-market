@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 import { createElement } from 'react'
 
 import EventIconImage from '@/components/EventIconImage'

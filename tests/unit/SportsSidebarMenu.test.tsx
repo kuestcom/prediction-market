@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, ReactElement, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 import { cloneElement, createElement } from 'react'
 
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'

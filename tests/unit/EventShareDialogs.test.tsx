@@ -1,8 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-
-import EventMergeSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
-import EventSplitSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
 
@@ -14,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@tanstack/react-query', () => ({
+  useQuery: vi.fn(),
   useQueryClient: () => ({
     invalidateQueries: vi.fn(),
   }),
@@ -95,6 +94,11 @@ vi.mock('@/stores/useUser', () => ({
     deposit_wallet_address: '0x0000000000000000000000000000000000000002',
   }),
 }))
+
+const { default: EventMergeSharesDialog } =
+  await import('@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog')
+const { default: EventSplitSharesDialog } =
+  await import('@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog')
 
 describe('event share dialogs', () => {
   beforeEach(() => {

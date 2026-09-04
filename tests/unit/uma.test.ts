@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
 import { buildUmaProposeUrl, buildUmaSettledUrl, resolveUmaProposeTarget } from '@/lib/uma'

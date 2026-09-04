@@ -1,7 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
-
-import HeaderMenu from '@/app/[locale]/(platform)/_components/HeaderMenu'
+import { describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   useSession: vi.fn(),
@@ -64,6 +62,8 @@ vi.mock('@/lib/auth-client', () => ({
 vi.mock('@/stores/useUser', () => ({
   useUser: () => null,
 }))
+
+const { default: HeaderMenu } = await import('@/app/[locale]/(platform)/_components/HeaderMenu')
 
 describe('HeaderMenu', () => {
   it('keeps the skeleton visible until a logged-in session resolves', () => {

@@ -1,9 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import type { DataApiRewardProposal } from '@/lib/data-api/resolution-rewards'
-
-import SettingsResolutionWithdrawalDialog from '@/app/[locale]/(platform)/settings/_components/SettingsResolutionWithdrawalDialog'
 
 const mocks = vi.hoisted(() => ({
   onOpenChange: vi.fn(),
@@ -61,6 +59,9 @@ vi.mock('@/stores/useUser', () => ({
     deposit_wallet_status: 'deployed',
   }),
 }))
+
+const { default: SettingsResolutionWithdrawalDialog } =
+  await import('@/app/[locale]/(platform)/settings/_components/SettingsResolutionWithdrawalDialog')
 
 const proposal = {
   id: '7',

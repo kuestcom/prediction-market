@@ -1,7 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   buildHomeSportsMoneylineModel: vi.fn(),
@@ -73,6 +71,8 @@ vi.mock('@/lib/market-chance', () => ({
 vi.mock('@/lib/sports-home-card', () => ({
   buildHomeSportsMoneylineModel: (event: any) => mocks.buildHomeSportsMoneylineModel(event),
 }))
+
+const { default: EventCard } = await import('@/app/[locale]/(platform)/(home)/_components/EventCard?bun-test')
 
 const EVENT = {
   id: 'event-1',

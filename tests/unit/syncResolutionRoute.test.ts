@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
@@ -46,7 +46,6 @@ function makeUpdateChain(result: Array<{ id: string }>) {
 
 describe('sync resolution route', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.stubGlobal('fetch', mocks.fetch)
 
     mocks.execute.mockReset()

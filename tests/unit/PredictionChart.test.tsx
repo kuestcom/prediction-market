@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { buildHistoryWithLatestPointOverride } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import PredictionChart from '@/components/PredictionChart'

@@ -1,6 +1,6 @@
+import { describe, expect, it, vi } from 'bun:test'
 import { and, sql } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
-import { describe, expect, it, vi } from 'vitest'
 
 import { buildEndingSoonOrderBy, buildRelatedEventOrderBy, buildResolvedLikeCondition } from '@/lib/db/queries/event'
 

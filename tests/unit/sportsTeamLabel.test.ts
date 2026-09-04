@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'bun:test'
+
 import { resolveSportsOutcomeTeamLabel } from '@/lib/sports-team-label'
 
 describe('resolveSportsOutcomeTeamLabel', () => {

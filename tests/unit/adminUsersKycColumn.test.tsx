@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { render, renderHook, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'bun:test'
 
 import { useAdminUsersColumns } from '@/app/[locale]/admin/users/_components/columns'
 

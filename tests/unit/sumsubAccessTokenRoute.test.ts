@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { POST } from '@/app/api/sumsub/access-token/route'
 import { SumsubClientError } from '@/lib/sumsub/client'

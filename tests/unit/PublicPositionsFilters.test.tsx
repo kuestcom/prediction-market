@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 
 import PublicPositionsFilters from '@/app/[locale]/(platform)/profile/_components/PublicPositionsFilters'
 

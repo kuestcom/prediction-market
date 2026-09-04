@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { buildOrderPayload } from '@/lib/orders'

@@ -1,5 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),

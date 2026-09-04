@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 import { createRef } from 'react'
 
 import PublicPositionsTable from '@/app/[locale]/(platform)/profile/_components/PublicPositionsTable'

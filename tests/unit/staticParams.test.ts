@@ -1,8 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 describe('static params helpers', () => {
   afterEach(() => {
-    vi.resetModules()
     vi.unstubAllEnvs()
   })
 

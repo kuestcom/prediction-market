@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import EventSeriesPills from '@/app/[locale]/(platform)/event/[slug]/_components/EventSeriesPills'
 

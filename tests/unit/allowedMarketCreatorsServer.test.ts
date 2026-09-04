@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
@@ -17,7 +17,6 @@ vi.mock('@/lib/db/queries/allowed-market-creators', () => ({
 
 describe('allowed market creators server helpers', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.stubGlobal('fetch', mocks.fetch)
     mocks.fetch.mockReset()
     mocks.listWallets.mockReset()

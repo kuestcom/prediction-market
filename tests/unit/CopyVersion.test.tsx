@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import { createElement } from 'react'
 
 const mocks = vi.hoisted(() => ({
@@ -51,7 +52,6 @@ async function renderCopyVersion(
   upstreamCommit: MockUpstreamCommit | null,
   config: { commitSha?: string; isVercel?: string } = {},
 ) {
-  vi.resetModules()
   mocks.useQuery.mockReturnValue({ data: upstreamCommit })
 
   const { default: CopyVersion } = await import('@/app/[locale]/admin/_components/CopyVersion')

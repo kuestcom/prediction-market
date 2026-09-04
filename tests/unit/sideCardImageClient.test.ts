@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import {
   calculateSideCardImageTransform,
@@ -135,7 +135,7 @@ describe('sideCardImageClient', () => {
     const input = buildPngFile(2400, 1000, 'campaign.banner.png', 1234)
 
     const output = await optimizeSideCardImage(input)
-    const canvas = getContextSpy.mock.instances[0] as HTMLCanvasElement
+    const canvas = getContextSpy.mock.contexts[0] as HTMLCanvasElement
 
     expect(createImageBitmapMock).toHaveBeenCalledWith(input, { imageOrientation: 'from-image' })
     expect(canvas.width).toBe(1200)
@@ -191,7 +191,7 @@ describe('sideCardImageClient', () => {
     }) as typeof HTMLCanvasElement.prototype.toBlob)
 
     const output = await optimizeSideCardImage(buildJpegFile(1200, 800))
-    const resizedCanvas = getContextSpy.mock.instances[1] as HTMLCanvasElement
+    const resizedCanvas = getContextSpy.mock.contexts[1] as HTMLCanvasElement
 
     expect(toBlobSpy.mock.calls.map((call: Parameters<HTMLCanvasElement['toBlob']>) => call[2])).toEqual([
       0.82, 0.7, 0.58, 0.82,
@@ -214,7 +214,7 @@ describe('sideCardImageClient', () => {
       'Optimized side card image must be 100KB or smaller.',
     )
 
-    const smallestCanvas = getContextSpy.mock.instances.at(-1) as HTMLCanvasElement
+    const smallestCanvas = getContextSpy.mock.contexts.at(-1) as HTMLCanvasElement
     expect(smallestCanvas.width).toBe(3)
     expect(smallestCanvas.height).toBe(2)
     expect(toBlobSpy.mock.calls.length).toBeGreaterThan(3)

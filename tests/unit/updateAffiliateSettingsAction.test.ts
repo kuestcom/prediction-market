@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -12,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
 }))
 
@@ -35,7 +37,6 @@ vi.mock('@/lib/affiliate-fee-sync', () => ({
 
 describe('updateForkSettingsAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
     mocks.getSettings.mockReset()

@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from 'react'
 
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { Suspense } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   deferPublicShellPrerenderIfNeeded: vi.fn(),

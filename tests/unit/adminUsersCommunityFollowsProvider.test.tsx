@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { render, screen } from '@testing-library/react'
-
-import AdminLayout from '@/app/[locale]/admin/layout'
+import { describe, expect, it, vi } from 'bun:test'
 
 vi.mock('next-intl/server', () => ({ setRequestLocale: vi.fn() }))
 vi.mock('next/cache', () => ({ cacheTag: vi.fn() }))
@@ -28,6 +27,8 @@ vi.mock('@/providers/CommunityFollowsProvider', () => ({
     <div data-testid="community-follows-provider">{children}</div>
   ),
 }))
+
+const { default: AdminLayout } = await import('@/app/[locale]/admin/layout')
 
 describe('admin users community follows provider', () => {
   it('renders admin page content inside the community follows provider', async () => {

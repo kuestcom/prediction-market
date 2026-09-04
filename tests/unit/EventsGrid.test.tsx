@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
+import * as actualHomeEvents from '@/lib/home-events'
+import * as actualMarketChance from '@/lib/market-chance'
 
 const mocks = vi.hoisted(() => ({
   eventsStaticGrid: vi.fn(),
@@ -65,20 +68,16 @@ vi.mock('@/hooks/useAppKit', () => ({
   useAppKit: () => ({ open: mocks.openLoginModal }),
 }))
 
-vi.mock('@/lib/home-events', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/home-events')>('@/lib/home-events')
-
+vi.mock('@/lib/home-events', () => {
   return {
-    ...actual,
+    ...actualHomeEvents,
     filterHomeEvents: (events: any[], options?: any) => mocks.filterHomeEvents(events, options),
   }
 })
 
-vi.mock('@/lib/market-chance', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/market-chance')>('@/lib/market-chance')
-
+vi.mock('@/lib/market-chance', () => {
   return {
-    ...actual,
+    ...actualMarketChance,
     resolveDisplayPrice: () => null,
   }
 })

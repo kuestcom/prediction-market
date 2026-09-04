@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 import { renderToString } from 'react-dom/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useNowTimestamp } from '@/hooks/useNowTimestamp'
 

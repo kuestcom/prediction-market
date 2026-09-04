@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { buildRowChartDeltaTargets } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventRowChartDeltaTargets'
 

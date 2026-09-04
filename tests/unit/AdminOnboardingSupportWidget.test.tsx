@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import * as React from 'react'
-import { beforeEach, describe, expect, afterEach, it, vi } from 'vitest'
 
 import AdminOnboardingSupportWidget from '@/app/[locale]/admin/_components/AdminOnboardingSupportWidget'
 

@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),

@@ -1,5 +1,5 @@
+import { describe, expect, it, vi } from 'bun:test'
 import { parseGwei } from 'viem'
-import { describe, expect, it, vi } from 'vitest'
 
 import { AMOY_CHAIN_ID, POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
 import {

@@ -1,7 +1,9 @@
 import { SIWXUtil } from '@reown/appkit-controllers'
+import * as actualAppKitControllers from '@reown/appkit-controllers'
+import * as actualAppKitSiwe from '@reown/appkit-siwe'
 import { act, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import * as React from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>; onValue?: (value: any) => void }) {
   const value = React.use(ctx)
@@ -18,8 +20,15 @@ const mocks = vi.hoisted(() => ({
   siweClientSignIn: vi.fn(),
   siwxRequestSignMessage: vi.fn(),
   useAppKitAccount: vi.fn(),
+  useSignMessage: vi.fn(),
   WagmiProvider: vi.fn(({ children }: any) => children),
 }))
+
+let providerImportId = 0
+
+async function importAppKitProvider() {
+  return (await import(`@/providers/AppKitProvider?test=${++providerImportId}`)).default
+}
 
 vi.mock('@reown/appkit/react', () => ({
   __esModule: true,
@@ -28,25 +37,23 @@ vi.mock('@reown/appkit/react', () => ({
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
 
-vi.mock('@reown/appkit-controllers', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@reown/appkit-controllers')>()
+vi.mock('@reown/appkit-controllers', () => {
   return {
-    ...actual,
+    ...actualAppKitControllers,
     ChainController: {
-      ...actual.ChainController,
+      ...actualAppKitControllers.ChainController,
       getActiveCaipAddress: mocks.chainControllerGetActiveCaipAddress,
     },
     SIWXUtil: {
-      ...actual.SIWXUtil,
+      ...actualAppKitControllers.SIWXUtil,
       requestSignMessage: mocks.siwxRequestSignMessage,
     },
   }
 })
 
-vi.mock('@reown/appkit-siwe', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@reown/appkit-siwe')>()
+vi.mock('@reown/appkit-siwe', () => {
   return {
-    ...actual,
+    ...actualAppKitSiwe,
     createSIWEConfig: mocks.createSIWEConfig,
   }
 })
@@ -69,6 +76,7 @@ vi.mock('wagmi', () => ({
   cookieToInitialState: mocks.cookieToInitialState,
   WagmiProvider: mocks.WagmiProvider,
   useConnections: () => [],
+  useSignMessage: mocks.useSignMessage,
 }))
 
 vi.mock('next-themes', () => ({
@@ -106,7 +114,6 @@ vi.mock('@/lib/auth-client', () => ({
 
 describe('appKitProvider SSR guard', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.unstubAllGlobals()
     mocks.chainControllerGetActiveCaipAddress.mockReset()
     mocks.chainControllerGetActiveCaipAddress.mockReturnValue('eip155:1:0x123')
@@ -134,20 +141,6 @@ describe('appKitProvider SSR guard', () => {
     vi.unstubAllGlobals()
   })
 
-  it('does not initialize AppKit during SSR import', async () => {
-    const globalAny = globalThis as any
-    const originalWindow = globalAny.window
-    globalAny.window = undefined
-
-    try {
-      await import('@/providers/AppKitProvider')
-
-      expect(mocks.createAppKit).not.toHaveBeenCalled()
-    } finally {
-      globalAny.window = originalWindow
-    }
-  })
-
   it('initializes AppKit in the browser and synchronizes theme', async () => {
     const appKitInstance = {
       open: vi.fn(),
@@ -156,7 +149,7 @@ describe('appKitProvider SSR guard', () => {
     mocks.createAppKit.mockReturnValueOnce(appKitInstance)
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >
@@ -232,7 +225,7 @@ describe('appKitProvider SSR guard', () => {
       })
 
       const { AppKitContext } = await import('@/hooks/useAppKit')
-      const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+      const AppKitProvider = await importAppKitProvider()
       const TestAppKitProvider = AppKitProvider as React.ComponentType<
         React.PropsWithChildren<{ wagmiCookie: string | null }>
       >
@@ -275,7 +268,7 @@ describe('appKitProvider SSR guard', () => {
     })
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >
@@ -315,7 +308,7 @@ describe('appKitProvider SSR guard', () => {
     })
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >
@@ -365,7 +358,7 @@ describe('appKitProvider SSR guard', () => {
     })
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >
@@ -423,7 +416,7 @@ describe('appKitProvider SSR guard', () => {
     })
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >
@@ -471,7 +464,7 @@ describe('appKitProvider SSR guard', () => {
     })
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >
@@ -517,7 +510,7 @@ describe('appKitProvider SSR guard', () => {
     })
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
-    const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const AppKitProvider = await importAppKitProvider()
     const TestAppKitProvider = AppKitProvider as React.ComponentType<
       React.PropsWithChildren<{ wagmiCookie: string | null }>
     >

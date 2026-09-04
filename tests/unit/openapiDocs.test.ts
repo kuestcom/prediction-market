@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
 
 interface OpenApiDocument {
   paths?: Record<string, Record<string, unknown>>

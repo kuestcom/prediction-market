@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const CONDITION_ALLOWED = `0x${'a'.repeat(64)}`
 const CONDITION_BLOCKED = `0x${'b'.repeat(64)}`

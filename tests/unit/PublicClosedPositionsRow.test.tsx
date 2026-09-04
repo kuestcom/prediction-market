@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes } from 'react'
 
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 

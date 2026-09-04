@@ -2,10 +2,12 @@ import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import type { User } from '@/types'
 
 import ManageFollowedTradersDialog from '@/components/ManageFollowedTradersDialog'
+import * as actualCommunityFollows from '@/lib/community-follows'
 
 const WALLET_A = '0x1111111111111111111111111111111111111111'
 const WALLET_B = '0x2222222222222222222222222222222222222222'
@@ -26,10 +28,9 @@ vi.mock('@/lib/community-auth', () => ({
   clearCommunityAuth: vi.fn(),
   ensureCommunityToken: (...args: unknown[]) => mocks.ensureCommunityToken(...args),
 }))
-vi.mock('@/lib/community-follows', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/lib/community-follows')>()
+vi.mock('@/lib/community-follows', () => {
   return {
-    ...original,
+    ...actualCommunityFollows,
     fetchCommunityFollowing: (...args: unknown[]) => mocks.fetchCommunityFollowing(...args),
   }
 })

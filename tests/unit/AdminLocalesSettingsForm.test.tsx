@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/react'
+import { describe, expect, it, vi } from 'bun:test'
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
 
 import type { SupportedLocale } from '@/i18n/locales'
 

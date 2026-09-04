@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 import { syncPolymarketWallet } from '@/lib/polymarket-wallet-client'
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'

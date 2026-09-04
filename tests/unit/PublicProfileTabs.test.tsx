@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualReact from 'react'
 
-import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
+const originalStartTransition = actualReact.startTransition
 
 const mocks = vi.hoisted(() => ({
   inTransition: false,
@@ -10,13 +12,11 @@ const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
 }))
 
-vi.mock('react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react')>()
-
+vi.mock('react', () => {
   return {
-    ...actual,
+    ...actualReact,
     startTransition: (action: () => void) => {
-      actual.startTransition(() => {
+      originalStartTransition(() => {
         mocks.inTransition = true
         try {
           action()
@@ -45,6 +45,8 @@ vi.mock('@/app/[locale]/(platform)/profile/_components/PublicPositionsList', () 
 vi.mock('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () => ({
   default: () => <div>Activity content</div>,
 }))
+
+const { default: PublicProfileTabs } = await import('@/app/[locale]/(platform)/profile/_components/PublicProfileTabs')
 
 const resolutionsContent = <div>Resolutions content</div>
 

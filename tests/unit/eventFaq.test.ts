@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import type { EventFaqTranslatedMessages } from '@/lib/event-faq'
 import type { Event, Market, Outcome } from '@/types'

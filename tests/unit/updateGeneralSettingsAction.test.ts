@@ -1,5 +1,6 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 import { Buffer } from 'node:buffer'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -59,6 +60,7 @@ function buildHomeFeaturedFormData() {
 }
 
 vi.mock('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
 }))
 
@@ -91,7 +93,6 @@ vi.mock('@/lib/storage-upload', () => ({
 
 describe('updateGeneralSettingsAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.doUnmock('sharp')
     vi.stubGlobal('fetch', mocks.fetch)
     mocks.revalidatePath.mockReset()

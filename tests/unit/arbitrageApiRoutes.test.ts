@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 import { POST as loadBooks } from '@/app/api/arbitrage/books/route'
 import { GET as loadMarketInfo } from '@/app/api/arbitrage/market-info/route'

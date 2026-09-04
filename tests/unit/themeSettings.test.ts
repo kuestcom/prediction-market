@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   cacheTag: vi.fn(),
@@ -17,7 +17,6 @@ const originalPostgresUrl = process.env.POSTGRES_URL
 
 describe('theme settings runtime resolver', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.getSettings.mockReset()
     process.env.POSTGRES_URL = 'postgres://theme-settings-test'

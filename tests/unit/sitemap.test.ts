@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
 const mocks = vi.hoisted(() => ({
   cacheTag: vi.fn(),
@@ -6,6 +7,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next/cache', () => ({
+  ...actualNextCache,
   cacheTag: (...args: any[]) => mocks.cacheTag(...args),
   unstable_cache: (callback: (...args: any[]) => unknown) => callback,
 }))

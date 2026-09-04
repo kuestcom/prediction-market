@@ -1,5 +1,6 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 import { isValidElement } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   findDynamicHomeCategoryBySlug: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/cache', () => ({
+  ...actualNextCache,
   cacheLife: vi.fn(),
 }))
 

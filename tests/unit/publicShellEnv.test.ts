@@ -1,18 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, vi } from 'bun:test'
 
 import { hasPublicShellPrerenderEnv, resolvePublicShellPrerenderMode } from '@/lib/public-shell-env'
-import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 const mocks = vi.hoisted(() => ({
   io: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('next/cache', () => ({
+mock.module('next/cache', () => ({
   io: mocks.io,
 }))
 
+const { deferPublicShellPrerenderIfNeeded } = await import('@/lib/public-shell-rendering?bun-test')
+
 beforeEach(() => {
   mocks.io.mockClear()
+  vi.stubEnv('BUILD_PRERENDER_PUBLIC_SHELL', '')
 })
 
 afterEach(() => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   isCronAuthorized: vi.fn(),
@@ -48,7 +48,6 @@ function makeSelectChain(result: unknown[]) {
 
 describe('sync sports scores route', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.isCronAuthorized.mockReset()
     mocks.loadSportsSourceProviderSettings.mockReset()
     mocks.resolveSportsEvent.mockReset()

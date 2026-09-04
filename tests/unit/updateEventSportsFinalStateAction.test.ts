@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -45,7 +45,6 @@ function mockSavedSportsFinalState() {
 
 describe('updateEventSportsFinalStateAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.revalidatePath.mockReset()
     mocks.updateTag.mockReset()
     mocks.getCurrentUser.mockReset()

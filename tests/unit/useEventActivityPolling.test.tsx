@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import type { ActivityOrder } from '@/types'
 
@@ -7,12 +7,12 @@ import {
   EVENT_ACTIVITY_POLL_INTERVAL_MS,
   useEventActivityPolling,
 } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityPolling'
+import * as actualTrades from '@/lib/data-api/trades'
 import { EVENT_ACTIVITY_REFRESH_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
 
-vi.mock('@/lib/data-api/trades', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/data-api/trades')>()
+vi.mock('@/lib/data-api/trades', () => {
   return {
-    ...actual,
+    ...actualTrades,
     fetchEventTrades: vi.fn(),
   }
 })

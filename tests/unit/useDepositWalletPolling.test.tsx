@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { useDepositWalletPolling } from '@/hooks/useDepositWalletPolling'
 import { useUser } from '@/stores/useUser'

@@ -1,5 +1,7 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
+import * as actualNextNavigation from 'next/navigation'
 import * as React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   io: vi.fn(),
@@ -10,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next/cache', () => ({
+  ...actualNextCache,
   io: (...args: any[]) => mocks.io(...args),
 }))
 
@@ -19,6 +22,7 @@ vi.mock('next-intl/server', () => ({
 }))
 
 vi.mock('next/navigation', () => ({
+  ...actualNextNavigation,
   redirect: (...args: any[]) => mocks.redirect(...args),
 }))
 
@@ -50,7 +54,6 @@ vi.mock('@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm', () => (
 
 describe('admin settings pages runtime behavior', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.io.mockReset()
     mocks.getExtracted.mockReset()
     mocks.setRequestLocale.mockReset()

@@ -2,3 +2,6 @@
 minimumReleaseAge = 86400
 minimumReleaseAgeExcludes = ["elliptic", "ws", "uuid", "axios", "nanoid"]
 linker = "hoisted"
+
+[test]
+preload = ["./tests/bun-test.setup.ts"]

@@ -1,9 +1,9 @@
-import type { MockInstance } from 'vitest'
-
 import { fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
+
+import type { MockInstance } from '../bun-test-compat'
 
 const mocks = vi.hoisted(() => ({
   pathname: '/admin/events',

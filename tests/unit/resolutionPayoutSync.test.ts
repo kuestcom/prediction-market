@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   createPublicClient: vi.fn(),
@@ -71,7 +71,6 @@ function makeUpdateChain(result: unknown[]) {
 
 describe('resolution payout sync', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.createPublicClient.mockReset()
     mocks.createViemTransport.mockClear()
     mocks.parseAbi.mockClear()

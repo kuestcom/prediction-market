@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
@@ -31,7 +31,8 @@ describe('useSignaturePromptRunner', () => {
         }
       })
       await expect(promise).rejects.toThrow(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE)
-      await expect(promise).rejects.toSatisfy(isRecoverableWalletConnectorError)
+      const error = await promise.catch((reason) => reason)
+      expect(isRecoverableWalletConnectorError(error)).toBe(true)
     })
 
     expect(openAppKit).toHaveBeenCalledWith({ view: 'Connect' })

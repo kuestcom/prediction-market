@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { cloneElement } from 'react'
-
-import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
 
 const mocks = vi.hoisted(() => ({
   useHasHydrated: vi.fn(),
@@ -102,6 +101,8 @@ vi.mock('@/stores/usePortfolioValueVisibility', () => ({
 vi.mock('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
+
+const { default: MobileBottomNav } = await import('@/app/[locale]/(platform)/_components/MobileBottomNav')
 
 describe('mobileBottomNav', () => {
   beforeEach(() => {

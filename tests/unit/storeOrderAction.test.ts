@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualViem from 'viem'
 
 import type { storeOrderAction, storeOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
 
@@ -36,6 +37,7 @@ vi.mock('next-intl/server', () => ({
 }))
 
 vi.mock('viem', () => ({
+  ...actualViem,
   createPublicClient: mocks.createPublicClient,
   erc1155Abi: [],
   http: mocks.http,
@@ -63,7 +65,6 @@ vi.mock('@/lib/db/queries/order', () => ({
 
 describe('storeOrderAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.updateTag.mockReset()
     mocks.createPublicClient.mockReset()
     mocks.http.mockClear()

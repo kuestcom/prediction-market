@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const MARKET_ID = `0x${'a'.repeat(64)}`
 const DEPOSIT_WALLET = '0x2222222222222222222222222222222222222222'
@@ -26,7 +26,6 @@ vi.mock('@/lib/db/queries/resolution-report-context', () => ({
 
 describe('resolution report route', () => {
   beforeEach(() => {
-    vi.resetModules()
     Object.values(mocks).forEach((mock) => mock.mockReset())
     mocks.getCurrentUser.mockResolvedValue({
       id: 'user-1',

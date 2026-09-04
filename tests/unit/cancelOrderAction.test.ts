@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 
@@ -22,7 +22,6 @@ vi.mock('@/lib/db/queries/user', () => ({
 
 describe('cancelOrderAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.buildClobHmacSignature.mockReset()
     mocks.getUserTradingAuthSecrets.mockReset()
     mocks.getCurrentUser.mockReset()

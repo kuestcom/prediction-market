@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test'
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
 
 const migrationsDirectory = path.join(process.cwd(), 'src/lib/db/migrations')
 

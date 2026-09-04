@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
 const mocks = vi.hoisted(() => ({
   listHomeEventsPage: vi.fn(),
@@ -8,11 +9,15 @@ vi.mock('@/lib/home-events-page', () => ({
   listHomeEventsPage: (...args: any[]) => mocks.listHomeEventsPage(...args),
 }))
 
-vi.mock('next/cache', async () => {
-  const actual = await vi.importActual<typeof import('next/cache')>('next/cache')
+vi.mock('@/lib/home-featured-events', () => ({
+  getHomeFeaturedSideCard: vi.fn().mockResolvedValue({ slides: [] }),
+  listHomeFeaturedEvents: vi.fn().mockResolvedValue([]),
+  listHomeFeaturedHotTopics: vi.fn().mockResolvedValue([]),
+}))
 
+vi.mock('next/cache', () => {
   return {
-    ...actual,
+    ...actualNextCache,
     cacheLife: vi.fn(),
     cacheTag: vi.fn(),
   }

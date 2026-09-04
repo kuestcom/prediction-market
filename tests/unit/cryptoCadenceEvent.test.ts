@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import {
   CRYPTO_CADENCE_ROUTES,
@@ -18,6 +18,10 @@ const BASE_BTC_EVENT = {
   main_tag: 'Crypto',
   series_recurrence: 'daily',
   tags: [],
+}
+
+function normalizeWhitespace(value: string | null) {
+  return value?.replace(/\s+/gu, ' ').trim() ?? null
 }
 
 describe('crypto cadence event presentation', () => {
@@ -91,10 +95,9 @@ describe('crypto cadence event presentation', () => {
       series_slug: 'btc-up-or-down-15m',
     }
 
-    expect(resolveCryptoCadenceEventPresentation(event, 'pt')).toEqual({
-      title: 'BTC sobe ou desce 15m',
-      subtitle: '28 de julho, 08:00 – 08:15 ET',
-    })
+    const localizedPresentation = resolveCryptoCadenceEventPresentation(event, 'pt')
+    expect(localizedPresentation?.title).toBe('BTC sobe ou desce 15m')
+    expect(normalizeWhitespace(localizedPresentation?.subtitle ?? null)).toBe('28 de julho, 08:00 – 08:15 ET')
     expect(
       resolveCryptoCadenceEventTitle(
         {
@@ -126,10 +129,11 @@ describe('crypto cadence event presentation', () => {
       title: 'BTC Up or Down 4h',
       subtitle: 'July 28, 10PM-July 29, 2AM ET',
     })
-    expect(resolveCryptoCadenceEventPresentation(event, 'pt')).toEqual({
-      title: 'BTC sobe ou desce 4h',
-      subtitle: '28 de julho às 22:00 – 29 de julho às 02:00 ET',
-    })
+    const localizedPresentation = resolveCryptoCadenceEventPresentation(event, 'pt')
+    expect(localizedPresentation?.title).toBe('BTC sobe ou desce 4h')
+    expect(normalizeWhitespace(localizedPresentation?.subtitle ?? null)).toBe(
+      '28 de julho às 22:00 – 29 de julho às 02:00 ET',
+    )
   })
 
   it('uses the same compact header title for 4-hour related rows', () => {

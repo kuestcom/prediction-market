@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 

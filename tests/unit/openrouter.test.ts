@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   loadRuntimeThemeSiteName: vi.fn(),
@@ -12,7 +12,6 @@ describe('openrouter helpers', () => {
   const originalSiteUrl = process.env.SITE_URL
 
   beforeEach(() => {
-    vi.resetModules()
     mocks.loadRuntimeThemeSiteName.mockReset()
     process.env.SITE_URL = 'https://kuest.test'
   })

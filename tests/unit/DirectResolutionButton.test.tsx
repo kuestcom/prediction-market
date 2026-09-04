@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
-import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton'
 import { NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS } from '@/lib/contracts'
 
 const mocks = vi.hoisted(() => ({
@@ -82,6 +81,9 @@ vi.mock('@/hooks/useSignaturePromptRunner', () => ({
 vi.mock('@/lib/proposer-whitelist', () => ({
   readCreatorProposerWhitelistStatus: mocks.readWhitelist,
 }))
+
+const { default: DirectResolutionButton } =
+  await import('@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton?bun-test')
 
 const market = {
   condition_id: 'condition-1',
@@ -202,7 +204,7 @@ describe('DirectResolutionButton', () => {
     expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Yes/ }))
     expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
 
@@ -275,7 +277,7 @@ describe('DirectResolutionButton', () => {
     render(<DirectResolutionButton market={zemaMarket} event={negRiskEvent} />)
 
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -305,7 +307,7 @@ describe('DirectResolutionButton', () => {
     render(<DirectResolutionButton market={market} event={event} />)
 
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -336,7 +338,7 @@ describe('DirectResolutionButton', () => {
     render(<DirectResolutionButton market={market} event={event} />)
 
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -420,7 +422,7 @@ describe('DirectResolutionButton', () => {
     expect(within(winnerProfile).getByLabelText('Resolution reward: $4')).toBeInTheDocument()
     expect(within(winnerProfile).queryByLabelText('Resolution reward: $10')).not.toBeInTheDocument()
     const winnerHistory = "winner's proposal history: 4 correct and 1 incorrect."
-    fireEvent.mouseEnter(winnerProfile)
+    fireEvent.focus(winnerProfile)
     expect(await screen.findByRole('tooltip', { name: winnerHistory })).toBeVisible()
     expect(screen.getByRole('link', { name: 'loser' }).querySelector('img')).toHaveClass('grayscale')
     expect(screen.getByRole('heading', { name: 'Final resolution' })).toBeInTheDocument()
@@ -747,7 +749,7 @@ describe('DirectResolutionButton', () => {
     render(<DirectResolutionButton market={market} event={event} />)
 
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -795,7 +797,7 @@ describe('DirectResolutionButton', () => {
       screen.getByText('Propose the outcome once it can be verified. Earn the reward if confirmed.'),
     ).toBeInTheDocument()
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     const reviewButton = screen.getByRole('button', { name: 'Review proposal' })
     await waitFor(() => expect(reviewButton).toBeEnabled())
     fireEvent.click(reviewButton)
@@ -848,7 +850,7 @@ describe('DirectResolutionButton', () => {
 
     expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
     expect(screen.getByText('Accept the market rules to continue.')).toBeInTheDocument()
-    expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Review proposal' })).toBeNull()
   })
 
   it('requires confirming the existing resolution source link before review', async () => {
@@ -878,7 +880,7 @@ describe('DirectResolutionButton', () => {
     )
 
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
@@ -887,7 +889,7 @@ describe('DirectResolutionButton', () => {
       'href',
       'https://example.test/result',
     )
-    fireEvent.click(sourceCheckbox)
+    fireEvent.click(sourceCheckbox.parentElement!)
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     expect(await screen.findByRole('dialog', { name: 'Review proposal' })).toBeInTheDocument()
@@ -961,12 +963,12 @@ describe('DirectResolutionButton', () => {
     )
 
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
     const sourceCheckbox = screen.getByRole('checkbox', { name: /Official agency final report/ })
-    fireEvent.click(sourceCheckbox)
+    fireEvent.click(sourceCheckbox.parentElement!)
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     expect(await screen.findByRole('dialog', { name: 'Review proposal' })).toBeInTheDocument()
@@ -994,7 +996,7 @@ describe('DirectResolutionButton', () => {
 
       render(<DirectResolutionButton market={market} event={event} />)
       fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-      fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+      fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
 
       expect(screen.getByRole('button', { name: 'Review proposal' })).toBeDisabled()
       expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
@@ -1024,7 +1026,7 @@ describe('DirectResolutionButton', () => {
 
     render(<DirectResolutionButton market={market} event={event} />)
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const confirmationDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -1066,18 +1068,18 @@ describe('DirectResolutionButton', () => {
       />,
     )
     fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
-    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByText('I have read the market rules and will resolve according to them.'))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const confirmationDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
     fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Lock $300 and propose Yes' }))
 
+    expect(await screen.findAllByText('Resolution rewards are not available for this market.')).not.toHaveLength(0)
     await waitFor(() =>
-      expect(screen.getAllByText('Resolution rewards are not available for this market.').length).toBeGreaterThan(0),
+      expect(screen.queryByRole('dialog', { name: 'Review proposal' })?.isConnected ?? false).toBe(false),
     )
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument())
-    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenLastCalledWith(null))
-    expect(screen.queryByText(/b521771a/)).not.toBeInTheDocument()
+    expect(onResolutionRewardAmountChange).toHaveBeenLastCalledWith(null)
+    expect(screen.queryByText(/b521771a/)).toBeNull()
     consoleError.mockRestore()
   })
 })

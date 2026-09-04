@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   captureRouterTransitionStart: vi.fn(),

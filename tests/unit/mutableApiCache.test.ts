@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { GET as getAffiliateSettings } from '@/app/api/affiliate-settings/route'
 import { GET as getArbitrageConfig } from '@/app/api/arbitrage/config/route'

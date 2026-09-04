@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const CONDITION_A = `0x${'a'.repeat(64)}`
 const CONDITION_B = `0x${'b'.repeat(64)}`

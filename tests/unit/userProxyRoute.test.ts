@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),

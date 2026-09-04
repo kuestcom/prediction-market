@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { createElement } from 'react'
 
 import WalletSendForm from '@/app/[locale]/(platform)/_components/wallet-modal/WalletSendForm'

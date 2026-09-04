@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'bun:test'
 import { useState } from 'react'
 
 import { NumberInput } from '@/components/ui/number-input'

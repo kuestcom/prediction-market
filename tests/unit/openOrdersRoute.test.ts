@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   buildClobHmacSignature: vi.fn(() => 'sig'),
@@ -55,7 +55,6 @@ function address(lastByte: string) {
 
 describe('open orders routes', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.stubEnv('CLOB_URL', 'https://clob.local')
     vi.stubGlobal('fetch', mocks.fetch)
 

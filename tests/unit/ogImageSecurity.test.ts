@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { lookup } from 'node:dns/promises'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   isPublicIpAddress,

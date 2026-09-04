@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+
+import * as actualHomeEvents from '@/lib/home-events'
 
 const mocks = vi.hoisted(() => ({
   cacheTag: vi.fn(),
@@ -16,11 +18,9 @@ vi.mock('@/lib/db/queries/event', () => ({
   },
 }))
 
-vi.mock('@/lib/home-events', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/home-events')>('@/lib/home-events')
-
+vi.mock('@/lib/home-events', () => {
   return {
-    ...actual,
+    ...actualHomeEvents,
     filterHomeEvents: (...args: any[]) => mocks.filterHomeEvents(...args),
   }
 })

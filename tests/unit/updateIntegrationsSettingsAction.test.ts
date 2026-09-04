@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -9,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
   updateTag: mocks.updateTag,
 }))

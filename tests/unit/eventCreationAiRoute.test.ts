@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
@@ -22,7 +22,6 @@ vi.mock('@/lib/ai/openrouter', () => ({
 
 describe('event creation AI route', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Gamma unavailable')))
     mocks.getCurrentUser.mockReset()
     mocks.loadOpenRouterProviderSettings.mockReset()

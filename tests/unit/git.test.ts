@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 import { Buffer } from 'node:buffer'
-import { beforeEach, describe, expect, it } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   execSync: vi.fn(),
@@ -41,12 +41,11 @@ async function importGitWithBuildEnv({
   vercelCommitMessage?: string
   vercelCommitSha?: string
 } = {}) {
-  vi.resetModules()
   vi.stubEnv('COMMIT_SHA', commitSha)
   vi.stubEnv('VERCEL_GIT_COMMIT_MESSAGE', vercelCommitMessage)
   vi.stubEnv('VERCEL_GIT_COMMIT_SHA', vercelCommitSha)
 
-  return import('@/lib/git')
+  return import(`@/lib/git?bun-test=${Math.random()}`)
 }
 
 describe('resolveCommitSha', () => {

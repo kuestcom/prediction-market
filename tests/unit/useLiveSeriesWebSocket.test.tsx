@@ -1,5 +1,5 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { useLiveSeriesWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesWebSocket'
 import {
@@ -144,8 +144,9 @@ describe('useLiveSeriesWebSocket', () => {
       vi.advanceTimersByTime(25_000)
     })
     act(() => socket.emitRawMessage('PONG'))
+    now += 75_000
     act(() => {
-      vi.advanceTimersByTime(50_000)
+      vi.advanceTimersByTime(25_000)
     })
 
     expect(socket.readyState).toBe(MockWebSocket.CLOSED)

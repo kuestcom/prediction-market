@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { getResolutionRewardMarketId, RESOLUTION_REWARD_SIDE } from '@/lib/resolution-rewards'
 

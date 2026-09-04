@@ -1,7 +1,8 @@
 import type { ComponentProps } from 'react'
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualViem from 'viem'
 
 import AdminHeaderBalances from '@/app/[locale]/admin/_components/AdminHeaderBalances'
 
@@ -58,10 +59,9 @@ vi.mock('@/lib/viem-network', () => ({
   resolveViemRpcUrls: () => ['https://rpc-1.example.test', 'https://rpc-2.example.test'],
 }))
 
-vi.mock('viem', async () => {
-  const actual = await vi.importActual<typeof import('viem')>('viem')
+vi.mock('viem', () => {
   return {
-    ...actual,
+    ...actualViem,
     createPublicClient: (...args: unknown[]) => mocks.createPublicClient(...args),
   }
 })
@@ -92,10 +92,9 @@ describe('adminHeaderBalances', () => {
     mocks.toastError.mockReset()
     mocks.writeText.mockReset()
 
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: mocks.writeText.mockResolvedValue(undefined),
-      },
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: mocks.writeText.mockResolvedValue(undefined) },
     })
   })
 

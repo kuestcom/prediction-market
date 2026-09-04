@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const sumsubMocks = vi.hoisted(() => ({
   requireApproval: vi.fn(),
@@ -76,7 +76,6 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 
 describe('sdk api key actions', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.useRealTimers()
     mocks.buildClobHmacSignature.mockClear()
     mocks.dbLimit.mockReset()

@@ -1,8 +1,8 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 import { Buffer } from 'node:buffer'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { deflateSync, gzipSync } from 'node:zlib'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   httpRequest: vi.fn(),
@@ -98,7 +98,6 @@ function createRequestMock(responses: MockResponsePayload[], lookupOptions: Reco
 
 describe('fetchHomeFeaturedNewsMetadata', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.httpRequest.mockReset()
     mocks.httpsRequest.mockReset()
     mocks.lookup.mockReset()

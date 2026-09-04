@@ -1,8 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'bun:test'
 
 async function importViemNetwork() {
-  vi.resetModules()
-  return await import('@/lib/viem-network')
+  return await import(`@/lib/viem-network?bun-test=${Math.random()}`)
 }
 
 describe('viem-network RPC URL resolution', () => {
@@ -12,7 +11,6 @@ describe('viem-network RPC URL resolution', () => {
     if (typeof window !== 'undefined') {
       delete (window as Window & { __PUBLIC_RUNTIME_CONFIG__?: unknown }).__PUBLIC_RUNTIME_CONFIG__
     }
-    vi.resetModules()
   })
 
   it('uses the default network RPC when POLYGON_RPC_URL is empty', async () => {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   loadMarketContextSettings: vi.fn(),
@@ -49,7 +49,6 @@ function makeEvent(overrides: Record<string, unknown> = {}) {
 
 describe('resolveMarketContextRequest', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.loadMarketContextSettings.mockReset()
     mocks.getEventBySlug.mockReset()
     mocks.generateMarketContext.mockReset()

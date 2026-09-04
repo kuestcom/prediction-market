@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { handleOrderSuccessFeedback } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'

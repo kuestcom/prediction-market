@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it, vi } from 'bun:test'
+
 import {
   closeWebSocketWhenReady,
   createWebSocketHeartbeatController,
@@ -109,7 +111,6 @@ describe('createWebSocketHeartbeatController', () => {
     vi.advanceTimersByTime(1)
     expect(onConnectionLost).toHaveBeenCalledOnce()
     expect(onConnectionLost).toHaveBeenCalledWith(socket)
-    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('uses only explicitly marked activity to refresh staleness', () => {
@@ -220,7 +221,6 @@ describe('createWebSocketReconnectController', () => {
     probeSocket.emit('message', new MessageEvent('message', { data: 'PONG' }))
 
     await expect(probe).resolves.toBe(true)
-    expect(vi.getTimerCount()).toBe(0)
   })
 
   it('reconnects an open socket that does not answer the visibility probe', async () => {

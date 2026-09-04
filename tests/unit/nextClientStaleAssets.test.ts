@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { isNextClientStaleAssetError, isNextStaticAssetUrl } from '@/lib/errors/next-client-stale-assets'
 

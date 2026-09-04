@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
 const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
@@ -19,11 +20,9 @@ vi.mock('next-intl/server', () => ({
     },
 }))
 
-vi.mock('next/cache', async () => {
-  const actual = await vi.importActual<typeof import('next/cache')>('next/cache')
-
+vi.mock('next/cache', () => {
   return {
-    ...actual,
+    ...actualNextCache,
     cacheLife: vi.fn(),
     cacheTag: vi.fn(),
   }

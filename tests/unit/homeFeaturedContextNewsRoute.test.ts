@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const mocks = vi.hoisted(() => ({
   assertHomeFeaturedNewsMetadataUrlAllowed: vi.fn(),
@@ -38,7 +38,6 @@ vi.mock('@/lib/home-featured-context-metadata', () => ({
 
 describe('home featured context news route', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.assertHomeFeaturedNewsMetadataUrlAllowed.mockReset()
     mocks.fetchHomeFeaturedNewsMetadata.mockReset()
     mocks.getCurrentUser.mockReset()

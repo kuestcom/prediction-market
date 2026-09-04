@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 const STORAGE_ENV_KEYS = [
   'SUPABASE_URL',
@@ -28,12 +28,10 @@ function clearStorageEnv() {
 }
 
 async function loadStorageModule() {
-  vi.resetModules()
   return await import('@/lib/storage')
 }
 
 async function loadStorageUploadModule() {
-  vi.resetModules()
   return await import('@/lib/storage-upload')
 }
 
@@ -41,7 +39,6 @@ describe('storage compatibility', () => {
   beforeEach(() => {
     clearStorageEnv()
     vi.restoreAllMocks()
-    vi.resetModules()
   })
 
   afterEach(() => {
@@ -54,7 +51,6 @@ describe('storage compatibility', () => {
       }
     })
     vi.restoreAllMocks()
-    vi.resetModules()
   })
 
   it('uses Supabase public URL when Supabase env vars are configured', async () => {

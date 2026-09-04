@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'bun:test'
 
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 
@@ -24,7 +24,6 @@ describe('syncBuilderFeesForAdmin', () => {
   }
 
   beforeEach(() => {
-    vi.resetModules()
     vi.stubEnv('RELAYER_URL', 'https://relayer.test')
     vi.stubGlobal('fetch', mocks.fetch)
     mocks.buildClobHmacSignature.mockReset()

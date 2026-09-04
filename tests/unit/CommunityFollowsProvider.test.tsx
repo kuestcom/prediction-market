@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'bun:test'
 
+import * as actualCommunityFollows from '@/lib/community-follows'
 import { CommunityFollowsProvider, useCommunityFollow } from '@/providers/CommunityFollowsProvider'
 
 const WALLET_A = '0x1111111111111111111111111111111111111111'
@@ -68,10 +70,9 @@ vi.mock('@/lib/community-auth', () => ({
   ensureCommunityToken: (...args: unknown[]) => mocks.ensureCommunityToken(...args),
   loadCommunityAuth: () => ({ token: 'token-1' }),
 }))
-vi.mock('@/lib/community-follows', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/lib/community-follows')>()
+vi.mock('@/lib/community-follows', () => {
   return {
-    ...original,
+    ...actualCommunityFollows,
     fetchCommunityFollowStatuses: (...args: unknown[]) => mocks.fetchCommunityFollowStatuses(...args),
     setCommunityFollow: (...args: unknown[]) => mocks.setCommunityFollow(...args),
   }
