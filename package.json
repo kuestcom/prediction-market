@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "bun run --bun next dev",
     "build": "bun run --bun next build",
-    "start": "bun .next/standalone/server.js",
+    "start": "bun scripts/start-standalone.ts",
     "knip": "knip --fix",
     "lint": "oxlint . --fix",
     "fmt": "oxfmt",
