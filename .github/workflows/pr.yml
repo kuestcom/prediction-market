@@ -24,7 +24,8 @@ jobs:
       - run: bunx --no-install knip
       - run: bunx --no-install --bun fumadocs-mdx docs.config.ts
       - run: bunx --no-install --bun next typegen
-      - run: bunx --no-install oxlint .
+      - run: bunx --no-install oxlint . --ignore-pattern 'tests/**'
+      - run: bunx --no-install oxlint --config .oxlintrc.tests.json tests
       - run: bunx --no-install oxfmt --check
 
   unit:
