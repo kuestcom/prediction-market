@@ -1,4 +1,5 @@
 import { AlertCircleIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import type { Comment } from '@/types'
 
@@ -21,6 +22,7 @@ export default function EventCommentsLoadMoreReplies({
   error,
   onRetry,
 }: EventCommentsLoadMoreRepliesProps) {
+  const t = useExtracted()
   const visibleRepliesCount = countDirectReplies(comment)
   const hiddenRepliesCount = Math.max(0, comment.replies_count - visibleRepliesCount)
 
@@ -36,9 +38,9 @@ export default function EventCommentsLoadMoreReplies({
     return (
       <div className="flex items-center gap-2 text-xs">
         <AlertCircleIcon className="size-3 text-destructive" />
-        <span className="text-muted-foreground">Failed to load replies</span>
+        <span className="text-muted-foreground">{t('Failed to load replies')}</span>
         <button type="button" className="text-primary transition-colors hover:text-primary/80" onClick={onRetry}>
-          Try again
+          {t('Try again')}
         </button>
       </div>
     )
@@ -54,7 +56,9 @@ export default function EventCommentsLoadMoreReplies({
       disabled={isLoading}
     >
       {isLoading && <Spinner className="size-3" />}
-      <span>{isLoading ? 'Loading replies...' : `View ${hiddenRepliesCount} more replies`}</span>
+      <span>
+        {isLoading ? t('Loading replies...') : t('View {count} more replies', { count: String(hiddenRepliesCount) })}
+      </span>
     </button>
   )
 }

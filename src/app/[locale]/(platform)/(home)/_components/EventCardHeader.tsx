@@ -71,7 +71,7 @@ export default function EventCardHeader({
         <div className="flex size-10 shrink-0 items-center justify-center self-start rounded-sm">
           <EventIconImage
             src={event.icon_url}
-            alt={title || event.creator || 'Market'}
+            alt={title || event.creator || t('Market')}
             sizes="40px"
             containerClassName="size-full rounded-sm"
           />

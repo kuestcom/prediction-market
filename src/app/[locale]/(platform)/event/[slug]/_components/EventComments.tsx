@@ -147,12 +147,14 @@ function useInfiniteCommentsScroll({
   isFetchingNextPage,
   isInitialized,
   contextKey,
+  fallbackErrorMessage,
 }: {
   fetchNextPage: () => Promise<unknown>
   hasNextPage: boolean
   isFetchingNextPage: boolean
   isInitialized: boolean
   contextKey: string
+  fallbackErrorMessage: string
 }) {
   const [infiniteScrollError, setInfiniteScrollError] = useState<InfiniteScrollErrorState | null>(null)
   const visibleInfiniteScrollError = infiniteScrollError?.contextKey === contextKey ? infiniteScrollError.message : null
@@ -166,11 +168,11 @@ function useInfiniteCommentsScroll({
       } catch (error) {
         setInfiniteScrollError({
           contextKey,
-          message: error instanceof Error ? error.message : 'Failed to load more comments',
+          message: error instanceof Error ? error.message : fallbackErrorMessage,
         })
       }
     },
-    [fetchNextPage, contextKey],
+    [fetchNextPage, contextKey, fallbackErrorMessage],
   )
 
   useEffect(
@@ -247,6 +249,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
     isFetchingNextPage,
     isInitialized,
     contextKey: infiniteScrollContextKey,
+    fallbackErrorMessage: t('Failed to load more comments'),
   })
   const expandedComments = useExpandedCommentIds(comments)
 
@@ -276,10 +279,10 @@ export default function EventComments({ event, user }: EventCommentsProps) {
     return (
       <div className="mt-2">
         <AlertBanner
-          title="Internal server error"
+          title={t('Internal server error')}
           description={
             <Button type="button" onClick={handleRefetch} size="sm" variant="link" className="-ml-3">
-              Try again
+              {t('Try again')}
             </Button>
           }
         />
@@ -388,10 +391,10 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         {visibleInfiniteScrollError && (
           <div className="mt-6">
             <AlertBanner
-              title="Error loading more comments"
+              title={t('Error loading more comments')}
               description={
                 <Button type="button" onClick={retryInfiniteScroll} size="sm" variant="link" className="-ml-3">
-                  Try again
+                  {t('Try again')}
                 </Button>
               }
             />

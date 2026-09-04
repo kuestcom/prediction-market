@@ -92,6 +92,26 @@ const SEARCH_TOPIC_ORDER = [
 
 export default function SearchDiscoveryContent({ onNavigate, variant = 'mobile' }: SearchDiscoveryContentProps) {
   const t = useExtracted()
+  function translateSearchTopicFallback(fallbackLabel: (typeof SEARCH_TOPIC_ORDER)[number]['fallbackLabel']) {
+    switch (fallbackLabel) {
+      case 'Live Crypto':
+        return t('Live Crypto')
+      case 'Politics':
+        return t('Politics')
+      case 'Middle East':
+        return t('Middle East')
+      case 'Crypto':
+        return t('Crypto')
+      case 'Sports':
+        return t('Sports')
+      case 'Pop Culture':
+        return t('Pop Culture')
+      case 'Tech':
+        return t('Tech')
+      case 'AI':
+        return t('AI')
+    }
+  }
   const { tags } = usePlatformNavigationData()
   const { recentEvents, removeRecentSearchEvent } = useRecentSearchEvents()
   const isDesktop = variant === 'desktop'
@@ -111,7 +131,7 @@ export default function SearchDiscoveryContent({ onNavigate, variant = 'mobile' 
   const topicItems = SEARCH_TOPIC_ORDER.map((item) => ({
     ...item,
     href: resolveSearchTopicHref(item.slug),
-    label: topicLabelsBySlug.get(item.slug) ?? item.fallbackLabel,
+    label: topicLabelsBySlug.get(item.slug) ?? translateSearchTopicFallback(item.fallbackLabel),
   }))
 
   return (

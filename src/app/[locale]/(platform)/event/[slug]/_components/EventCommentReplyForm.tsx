@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useRef, useState } from 'react'
 
@@ -39,13 +40,14 @@ export default function EventCommentReplyForm({
   createReply,
   isCreatingComment,
 }: EventCommentReplyFormProps) {
+  const t = useExtracted()
   const { inputRef, content, setContent } = useReplyFormState(initialValue)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!content.trim() || !user) {
       if (!content.trim()) {
-        toast.error('Reply content is required')
+        toast.error(t('Reply content is required'))
       }
       return
     }
@@ -55,7 +57,7 @@ export default function EventCommentReplyForm({
       setContent('')
       onReplyAddedAction?.()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create reply.'
+      const message = err instanceof Error ? err.message : t('Failed to create reply.')
       toast.error(message)
     }
   }
@@ -102,7 +104,7 @@ export default function EventCommentReplyForm({
               className="bg-transparent text-xs font-medium text-primary hover:bg-accent/70 hover:text-primary"
               disabled={isCreatingComment || !content.trim()}
             >
-              {isCreatingComment ? 'Posting...' : user ? 'Reply' : 'Connect to Reply'}
+              {isCreatingComment ? t('Posting...') : user ? t('Reply') : t('Connect to Reply')}
             </Button>
           </div>
         </div>

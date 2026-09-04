@@ -2,6 +2,7 @@
 
 import { Custom } from 'fumadocs-openapi/playground/client'
 import { createOpenAPIPage } from 'fumadocs-openapi/ui'
+import { useExtracted } from 'next-intl'
 import { useEffect, useMemo } from 'react'
 
 import { OpenAPIPlaygroundResult } from '@/app/[locale]/docs/_components/OpenAPIPlaygroundResult'
@@ -36,6 +37,7 @@ function syncCreatorControllerValue(
 }
 
 function GammaParameterField({ fieldName, param }: { fieldName: (string | number)[]; param: any }) {
+  const t = useExtracted()
   const { siteUrl } = usePublicRuntimeConfig()
   const creatorHostname = useMemo(() => resolveCreatorHostname(siteUrl), [siteUrl])
   const schema = param.schema ?? {}
@@ -64,7 +66,7 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
       <div className="flex flex-col gap-2">
         {label}
         <Input value={creatorHostname} readOnly aria-readonly="true" className="font-mono" />
-        <p className="text-xs text-muted-foreground">Fixed to this site in the docs playground.</p>
+        <p className="text-xs text-muted-foreground">{t('Fixed to this site in the docs playground.')}</p>
         {description}
       </div>
     )
@@ -86,7 +88,7 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
           value={currentValue}
           onChange={(event) => controller.setValue(event.target.value || undefined)}
         >
-          {!param.required ? <option value="">Unset</option> : null}
+          {!param.required ? <option value="">{t('Unset')}</option> : null}
           {schema.enum.map((option: unknown) => {
             const value = String(option)
             return (
@@ -115,9 +117,9 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
             controller.setValue(value === '' ? undefined : value === 'true')
           }}
         >
-          {!param.required ? <option value="">Unset</option> : null}
-          <option value="true">True</option>
-          <option value="false">False</option>
+          {!param.required ? <option value="">{t('Unset')}</option> : null}
+          <option value="true">{t('True')}</option>
+          <option value="false">{t('False')}</option>
         </select>
         {description}
       </div>

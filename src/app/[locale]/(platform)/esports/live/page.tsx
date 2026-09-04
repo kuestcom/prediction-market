@@ -25,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EsportsLivePage() {
   setRequestLocale(await getRootLocale())
+  const t = await getExtracted()
 
-  return <SportsFeedPageContent sportSlug="live" sportTitle="Live" pageMode="liveAndSoon" vertical="esports" />
+  return <SportsFeedPageContent sportSlug="live" sportTitle={t('Live')} pageMode="liveAndSoon" vertical="esports" />
 }

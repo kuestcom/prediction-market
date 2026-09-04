@@ -1,4 +1,5 @@
 import { BarChart3Icon, SearchIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ interface EventsEmptyStateProps {
 }
 
 export default function EventsEmptyState({ onClearFilters, searchQuery, tag }: EventsEmptyStateProps) {
+  const t = useExtracted()
   const { updateFilters } = useFilters()
 
   function handleClearFilters() {
@@ -36,24 +38,20 @@ export default function EventsEmptyState({ onClearFilters, searchQuery, tag }: E
       </div>
 
       <h3 className="mb-2 text-lg font-medium text-foreground">
-        {searchQuery ? 'No events found' : 'No events available'}
+        {searchQuery ? t('No events found') : t('No events available')}
       </h3>
 
       <p className="mb-6 text-sm text-muted-foreground">
         {searchQuery ? (
-          <>
-            Try adjusting your search for &ldquo;
-            {searchQuery}
-            &rdquo;
-          </>
+          <>{t('Try adjusting your search for “{query}”', { query: searchQuery })}</>
         ) : (
-          <>There are no events in the {tag} category with these filters</>
+          <>{t('There are no events in the {tag} category with these filters', { tag })}</>
         )}
       </p>
 
       <Button type="button" onClick={handleClearFilters}>
         <XIcon />
-        Clear filters
+        {t('Clear filters')}
       </Button>
     </div>
   )

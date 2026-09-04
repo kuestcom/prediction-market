@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -135,6 +136,7 @@ export function WebSocketPlayground({
   maxLogs = 120,
   className,
 }: WebSocketPlaygroundProps) {
+  const t = useExtracted()
   const { wsLiveDataUrl } = usePublicRuntimeConfig()
   const resolvedEndpoint = endpoint ?? wsLiveDataUrl
   const {
@@ -155,6 +157,18 @@ export function WebSocketPlayground({
     instanceId,
   } = useWebSocketState(resolvedEndpoint, defaultMessage)
   const logLimit = Math.max(maxLogs, 10)
+  const statusLabel = {
+    disconnected: t('Disconnected'),
+    connecting: t('Connecting'),
+    connected: t('Connected'),
+    error: t('Error'),
+  }[status]
+  const logLevelLabels = {
+    system: t('System'),
+    sent: t('Sent'),
+    received: t('Received'),
+    error: t('Error'),
+  }
 
   function pushLog(level: LogLevel, entryMessage: string) {
     setLogs((prev) => {
@@ -183,7 +197,7 @@ export function WebSocketPlayground({
 
     const trimmedUrl = url.trim()
     if (!trimmedUrl) {
-      const nextError = 'Provide a WebSocket URL before connecting.'
+      const nextError = t('Provide a WebSocket URL before connecting.')
       setErrorMessage(nextError)
       pushLog('error', nextError)
       return
@@ -193,7 +207,7 @@ export function WebSocketPlayground({
     setStatus('connecting')
 
     const socketUrl = buildSocketUrl(trimmedUrl, token.trim(), authQueryKey)
-    pushLog('system', `Connecting to ${socketUrl}`)
+    pushLog('system', t('Connecting to {url}', { url: socketUrl }))
 
     try {
       const socket = new WebSocket(socketUrl)
@@ -201,17 +215,17 @@ export function WebSocketPlayground({
 
       socket.onopen = () => {
         setStatus('connected')
-        pushLog('system', 'Connection opened')
+        pushLog('system', t('Connection opened'))
       }
 
       socket.onmessage = (event) => {
-        const payload = typeof event.data === 'string' ? event.data : '[binary payload]'
+        const payload = typeof event.data === 'string' ? event.data : t('[binary payload]')
         pushLog('received', payload)
       }
 
       socket.onerror = () => {
         setStatus('error')
-        const nextError = 'Connection failed. Check endpoint and auth settings.'
+        const nextError = t('Connection failed. Check endpoint and auth settings.')
         setErrorMessage(nextError)
         pushLog('error', nextError)
       }
@@ -221,13 +235,15 @@ export function WebSocketPlayground({
         setStatus('disconnected')
         pushLog(
           'system',
-          event.reason ? `Connection closed (${event.code}): ${event.reason}` : `Connection closed (${event.code})`,
+          event.reason
+            ? t('Connection closed ({code}): {reason}', { code: String(event.code), reason: event.reason })
+            : t('Connection closed ({code})', { code: String(event.code) }),
         )
       }
     } catch (error) {
       socketRef.current = null
       setStatus('error')
-      const nextError = error instanceof Error ? error.message : 'Unable to create WebSocket connection.'
+      const nextError = error instanceof Error ? error.message : t('Unable to create WebSocket connection.')
       setErrorMessage(nextError)
       pushLog('error', nextError)
     }
@@ -239,13 +255,13 @@ export function WebSocketPlayground({
       return
     }
 
-    socket.close(1000, 'Closed from playground')
+    socket.close(1000, t('Closed from playground'))
   }
 
   function sendMessage() {
     const payload = message.trim()
     if (!payload) {
-      const nextError = 'Message payload cannot be empty.'
+      const nextError = t('Message payload cannot be empty.')
       setErrorMessage(nextError)
       pushLog('error', nextError)
       return
@@ -253,7 +269,7 @@ export function WebSocketPlayground({
 
     const socket = socketRef.current
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      const nextError = 'Connect to the socket before sending a message.'
+      const nextError = t('Connect to the socket before sending a message.')
       setErrorMessage(nextError)
       pushLog('error', nextError)
       return
@@ -275,21 +291,20 @@ export function WebSocketPlayground({
     <div className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}>
       <div className="flex flex-wrap items-start justify-between gap-3 border-b p-4">
         <div className="space-y-1">
-          <h4 className="text-base font-semibold">WebSocket Playground</h4>
+          <h4 className="text-base font-semibold">{t('WebSocket Playground')}</h4>
           <p className="text-xs text-muted-foreground">
-            Browser sockets cannot set custom Authorization headers. This widget appends the token as a query param.
+            {t(
+              'Browser sockets cannot set custom Authorization headers. This widget appends the token as a query param.',
+            )}
           </p>
         </div>
-        <Badge variant={getStatusBadgeVariant(status)}>
-          {status[0].toUpperCase()}
-          {status.slice(1)}
-        </Badge>
+        <Badge variant={getStatusBadgeVariant(status)}>{statusLabel}</Badge>
       </div>
 
       <div className="space-y-4 p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor={`${instanceId}-url`}>WebSocket URL</Label>
+            <Label htmlFor={`${instanceId}-url`}>{t('WebSocket URL')}</Label>
             <Input
               id={`${instanceId}-url`}
               value={url}
@@ -298,62 +313,62 @@ export function WebSocketPlayground({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${instanceId}-token`}>Token ({authQueryKey} query param)</Label>
+            <Label htmlFor={`${instanceId}-token`}>{t('Token ({key} query param)', { key: authQueryKey })}</Label>
             <Input
               id={`${instanceId}-token`}
               type="password"
               value={token}
               onChange={(event) => setToken(event.target.value)}
-              placeholder="Optional"
+              placeholder={t('Optional')}
             />
           </div>
         </div>
 
         <div className="rounded-md border bg-muted/20 px-3 py-2 font-mono text-xs break-all">
-          {previewUrl || 'Provide a valid WebSocket URL'}
+          {previewUrl || t('Provide a valid WebSocket URL')}
         </div>
 
         <div className="flex flex-wrap gap-2">
           {!isConnected && (
             <Button type="button" onClick={connect}>
-              Connect
+              {t('Connect')}
             </Button>
           )}
           {isConnected && (
             <Button type="button" variant="secondary" onClick={disconnect}>
-              Disconnect
+              {t('Disconnect')}
             </Button>
           )}
           <Button type="button" variant="outline" onClick={clearLogs}>
-            Clear Logs
+            {t('Clear Logs')}
           </Button>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor={`${instanceId}-payload`}>Message Payload</Label>
+          <Label htmlFor={`${instanceId}-payload`}>{t('Message Payload')}</Label>
           <Textarea
             id={`${instanceId}-payload`}
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={6}
             className="font-mono text-xs"
-            placeholder="JSON payload or plain text"
+            placeholder={t('JSON payload or plain text')}
           />
           <Button type="button" onClick={sendMessage}>
-            Send Message
+            {t('Send Message')}
           </Button>
         </div>
 
         {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
         <div className="space-y-2">
-          <p className="text-sm font-medium">Connection Log</p>
+          <p className="text-sm font-medium">{t('Connection Log')}</p>
           <div className="max-h-72 overflow-y-auto rounded-md border bg-muted/30 p-3 font-mono text-xs">
-            {logs.length === 0 && <p className="text-muted-foreground">No events yet.</p>}
+            {logs.length === 0 && <p className="text-muted-foreground">{t('No events yet.')}</p>}
             <div className="space-y-1">
               {logs.map((entry) => (
                 <div key={entry.id} className={cn('wrap-break-word whitespace-pre-wrap', getLogClass(entry.level))}>
-                  {`[${formatTime(entry.timestamp)}] [${entry.level.toUpperCase()}] ${entry.message}`}
+                  {`[${formatTime(entry.timestamp)}] [${logLevelLabels[entry.level]}] ${entry.message}`}
                 </div>
               ))}
             </div>

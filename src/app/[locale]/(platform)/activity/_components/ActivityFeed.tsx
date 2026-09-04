@@ -1008,10 +1008,10 @@ export default function ActivityFeed() {
                         inlineContent={
                           <>
                             <span className="text-muted-foreground">
-                              {activity.side === 'sell' ? 'sold' : 'bought'}
+                              {activity.side === 'sell' ? t('sold') : t('bought')}
                             </span>
                             <span className={cn('font-semibold', outcomeColorClass)}>{outcomeText}</span>
-                            <span className="text-muted-foreground">at</span>
+                            <span className="text-muted-foreground">{t('at')}</span>
                             <span className="text-muted-foreground">{priceLabel}</span>
                             {totalValueLabel && <span className="text-muted-foreground">({totalValueLabel})</span>}
                           </>
@@ -1035,7 +1035,7 @@ export default function ActivityFeed() {
                         rel="noopener noreferrer"
                         onClick={(event) => event.stopPropagation()}
                         className="text-muted-foreground transition-colors hover:text-foreground"
-                        aria-label="View transaction on Polygonscan"
+                        aria-label={t('View transaction on Polygonscan')}
                       >
                         <SquareArrowOutUpRightIcon className="size-3" />
                       </a>

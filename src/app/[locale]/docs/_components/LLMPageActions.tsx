@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckIcon, ChevronDownIcon, CopyIcon, FileTextIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -136,6 +137,7 @@ function useMarkdownPreloader(markdownUrl: string) {
 }
 
 export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
+  const t = useExtracted()
   const { copied, setCopied, loading, setLoading, markdownCache } = useMarkdownPreloader(markdownUrl)
   const absoluteMarkdownUrl = toAbsoluteUrl(markdownUrl)
   const markdownContent = markdownCache[markdownUrl] ?? null
@@ -208,7 +210,7 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
         className="rounded-none border-0 shadow-none"
       >
         {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
-        {copied ? 'Copied' : loading ? 'Copying...' : 'Copy for LLM'}
+        {copied ? t('Copied') : loading ? t('Copying...') : t('Copy for LLM')}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger
@@ -218,7 +220,7 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
               variant="ghost"
               size="sm"
               className="rounded-none border-0 border-l px-2 shadow-none"
-              aria-label="More options"
+              aria-label={t('More options')}
             />
           }
         >
@@ -227,19 +229,19 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
         <DropdownMenuContent align="end" className="min-w-44">
           <DropdownMenuLinkItem render={<a href={markdownUrl} target="_blank" rel="noreferrer" />}>
             <FileTextIcon className="size-4 text-foreground" />
-            Open Markdown
+            {t('Open Markdown')}
           </DropdownMenuLinkItem>
           <DropdownMenuItem onClick={openOnChatGPT}>
             <OpenAIIcon className="size-4" />
-            Open on ChatGPT
+            {t('Open on ChatGPT')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={openOnClaude}>
             <ClaudeIcon className="size-4" />
-            Open on Claude
+            {t('Open on Claude')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={openOnCursor}>
             <CursorIcon className="size-4" />
-            Open on Cursor
+            {t('Open on Cursor')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

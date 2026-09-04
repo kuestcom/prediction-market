@@ -1,8 +1,8 @@
 'use client'
 
-import { useLocale } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useCallback, useState, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { PredictionChartProps } from '@/types/PredictionChartTypes'
@@ -10,6 +10,7 @@ import type { PredictionChartProps } from '@/types/PredictionChartTypes'
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { useLocalizedSportsLabel } from '@/app/[locale]/(platform)/sports/_components/useLocalizedSportsLabel'
 import { cn } from '@/lib/utils'
 
 import type { SportsGameGraphVariant, SportsGamesMarketType } from './sports-games-center-types'
@@ -103,6 +104,8 @@ export default function SportsGameGraph({
   variant?: SportsGameGraphVariant
   showControls?: boolean
 }) {
+  const t = useExtracted()
+  const translateSportsLabel = useLocalizedSportsLabel()
   const locale = useLocale()
   const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
   const {
@@ -139,19 +142,27 @@ export default function SportsGameGraph({
       selectedOutcomeIndex,
       isSportsEventHeroVariant,
     })
+  const localizedChartSeries = useMemo(
+    () =>
+      chartSeries.map((series) => ({
+        ...series,
+        name: translateSportsLabel(series.name),
+      })),
+    [chartSeries, translateSportsLabel],
+  )
   const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(graphSelectedConditionId)
 
   const { chartData, latestSnapshot, leadingGapStart } = useSportsGameGraphHistory({
     card,
     marketTargets,
     activeTimeRange,
-    chartSeries,
+    chartSeries: localizedChartSeries,
     shouldPairOutcomeHistory,
   })
 
   const { chartXDomain, heroLegendPositionedEntries, legendSeriesWithValues } = useSportsGameGraphHeroLegend({
     canRenderPositionedSeriesLegend,
-    chartSeries,
+    chartSeries: localizedChartSeries,
     chartData,
     chartWidth,
     chartHeight,
@@ -192,7 +203,7 @@ export default function SportsGameGraph({
   if (graphSeriesTargets.length === 0) {
     return (
       <div className="rounded-lg border bg-secondary/30 px-3 py-6 text-sm text-muted-foreground">
-        Graph is unavailable for this game.
+        {t('Graph is unavailable for this game.')}
       </div>
     )
   }
@@ -203,13 +214,13 @@ export default function SportsGameGraph({
         <div ref={chartContainerRef} className="relative">
           <PredictionChart
             data={chartData}
-            series={chartSeries}
+            series={localizedChartSeries}
             locale={locale}
             width={chartWidth}
             height={chartHeight}
             margin={chartMargin}
             xDomain={chartXDomain}
-            dataSignature={`${card.id}:${chartSeries.map((series) => series.key).join(',')}:${activeTimeRange}`}
+            dataSignature={`${card.id}:${localizedChartSeries.map((series) => series.key).join(',')}:${activeTimeRange}`}
             dataSyncMode="replace"
             onCursorDataChange={setCursorSnapshot}
             xAxisTickCount={3}

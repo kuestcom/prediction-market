@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 
 import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
@@ -77,6 +78,7 @@ function useVisibleActivities({
 }
 
 export default function PublicActivityList({ userAddress }: PublicActivityListProps) {
+  const t = useExtracted()
   const { searchQuery, setSearchQuery, typeFilter, setTypeFilter, sortFilter, setSortFilter } =
     usePublicActivityFilters()
   const loadMoreScopeKey = `${userAddress}:${searchQuery}:${typeFilter}:${sortFilter}`
@@ -96,7 +98,7 @@ export default function PublicActivityList({ userAddress }: PublicActivityListPr
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    errorMessage: 'Failed to load more activity.',
+    errorMessage: t('Failed to load more activity.'),
   })
 
   const isLoading = hasUserAddress && status === 'pending'

@@ -1,6 +1,7 @@
 'use client'
 
 import { ChartLineIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import type { EventLiveChartConfig } from '@/types'
 
@@ -21,6 +22,7 @@ export default function EventLiveSeriesViewSwitch({
   liveColor,
   config,
 }: EventLiveSeriesViewSwitchProps) {
+  const t = useExtracted()
   const isLiveChartView = activeView === 'live'
   const isMarketView = activeView === 'market'
 
@@ -55,7 +57,7 @@ export default function EventLiveSeriesViewSwitch({
           'relative z-1 flex size-8 items-center justify-center rounded-sm transition-colors',
           isMarketView ? 'text-primary' : 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
-        aria-label="Show market chart"
+        aria-label={t('Show market chart')}
       >
         <ChartLineIcon className="size-[18px]" />
       </button>
@@ -67,7 +69,7 @@ export default function EventLiveSeriesViewSwitch({
           !isLiveChartView && 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         style={liveSwitchIconStyle}
-        aria-label="Show live chart"
+        aria-label={t('Show live chart')}
       >
         {config.icon_path ? (
           <span

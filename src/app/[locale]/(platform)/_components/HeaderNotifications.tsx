@@ -289,6 +289,12 @@ export default function HeaderNotifications() {
             <div className="divide-y divide-border">
               {notifications.map((notification) => {
                 const timeLabel = getNotificationTimeLabel(notification, currentTimestamp, formatCompactTimeAgo)
+                const linkLabel =
+                  notification.link_type === 'market'
+                    ? t('Open market')
+                    : notification.link_label === 'View on Polygonscan'
+                      ? t('View on Polygonscan')
+                      : notification.link_label
                 const hasLink = Boolean(notification.link_url)
                 const isFollowedTrade = isFollowedTradeNotification(notification)
                 const followedTrade = followedTradeDetails(notification)
@@ -331,14 +337,14 @@ export default function HeaderNotifications() {
                   isEventMarketIconUrl(avatarUrl) ? (
                     <EventIconImage
                       src={avatarUrl}
-                      alt="User avatar"
+                      alt={t('User avatar')}
                       sizes="42px"
                       containerClassName="size-10.5 rounded-md"
                     />
                   ) : (
                     <Image
                       src={avatarUrl}
-                      alt="User avatar"
+                      alt={t('User avatar')}
                       width={42}
                       height={42}
                       className="size-10.5 rounded-md object-cover"
@@ -411,7 +417,7 @@ export default function HeaderNotifications() {
                               className="inline-flex"
                               target={linkIsExternal ? '_blank' : undefined}
                               rel={linkIsExternal ? 'noreferrer noopener' : undefined}
-                              aria-label={notification.link_label ?? t('View notification details')}
+                              aria-label={linkLabel ?? t('View notification details')}
                               onClick={(event) => event.stopPropagation()}
                             >
                               {linkIcon}

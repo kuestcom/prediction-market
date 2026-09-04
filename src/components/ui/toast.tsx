@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { Toast as ToastPrimitive } from '@base-ui/react/toast'
 import { CircleCheckIcon, InfoIcon, OctagonXIcon, TriangleAlertIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
@@ -167,10 +168,12 @@ function ToastAction({ className, ...props }: ToastPrimitive.Action.Props) {
 }
 
 function ToastClose({ className, children, ...props }: ToastPrimitive.Close.Props) {
+  const t = useExtracted()
+
   return (
     <ToastPrimitive.Close
       data-slot="toast-close"
-      aria-label="Close toast"
+      aria-label={t('Close toast')}
       render={<Button variant="ghost" size="icon" />}
       className={cn(
         "absolute top-3 right-3 z-10 size-6 text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:text-foreground",

@@ -1,4 +1,5 @@
 import { CheckIcon, CopyIcon, ExternalLinkIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 export default function UserInfoSection({ className, ...props }: React.ComponentProps<'div'>) {
+  const t = useExtracted()
   const user = useUser()
   const { copied, copy } = useClipboard()
 
@@ -47,7 +49,7 @@ export default function UserInfoSection({ className, ...props }: React.Component
         ) : (
           <Image
             src={avatarUrl}
-            alt="User avatar"
+            alt={t('User avatar')}
             width={48}
             height={48}
             className={cn(
@@ -77,7 +79,7 @@ export default function UserInfoSection({ className, ...props }: React.Component
             size="sm"
             onClick={handleCopyWallet}
             className="-ml-2 text-xs text-muted-foreground"
-            title={copied ? 'Copied!' : 'Copy address'}
+            title={copied ? t('Copied!') : t('Copy address')}
           >
             <span className="font-mono">{truncateAddress(depositWalletAddress)}</span>
             {copied ? (
@@ -92,7 +94,7 @@ export default function UserInfoSection({ className, ...props }: React.Component
               type="button"
               size="sm"
               className="-ml-2 text-xs text-muted-foreground"
-              title="See on polygonscan"
+              title={t('See on Polygonscan')}
             >
               <ExternalLinkIcon className="size-3.5" />
             </Button>

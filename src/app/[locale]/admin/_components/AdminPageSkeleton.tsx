@@ -1,3 +1,5 @@
+import { useExtracted } from 'next-intl'
+
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
@@ -12,8 +14,9 @@ interface AdminAccordionSkeletonProps {
 }
 
 export function AdminAccordionSkeleton({ itemCount, showDescription = false }: AdminAccordionSkeletonProps) {
+  const t = useExtracted()
   return (
-    <div className="grid gap-4" role="status" aria-label="Loading admin content">
+    <div className="grid gap-4" role="status" aria-label={t('Loading admin content')}>
       {Array.from({ length: itemCount }).map((_, index) => (
         <div
           key={index}
@@ -58,8 +61,9 @@ export function AdminPanelSkeleton({ className, rowCount = 3 }: AdminPanelSkelet
 }
 
 export function AdminSettingsSkeleton({ sectionCount = 3 }: { sectionCount?: number }) {
+  const t = useExtracted()
   return (
-    <div className="grid gap-4" role="status" aria-label="Loading admin content">
+    <div className="grid gap-4" role="status" aria-label={t('Loading admin content')}>
       {Array.from({ length: sectionCount }).map((_, index) => (
         <AdminPanelSkeleton key={index} rowCount={index === 0 ? 2 : 3} />
       ))}
@@ -68,11 +72,12 @@ export function AdminSettingsSkeleton({ sectionCount = 3 }: { sectionCount?: num
 }
 
 export function AdminCalendarSkeleton() {
+  const t = useExtracted()
   return (
     <div
       className="grid min-h-[420px] grid-rows-[auto_1fr] gap-4 rounded-sm border bg-background p-4"
       role="status"
-      aria-label="Loading calendar"
+      aria-label={t('Loading calendar')}
     >
       <div className="flex flex-wrap items-center justify-between gap-3" aria-hidden="true">
         <Skeleton className="h-9 w-28" />

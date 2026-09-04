@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -79,6 +79,7 @@ async function renderCachedDocsPage({ locale, slug }: { locale: string; slug?: s
   'use cache'
 
   setRequestLocale(locale)
+  const t = await getExtracted()
 
   const page = source.getPage(slug)
   if (!page) {
@@ -106,12 +107,12 @@ async function renderCachedDocsPage({ locale, slug }: { locale: string; slug?: s
           </div>
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
             <ViewOptions markdownUrl={markdownUrl} />
-            <DiscordLink className="h-8.5">Get Help</DiscordLink>
+            <DiscordLink className="h-8.5">{t('Get Help')}</DiscordLink>
           </div>
         </div>
         <div className="-mt-4 flex flex-wrap items-center gap-2 lg:hidden">
           <ViewOptions markdownUrl={markdownUrl} />
-          <DiscordLink className="h-8.5">Get Help</DiscordLink>
+          <DiscordLink className="h-8.5">{t('Get Help')}</DiscordLink>
         </div>
       </div>
       <DocsBody className={cn({ 'max-w-none': useFullLayout })}>

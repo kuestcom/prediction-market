@@ -585,13 +585,19 @@ function MarketPositionRow({
               type="button"
               variant="secondary"
               size="sm"
-              aria-label="Convert position"
+              aria-label={t('Convert position')}
               onClick={() => onConvert?.(position)}
             >
               {t('Convert')}
             </Button>
           )}
-          <Button type="button" variant="outline" size="sm" aria-label="Sell position" onClick={() => onSell(position)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-label={t('Sell position')}
+            onClick={() => onSell(position)}
+          >
             {t('Sell')}
           </Button>
           <Tooltip>

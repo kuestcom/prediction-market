@@ -1,6 +1,7 @@
 import type { MouseEvent as ReactMouseEventType } from 'react'
 
 import { useQuery } from '@tanstack/react-query'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -731,21 +732,22 @@ export function useSportsDetailsTabs({
   isSelectedMarketResolved: boolean
   onChangeTab: (tab: DetailsTab) => void
 }) {
+  const t = useExtracted()
   const detailTabs = useMemo<Array<{ id: DetailsTab; label: string }>>(() => {
     const tabs: Array<{ id: DetailsTab; label: string }> = []
 
     if (!isSelectedMarketResolved) {
-      tabs.push({ id: 'orderBook', label: 'Order Book' })
+      tabs.push({ id: 'orderBook', label: t('Order Book') })
     }
 
-    tabs.push({ id: 'graph', label: 'Graph' })
+    tabs.push({ id: 'graph', label: t('Graph') })
 
     if (showAboutTab && aboutEvent) {
-      tabs.push({ id: 'about', label: 'About' })
+      tabs.push({ id: 'about', label: t('About') })
     }
 
     return tabs
-  }, [aboutEvent, isSelectedMarketResolved, showAboutTab])
+  }, [aboutEvent, isSelectedMarketResolved, showAboutTab, t])
 
   const resolvedActiveDetailsTab = useMemo<DetailsTab>(() => {
     if (detailTabs.some((tab) => tab.id === activeDetailsTab)) {

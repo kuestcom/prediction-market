@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 
 import { useQuery } from '@tanstack/react-query'
+import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 
@@ -112,6 +113,7 @@ export default function ProfileLink({
   avatarBadge,
   tooltipTrigger = 'all',
 }: ProfileLinkProps) {
+  const t = useExtracted()
   const { formatTimeAgo } = useLocalizedTimeAgo()
   const { handleOpenChange, startLoading, tooltipStats, isTooltipLoading } = useProfileTooltipStats(user)
   const isInline = layout === 'inline'
@@ -138,7 +140,7 @@ export default function ProfileLink({
   const medalTextColor = medalColor === '#000000' ? '#ffffff' : '#1a1a1a'
   const normalizedUsername = user.username?.trim()
   const addressSlug = user.deposit_wallet_address ?? user.address ?? ''
-  const displayUsername = normalizedUsername || (addressSlug ? truncateAddress(addressSlug) : 'Anonymous')
+  const displayUsername = normalizedUsername || (addressSlug ? truncateAddress(addressSlug) : t('Anonymous'))
   const titleValue = normalizedUsername || addressSlug || displayUsername
   const resolvedProfileSlug = profileSlug ?? (normalizedUsername || addressSlug)
   const profileHref = profileHrefOverride

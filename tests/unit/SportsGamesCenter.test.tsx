@@ -18,6 +18,15 @@ vi.mock('next/image', () => ({
 
 vi.mock('next-intl', () => ({
   useLocale: () => 'en',
+  useExtracted: () => (message: string, values?: Record<string, unknown>) =>
+    values
+      ? message.replace(/\{(\w+)\}/g, (_, key: string) => {
+          const value = values[key]
+          return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+            ? String(value)
+            : '{' + key + '}'
+        })
+      : message,
 }))
 
 vi.mock('@/i18n/navigation', () => ({

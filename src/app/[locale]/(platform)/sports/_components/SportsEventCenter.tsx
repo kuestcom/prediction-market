@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronLeftIcon, Clock3Icon, InfoIcon } from 'lucide-react'
-import { useLocale } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { Suspense, useLayoutEffect, useMemo, useState } from 'react'
 
@@ -72,6 +72,7 @@ import {
 import SportsLivestreamFloatingPlayer from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SportsRedeemModal from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import SportsSegmentNumberPicker from '@/app/[locale]/(platform)/sports/_components/SportsSegmentNumberPicker'
+import { useLocalizedSportsLabel } from '@/app/[locale]/(platform)/sports/_components/useLocalizedSportsLabel'
 import {
   resolveSportsMarketLineLabel,
   resolveSportsMarketLineValue,
@@ -97,19 +98,6 @@ import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
 import { useUser } from '@/stores/useUser'
 
-const PLAYER_PROP_TOOLTIP_BY_VIEW_KEY = {
-  goals:
-    'Player to record X or more goals. If the player is listed as inactive or otherwise does not play, the market will resolve "No". This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.',
-  assists:
-    'Player to record X or more assists. If the player is listed as inactive or otherwise does not play, the market will resolve "No". This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.',
-  shots:
-    'Player to record X or more shots. If the player is listed as inactive or otherwise does not play, the market will resolve "No". This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.',
-} as const
-
-const HALVES_REG_TIME_TOOLTIP =
-  'This market refers only to the outcome within the first 45 minutes of regular play plus stoppage time.'
-const EXACT_SCORE_REG_TIME_TOOLTIP =
-  'This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.'
 const MAX_SPORTS_EVENT_START_TIMEOUT_MS = 2_147_483_647
 
 function SportsEventCountdown({ startTimestamp }: { startTimestamp: number }) {
@@ -390,6 +378,8 @@ export default function SportsEventCenter({
   initialMarketViewKey = null,
   vertical = 'sports',
 }: SportsEventCenterProps) {
+  const t = useExtracted()
+  const translateSportsLabel = useLocalizedSportsLabel()
   const verticalConfig = getSportsVerticalConfig(vertical)
   const locale = useLocale()
   const hasHydrated = useHasHydrated()
@@ -764,8 +754,8 @@ export default function SportsEventCenter({
   const localStartLabels =
     hasHydrated && startTimestamp !== null ? formatSportsEventLocalStartLabels(startTimestamp, locale) : null
   const visibleStartLabels = localStartLabels ?? startLabels
-  const timeLabel = visibleStartLabels?.timeLabel ?? 'TBD'
-  const dayLabel = visibleStartLabels?.dayLabel ?? 'Date TBD'
+  const timeLabel = visibleStartLabels?.timeLabel ?? t('TBD')
+  const dayLabel = visibleStartLabels?.dayLabel ?? t('Date TBD')
   const hasStarted = useSportsEventHasStarted(startTimestamp)
 
   const team1 = heroCard.teams[0] ?? null
@@ -810,10 +800,13 @@ export default function SportsEventCenter({
   const sportsGraphSelection = resolveSportsGraphSelection(heroCard, heroMoneylineButtonKey)
   const esportsSegmentTabs = hasEsportsSegmentedLayout
     ? [
-        { key: 'series' as const, label: 'Series Lines' },
+        { key: 'series' as const, label: t('Series Lines') },
         ...esportsSegmentTabNumbers.map((mapNumber) => ({
           key: `segment-${mapNumber}` as const,
-          label: `${segmentLabel} ${mapNumber}`,
+          label: t('{segment} {number}', {
+            segment: translateSportsLabel(segmentLabel),
+            number: String(mapNumber),
+          }),
         })),
       ]
     : []
@@ -897,13 +890,26 @@ export default function SportsEventCenter({
     const isMoneylinePanel = visibleButtons.every((button) => button.marketType === 'moneyline')
     const shouldShowResolvedSegmentedButtons = hasEsportsSegmentedLayout && entry.mapNumber != null
     const shouldRenderButtons = (!isResolved || shouldShowResolvedSegmentedButtons) && visibleButtons.length > 0
-    const playerPropTooltip = playerPropViewKey ? PLAYER_PROP_TOOLTIP_BY_VIEW_KEY[playerPropViewKey] : null
+    const playerPropTooltip =
+      playerPropViewKey === 'goals'
+        ? t(
+            'Player to record X or more goals. If the player is listed as inactive or otherwise does not play, the market will resolve "No". This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.',
+          )
+        : playerPropViewKey === 'assists'
+          ? t(
+              'Player to record X or more assists. If the player is listed as inactive or otherwise does not play, the market will resolve "No". This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.',
+            )
+          : playerPropViewKey === 'shots'
+            ? t(
+                'Player to record X or more shots. If the player is listed as inactive or otherwise does not play, the market will resolve "No". This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.',
+              )
+            : null
     const regTimeTooltip =
       playerPropTooltip ??
       (activeMarketView?.key === 'halves'
-        ? HALVES_REG_TIME_TOOLTIP
+        ? t('This market refers only to the outcome within the first 45 minutes of regular play plus stoppage time.')
         : activeMarketView?.key === 'exactScore'
-          ? EXACT_SCORE_REG_TIME_TOOLTIP
+          ? t('This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.')
           : null)
     const detailsAllowedConditionIds = new Set(
       usesLinePicker && linePickerSelectedMarket
@@ -979,7 +985,9 @@ export default function SportsEventCenter({
                 <h3 className="min-w-0 text-sm font-semibold text-foreground">{marketTitle}</h3>
                 {regTimeTooltip && (
                   <span className="inline-flex shrink-0 items-center gap-1.5">
-                    <span className="text-2xs font-semibold tracking-normal text-muted-foreground">REG. TIME</span>
+                    <span className="text-2xs font-semibold tracking-normal text-muted-foreground">
+                      {t('REG. TIME')}
+                    </span>
                     <Tooltip>
                       <TooltipTrigger
                         render={
@@ -990,7 +998,7 @@ export default function SportsEventCenter({
                             className={cn(
                               `inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
                             )}
-                            aria-label="Regular time rules"
+                            aria-label={t('Regular time rules')}
                           >
                             <InfoIcon className="size-3.5" />
                           </button>
@@ -1125,7 +1133,7 @@ export default function SportsEventCenter({
                     `relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-transform duration-150 ease-out hover:translate-y-px hover:bg-primary active:translate-y-0.5`,
                   )}
                 >
-                  Redeem
+                  {t('Redeem')}
                 </button>
               </div>
             </div>
@@ -1136,7 +1144,7 @@ export default function SportsEventCenter({
           <SportsSegmentNumberPicker
             options={linePickerOptions}
             activeNumber={linePickerActiveLineValue}
-            segmentLabel="Line"
+            segmentLabel={t('Line')}
             onPick={handlePickAuxiliaryLine}
           />
         )}
@@ -1371,7 +1379,7 @@ export default function SportsEventCenter({
             showBottomContent={false}
             defaultGraphTimeRange="ALL"
             allowedConditionIds={allCardConditionIds}
-            positionsTitle="All Positions"
+            positionsTitle={t('All Positions')}
             showRedeemInPositions
             onOpenRedeemForCondition={handleOpenRedeemForCondition}
             oddsFormat={oddsFormat}
@@ -1423,12 +1431,12 @@ export default function SportsEventCenter({
           const shouldShowRedeemButton = isSectionResolved && sectionClaimGroups.length > 0
           const sectionTitle =
             isHalvesView && section.key === 'moneyline'
-              ? 'Halves'
+              ? t('Halves')
               : hasEsportsSegmentedLayout && activeEsportsSegmentTabKey === 'series' && section.key === 'spread'
-                ? `${segmentLabel} Handicap`
+                ? t('{segment} Handicap', { segment: translateSportsLabel(segmentLabel) })
                 : hasEsportsSegmentedLayout && activeEsportsSegmentTabKey === 'series' && section.key === 'total'
-                  ? `Total ${segmentPluralLabel}`
-                  : section.label
+                  ? t('Total {segment}', { segment: translateSportsLabel(segmentPluralLabel) })
+                  : translateSportsLabel(section.label)
           const shouldUseClosedLinePickerSpacing =
             !isSectionResolved &&
             !isSectionOpen &&
@@ -1679,7 +1687,7 @@ export default function SportsEventCenter({
                             `relative flex h-9 w-full translate-y-0 items-center justify-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-transform duration-150 ease-out hover:translate-y-px hover:bg-primary active:translate-y-0.5`,
                           )}
                         >
-                          Redeem
+                          {t('Redeem')}
                         </button>
                       </div>
                     </div>
@@ -1699,7 +1707,7 @@ export default function SportsEventCenter({
                   <SportsSegmentNumberPicker
                     options={seriesTotalPickerOptions}
                     activeNumber={activeSeriesTotalLineValue}
-                    segmentLabel="Line"
+                    segmentLabel={t('Line')}
                     onPick={handlePickSeriesTotalLineValue}
                   />
                 )}
@@ -1795,7 +1803,7 @@ export default function SportsEventCenter({
             <div className="relative mb-1 flex min-h-9 items-center justify-center">
               <Link
                 href={`${verticalConfig.basePath}/${sportSlug}/games`}
-                aria-label="Back to games"
+                aria-label={t('Back to games')}
                 className={cn(
                   headerIconButtonClass,
                   'absolute left-0 inline-flex size-8 items-center justify-center p-0 text-foreground md:size-9',
@@ -1810,7 +1818,7 @@ export default function SportsEventCenter({
                 )}
               >
                 <Link href={verticalConfig.livePath} className="hover:text-foreground">
-                  {verticalConfig.label}
+                  {translateSportsLabel(verticalConfig.label)}
                 </Link>
                 <span className="opacity-60">·</span>
                 <Link href={`${verticalConfig.basePath}/${sportSlug}/games`} className="truncate hover:text-foreground">
@@ -1861,7 +1869,7 @@ export default function SportsEventCenter({
                 )}
               >
                 <SportsEventLiveStatusIcon className="size-3.5" muted={isCurrentEventLivestreamOpen} />
-                <span>Watch Stream</span>
+                <span>{t('Watch Stream')}</span>
               </button>
             </div>
           )}
@@ -1949,10 +1957,10 @@ export default function SportsEventCenter({
                   </div>
                   {showFinalScore ? (
                     <span className="mt-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                      FINAL
+                      {t('Final')}
                     </span>
                   ) : (
-                    <span className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">LIVE</span>
+                    <span className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">{t('Live')}</span>
                   )}
                 </div>
               ) : (
@@ -2108,7 +2116,9 @@ export default function SportsEventCenter({
               />
             </div>
           ) : (
-            <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">Select a market to trade.</div>
+            <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+              {t('Select a market to trade.')}
+            </div>
           )}
         </aside>
       </div>
@@ -2143,7 +2153,7 @@ export default function SportsEventCenter({
               setRedeemDefaultConditionId(null)
             }
           }}
-          title="Cash out"
+          title={t('Cash out')}
           subtitle={eventShortLabel}
           sections={redeemModalSections}
           defaultSelectedSectionKey={redeemSectionKey}

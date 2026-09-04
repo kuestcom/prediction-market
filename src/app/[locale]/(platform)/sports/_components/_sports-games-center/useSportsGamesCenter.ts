@@ -1,3 +1,4 @@
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -535,6 +536,7 @@ export function useCardGroupings({
   resolveCardCategory: (card: SportsGamesCard) => string
   currentTimestampMs: number
 }) {
+  const t = useExtracted()
   const groupedCards = useMemo(() => {
     const grouped = new Map<string, { key: string; label: string; sortValue: number; cards: SportsGamesCard[] }>()
 
@@ -542,7 +544,7 @@ export function useCardGroupings({
       const date = card.startTime ? new Date(card.startTime) : null
       const isValidDate = Boolean(date && !Number.isNaN(date.getTime()))
       const groupKey = isValidDate ? toDateGroupKey(date as Date) : 'tbd'
-      const label = isValidDate ? dateLabelFormatter.format(date as Date) : 'Date TBD'
+      const label = isValidDate ? dateLabelFormatter.format(date as Date) : t('Date TBD')
       const sortValue = isValidDate ? (date as Date).getTime() : Number.POSITIVE_INFINITY
 
       const existing = grouped.get(groupKey)
@@ -560,7 +562,7 @@ export function useCardGroupings({
     }
 
     return Array.from(grouped.values()).sort((a, b) => a.sortValue - b.sortValue)
-  }, [dateLabelFormatter, filteredCards])
+  }, [dateLabelFormatter, filteredCards, t])
 
   const liveCards = useMemo(
     () => filteredCards.filter((card) => isCardLiveNow(card, currentTimestampMs)),
@@ -627,7 +629,7 @@ export function useCardGroupings({
       const date = Number.isFinite(startMs) ? new Date(startMs) : null
       const isValidDate = Boolean(date && !Number.isNaN(date.getTime()))
       const dateKey = isValidDate ? toDateGroupKey(date as Date) : 'tbd'
-      const dateLabel = isValidDate ? dateLabelFormatter.format(date as Date) : 'Date TBD'
+      const dateLabel = isValidDate ? dateLabelFormatter.format(date as Date) : t('Date TBD')
       const sortValue = isValidDate ? (date as Date).getTime() : Number.POSITIVE_INFINITY
 
       const categoryLabel = resolveCardCategory(card)
@@ -673,7 +675,7 @@ export function useCardGroupings({
         sortValue: group.sortValue,
         categories: Array.from(group.categories.values()).sort((left, right) => left.label.localeCompare(right.label)),
       }))
-  }, [dateLabelFormatter, resolveCardCategory, sortedFutureCards])
+  }, [dateLabelFormatter, resolveCardCategory, sortedFutureCards, t])
 
   return {
     groupedCards,

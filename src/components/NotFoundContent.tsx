@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
 
@@ -7,6 +7,8 @@ interface NotFoundContentProps {
   className: string
   discordLink?: string | null
   homeLink: ReactElement
+  title?: string
+  description?: ReactNode
 }
 
 export default function NotFoundContent({
@@ -14,20 +16,27 @@ export default function NotFoundContent({
   className,
   discordLink,
   homeLink,
+  title = 'Oops...we didn’t forecast this',
+  description,
 }: NotFoundContentProps) {
   return (
     <Component className={className}>
       <NotFoundIllustration />
-      <p className="mt-5 text-center text-2xl font-medium text-primary">Oops...we didn&apos;t forecast this</p>
-      {discordLink && (
+      <p className="mt-5 text-center text-2xl font-medium text-primary">{title}</p>
+      {(description || discordLink) && (
         <p className="mt-3 text-center text-sm text-muted-foreground">
-          If reloading doesn&apos;t fix it, let us know via{' '}
-          <span className="inline">
-            <a href={discordLink} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-              Discord
-            </a>
-            .
-          </span>
+          {description ??
+            (discordLink ? (
+              <>
+                If reloading doesn&apos;t fix it, let us know via{' '}
+                <span className="inline">
+                  <a href={discordLink} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                    Discord
+                  </a>
+                  .
+                </span>
+              </>
+            ) : null)}
         </p>
       )}
       <Button className="mt-5" nativeButton={false} render={homeLink} />

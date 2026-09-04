@@ -355,7 +355,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
 
       <PwaInstallDialog open={isInstallDialogOpen} onOpenChange={setIsInstallDialogOpen} />
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" aria-label="Primary navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden" aria-label={t('Primary navigation')}>
         <div
           className={cn(
             `border-t border-border/70 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] shadow-[0_-20px_48px_-36px_rgba(15,23,42,0.55)] backdrop-blur-sm supports-backdrop-filter:bg-background/90`,
@@ -528,6 +528,7 @@ function useLocaleChangeHandler({
 }
 
 function MobileLocaleSwitcher({ onLocaleChange }: MobileLocaleSwitcherProps) {
+  const t = useExtracted()
   const locale = useLocale() as SupportedLocale
   const enabledLocales = useEnabledLocalesFetch()
   const { isPending, handleLocaleChange } = useLocaleChangeHandler({ locale, onLocaleChange })
@@ -535,7 +536,7 @@ function MobileLocaleSwitcher({ onLocaleChange }: MobileLocaleSwitcherProps) {
   return (
     <div className="rounded-2xl border border-border/70 px-4 py-3">
       <div className="mb-3 text-sm font-semibold">
-        <span>{LOOP_LABELS[locale] ?? 'Language'}</span>
+        <span>{LOOP_LABELS[locale] ?? t('Language')}</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
         {enabledLocales.map((option) => (

@@ -357,7 +357,7 @@ function EventConvertPositionsDialogContent({
   const selectContent = (
     <div className="space-y-5 text-foreground">
       <div className="space-y-2">
-        <p className="text-sm font-semibold">Select one or more</p>
+        <p className="text-sm font-semibold">{t('Select one or more')}</p>
         <div className="max-h-36 overflow-y-auto rounded-lg border bg-background">
           {options.map((option, index) => {
             const checkboxId = `${checkboxBaseId}-${index}`
@@ -401,7 +401,7 @@ function EventConvertPositionsDialogContent({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm font-semibold">
-          <span>Amount</span>
+          <span>{t('Amount')}</span>
           <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             <span>{totalLabel}</span>
             <button
@@ -413,7 +413,7 @@ function EventConvertPositionsDialogContent({
               onClick={handleMaxClick}
               disabled={selectedMax <= 0}
             >
-              Max
+              {t('Max')}
             </button>
           </div>
         </div>
@@ -433,7 +433,7 @@ function EventConvertPositionsDialogContent({
         disabled={isReviewDisabled}
         onClick={() => setStep('review')}
       >
-        Review
+        {t('Review')}
       </Button>
     </div>
   )
@@ -457,7 +457,7 @@ function EventConvertPositionsDialogContent({
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-muted-foreground tabular-nums">
-                    -{amountLabel} shares
+                    {t('{amount} shares', { amount: `-${amountLabel}` })}
                   </span>
                 </div>
               ))}
@@ -485,14 +485,14 @@ function EventConvertPositionsDialogContent({
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-muted-foreground tabular-nums">
-                    +{amountLabel} shares
+                    {t('{amount} shares', { amount: `+${amountLabel}` })}
                   </span>
                 </div>
               ))}
               {isNegRiskAugmented && (
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">Other</span>
+                    <span className="text-sm font-semibold text-foreground">{t('Other')}</span>
                     <span
                       className={cn(
                         `inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-sm bg-yes/20 px-1 text-2xs font-semibold text-yes`,
@@ -503,7 +503,7 @@ function EventConvertPositionsDialogContent({
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-muted-foreground tabular-nums">
-                    +{amountLabel} shares
+                    {t('{amount} shares', { amount: `+${amountLabel}` })}
                   </span>
                 </div>
               )}
@@ -524,15 +524,25 @@ function EventConvertPositionsDialogContent({
       >
         {submitState === 'signing' && <Spinner className="size-4" />}
         {submitState === 'submitting' && <Spinner className="size-4" />}
-        {submitState === 'signing' ? 'Awaiting signature' : submitState === 'submitting' ? 'Submitting...' : 'Confirm'}
+        {submitState === 'signing'
+          ? t('Awaiting signature')
+          : submitState === 'submitting'
+            ? t('Submitting...')
+            : t('Confirm')}
       </Button>
     </div>
   )
 
   const content = step === 'review' ? reviewContent : selectContent
 
-  const title = 'Convert positions'
-  const description = `Convert your "${t('No')}" positions to the complementary "${t('Yes')}" positions (and potentially USDC).`
+  const title = t('Convert positions')
+  const description = t(
+    'Convert your "{no}" positions to the complementary "{yes}" positions (and potentially USDC).',
+    {
+      no: t('No'),
+      yes: t('Yes'),
+    },
+  )
   const reviewHeader = (
     <button
       type="button"
@@ -542,7 +552,7 @@ function EventConvertPositionsDialogContent({
       onClick={() => setStep('select')}
     >
       <MoveLeftIcon className="size-4" />
-      Review
+      {t('Review')}
     </button>
   )
 

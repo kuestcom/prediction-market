@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 
 import { BookOpenTextIcon, CheckIcon, RadioIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
-import { useLocale } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -77,6 +77,7 @@ import {
   useVisiblePageCards,
   useWeekFilterState,
 } from './_sports-games-center/useSportsGamesCenter'
+import { useLocalizedSportsLabel } from './useLocalizedSportsLabel'
 
 // Re-export types and values consumed by SportsEventCenter and other external files
 export type { SportsGamesMarketType, SportsLinePickerOption } from './_sports-games-center/sports-games-center-types'
@@ -141,6 +142,8 @@ export default function SportsGamesCenter({
   vertical = 'sports',
   showHeading = true,
 }: SportsGamesCenterProps) {
+  const t = useExtracted()
+  const translateSportsLabel = useLocalizedSportsLabel()
   const verticalConfig = getSportsVerticalConfig(vertical)
   const router = useRouter()
   const locale = useLocale()
@@ -218,18 +221,18 @@ export default function SportsGamesCenter({
   const { buttonPriceCentsByKey } = useCardButtonPriceMap(filteredCards)
 
   const emptyStateLabel = normalizedSearchQuery
-    ? 'No games found for this search.'
+    ? t('No games found for this search.')
     : isLiveAndSoonPage
-      ? 'No live or upcoming games available.'
+      ? t('No live or upcoming games available.')
       : isLivePage
-        ? 'No live games available.'
+        ? t('No live games available.')
         : isSoonPage
-          ? 'No upcoming games available.'
-          : 'No games available for this week.'
+          ? t('No upcoming games available.')
+          : t('No games available for this week.')
 
   const liveSectionEmptyStateLabel = normalizedSearchQuery
-    ? 'No live games found for this search.'
-    : 'No live games available.'
+    ? t('No live games found for this search.')
+    : t('No live games available.')
 
   const { effectiveOpenCardId, effectiveTradeSelection } = useEffectiveOpenAndTradeSelection({
     openCardId,
@@ -393,7 +396,7 @@ export default function SportsGamesCenter({
         {headerColumns.map((column) => (
           <div key={`${headerKeyPrefix}-${column.key}-header`} className="flex w-full items-center justify-center">
             <p className="text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {column.label}
+              {translateSportsLabel(column.label)}
             </p>
           </div>
         ))}
@@ -410,7 +413,7 @@ export default function SportsGamesCenter({
   ) {
     const parsedStartTime = card.startTime ? new Date(card.startTime) : null
     const isValidTime = Boolean(parsedStartTime && !Number.isNaN(parsedStartTime.getTime()))
-    const timeLabel = isValidTime ? timeLabelFormatter.format(parsedStartTime as Date) : 'TBD'
+    const timeLabel = isValidTime ? timeLabelFormatter.format(parsedStartTime as Date) : t('TBD')
     const isExpanded = effectiveOpenCardId === card.id
     const selectedButtonKey = resolveDisplayButtonKey(
       card,
@@ -481,7 +484,7 @@ export default function SportsGamesCenter({
         >
           <Link
             href={card.eventHref as Route}
-            aria-label={`Open ${card.title}`}
+            aria-label={t('Open {title}', { title: card.title })}
             className={cn(
               `absolute inset-0 z-10 rounded-[inherit] focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
             )}
@@ -494,7 +497,7 @@ export default function SportsGamesCenter({
                   <span
                     className={cn(`rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase`)}
                   >
-                    FINAL
+                    {t('Final')}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5">
@@ -502,14 +505,14 @@ export default function SportsGamesCenter({
                       <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
                       <span className="relative inline-flex size-2 rounded-full bg-red-500" />
                     </span>
-                    <span className="text-xs leading-none font-medium text-red-500 uppercase">LIVE</span>
+                    <span className="text-xs leading-none font-medium text-red-500 uppercase">{t('Live')}</span>
                   </span>
                 )
               ) : isFinalizedCard ? (
                 <span
                   className={cn(`rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase`)}
                 >
-                  FINAL
+                  {t('Final')}
                 </span>
               ) : (
                 <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-medium text-foreground">
@@ -540,13 +543,13 @@ export default function SportsGamesCenter({
                           `inline-flex size-8 items-center justify-center rounded-lg bg-secondary/80 text-foreground transition-colors`,
                           'hover:bg-secondary hover:ring-1 hover:ring-border',
                         )}
-                        aria-label="Watch Livestream"
+                        aria-label={t('Watch Livestream')}
                       >
                         <RadioIcon className="size-3.5" />
                       </button>
                     }
                   />
-                  <TooltipContent side="top">Watch Livestream</TooltipContent>
+                  <TooltipContent side="top">{t('Watch Livestream')}</TooltipContent>
                 </Tooltip>
               )}
 
@@ -554,7 +557,9 @@ export default function SportsGamesCenter({
                 <button
                   type="button"
                   data-sports-card-control="true"
-                  aria-label={isExpanded && effectiveIsDetailsContentVisible ? 'Close order book' : 'Open order book'}
+                  aria-label={
+                    isExpanded && effectiveIsDetailsContentVisible ? t('Close order book') : t('Open order book')
+                  }
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
@@ -874,7 +879,7 @@ export default function SportsGamesCenter({
                                 />
                               ) : null}
                               <span className={cn('relative z-1 opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
-                                {button.label}
+                                {translateSportsLabel(button.label)}
                               </span>
                               <span className="relative z-1 text-sm leading-none tabular-nums">
                                 {formatButtonOdds(
@@ -920,8 +925,8 @@ export default function SportsGamesCenter({
   const weekSelect = (
     <Select
       items={[
-        ...weekOptions.map((week) => ({ label: `Week ${week}`, value: String(week) })),
-        { label: 'All weeks', value: 'all' },
+        ...weekOptions.map((week) => ({ label: t('Week {week}', { week: String(week) }), value: String(week) })),
+        { label: t('All weeks'), value: 'all' },
       ]}
       value={effectiveSelectedWeek}
       onValueChange={(value) => value !== null && setSelectedWeek(value)}
@@ -932,17 +937,17 @@ export default function SportsGamesCenter({
           `h-12 w-fit min-w-0 cursor-pointer rounded-full border-0 bg-card px-3.5 pr-2 text-sm font-semibold text-foreground shadow-none hover:bg-card data-[size=default]:h-12! dark:bg-card dark:hover:bg-card`,
         )}
       >
-        <SelectValue placeholder="Week" />
+        <SelectValue placeholder={t('Week')} />
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false} align="end" className="min-w-36 p-1">
         {weekOptions.map((week) => (
           <SelectItem key={week} value={String(week)} className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
-            {`Week ${week}`}
+            {t('Week {week}', { week: String(week) })}
           </SelectItem>
         ))}
         {weekOptions.length === 0 && (
           <SelectItem value="all" className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
-            No weeks
+            {t('No weeks')}
           </SelectItem>
         )}
       </SelectContent>
@@ -971,7 +976,7 @@ export default function SportsGamesCenter({
             ref={searchInputRef}
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search"
+            placeholder={t('Search')}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 if (searchQuery.trim()) {
@@ -987,7 +992,7 @@ export default function SportsGamesCenter({
           />
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label={t('Clear search')}
             onClick={() => {
               setSearchQuery('')
               setIsSearchOpen(false)
@@ -1002,7 +1007,7 @@ export default function SportsGamesCenter({
 
         <button
           type="button"
-          aria-label="Open search"
+          aria-label={t('Open search')}
           data-sports-card-control="true"
           onClick={() => {
             if (!isSearchOpen) {
@@ -1033,7 +1038,7 @@ export default function SportsGamesCenter({
               type="button"
               variant="ghost"
               size="icon"
-              aria-label="Odds format settings"
+              aria-label={t('Odds format settings')}
               className={headerIconButtonClass}
             />
           }
@@ -1048,7 +1053,7 @@ export default function SportsGamesCenter({
         >
           <DropdownMenuGroup>
             <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
-              Odds Format
+              {t('Odds Format')}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {ODDS_FORMAT_OPTIONS.map((option) => (
@@ -1072,7 +1077,7 @@ export default function SportsGamesCenter({
                 setShowSpreadsAndTotals((current) => !current)
               }}
             >
-              <span>Show Spreads + Totals</span>
+              <span>{t('Show Spreads + Totals')}</span>
               {showSpreadsAndTotals && <CheckIcon className="ml-auto size-3.5 text-primary" />}
             </DropdownMenuItem>
           </DropdownMenuGroup>
@@ -1122,14 +1127,14 @@ export default function SportsGamesCenter({
                       `rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors`,
                     )}
                   >
-                    Games
+                    {t('Games')}
                   </button>
                   <button
                     type="button"
                     onClick={() => router.push(`${verticalConfig.basePath}/${sportSlug}/props` as Route)}
                     className="rounded-full bg-card px-6 py-2.5 text-sm font-semibold text-foreground transition-colors"
                   >
-                    Props
+                    {t('Props')}
                   </button>
                 </div>
 
@@ -1256,7 +1261,7 @@ export default function SportsGamesCenter({
 
               {startingSoonGroupsByDate.length > 0 && (
                 <div className="space-y-3">
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">Upcoming Games</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">{t('Upcoming Games')}</h2>
 
                   {startingSoonGroupsByDate.map((dateGroup) => (
                     <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
@@ -1323,7 +1328,9 @@ export default function SportsGamesCenter({
               <EventOrderPanelTermsDisclaimer />
             </div>
           ) : (
-            <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">Select a market to trade.</div>
+            <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+              {t('Select a market to trade.')}
+            </div>
           )}
         </aside>
       </div>

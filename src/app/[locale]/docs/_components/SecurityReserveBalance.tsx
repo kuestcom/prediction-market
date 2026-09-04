@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPublicClient, erc20Abi, formatUnits } from 'viem'
 
@@ -20,6 +21,7 @@ function formatUsdcBalance(balance: bigint) {
 }
 
 export function SecurityReserveBalance() {
+  const t = useExtracted()
   const { polygonRpcUrl } = usePublicRuntimeConfig()
   const [balance, setBalance] = useState<bigint | null>(null)
   const [breakdown, setBreakdown] = useState<{ wallet: bigint; unclaimed: bigint } | null>(null)
@@ -72,27 +74,32 @@ export function SecurityReserveBalance() {
     <div className="not-prose my-5 rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium">Security Reserve balance</p>
-          <p className="mt-1 text-xs text-muted-foreground">USDC balance + unclaimed · {defaultViemNetwork.name}</p>
+          <p className="text-sm font-medium">{t('Security Reserve balance')}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('USDC balance + unclaimed · {network}', { network: defaultViemNetwork.name })}
+          </p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className={`size-1.5 rounded-full ${failed ? 'bg-amber-500' : 'bg-emerald-500'}`} aria-hidden="true" />
-          {failed ? (balance === null ? 'Unavailable' : 'Last read') : 'Live'}
+          {failed ? (balance === null ? t('Unavailable') : t('Last read')) : t('Live')}
         </span>
       </div>
       <p
         className="mt-3 font-mono text-2xl font-semibold"
         title={
           displayBalance && breakdown
-            ? `${formatUsdcBalance(breakdown.wallet).exact} USDC in reserve + ${formatUsdcBalance(breakdown.unclaimed).exact} USDC unclaimed`
+            ? t('{wallet} USDC in reserve + {unclaimed} USDC unclaimed', {
+                wallet: formatUsdcBalance(breakdown.wallet).exact,
+                unclaimed: formatUsdcBalance(breakdown.unclaimed).exact,
+              })
             : undefined
         }
       >
-        {displayBalance ? `${displayBalance.formatted} USDC` : failed ? 'Unavailable' : 'Loading…'}
+        {displayBalance ? `${displayBalance.formatted} USDC` : failed ? t('Unavailable') : t('Loading…')}
       </p>
       {failed && (
         <button className="mt-2 text-xs font-medium text-primary hover:underline" type="button" onClick={loadBalance}>
-          Try again
+          {t('Try again')}
         </button>
       )}
     </div>

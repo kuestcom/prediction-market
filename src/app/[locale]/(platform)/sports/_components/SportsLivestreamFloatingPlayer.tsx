@@ -3,6 +3,7 @@
 import type { RefObject } from 'react'
 
 import { ExternalLinkIcon, GripVerticalIcon, RadioIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import { resolveLivestreamEmbedTarget } from '@/lib/livestream-embed'
@@ -95,6 +96,7 @@ function useLivestreamEmbedTarget(streamUrl: string | null) {
 }
 
 export default function SportsLivestreamFloatingPlayer() {
+  const t = useExtracted()
   const streamUrl = useSportsLivestream((state) => state.streamUrl)
   const streamTitle = useSportsLivestream((state) => state.streamTitle)
   const closeStream = useSportsLivestream((state) => state.closeStream)
@@ -115,7 +117,7 @@ export default function SportsLivestreamFloatingPlayer() {
       <div className="group/stream-header relative flex items-center gap-2 border-b bg-secondary/40 px-2.5 py-2">
         <button
           type="button"
-          aria-label="Resize stream player"
+          aria-label={t('Resize stream player')}
           onPointerDown={(event) => {
             event.preventDefault()
             const startX = event.clientX
@@ -152,7 +154,7 @@ export default function SportsLivestreamFloatingPlayer() {
         </button>
 
         <RadioIcon className="size-3.5 shrink-0 text-red-500" />
-        <p className="min-w-0 truncate text-xs font-semibold text-foreground">{streamTitle || 'Livestream'}</p>
+        <p className="min-w-0 truncate text-xs font-semibold text-foreground">{streamTitle || t('Livestream')}</p>
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -163,8 +165,8 @@ export default function SportsLivestreamFloatingPlayer() {
             className={cn(
               `inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground`,
             )}
-            aria-label="Close stream"
-            title="Close stream"
+            aria-label={t('Close stream')}
+            title={t('Close stream')}
           >
             <XIcon className="size-3.5" />
           </button>
@@ -175,7 +177,7 @@ export default function SportsLivestreamFloatingPlayer() {
         <div className="relative aspect-video bg-black/90">
           <iframe
             src={embedTarget.embedUrl}
-            title={streamTitle || 'Livestream'}
+            title={streamTitle || t('Livestream')}
             className="absolute inset-0 size-full"
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowFullScreen
@@ -183,7 +185,7 @@ export default function SportsLivestreamFloatingPlayer() {
         </div>
       ) : (
         <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-black/80 px-4 text-center">
-          <p className="text-sm text-white/85">This stream provider does not support direct embedding here.</p>
+          <p className="text-sm text-white/85">{t('This stream provider does not support direct embedding here.')}</p>
           <a
             href={embedTarget.externalUrl}
             target="_blank"
@@ -193,7 +195,7 @@ export default function SportsLivestreamFloatingPlayer() {
             )}
           >
             <ExternalLinkIcon className="size-3.5" />
-            Open stream
+            {t('Open stream')}
           </a>
         </div>
       )}

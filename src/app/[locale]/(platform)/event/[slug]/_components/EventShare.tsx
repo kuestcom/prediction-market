@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ShareIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Event } from '@/types'
@@ -258,6 +259,7 @@ function useShareUrlBuilder(affiliateCode: string) {
 }
 
 export default function EventShare({ event }: EventShareProps) {
+  const t = useExtracted()
   const site = useSiteIdentity()
   const user = useUser()
   const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
@@ -365,7 +367,7 @@ export default function EventShare({ event }: EventShareProps) {
                 variant="ghost"
                 size="icon"
                 className={cn(headerIconButtonClass, 'size-auto p-0')}
-                aria-label="Copy event link"
+                aria-label={t('Copy event link')}
                 onPointerDown={maybeHandleDebugCopy}
               />
             }
@@ -390,7 +392,7 @@ export default function EventShare({ event }: EventShareProps) {
                 'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
               )}
             >
-              {copiedKey === 'event' ? 'Copied!' : 'Copy link'}
+              {copiedKey === 'event' ? t('Copied!') : t('Copy link')}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-0 bg-border" />
             {event.markets
@@ -411,7 +413,7 @@ export default function EventShare({ event }: EventShareProps) {
                       'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
                     )}
                   >
-                    {copiedKey === key ? 'Copied!' : label}
+                    {copiedKey === key ? t('Copied!') : label}
                   </DropdownMenuItem>
                 )
               })}
@@ -433,7 +435,7 @@ export default function EventShare({ event }: EventShareProps) {
         }
         void handleShare()
       }}
-      aria-label="Copy event link"
+      aria-label={t('Copy event link')}
     >
       {shareSuccess ? <CheckIcon className="size-4 text-primary" /> : <ShareIcon className="size-4" />}
     </Button>

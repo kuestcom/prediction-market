@@ -134,7 +134,13 @@ export default function HeaderDropdownUserMenuGuest() {
       <DropdownMenu open={menuOpen} onOpenChange={handleOpenChange} modal={false}>
         <DropdownMenuTrigger
           render={
-            <Button type="button" variant="ghost" size="icon" data-testid="header-menu-button" aria-label="User menu" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              data-testid="header-menu-button"
+              aria-label={t('User menu')}
+            />
           }
         >
           <MenuIcon />

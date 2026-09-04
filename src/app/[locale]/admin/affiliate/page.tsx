@@ -1,4 +1,4 @@
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
@@ -49,9 +49,9 @@ function formatIsoUtcFromTimestamp(timestamp: number) {
   return new Date(timestamp).toISOString()
 }
 
-function AdminAffiliateFallback() {
+function AdminAffiliateFallback({ loadingLabel }: { loadingLabel: string }) {
   return (
-    <div className="grid gap-6" role="status" aria-label="Loading affiliate settings">
+    <div className="grid gap-6" role="status" aria-label={loadingLabel}>
       <section className="grid gap-4 rounded-lg border p-6" aria-hidden="true">
         <div className="grid gap-2">
           <Skeleton className="h-5 w-28" />
@@ -207,9 +207,10 @@ async function AdminAffiliateContent() {
 export default async function AdminSettingsPage({ params }: PageProps<'/[locale]/admin/affiliate'>) {
   const { locale } = await params
   setRequestLocale(locale)
+  const t = await getExtracted()
 
   return (
-    <Suspense fallback={<AdminAffiliateFallback />}>
+    <Suspense fallback={<AdminAffiliateFallback loadingLabel={t('Loading affiliate settings')} />}>
       <AdminAffiliateContent />
     </Suspense>
   )
