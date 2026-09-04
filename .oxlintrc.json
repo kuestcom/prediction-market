@@ -6,7 +6,9 @@
     "correctness": "error"
   },
   "options": {
-    "respectEslintDisableDirectives": true
+    "respectEslintDisableDirectives": true,
+    "typeAware": true,
+    "typeCheck": true
   },
   "env": {
     "builtin": true,
@@ -73,7 +75,6 @@
     "unicorn/no-invalid-fetch-options": "off",
     "unicorn/no-useless-fallback-in-spread": "off",
     "unicorn/prefer-string-starts-ends-with": "off",
-    "vitest/require-mock-type-parameters": "off",
     "react-you-might-not-need-an-effect/no-adjust-state-on-prop-change": "warn",
     "react-you-might-not-need-an-effect/no-chain-state-updates": "warn",
     "react-you-might-not-need-an-effect/no-derived-state": "warn",

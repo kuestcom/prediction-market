@@ -14,8 +14,7 @@ const config: NextConfig = {
   output: process.env.VERCEL_ENV ? undefined : 'standalone',
   deploymentId: process.env.VERCEL_ENV ? undefined : commitSha,
   cacheComponents: true,
-  // Bun 1.4 cannot preserve the context Next uses to filter aborted prefetches
-  partialPrefetching: false,
+  partialPrefetching: true,
   typedRoutes: true,
   reactStrictMode: false,
   reactCompiler: true,
