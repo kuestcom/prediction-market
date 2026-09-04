@@ -14,6 +14,7 @@ function copyDirectory(source: string, destination: string): void {
 
 copyDirectory(resolve('public'), resolve(standaloneDirectory, 'public'))
 copyDirectory(resolve('.next/static'), resolve(standaloneDirectory, '.next/static'))
+copyDirectory(resolve('node_modules/postgres'), resolve(standaloneDirectory, 'node_modules/postgres'))
 
 const server = spawn(process.execPath, ['server.js'], {
   cwd: standaloneDirectory,
@@ -21,8 +22,20 @@ const server = spawn(process.execPath, ['server.js'], {
   stdio: 'inherit',
 })
 
-function handleServerExit(code: number | null): void {
-  process.exit(code ?? 1)
+function handleServerExit(code: number | null, signal: NodeJS.Signals | null): void {
+  if (code !== null) {
+    process.exit(code)
+  }
+
+  if (signal === 'SIGINT') {
+    process.exit(130)
+  }
+
+  if (signal === 'SIGTERM') {
+    process.exit(143)
+  }
+
+  process.exit(1)
 }
 
 function forwardSignal(signal: NodeJS.Signals): void {
