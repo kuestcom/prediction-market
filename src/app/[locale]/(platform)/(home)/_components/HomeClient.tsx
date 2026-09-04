@@ -388,10 +388,6 @@ function useHomeClientContentState({
         homeFeedClockState,
       })
 
-      if (queryClient.getQueryState(queryKey)) {
-        return
-      }
-
       void queryClient
         .prefetchInfiniteQuery({
           queryKey,
