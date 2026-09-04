@@ -114,6 +114,8 @@ export function useOrderFeedbackTranslate() {
           return t('Invalid share amount.')
         case 'We could not sign your order. Please try again.':
           return t('We could not sign your order. Please try again.')
+        case 'An unexpected error occurred. Please try again.':
+          return t('An unexpected error occurred. Please try again.')
         default:
           return defaultTranslate(message, values)
       }
