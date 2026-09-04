@@ -94,23 +94,28 @@ export default function FilterToolbarSearchInput({
       shellRef={searchShellRef}
       search={search}
       onSearchChange={onSearchChange}
-      onEscape={
-        collapsible
-          ? (currentInputValue, clearInput) => {
-              if (currentInputValue.trim()) {
-                clearInput()
-                onSearchChange('')
-                return
-              }
+      onEscape={(currentInputValue, clearInput) => {
+        if (!collapsible) {
+          if (!currentInputValue.trim() && currentInputValue !== search) {
+            onSearchChange('')
+          }
 
-              if (currentInputValue !== search) {
-                onSearchChange('')
-              }
+          return !currentInputValue.trim()
+        }
 
-              closeSearch()
-            }
-          : undefined
-      }
+        if (currentInputValue.trim()) {
+          clearInput()
+          onSearchChange('')
+          return true
+        }
+
+        if (currentInputValue !== search) {
+          onSearchChange('')
+        }
+
+        closeSearch()
+        return true
+      }}
     />
   )
 }
@@ -120,7 +125,7 @@ interface FilterToolbarSearchInputFieldProps {
   search: string
   shellRef?: RefObject<HTMLDivElement | null>
   onSearchChange: (search: string) => void
-  onEscape?: (currentInputValue: string, clearInput: () => void) => void
+  onEscape?: (currentInputValue: string, clearInput: () => void) => boolean
 }
 
 interface SearchDebounceTimeoutRef {
@@ -178,13 +183,15 @@ function useFilterToolbarSearchInputFieldState({
 
   const handleEscape = useCallback(
     function handleEscape(event: KeyboardEvent<HTMLInputElement>) {
-      clearPendingSearchDebounce(debounceTimeoutRef)
-
       const inputElement = event.currentTarget
-      onEscape?.(inputElement.value, () => {
+      const shouldCancelPendingSearch = onEscape?.(inputElement.value, () => {
         inputElement.value = ''
         lastSubmittedSearchRef.current = ''
       })
+
+      if (shouldCancelPendingSearch) {
+        clearPendingSearchDebounce(debounceTimeoutRef)
+      }
     },
     [onEscape],
   )
