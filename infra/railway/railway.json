@@ -5,6 +5,6 @@
     "dockerfilePath": "infra/docker/Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": ["pnpm db:push"]
+    "preDeployCommand": ["bun run db:push"]
   }
 }

@@ -1,2 +1,2 @@
-pnpm exec knip
-pnpm exec lint-staged
+bunx --no-install knip
+bunx --no-install lint-staged

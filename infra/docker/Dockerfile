@@ -1,44 +1,34 @@
-FROM node:24-bookworm-slim AS build
+FROM oven/bun:1.4.1 AS build
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN corepack enable \
-  && corepack install
-
-RUN pnpm install --frozen-lockfile
+COPY package.json bun.lock bunfig.toml ./
+RUN bun install --frozen-lockfile
 
 COPY . .
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=$COMMIT_SHA
-RUN pnpm build
+RUN bun run build
 RUN mkdir -p /tmp/runtime-node_modules \
   && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres
 
-FROM node:24-bookworm-slim AS runner
+FROM oven/bun:1.4.1 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
 
 RUN groupadd --gid 1001 nodejs
 RUN useradd --uid 1001 --gid nodejs --create-home nextjs
 
 COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
-
-RUN corepack enable \
-  && corepack install
 
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
@@ -56,4 +46,4 @@ USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

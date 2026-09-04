@@ -8,17 +8,17 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "bun run --bun next dev",
+    "build": "bun run --bun next build",
+    "start": "bun .next/standalone/server.js",
     "knip": "knip --fix",
     "lint": "oxlint . --fix",
     "fmt": "oxfmt",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:unit": "vitest run",
-    "prepare": "husky",
-    "db:push": "node scripts/migrate.ts"
+    "postinstall": "husky",
+    "db:push": "bun scripts/migrate.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1115.0",
@@ -101,6 +101,13 @@
     "typescript": "7.0.2",
     "vitest": "4.1.11"
   },
+  "overrides": {
+    "@coinbase/cdp-sdk": "1.52.0",
+    "@wagmi/connectors": "6.2.0",
+    "axios": "1.19.0",
+    "uuid": "11.1.1",
+    "ws": "8.21.0"
+  },
   "lint-staged": {
     "*": [
       "oxlint --fix --no-error-on-unmatched-pattern",
@@ -108,7 +115,14 @@
     ]
   },
   "engines": {
+    "bun": "1.4.1",
     "node": "24.x"
   },
-  "packageManager": "pnpm@11.22.0"
+  "packageManager": "bun@1.4.1",
+  "trustedDependencies": [
+    "@sentry/cli",
+    "@swc/core",
+    "esbuild",
+    "sharp"
+  ]
 }
