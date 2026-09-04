@@ -25,24 +25,21 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-RUN groupadd --gid 1001 nodejs
-RUN useradd --uid 1001 --gid nodejs --create-home nextjs
+COPY --from=build --chown=bun:bun /app/package.json ./package.json
 
-COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
-
-COPY --from=build --chown=nextjs:nodejs /app/public ./public
-COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/postgres ./node_modules/postgres
-COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=build --chown=nextjs:nodejs /app/scripts ./scripts
-COPY --from=build --chown=nextjs:nodejs /app/src/lib/site-url.ts ./src/lib/site-url.ts
-COPY --from=build --chown=nextjs:nodejs /app/src/lib/db/migrations ./src/lib/db/migrations
+COPY --from=build --chown=bun:bun /app/public ./public
+COPY --from=build --chown=bun:bun /app/.next/standalone ./
+COPY --from=build --chown=bun:bun /app/.next/static ./.next/static
+COPY --from=build --chown=bun:bun /tmp/runtime-node_modules/postgres ./node_modules/postgres
+COPY --from=build --chown=bun:bun /app/package.json ./package.json
+COPY --from=build --chown=bun:bun /app/scripts ./scripts
+COPY --from=build --chown=bun:bun /app/src/lib/site-url.ts ./src/lib/site-url.ts
+COPY --from=build --chown=bun:bun /app/src/lib/db/migrations ./src/lib/db/migrations
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=$COMMIT_SHA
 
-USER nextjs
+USER bun
 
 EXPOSE 3000
 
