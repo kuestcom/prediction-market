@@ -1,2 +1,2 @@
-pnpm test
-pnpm build
+bun run test
+bun run build

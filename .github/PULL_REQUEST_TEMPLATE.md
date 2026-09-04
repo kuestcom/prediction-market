@@ -8,7 +8,7 @@ Please make sure your PR follows these rules:
 - Use English for branch names and commit subjects.
 - Review your own diff before opening the PR.
 - Rebase on the latest `main` before pushing. Do not merge `main` into your branch.
-- If dependencies changed, include the updated `pnpm-lock.yaml`.
+- If dependencies changed, include the updated `bun.lock`.
 - Avoid unrelated refactors, drive-by fixes, or config/policy changes in the same PR.
 - Avoid commented-out code and unnecessary inline comments. Keep comments only when they explain non-obvious constraints or decisions.
 - If you use AI/LLM tools, use the highest reasoning mode available and full repository context/access when safe, then manually review and test the final diff before submitting. Examples: OpenAI/Codex `xhigh`; Claude extended thinking with the highest available thinking budget.
@@ -29,5 +29,5 @@ Describe any relevant risks, tradeoffs, or follow-up work.
 
 ## Checklist
 
-- [ ] I ran `pnpm lint`, `pnpm fmt`, `pnpm test`, and `pnpm build` before submitting.
+- [ ] I ran `bun run lint`, `bun run fmt`, `bun run test`, and `bun run build` before submitting.
 - [ ] I tested the changes in my browser.

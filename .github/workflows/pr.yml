@@ -17,16 +17,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          node-version-file: .nvmrc
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec knip
-      - run: pnpm exec fumadocs-mdx docs.config.ts
-      - run: pnpm exec next typegen
-      - run: pnpm exec oxlint .
-      - run: pnpm exec oxfmt --check
+          bun-version: 1.4.1
+      - run: bun install --frozen-lockfile
+      - run: bunx --no-install knip
+      - run: bunx --no-install --bun fumadocs-mdx docs.config.ts
+      - run: bunx --no-install --bun next typegen
+      - run: bunx --no-install oxlint .
+      - run: bunx --no-install oxfmt --check
 
   unit:
     runs-on: ubuntu-24.04
@@ -34,12 +33,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: bun install --frozen-lockfile
+      - run: bun run test
 
   build:
     runs-on: ubuntu-24.04
@@ -47,12 +48,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          node-version-file: .nvmrc
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+          bun-version: 1.4.1
+      - run: bun install --frozen-lockfile
+      - run: bun run build
 
   docker:
     runs-on: ubuntu-24.04
