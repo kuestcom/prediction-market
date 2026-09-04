@@ -5,9 +5,9 @@ import type { HomeCardBinaryOutcome } from '@/app/[locale]/(platform)/(home)/_ut
 import type { Market } from '@/types'
 
 import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
-import PrefetchLink from '@/components/PrefetchLink'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
@@ -87,7 +87,7 @@ export default function EventCardSingleMarketActions({
         size="outcome"
         nativeButton={false}
         render={
-          <PrefetchLink
+          <Link
             href={resolveEventOutcomePath(event, {
               outcomeIndex: yesOutcome.outcome_index,
             })}
@@ -95,7 +95,7 @@ export default function EventCardSingleMarketActions({
             <span className="truncate">
               {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
             </span>
-          </PrefetchLink>
+          </Link>
         }
       />
       <Button
@@ -103,13 +103,13 @@ export default function EventCardSingleMarketActions({
         size="outcome"
         nativeButton={false}
         render={
-          <PrefetchLink
+          <Link
             href={resolveEventOutcomePath(event, {
               outcomeIndex: noOutcome.outcome_index,
             })}
           >
             <span className="truncate">{normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}</span>
-          </PrefetchLink>
+          </Link>
         }
       />
     </div>

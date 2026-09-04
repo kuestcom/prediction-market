@@ -5,7 +5,6 @@ import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
-import PrefetchLink from '@/components/PrefetchLink'
 import PwaInstallDialog from '@/components/PwaInstallDialog'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
@@ -20,6 +19,8 @@ import {
 import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
+import { Link } from '@/i18n/navigation'
+
 function relatedTargetIsWithin(ref: React.RefObject<HTMLElement | null>, relatedTarget: EventTarget | null) {
   const current = ref.current
   if (!current) {
@@ -152,7 +153,7 @@ export default function HeaderDropdownUserMenuGuest() {
           positionMethod="fixed"
         >
           <DropdownMenuLinkItem
-            render={<PrefetchLink href="/leaderboard" className="flex w-full items-center gap-1.5" />}
+            render={<Link href="/leaderboard" className="flex w-full items-center gap-1.5" />}
             className="py-2 text-sm font-semibold text-foreground"
           >
             <TrophyIcon className="size-4 text-amber-500" />
@@ -161,7 +162,7 @@ export default function HeaderDropdownUserMenuGuest() {
 
           <DropdownMenuLinkItem
             render={
-              <PrefetchLink
+              <Link
                 href="/docs/api-reference"
                 target="_blank"
                 prefetch={false}
@@ -198,13 +199,13 @@ export default function HeaderDropdownUserMenuGuest() {
           <DropdownMenuSeparator />
 
           <DropdownMenuLinkItem
-            render={<PrefetchLink href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link" />}
+            render={<Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link" />}
             className="py-2 text-sm font-semibold text-muted-foreground"
           >
             {t('Documentation')}
           </DropdownMenuLinkItem>
           <DropdownMenuLinkItem
-            render={<PrefetchLink href="/tos" data-testid="header-terms-link" />}
+            render={<Link href="/tos" data-testid="header-terms-link" />}
             className="py-2 text-sm font-semibold text-muted-foreground"
           >
             {t('Terms of Use')}

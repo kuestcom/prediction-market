@@ -13,7 +13,6 @@ import type { Event } from '@/types'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import LocaleFlag from '@/components/LocaleFlag'
-import PrefetchLink from '@/components/PrefetchLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import SocialIcon from '@/components/SocialIcon'
 import {
@@ -25,7 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { LOCALE_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
-import { usePathname } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 import { parsePlatformPathname } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
@@ -180,12 +179,12 @@ function FooterCategoryLink({ category }: { category: PlatformNavigationTag }) {
   const t = useExtracted()
 
   return (
-    <PrefetchLink href={`/${category.slug}` as Route} className="group block w-fit">
+    <Link href={`/${category.slug}` as Route} className="group block w-fit">
       <span className="block text-sm font-medium text-foreground transition-colors group-hover:text-primary">
         {category.name}
       </span>
       <span className="block text-xs text-muted-foreground">{t('Predictions & odds')}</span>
-    </PrefetchLink>
+    </Link>
   )
 }
 
@@ -242,12 +241,12 @@ function SectionList({
       <h2 className="mb-5 text-sm font-medium text-muted-foreground">{title}</h2>
       <div className="space-y-4">
         {visibleItems.map((item) => (
-          <PrefetchLink key={`${item.href}-${item.label}`} href={item.href} className="group block w-fit max-w-full">
+          <Link key={`${item.href}-${item.label}`} href={item.href} className="group block w-fit max-w-full">
             <span className="block truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
               {item.label}
             </span>
             {item.description && <span className="block text-xs text-muted-foreground">{item.description}</span>}
-          </PrefetchLink>
+          </Link>
         ))}
         {canToggle && <FooterToggle expanded={expanded} onClick={() => onToggle(sectionKey)} />}
       </div>
@@ -371,13 +370,13 @@ function FooterNavigation({ links }: { links: FooterExternalLink[] }) {
         <h2 className="mb-5 text-sm font-medium text-muted-foreground">{site.name}</h2>
         <div className="space-y-4">
           {platformLinks.map((link) => (
-            <PrefetchLink
+            <Link
               key={link.href}
               href={link.href}
               className="block w-fit text-sm font-medium text-foreground transition-colors hover:text-primary"
             >
               {link.label}
-            </PrefetchLink>
+            </Link>
           ))}
         </div>
       </section>
@@ -418,13 +417,13 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
             {site.name} © <span suppressHydrationWarning>{year}</span>
           </span>
           <span aria-hidden="true">·</span>
-          <PrefetchLink href="/tos" className="transition-colors hover:text-foreground">
+          <Link href="/tos" className="transition-colors hover:text-foreground">
             {t('Terms of Use')}
-          </PrefetchLink>
+          </Link>
           <span aria-hidden="true">·</span>
-          <PrefetchLink href="/docs" className="transition-colors hover:text-foreground">
+          <Link href="/docs" className="transition-colors hover:text-foreground">
             {t('Docs')}
-          </PrefetchLink>
+          </Link>
         </div>
       </div>
 
@@ -433,12 +432,9 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
           'Prediction markets involve risk and may not be available in every jurisdiction. Review the <terms>Terms of Use</terms> before trading.',
           {
             terms: (chunks) => (
-              <PrefetchLink
-                href="/tos"
-                className="underline underline-offset-2 transition-colors hover:text-foreground"
-              >
+              <Link href="/tos" className="underline underline-offset-2 transition-colors hover:text-foreground">
                 {chunks}
-              </PrefetchLink>
+              </Link>
             ),
           },
         )}
@@ -491,7 +487,7 @@ export default function PlatformFooter({
   return (
     <footer className="mt-[140px] pb-[60px]">
       <div className="mb-12">
-        <PrefetchLink
+        <Link
           href="/"
           className="inline-flex items-center gap-3 text-3xl font-semibold text-foreground transition-opacity hover:opacity-80"
         >
@@ -504,7 +500,7 @@ export default function PlatformFooter({
             size={32}
           />
           <span>{site.name}</span>
-        </PrefetchLink>
+        </Link>
         <p className="mt-3 max-w-xl text-base font-medium text-foreground/90">{site.description}</p>
       </div>
 

@@ -39,13 +39,13 @@ import {
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventIconImage from '@/components/EventIconImage'
 import HomeFeaturedSideCardIcon from '@/components/HomeFeaturedSideCardIcon'
-import PrefetchLink from '@/components/PrefetchLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
@@ -495,12 +495,12 @@ function FeaturedBreadcrumb({ items }: { items: Array<{ label: string; href: str
       {items.map((breadcrumbItem, index) => (
         <span key={`${breadcrumbItem.href}:${breadcrumbItem.label}`} className="flex min-w-0 items-center gap-1.5">
           {index > 0 && <span className="shrink-0 text-muted-foreground/60">·</span>}
-          <PrefetchLink
+          <Link
             href={breadcrumbItem.href}
             className="truncate underline-offset-2 transition-colors hover:text-foreground hover:underline"
           >
             {breadcrumbItem.label}
-          </PrefetchLink>
+          </Link>
         </span>
       ))}
     </nav>
@@ -571,25 +571,25 @@ function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventC
     <div className="flex min-w-0 items-start justify-between gap-3">
       <div className="group/header flex min-w-0 flex-1 items-start gap-3">
         {item.kind !== 'sports' && (
-          <PrefetchLink href={eventHref} className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted md:size-12">
+          <Link href={eventHref} className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted md:size-12">
             <EventIconImage
               src={event.icon_url || item.primaryMarkets[0]?.icon_url || '/images/pwa/default-icon-192.png'}
               alt={displayTitle}
               sizes="48px"
               containerClassName="size-full rounded-lg"
             />
-          </PrefetchLink>
+          </Link>
         )}
         <div className="grid min-w-0 gap-1">
           {!cryptoCadencePresentation && <FeaturedBreadcrumb items={breadcrumbItems} />}
-          <PrefetchLink
+          <Link
             href={eventHref}
             className={cn(
               `line-clamp-2 text-lg font-semibold tracking-tight underline-offset-4 group-hover/header:underline md:text-xl`,
             )}
           >
             {displayTitle}
-          </PrefetchLink>
+          </Link>
           {cryptoCadencePresentation?.subtitle && (
             <span className="truncate text-xs text-muted-foreground md:text-sm">
               {cryptoCadencePresentation.subtitle}
@@ -632,7 +632,7 @@ function OutcomeRows({ item, linkedHref }: { item: HomeFeaturedEventCard; linked
         const label = normalizeOutcomeLabel(outcome.label)
 
         return (
-          <PrefetchLink
+          <Link
             key={outcome.key}
             href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
             className={cn(
@@ -655,7 +655,7 @@ function OutcomeRows({ item, linkedHref }: { item: HomeFeaturedEventCard; linked
               </span>
             </span>
             <span className="text-xl font-semibold tabular-nums">{formatChancePercent(outcome.chance)}</span>
-          </PrefetchLink>
+          </Link>
         )
       })}
     </div>
@@ -700,7 +700,7 @@ function StandardActions({
             style={liveOutcomeAppearance?.style}
             nativeButton={false}
             render={
-              <PrefetchLink
+              <Link
                 href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
                 className="relative inline-flex size-full items-center justify-center"
               >
@@ -714,7 +714,7 @@ function StandardActions({
                   />
                 ) : null}
                 <span className="relative z-1 truncate">{normalizeOutcomeLabel(outcome.label)}</span>
-              </PrefetchLink>
+              </Link>
             }
           />
         )
@@ -739,7 +739,7 @@ function SportsMarketButton({
   const appearance = forceNeutral ? resolveFilledNeutralSportsButtonAppearance() : resolveSportsButtonAppearance(market)
 
   return (
-    <PrefetchLink
+    <Link
       key={`${groupLabel}:${market.key}`}
       href={href}
       className={cn(
@@ -761,7 +761,7 @@ function SportsMarketButton({
           style={appearance.backgroundStyle}
         />
       ) : null}
-    </PrefetchLink>
+    </Link>
   )
 }
 
@@ -1288,7 +1288,7 @@ function ContextTickerItem({
       : formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt, currentTimestamp, locale)
 
   return (
-    <PrefetchLink key={`${contextItem.id}:${index}`} href={linkedHref} className="flex h-14 min-w-0 items-center gap-2">
+    <Link key={`${contextItem.id}:${index}`} href={linkedHref} className="flex h-14 min-w-0 items-center gap-2">
       {(!isNews || !contextItem.faviconUrl) && <ContextAvatar contextItem={contextItem} />}
       <span className="grid min-w-0 gap-0.5">
         <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground/60">
@@ -1311,7 +1311,7 @@ function ContextTickerItem({
         </span>
         <span className="line-clamp-2 text-xs/snug text-muted-foreground/75">{contextItem.title}</span>
       </span>
-    </PrefetchLink>
+    </Link>
   )
 }
 
@@ -1469,9 +1469,9 @@ function SportsScoreboard({
           />
         )}
         {homeHref ? (
-          <PrefetchLink href={homeHref} className={teamNameClassName}>
+          <Link href={homeHref} className={teamNameClassName}>
             {homeTeam?.name}
-          </PrefetchLink>
+          </Link>
         ) : (
           <p className="truncate text-base font-medium text-foreground/90">{homeTeam?.name}</p>
         )}
@@ -1509,9 +1509,9 @@ function SportsScoreboard({
           />
         )}
         {awayHref ? (
-          <PrefetchLink href={awayHref} className={teamNameClassName}>
+          <Link href={awayHref} className={teamNameClassName}>
             {awayTeam?.name}
-          </PrefetchLink>
+          </Link>
         ) : (
           <p className="truncate text-base font-medium text-foreground/90">{awayTeam?.name}</p>
         )}
@@ -1670,16 +1670,16 @@ function FeaturedRightRailSingle({
               {sideCardContent}
             </a>
           ) : (
-            <PrefetchLink href={sideCardHref} className={sideCardClassName}>
+            <Link href={sideCardHref} className={sideCardClassName}>
               {sideCardContent}
-            </PrefetchLink>
+            </Link>
           )
         ) : (
           <div className={sideCardClassName}>{sideCardContent}</div>
         ))}
 
       <div className="min-h-0 overflow-hidden p-1">
-        <PrefetchLink
+        <Link
           href="/predictions?_sort=volume"
           className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
         >
@@ -1688,10 +1688,10 @@ function FeaturedRightRailSingle({
             {t('Hot topics')}
           </span>
           <ChevronRightIcon className="size-4 text-muted-foreground/50" />
-        </PrefetchLink>
+        </Link>
         <div className="grid gap-2.5">
           {hotTopics.map((topic, index) => (
-            <PrefetchLink
+            <Link
               key={topic.slug}
               href={topic.href}
               className="group/topic grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md py-0.5"
@@ -1716,7 +1716,7 @@ function FeaturedRightRailSingle({
                   `col-start-4 size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5`,
                 )}
               />
-            </PrefetchLink>
+            </Link>
           ))}
         </div>
       </div>
@@ -1814,9 +1814,9 @@ function FeaturedSideCardSlide({
       {content}
     </a>
   ) : (
-    <PrefetchLink href={href} className={className}>
+    <Link href={href} className={className}>
       {content}
-    </PrefetchLink>
+    </Link>
   )
 }
 
@@ -1898,7 +1898,7 @@ function FeaturedRightRail({
       </div>
 
       <div className="min-h-0 overflow-hidden p-1">
-        <PrefetchLink
+        <Link
           href="/predictions?_sort=volume"
           className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
         >
@@ -1907,10 +1907,10 @@ function FeaturedRightRail({
             {t('Hot topics')}
           </span>
           <ChevronRightIcon className="size-4 text-muted-foreground/50" />
-        </PrefetchLink>
+        </Link>
         <div className="grid gap-2.5">
           {hotTopics.map((topic, index) => (
-            <PrefetchLink
+            <Link
               key={topic.slug}
               href={topic.href}
               className="group/topic grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md py-0.5"
@@ -1927,7 +1927,7 @@ function FeaturedRightRail({
                 </span>
               )}
               <ChevronRightIcon className="col-start-4 size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5" />
-            </PrefetchLink>
+            </Link>
           ))}
         </div>
       </div>
@@ -1946,7 +1946,7 @@ function FeaturedRightRailAction() {
           `h-10 w-full rounded-full bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-secondary/80 hover:text-foreground dark:bg-transparent dark:hover:bg-secondary/80`,
         )}
         nativeButton={false}
-        render={<PrefetchLink href="/predictions">{t('Expand all')}</PrefetchLink>}
+        render={<Link href="/predictions">{t('Expand all')}</Link>}
       />
     </div>
   )

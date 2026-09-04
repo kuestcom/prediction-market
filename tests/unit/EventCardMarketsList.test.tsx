@@ -17,7 +17,6 @@ vi.mock('@/i18n/navigation', () => ({
       </a>
     )
   },
-  useRouter: () => ({ prefetch: vi.fn() }),
 }))
 
 const EVENT = {

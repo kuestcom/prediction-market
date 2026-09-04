@@ -9,9 +9,9 @@ import {
   hasHomeCardMarketChance,
   resolveHomeCardBinaryOutcome,
 } from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
-import PrefetchLink from '@/components/PrefetchLink'
 import { buttonVariants } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventMarketPath, resolveEventOutcomePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
@@ -86,7 +86,7 @@ export default function EventCardMarketsList({
               <span className="text-base font-semibold text-foreground">{displayChanceLabel}</span>
             ) : null}
             <div className="flex gap-1">
-              <PrefetchLink
+              <Link
                 href={resolveEventOutcomePath(event, {
                   marketSlug: market.slug,
                   outcomeIndex: yesOutcome.outcome_index,
@@ -102,8 +102,8 @@ export default function EventCardMarketsList({
                   {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
                 </span>
                 {hasDisplayChance ? <span className="hidden group-hover/yes:inline">{displayChanceLabel}</span> : null}
-              </PrefetchLink>
-              <PrefetchLink
+              </Link>
+              <Link
                 href={resolveEventOutcomePath(event, {
                   marketSlug: market.slug,
                   outcomeIndex: noOutcome.outcome_index,
@@ -120,20 +120,20 @@ export default function EventCardMarketsList({
                   {normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}
                 </span>
                 {hasDisplayChance ? <span className="hidden group-hover/no:inline">{oppositeChanceLabel}</span> : null}
-              </PrefetchLink>
+              </Link>
             </div>
           </>
         )
 
         return (
           <div key={market.condition_id} className="flex items-center justify-between">
-            <PrefetchLink
+            <Link
               href={resolveEventMarketPath(event, market.slug)}
               className="block min-w-0 flex-1 truncate text-[13px] underline-offset-2 hover:underline dark:text-white"
               title={market.short_title || market.title}
             >
               {market.short_title || market.title}
-            </PrefetchLink>
+            </Link>
             <div className="ml-2 flex items-center gap-2">
               {isResolvedEvent ? (
                 resolvedOutcome ? (

@@ -4,8 +4,8 @@ import { useExtracted } from 'next-intl'
 import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
-import PrefetchLink from '@/components/PrefetchLink'
 import { NewBadge } from '@/components/ui/new-badge'
+import { Link } from '@/i18n/navigation'
 import {
   isCryptoEvent,
   resolveCryptoCadenceRouteSlug,
@@ -60,12 +60,12 @@ export default function EventCardFooter({
         {cryptoAsset && cryptoAssetName && (
           <>
             <span aria-hidden>·</span>
-            <PrefetchLink
+            <Link
               href={`/crypto/${cryptoAsset.slug}`}
               className="transition-colors hover:text-foreground hover:underline"
             >
               {cryptoAssetName}
-            </PrefetchLink>
+            </Link>
           </>
         )}
         {shouldShowRecurrence && <Repeat className="size-3" aria-label={t('Recurring event')} />}

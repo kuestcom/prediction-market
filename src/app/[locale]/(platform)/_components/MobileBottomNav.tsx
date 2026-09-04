@@ -1,7 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 
 import {
   BookOpenIcon,
@@ -25,7 +25,6 @@ import type { SupportedLocale } from '@/i18n/locales'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import LocaleFlag from '@/components/LocaleFlag'
-import PrefetchLink from '@/components/PrefetchLink'
 import PwaInstallDialog from '@/components/PwaInstallDialog'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
@@ -38,7 +37,7 @@ import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
-import { usePathname, useRouter } from '@/i18n/navigation'
+import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { formatCompactCurrency } from '@/lib/formatters'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
@@ -262,10 +261,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                 <DrawerClose
                   nativeButton={false}
                   render={
-                    <PrefetchLink
-                      href="/leaderboard"
-                      className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
-                    />
+                    <Link href="/leaderboard" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold" />
                   }
                 >
                   <TrophyIcon className="size-4 text-amber-500" />
@@ -277,7 +273,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                 <DrawerClose
                   nativeButton={false}
                   render={
-                    <PrefetchLink
+                    <Link
                       href="/docs/api-reference"
                       target="_blank"
                       prefetch={false}
@@ -319,7 +315,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                 <DrawerClose
                   nativeButton={false}
                   render={
-                    <PrefetchLink
+                    <Link
                       href="/docs"
                       target="_blank"
                       prefetch={false}
@@ -335,9 +331,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
 
                 <DrawerClose
                   nativeButton={false}
-                  render={
-                    <PrefetchLink href="/tos" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold" />
-                  }
+                  render={<Link href="/tos" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold" />}
                 >
                   <FileTextIcon className="size-4 text-muted-foreground" />
                   {t('Terms of Use')}
@@ -390,14 +384,14 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
 
 interface MobileNavLinkProps {
   active: boolean
-  href: string
+  href: ComponentProps<typeof Link>['href']
   icon: typeof HouseIcon
   label: ReactNode
 }
 
 function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) {
   return (
-    <PrefetchLink
+    <Link
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
@@ -407,7 +401,7 @@ function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) 
     >
       <Icon className="size-[17px]" />
       <span className="max-w-full truncate">{label}</span>
-    </PrefetchLink>
+    </Link>
   )
 }
 
@@ -423,7 +417,7 @@ function MobilePortfolioNavLink({ active }: { active: boolean }) {
     : '$0.00'
 
   return (
-    <PrefetchLink
+    <Link
       href="/portfolio"
       aria-current={active ? 'page' : undefined}
       aria-label={t('Portfolio')}
@@ -438,7 +432,7 @@ function MobilePortfolioNavLink({ active }: { active: boolean }) {
       ) : (
         <span className="max-w-full truncate">{areValuesHidden ? '****' : portfolioValueLabel}</span>
       )}
-    </PrefetchLink>
+    </Link>
   )
 }
 

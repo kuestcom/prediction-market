@@ -9,13 +9,13 @@ import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNot
 import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
-import PrefetchLink from '@/components/PrefetchLink'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { Link } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
 
@@ -75,7 +75,7 @@ export default function HeaderMenu() {
                   size="icon"
                   variant="ghost"
                   nativeButton={false}
-                  render={<PrefetchLink href="/settings/rewards" aria-label={t('Rewards')} />}
+                  render={<Link href="/settings/rewards" aria-label={t('Rewards')} />}
                 >
                   <GiftIcon className="size-[1.35rem]" aria-hidden="true" />
                 </Button>

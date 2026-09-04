@@ -2,12 +2,12 @@ import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useSyncExternalStore } from 'react'
 
-import PrefetchLink from '@/components/PrefetchLink'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { usePolymarketBalance } from '@/hooks/usePolymarketBalance'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { Link } from '@/i18n/navigation'
 import { formatNumber } from '@/lib/formatters'
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
@@ -51,7 +51,7 @@ export default function HeaderPortfolio() {
         size="headerBalance"
         nativeButton={false}
         render={
-          <PrefetchLink href="/portfolio">
+          <Link href="/portfolio">
             <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Portfolio')}</div>
             <div className="-translate-y-px text-base/tight font-semibold text-yes">
               {isLoadingValue ? (
@@ -62,7 +62,7 @@ export default function HeaderPortfolio() {
                 <>${formattedPortfolioValue}</>
               )}
             </div>
-          </PrefetchLink>
+          </Link>
         }
       />
 
@@ -71,7 +71,7 @@ export default function HeaderPortfolio() {
         size="headerBalance"
         nativeButton={false}
         render={
-          <PrefetchLink href="/portfolio">
+          <Link href="/portfolio">
             <div className="flex translate-y-px items-center gap-1 text-xs/tight font-medium text-muted-foreground">
               <span>{t('Cash')}</span>
             </div>
@@ -84,7 +84,7 @@ export default function HeaderPortfolio() {
                 <>${formattedCashValue}</>
               )}
             </div>
-          </PrefetchLink>
+          </Link>
         }
       />
 
