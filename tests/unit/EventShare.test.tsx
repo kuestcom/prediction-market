@@ -31,8 +31,8 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
       </div>
     )
   },
-  DropdownMenuContent: function MockDropdownMenuContent({ children }: any) {
-    return <div>{children}</div>
+  DropdownMenuContent: function MockDropdownMenuContent({ children, ...props }: any) {
+    return <div {...props}>{children}</div>
   },
   DropdownMenuItem: function MockDropdownMenuItem({ children, closeOnClick: _closeOnClick, onClick, ...props }: any) {
     return (
@@ -310,6 +310,62 @@ describe('eventShare', () => {
       expect(writeText).toHaveBeenCalledWith('http://localhost:3000/event/event-1?r=abc123')
     })
     expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'closed')
+  })
+
+  it('groups multi-market links by resolution and sorts each group by end time', () => {
+    const event = createEvent({
+      total_markets_count: 4,
+      markets: [
+        {
+          ...createEvent().markets[0],
+          id: 'market-resolved-later',
+          slug: 'resolved-later',
+          condition_id: 'condition-resolved-later',
+          title: 'Resolved later',
+          end_time: '2026-09-06T12:00:00.000Z',
+          is_resolved: true,
+        },
+        {
+          ...createEvent().markets[0],
+          id: 'market-active-later',
+          slug: 'active-later',
+          condition_id: 'condition-active-later',
+          title: 'Active later',
+          end_time: '2026-09-05T12:00:00.000Z',
+        },
+        {
+          ...createEvent().markets[0],
+          id: 'market-active-sooner',
+          slug: 'active-sooner',
+          condition_id: 'condition-active-sooner',
+          title: 'Active sooner',
+          end_time: '2026-09-04T12:00:00.000Z',
+        },
+        {
+          ...createEvent().markets[0],
+          id: 'market-resolved-sooner',
+          slug: 'resolved-sooner',
+          condition_id: 'condition-resolved-sooner',
+          title: 'Resolved sooner',
+          end_time: '2026-09-03T12:00:00.000Z',
+          is_resolved: true,
+        },
+      ] as any,
+    })
+
+    renderWithQueryClient(<EventShare event={event} />)
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Copy event link' }), { pointerType: 'mouse' })
+
+    const menuItems = screen
+      .getAllByRole('button')
+      .filter((button) => button.textContent)
+      .map((button) => button.textContent)
+
+    expect(menuItems).toEqual(['Copy link', 'Active sooner', 'Active later', 'Resolved sooner', 'Resolved later'])
+    expect(document.querySelectorAll('hr')).toHaveLength(2)
+    expect(document.querySelector('.max-h-56')).toHaveClass('p-1', 'overscroll-contain')
+    expect(screen.getByRole('button', { name: 'Active sooner' })).toHaveClass('py-2')
   })
 
   it('closes an open multi-market menu when the page scrolls', () => {

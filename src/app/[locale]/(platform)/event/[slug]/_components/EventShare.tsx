@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Event } from '@/types'
 
 import { getMarketSeriesLabel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
+import { isMarketResolved } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -56,6 +57,37 @@ function parseAffiliateToastData(result: {
 const MENU_CLOSE_DELAY_MS = 120
 const COPY_FEEDBACK_DURATION_MS = 1600
 const SHARE_SUCCESS_FEEDBACK_DURATION_MS = 2000
+
+function getMarketEndTime(market: Event['markets'][number]) {
+  if (!market.end_time) {
+    return null
+  }
+
+  const parsed = Date.parse(market.end_time)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function sortMarketsByEndTime(markets: Event['markets']) {
+  return markets
+    .map((market, index) => ({
+      market,
+      index,
+      endTime: getMarketEndTime(market),
+    }))
+    .sort((a, b) => {
+      if (a.endTime == null && b.endTime == null) {
+        return a.index - b.index
+      }
+      if (a.endTime == null) {
+        return 1
+      }
+      if (b.endTime == null) {
+        return -1
+      }
+      return a.endTime - b.endTime
+    })
+    .map((item) => item.market)
+}
 
 function useCopyFeedback() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -265,6 +297,14 @@ export default function EventShare({ event }: EventShareProps) {
   const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
   const isMultiMarket = event.total_markets_count > 1
   const eventPath = resolveEventPagePath(event)
+  const { activeMarkets, resolvedMarkets } = useMemo(() => {
+    const shareableMarkets = event.markets.filter((market) => market.slug)
+
+    return {
+      activeMarkets: sortMarketsByEndTime(shareableMarkets.filter((market) => !isMarketResolved(market))),
+      resolvedMarkets: sortMarketsByEndTime(shareableMarkets.filter((market) => isMarketResolved(market))),
+    }
+  }, [event.markets])
 
   const { copiedKey, markKeyAsCopied, markShareSuccess, shareSuccess } = useCopyFeedback()
   const {
@@ -346,6 +386,24 @@ export default function EventShare({ event }: EventShareProps) {
     }
   }
 
+  function renderMarketItem(market: Event['markets'][number]) {
+    const label = getMarketSeriesLabel(market)
+    const key = `market-${market.condition_id}`
+
+    return (
+      <DropdownMenuItem
+        key={market.condition_id}
+        closeOnClick={false}
+        onClick={() => {
+          void handleCopy(key, resolveEventMarketPath(event, market.slug))
+        }}
+        className={cn('py-2 text-sm font-semibold', copiedKey === key ? 'text-foreground' : 'text-muted-foreground')}
+      >
+        {copiedKey === key ? t('Copied!') : label}
+      </DropdownMenuItem>
+    )
+  }
+
   if (isMultiMarket) {
     return (
       <div ref={wrapperRef} onPointerEnter={handleWrapperPointerEnter} onPointerLeave={handleWrapperPointerLeave}>
@@ -379,7 +437,7 @@ export default function EventShare({ event }: EventShareProps) {
             align="end"
             sideOffset={8}
             collisionPadding={16}
-            className="max-h-80 w-48 border border-border bg-background p-0 text-foreground shadow-xl"
+            className="max-h-56 w-48 overscroll-contain border border-border bg-background p-1 text-foreground shadow-xl"
           >
             <DropdownMenuItem
               closeOnClick={false}
@@ -387,36 +445,16 @@ export default function EventShare({ event }: EventShareProps) {
                 void handleCopy('event', eventPath)
               }}
               className={cn(
-                'rounded-none px-3 py-2.5 text-sm font-semibold transition-colors first:rounded-t-md last:rounded-b-md',
+                'py-2 text-sm font-semibold',
                 copiedKey === 'event' ? 'text-foreground' : 'text-muted-foreground',
-                'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
               )}
             >
               {copiedKey === 'event' ? t('Copied!') : t('Copy link')}
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-0 bg-border" />
-            {event.markets
-              .filter((market) => market.slug)
-              .map((market) => {
-                const label = getMarketSeriesLabel(market)
-                const key = `market-${market.condition_id}`
-                return (
-                  <DropdownMenuItem
-                    key={market.condition_id}
-                    closeOnClick={false}
-                    onClick={() => {
-                      void handleCopy(key, resolveEventMarketPath(event, market.slug))
-                    }}
-                    className={cn(
-                      `rounded-none px-3 py-2.5 text-sm font-semibold transition-colors first:rounded-t-md last:rounded-b-md`,
-                      copiedKey === key ? 'text-foreground' : 'text-muted-foreground',
-                      'hover:bg-muted/70 hover:text-foreground focus:bg-muted',
-                    )}
-                  >
-                    {copiedKey === key ? t('Copied!') : label}
-                  </DropdownMenuItem>
-                )
-              })}
+            <DropdownMenuSeparator />
+            {activeMarkets.map(renderMarketItem)}
+            {activeMarkets.length > 0 && resolvedMarkets.length > 0 && <DropdownMenuSeparator />}
+            {resolvedMarkets.map(renderMarketItem)}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
