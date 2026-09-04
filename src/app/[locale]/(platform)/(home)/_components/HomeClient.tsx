@@ -439,6 +439,7 @@ function HomeClientContent({
 
                 <div className="min-w-0">
                   <FilterToolbar
+                    collapsibleSearch
                     filters={homeFilters}
                     onFiltersChange={handleFiltersChange}
                     showFilterCheckboxes={pathState.isHomePage}
