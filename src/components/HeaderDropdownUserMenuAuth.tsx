@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
+import PrefetchLink from '@/components/PrefetchLink'
 import PwaInstallDialog from '@/components/PwaInstallDialog'
 import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,7 @@ import UserInfoSection from '@/components/UserInfoSection'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
-import { Link, usePathname } from '@/i18n/navigation'
+import { usePathname } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { signOutAndRedirect } from '@/lib/logout'
 import { cn } from '@/lib/utils'
@@ -247,7 +248,7 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuLinkItem
-            render={<Link href="/settings" className="flex w-full items-center gap-1.5" />}
+            render={<PrefetchLink href="/settings" className="flex w-full items-center gap-1.5" />}
             className="py-2 text-sm font-semibold"
           >
             <SettingsIcon className="size-4 text-orange-500" />
@@ -270,7 +271,7 @@ export default function HeaderDropdownUserMenuAuth() {
           )}
 
           <DropdownMenuLinkItem
-            render={<Link href="/leaderboard" className="flex w-full items-center gap-1.5" />}
+            render={<PrefetchLink href="/leaderboard" className="flex w-full items-center gap-1.5" />}
             className="py-2 text-sm font-semibold"
           >
             <TrophyIcon className="size-4 text-amber-500" />
@@ -278,7 +279,7 @@ export default function HeaderDropdownUserMenuAuth() {
           </DropdownMenuLinkItem>
 
           <DropdownMenuLinkItem
-            render={<Link href="/settings/rewards" className="flex w-full items-center gap-1.5" />}
+            render={<PrefetchLink href="/settings/rewards" className="flex w-full items-center gap-1.5" />}
             className="py-2 text-sm font-semibold"
           >
             <GiftIcon className="size-4 text-violet-500" />
@@ -287,7 +288,7 @@ export default function HeaderDropdownUserMenuAuth() {
 
           <DropdownMenuLinkItem
             render={
-              <Link
+              <PrefetchLink
                 href="/docs/api-reference"
                 target="_blank"
                 prefetch={false}
@@ -303,7 +304,7 @@ export default function HeaderDropdownUserMenuAuth() {
 
           {user?.is_admin && (
             <DropdownMenuLinkItem
-              render={<Link href="/admin" className="flex w-full items-center gap-1.5" />}
+              render={<PrefetchLink href="/admin" className="flex w-full items-center gap-1.5" />}
               className="py-2 text-sm font-semibold"
             >
               <ShieldKeyholeIcon className="size-4 text-current" />
@@ -328,14 +329,14 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuLinkItem
-            render={<Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link" />}
+            render={<PrefetchLink href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link" />}
             className="py-2 text-sm font-semibold text-muted-foreground"
           >
             {t('Documentation')}
           </DropdownMenuLinkItem>
 
           <DropdownMenuLinkItem
-            render={<Link href="/tos" data-testid="header-terms-link" />}
+            render={<PrefetchLink href="/tos" data-testid="header-terms-link" />}
             className="py-2 text-sm font-semibold text-muted-foreground"
           >
             {t('Terms of Use')}

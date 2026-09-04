@@ -14,7 +14,7 @@ import type {
 } from '@/lib/platform-navigation'
 
 import { categorySidebarInlineIcons } from '@/app/[locale]/(platform)/(home)/_components/CategorySidebarInlineIcons'
-import { Link } from '@/i18n/navigation'
+import PrefetchLink from '@/components/PrefetchLink'
 import { cn } from '@/lib/utils'
 
 interface CategorySidebarProps {
@@ -291,7 +291,7 @@ function CategorySidebarLink({
   useInlineIcon,
 }: CategorySidebarLinkProps) {
   return (
-    <Link
+    <PrefetchLink
       href={href}
       aria-current={isActive ? 'page' : undefined}
       onClick={onClick}
@@ -312,7 +312,7 @@ function CategorySidebarLink({
       {typeof count === 'number' && (
         <span className="shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">{count}</span>
       )}
-    </Link>
+    </PrefetchLink>
   )
 }
 
@@ -388,7 +388,7 @@ export default function CategorySidebar({
                   activeSubcategorySlug === item.slug ? 'bg-muted' : 'hover:bg-muted/60',
                 )}
               >
-                <Link
+                <PrefetchLink
                   href={href}
                   aria-current={activeSubcategorySlug === item.slug ? 'page' : undefined}
                   onClick={() => onNavigate({ slug: item.slug, href: item.href })}
@@ -405,7 +405,7 @@ export default function CategorySidebar({
                       {item.count}
                     </span>
                   )}
-                </Link>
+                </PrefetchLink>
                 <button
                   type="button"
                   aria-label={`${item.label} sub-items`}

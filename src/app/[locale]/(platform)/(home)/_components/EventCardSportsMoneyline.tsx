@@ -10,9 +10,9 @@ import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/
 import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
+import PrefetchLink from '@/components/PrefetchLink'
 import { Card, CardContent } from '@/components/ui/card'
 import { NewBadge } from '@/components/ui/new-badge'
-import { Link } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
@@ -288,7 +288,7 @@ export default function EventCardSportsMoneyline({
     >
       <CardContent className={cn(`flex h-full flex-col px-3 pt-3 ${isResolvedEvent ? 'pb-3' : 'pb-3 md:pb-1'}`)}>
         <div className="flex w-full flex-col gap-0.5">
-          <Link
+          <PrefetchLink
             href={resolveButtonHref(model.team1Button)}
             className="group/team-row-1 flex h-8 items-center justify-between gap-2"
           >
@@ -320,8 +320,8 @@ export default function EventCardSportsMoneyline({
               </p>
             </div>
             <p className="shrink-0 text-lg font-semibold">{team1Chance}%</p>
-          </Link>
-          <Link
+          </PrefetchLink>
+          <PrefetchLink
             href={resolveButtonHref(model.team2Button)}
             className="group/team-row-2 flex h-8 items-center justify-between gap-2"
           >
@@ -353,7 +353,7 @@ export default function EventCardSportsMoneyline({
               </p>
             </div>
             <p className="shrink-0 text-lg font-semibold">{team2Chance}%</p>
-          </Link>
+          </PrefetchLink>
         </div>
 
         <div className="flex flex-1 flex-col">
@@ -378,7 +378,7 @@ export default function EventCardSportsMoneyline({
                     const displayLabel = resolveButtonDisplayLabel(button, t('Draw'), compactTeamLabels)
 
                     return (
-                      <Link
+                      <PrefetchLink
                         key={`${button.conditionId}:${button.outcomeIndex}`}
                         href={resolveButtonHref(button)}
                         className={cn(
@@ -404,7 +404,7 @@ export default function EventCardSportsMoneyline({
                             style={toneStyles.backgroundStyle}
                           />
                         ) : null}
-                      </Link>
+                      </PrefetchLink>
                     )
                   })}
               </div>

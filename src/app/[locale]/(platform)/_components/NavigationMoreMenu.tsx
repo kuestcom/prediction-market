@@ -4,6 +4,7 @@ import { ActivityIcon, ChevronDownIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import PrefetchLink from '@/components/PrefetchLink'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -11,7 +12,6 @@ import {
   DropdownMenuLinkItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 function useNavigationMoreMenuHover() {
@@ -84,7 +84,7 @@ export default function NavigationMoreMenu() {
         className="min-w-36"
       >
         <DropdownMenuLinkItem
-          render={<Link href="/activity" />}
+          render={<PrefetchLink href="/activity" />}
           className={cn(
             `group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground`,
           )}
@@ -93,7 +93,7 @@ export default function NavigationMoreMenu() {
           <span>{t('Activity')}</span>
         </DropdownMenuLinkItem>
         <DropdownMenuLinkItem
-          render={<Link href="/leaderboard" />}
+          render={<PrefetchLink href="/leaderboard" />}
           className={cn(
             `group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground`,
           )}
