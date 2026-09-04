@@ -1,4 +1,12 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+async function openFilterSearch(page: Page) {
+  const searchTrigger = page.getByTestId('filter-search-trigger')
+
+  if (await searchTrigger.isVisible().catch(() => false)) {
+    await searchTrigger.click()
+  }
+}
 
 test.describe('Header Search', () => {
   test.beforeEach(async ({ browserName, page }) => {
@@ -106,6 +114,7 @@ test.describe('Filter Toolbar Search Input', () => {
   test('update search input value when typing', async ({ page }) => {
     const filterSearchInput = page.getByTestId('filter-search-input')
 
+    await openFilterSearch(page)
     await filterSearchInput.waitFor({ state: 'visible' })
     await filterSearchInput.focus()
     await filterSearchInput.pressSequentially('trump')
@@ -116,6 +125,7 @@ test.describe('Filter Toolbar Search Input', () => {
   test('clear search input value when clearing', async ({ page }) => {
     const filterSearchInput = page.getByTestId('filter-search-input')
 
+    await openFilterSearch(page)
     await filterSearchInput.waitFor({ state: 'visible' })
     await filterSearchInput.focus()
     await filterSearchInput.pressSequentially('trump')
@@ -131,6 +141,7 @@ test.describe('Filter Toolbar Search Input', () => {
     await bookmarkButton.click()
 
     const filterSearchInput = page.getByTestId('filter-search-input')
+    await openFilterSearch(page)
     await filterSearchInput.waitFor({ state: 'visible' })
     await filterSearchInput.focus()
     await filterSearchInput.pressSequentially('trump')
@@ -140,12 +151,15 @@ test.describe('Filter Toolbar Search Input', () => {
 
   test('initialize with empty search value', async ({ page }) => {
     const filterSearchInput = page.getByTestId('filter-search-input')
+
+    await openFilterSearch(page)
     await expect(filterSearchInput).toHaveValue('')
   })
 
   test('maintain search state during navigation', async ({ page }) => {
     const filterSearchInput = page.getByTestId('filter-search-input')
 
+    await openFilterSearch(page)
     await filterSearchInput.waitFor({ state: 'visible' })
     await filterSearchInput.focus()
     await filterSearchInput.pressSequentially('trump')
@@ -159,6 +173,7 @@ test.describe('Filter Toolbar Search Input', () => {
   test('handle special characters in search query', async ({ page }) => {
     const filterSearchInput = page.getByTestId('filter-search-input')
 
+    await openFilterSearch(page)
     await filterSearchInput.waitFor({ state: 'visible' })
     await filterSearchInput.focus()
     await filterSearchInput.pressSequentially('trump & biden')

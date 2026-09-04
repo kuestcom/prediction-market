@@ -23,6 +23,7 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
 
 interface FilterToolbarProps {
+  collapsibleSearch?: boolean
   filters: FilterState
   onFiltersChange: (filters: Partial<FilterState>) => void
   hideDesktopSecondaryNavigation?: boolean
@@ -184,6 +185,7 @@ function useFilterToolbarState({
 }
 
 export default function FilterToolbar({
+  collapsibleSearch = false,
   filters,
   onFiltersChange,
   hideDesktopSecondaryNavigation = false,
@@ -218,8 +220,12 @@ export default function FilterToolbar({
         )}
 
         <div className="order-1 flex w-full min-w-0 items-center gap-3 md:order-3 md:ml-auto md:w-auto md:min-w-0">
-          <div className="min-w-0 flex-1">
-            <FilterToolbarSearchInput search={filters.search} onSearchChange={handleSearchChange} />
+          <div className={cn('min-w-0', collapsibleSearch ? 'flex-1 md:w-auto md:flex-none' : 'flex-1')}>
+            <FilterToolbarSearchInput
+              collapsible={collapsibleSearch}
+              search={filters.search}
+              onSearchChange={handleSearchChange}
+            />
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">

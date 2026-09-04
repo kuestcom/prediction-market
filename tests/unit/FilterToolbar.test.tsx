@@ -57,4 +57,49 @@ describe('filterToolbar', () => {
 
     expect(onFiltersChange).toHaveBeenCalledWith({ hideSports: true })
   })
+
+  it('collapses the search input behind an icon button when requested', () => {
+    const onFiltersChange = vi.fn()
+
+    render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
+
+    expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
+
+    const searchTrigger = screen.getByRole('button', { name: 'Open search' })
+    expect(searchTrigger).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(searchTrigger)
+
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
+    expect(screen.queryByTestId('filter-search-trigger')).not.toBeInTheDocument()
+  })
+
+  it('closes the expanded empty search input when clicking outside', () => {
+    const onFiltersChange = vi.fn()
+
+    render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open search' }))
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
+
+    fireEvent.pointerDown(document.body)
+
+    expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
+    expect(screen.getByTestId('filter-search-trigger')).toBeVisible()
+    expect(document.activeElement).toBe(screen.getByTestId('filter-search-trigger'))
+  })
+
+  it('keeps a typed query open when Escape is pressed before debounce completes', () => {
+    const onFiltersChange = vi.fn()
+
+    render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open search' }))
+    const searchInput = screen.getByTestId('filter-search-input')
+
+    fireEvent.change(searchInput, { target: { value: 'bitcoin' } })
+    fireEvent.keyDown(searchInput, { key: 'Escape' })
+
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
+  })
 })
