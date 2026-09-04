@@ -39,11 +39,11 @@ export default function EventOrderPanelResolvedMarketDisplay({
   const StatusIcon = isPaused ? XIcon : CheckIcon
 
   return (
-    <div className="flex flex-col items-center gap-3 px-2 py-4 text-center">
+    <div className="flex flex-col items-center gap-4 px-2 py-6 text-center">
       <div className="flex size-10 items-center justify-center rounded-full bg-primary">
         <StatusIcon className="size-7 text-background" strokeWidth={3} />
       </div>
-      <div className="text-lg font-bold text-primary">
+      <div className="text-lg font-semibold text-primary">
         {isPaused ? (
           t('Market Paused')
         ) : (
@@ -53,13 +53,13 @@ export default function EventOrderPanelResolvedMarketDisplay({
         )}
       </div>
       {!isPaused && (!isSingleMarket || shouldShowResolvedSportsSubtitle) && resolvedMarketTitle && (
-        <div className="text-sm text-muted-foreground">{resolvedMarketTitle}</div>
+        <div className="text-base text-muted-foreground">{resolvedMarketTitle}</div>
       )}
       {!isPaused && hasClaimableWinnings && (
-        <div className="mt-2 w-full space-y-3 text-left">
+        <div className="mt-1.5 w-full space-y-2 text-left">
           <div className="w-full border-t border-border" />
-          <p className="text-center text-base font-semibold text-foreground">{t('Your Earnings')}</p>
-          <div className="space-y-1.5 text-sm">
+          <p className="text-center text-sm font-semibold text-foreground">{t('Your Earnings')}</p>
+          <div className="space-y-1 text-xs">
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">{t('Position')}</span>
               <span className="text-right font-medium text-foreground">{claimPositionLabel}</span>
@@ -75,7 +75,7 @@ export default function EventOrderPanelResolvedMarketDisplay({
           </div>
           <Button
             type="button"
-            className="h-10 w-full"
+            className="h-9 w-full text-sm"
             onClick={onClaimWinnings}
             disabled={isClaimSubmitting || isPositionsLoading}
           >

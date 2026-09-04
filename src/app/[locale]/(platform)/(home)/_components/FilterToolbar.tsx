@@ -220,7 +220,7 @@ export default function FilterToolbar({
         )}
 
         <div className="order-1 flex w-full min-w-0 items-center gap-3 md:order-3 md:ml-auto md:w-auto md:min-w-0">
-          <div className={cn('min-w-0', collapsibleSearch ? 'md:w-auto md:flex-none' : 'flex-1')}>
+          <div className={cn('min-w-0', collapsibleSearch ? 'flex-1 md:w-auto md:flex-none' : 'flex-1')}>
             <FilterToolbarSearchInput
               collapsible={collapsibleSearch}
               search={filters.search}

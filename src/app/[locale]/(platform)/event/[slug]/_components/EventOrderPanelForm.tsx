@@ -2117,7 +2117,7 @@ export default function EventOrderPanelForm({
         className,
       )}
     >
-      <div className="col-start-1 row-start-1 min-w-0 p-4">
+      <div className={cn('col-start-1 row-start-1 min-w-0', isTradingDisabled ? 'p-3' : 'p-4')}>
         {!isTradingDisabled &&
           !isMobile &&
           (desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null))}

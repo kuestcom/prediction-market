@@ -66,6 +66,28 @@ function getMarketEndTime(market: Event['markets'][number]) {
   return Number.isNaN(parsed) ? null : parsed
 }
 
+function sortMarketRowsByEndTime(rows: EventMarketRow[]) {
+  return rows
+    .map((row, index) => ({
+      row,
+      index,
+      endTime: getMarketEndTime(row.market),
+    }))
+    .sort((a, b) => {
+      if (a.endTime == null && b.endTime == null) {
+        return a.index - b.index
+      }
+      if (a.endTime == null) {
+        return 1
+      }
+      if (b.endTime == null) {
+        return -1
+      }
+      return a.endTime - b.endTime
+    })
+    .map((item) => item.row)
+}
+
 function useTweetMarketResolution({ event, currentTimestamp }: { event: Event; currentTimestamp: number | null }) {
   const isTweetMarketEvent = useMemo(() => isTweetMarketsEvent(event), [event])
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isTweetMarketEvent)
@@ -561,7 +583,7 @@ function useMarketRowsByResolution({
     }))
   }, [marketRows, orderBookSummaries])
 
-  const { activeDisplayRows, resolvedDisplayRows } = useMemo(() => {
+  const { activeDisplayRows, sortedResolvedDisplayRows } = useMemo(() => {
     const activeRows: EventMarketRow[] = []
     const resolvedRows: EventMarketRow[] = []
 
@@ -574,28 +596,11 @@ function useMarketRowsByResolution({
       activeRows.push(row)
     })
 
-    return { activeDisplayRows: activeRows, resolvedDisplayRows: resolvedRows }
-  }, [pricedMarketRows])
-
-  const sortedResolvedDisplayRows = useMemo(() => {
-    if (!resolvedDisplayRows.length) {
-      return resolvedDisplayRows
+    return {
+      activeDisplayRows: sortMarketRowsByEndTime(activeRows),
+      sortedResolvedDisplayRows: sortMarketRowsByEndTime(resolvedRows),
     }
-
-    return resolvedDisplayRows
-      .map((row, index) => ({
-        row,
-        index,
-        endTime: getMarketEndTime(row.market),
-      }))
-      .sort((a, b) => {
-        if (a.endTime != null && b.endTime != null) {
-          return a.endTime - b.endTime
-        }
-        return a.index - b.index
-      })
-      .map((item) => item.row)
-  }, [resolvedDisplayRows])
+  }, [pricedMarketRows])
 
   return { pricedMarketRows, activeDisplayRows, sortedResolvedDisplayRows }
 }
@@ -880,7 +885,13 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
             <OtherOutcomeRow shares={otherShares} showMarketIcon={Boolean(event.show_market_icons)} />
           </div>
         )}
-        {shouldShowActiveSection && <div className="mr-2 mb-4 ml-4 border-b border-border lg:mx-0" />}
+        {shouldShowActiveSection && !shouldShowResolvedSection && (
+          <div className="mr-2 mb-4 ml-4 border-b border-border lg:mx-0" />
+        )}
+
+        {shouldShowActiveSection && shouldShowResolvedSection && (
+          <hr className="mr-2 mb-4 ml-4 border-0 border-t border-border lg:mx-0" />
+        )}
 
         {shouldShowResolvedSection && (
           <div className="pb-4">

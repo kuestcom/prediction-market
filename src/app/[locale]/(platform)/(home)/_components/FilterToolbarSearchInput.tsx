@@ -24,6 +24,17 @@ export default function FilterToolbarSearchInput({
   const t = useExtracted()
   const [isOpen, setIsOpen] = useState(!collapsible || Boolean(search.trim()))
   const searchShellRef = useRef<HTMLDivElement | null>(null)
+  const shouldRestoreFocusRef = useRef(false)
+  const closeSearch = useCallback(() => {
+    shouldRestoreFocusRef.current = true
+    setIsOpen(false)
+  }, [])
+  const searchTriggerRef = useCallback((button: HTMLButtonElement | null) => {
+    if (button && shouldRestoreFocusRef.current) {
+      shouldRestoreFocusRef.current = false
+      button.focus()
+    }
+  }, [])
 
   useEffect(() => {
     if (!collapsible || !isOpen) {
@@ -50,18 +61,19 @@ export default function FilterToolbarSearchInput({
         onSearchChange(normalizedInputValue)
       }
 
-      setIsOpen(false)
+      closeSearch()
     }
 
     window.addEventListener('pointerdown', handlePointerDown)
     return () => window.removeEventListener('pointerdown', handlePointerDown)
-  }, [collapsible, isOpen, onSearchChange, search])
+  }, [closeSearch, collapsible, isOpen, onSearchChange, search])
 
   if (collapsible && !isOpen) {
     const openSearchLabel = t('Open search')
 
     return (
       <Button
+        ref={searchTriggerRef}
         type="button"
         variant="ghost"
         size="icon"
@@ -82,9 +94,12 @@ export default function FilterToolbarSearchInput({
       shellRef={searchShellRef}
       search={search}
       onSearchChange={onSearchChange}
-      onEscape={() => {
-        if (!search.trim()) {
-          setIsOpen(false)
+      onEscape={(currentInputValue) => {
+        if (!currentInputValue.trim()) {
+          if (currentInputValue !== search) {
+            onSearchChange('')
+          }
+          closeSearch()
         }
       }}
     />
@@ -96,7 +111,7 @@ interface FilterToolbarSearchInputFieldProps {
   search: string
   shellRef?: RefObject<HTMLDivElement | null>
   onSearchChange: (search: string) => void
-  onEscape?: () => void
+  onEscape?: (currentInputValue: string) => void
 }
 
 interface SearchDebounceTimeoutRef {
@@ -180,7 +195,7 @@ function FilterToolbarSearchInputField({
         onChange={handleInputChange}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
-            onEscape?.()
+            onEscape?.(event.currentTarget.value)
           }
         }}
         className={cn(
