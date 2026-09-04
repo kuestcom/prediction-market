@@ -84,12 +84,16 @@ describe('filterToolbar', () => {
 
     fireEvent.pointerDown(document.body)
 
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
+
+    fireEvent.click(document.body)
+
     expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
     expect(screen.getByTestId('filter-search-trigger')).toBeVisible()
     expect(document.activeElement).toBe(screen.getByTestId('filter-search-trigger'))
   })
 
-  it('keeps a typed query open when Escape is pressed before debounce completes', () => {
+  it('clears a typed query before closing the search with Escape', () => {
     const onFiltersChange = vi.fn()
 
     render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
@@ -101,5 +105,12 @@ describe('filterToolbar', () => {
     fireEvent.keyDown(searchInput, { key: 'Escape' })
 
     expect(screen.getByTestId('filter-search-input')).toBeVisible()
+    expect(searchInput).toHaveValue('')
+    expect(onFiltersChange).toHaveBeenCalledWith({ search: '' })
+
+    fireEvent.keyDown(searchInput, { key: 'Escape' })
+
+    expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByTestId('filter-search-trigger'))
   })
 })
