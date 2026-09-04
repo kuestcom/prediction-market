@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'bun:test'
 
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
