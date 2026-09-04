@@ -25,4 +25,10 @@ function handleServerExit(code: number | null): void {
   process.exit(code ?? 1)
 }
 
+function forwardSignal(signal: NodeJS.Signals): void {
+  server.kill(signal)
+}
+
+process.on('SIGINT', () => forwardSignal('SIGINT'))
+process.on('SIGTERM', () => forwardSignal('SIGTERM'))
 server.on('exit', handleServerExit)
