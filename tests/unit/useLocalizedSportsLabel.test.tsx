@@ -29,4 +29,11 @@ describe('useLocalizedSportsLabel', () => {
     expect(result.current('OVER 2.5')).toBe('Acima 2.5')
     expect(result.current('UNDER 1.5')).toBe('Abaixo 1.5')
   })
+
+  it('does not treat unrelated labels beginning with over or under as totals', () => {
+    const { result } = renderHook(() => useLocalizedSportsLabel())
+
+    expect(result.current('Under contract')).toBe('Under contract')
+    expect(result.current('Over budget')).toBe('Over budget')
+  })
 })

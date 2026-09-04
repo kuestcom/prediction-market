@@ -20,7 +20,7 @@ export function useLocalizedSportsLabel() {
       const normalizedLabel = label.trim().replace(/\s+/g, ' ')
       const halfSuffixMatch = normalizedLabel.match(/^(.*\S)\s+([12]H)$/i)
       const baseLabel = halfSuffixMatch?.[1] ?? normalizedLabel
-      const totalOutcomeMatch = baseLabel.match(/^(over|under)(\s+.+)?$/i)
+      const totalOutcomeMatch = baseLabel.match(/^(over|under)(\s+\d+(?:[.,]\d+)?)?$/i)
       let translatedLabel = label
 
       if (totalOutcomeMatch?.[1]) {
@@ -81,12 +81,6 @@ export function useLocalizedSportsLabel() {
             break
           case 'neither':
             translatedLabel = t('Neither')
-            break
-          case 'over':
-            translatedLabel = t('Over')
-            break
-          case 'under':
-            translatedLabel = t('Under')
             break
           case 'map':
             translatedLabel = t('Map')
