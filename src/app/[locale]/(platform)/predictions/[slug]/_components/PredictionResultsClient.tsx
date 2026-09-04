@@ -381,11 +381,11 @@ function usePredictionResultsQuery({
             return
           }
 
-          void fetchNextPage().catch((fetchError: Error) => {
+          void fetchNextPage().catch(() => {
             setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: false })
             setInfiniteScrollErrorState({
               key: infiniteScrollScopeKey,
-              value: fetchError.message || fallbackErrorMessage,
+              value: fallbackErrorMessage,
             })
           })
         },
@@ -680,11 +680,11 @@ export default function PredictionResultsClient({
   function handleRetryLoadMore() {
     setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: true })
     setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: null })
-    void fetchNextPage().catch((fetchError: Error) => {
+    void fetchNextPage().catch(() => {
       setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: false })
       setInfiniteScrollErrorState({
         key: infiniteScrollScopeKey,
-        value: fetchError.message || 'Failed to load more results.',
+        value: t('Failed to load more results.'),
       })
     })
   }

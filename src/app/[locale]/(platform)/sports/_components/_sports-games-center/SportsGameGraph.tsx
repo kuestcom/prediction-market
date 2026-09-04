@@ -2,7 +2,7 @@
 
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useCallback, useState, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { PredictionChartProps } from '@/types/PredictionChartTypes'
@@ -142,10 +142,14 @@ export default function SportsGameGraph({
       selectedOutcomeIndex,
       isSportsEventHeroVariant,
     })
-  const localizedChartSeries = chartSeries.map((series) => ({
-    ...series,
-    name: translateSportsLabel(series.name),
-  }))
+  const localizedChartSeries = useMemo(
+    () =>
+      chartSeries.map((series) => ({
+        ...series,
+        name: translateSportsLabel(series.name),
+      })),
+    [chartSeries, translateSportsLabel],
+  )
   const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(graphSelectedConditionId)
 
   const { chartData, latestSnapshot, leadingGapStart } = useSportsGameGraphHistory({

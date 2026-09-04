@@ -195,7 +195,7 @@ export default function SportsLivestreamFloatingPlayer() {
             )}
           >
             <ExternalLinkIcon className="size-3.5" />
-            Open stream
+            {t('Open stream')}
           </a>
         </div>
       )}

@@ -290,7 +290,7 @@ export default function HeaderNotifications() {
               {notifications.map((notification) => {
                 const timeLabel = getNotificationTimeLabel(notification, currentTimestamp, formatCompactTimeAgo)
                 const linkLabel =
-                  notification.link_label === 'Open market'
+                  notification.link_type === 'market'
                     ? t('Open market')
                     : notification.link_label === 'View on Polygonscan'
                       ? t('View on Polygonscan')

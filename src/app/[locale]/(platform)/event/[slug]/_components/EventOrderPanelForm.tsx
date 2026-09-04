@@ -34,6 +34,7 @@ import {
   handleOrderErrorFeedback,
   handleOrderSuccessFeedback,
   handleValidationError,
+  useOrderFeedbackTranslate,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { useEventOrderPanelOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelOpenOrders'
 import { useEventOrderPanelPositions } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventOrderPanelPositions'
@@ -875,6 +876,7 @@ export default function EventOrderPanelForm({
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
+  const translateFeedback = useOrderFeedbackTranslate()
   const site = useSiteIdentity()
   const arbitrageConfig = useArbitrageConfig()
   const locale = useLocale()
@@ -1399,7 +1401,7 @@ export default function EventOrderPanelForm({
       handleValidationError(validation.reason, {
         openWalletModal: openAppKit,
         shareLabel: selectedShareLabel,
-        translate: t,
+        translate: translateFeedback,
       })
       return
     }
@@ -1533,7 +1535,7 @@ export default function EventOrderPanelForm({
       )
     } catch (error) {
       if (isUserRejectedRequestError(error)) {
-        handleOrderCancelledFeedback(t)
+        handleOrderCancelledFeedback(translateFeedback)
         return
       }
 
@@ -1631,7 +1633,7 @@ export default function EventOrderPanelForm({
         queryClient,
         outcomeIndex: submittedOutcomeIndex as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
         lastMouseEvent: submittedLastMouseEvent,
-        translate: t,
+        translate: translateFeedback,
       })
 
       refreshTradingPositionsAfterMutation(queryClient)

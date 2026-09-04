@@ -72,6 +72,7 @@ import {
 import SportsLivestreamFloatingPlayer from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import SportsRedeemModal from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import SportsSegmentNumberPicker from '@/app/[locale]/(platform)/sports/_components/SportsSegmentNumberPicker'
+import { useLocalizedSportsLabel } from '@/app/[locale]/(platform)/sports/_components/useLocalizedSportsLabel'
 import {
   resolveSportsMarketLineLabel,
   resolveSportsMarketLineValue,
@@ -378,57 +379,9 @@ export default function SportsEventCenter({
   vertical = 'sports',
 }: SportsEventCenterProps) {
   const t = useExtracted()
+  const translateSportsLabel = useLocalizedSportsLabel()
   const verticalConfig = getSportsVerticalConfig(vertical)
   const locale = useLocale()
-
-  function translateSportsLabel(label: string) {
-    switch (label) {
-      case 'Sports':
-        return t('Sports')
-      case 'Futures':
-        return t('Futures')
-      case 'All Sports':
-        return t('All Sports')
-      case 'Esports':
-        return t('Esports')
-      case 'Upcoming':
-        return t('Upcoming')
-      case 'Games':
-        return t('Games')
-      case 'Moneyline':
-        return t('Moneyline')
-      case 'Spread':
-        return t('Spread')
-      case 'Total':
-        return t('Total')
-      case 'Totals':
-        return t('Totals')
-      case 'Market':
-        return t('Market')
-      case 'Both Teams to Score':
-        return t('Both Teams to Score')
-      case 'Both Teams to Score?':
-        return t('Both Teams to Score?')
-      case 'Draw':
-        return t('Draw')
-      case 'Neither':
-        return t('Neither')
-      case 'Over':
-        return t('Over')
-      case 'Under':
-        return t('Under')
-      case 'Map':
-        return t('Map')
-      case 'Maps':
-        return t('Maps')
-      case 'Game':
-        return t('Game')
-      case 'Line':
-        return t('Line')
-      default:
-        return label
-    }
-  }
   const hasHydrated = useHasHydrated()
   const site = useSiteIdentity()
   const isMobile = useIsMobile()

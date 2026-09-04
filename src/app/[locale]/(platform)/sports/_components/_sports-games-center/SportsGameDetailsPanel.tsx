@@ -9,6 +9,7 @@ import EventOrderBook, {
   useOrderBookSummaries,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
+import { useLocalizedSportsLabel } from '@/app/[locale]/(platform)/sports/_components/useLocalizedSportsLabel'
 import { PositionReturnSummary, PositionValueCell } from '@/components/positions/PositionValueReturnCells'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -60,25 +61,9 @@ export default function SportsGameDetailsPanel({
   onSelectButton,
 }: SportsGameDetailsPanelProps) {
   const t = useExtracted()
+  const translateMarketTypeLabel = useLocalizedSportsLabel()
   const isMobile = useIsMobile()
   const linePickerSpacerWidth = 'calc(50% - 28px)'
-
-  function translateMarketTypeLabel(label: string) {
-    switch (label) {
-      case 'Moneyline':
-        return t('Moneyline')
-      case 'Spread':
-        return t('Spread')
-      case 'Total':
-        return t('Total')
-      case 'Market':
-        return t('Market')
-      case 'Both Teams to Score':
-        return t('Both Teams to Score')
-      default:
-        return label
-    }
-  }
 
   const orderStore = useSportsGameDetailsPanelOrderStore()
   const { orderMarketConditionId, orderOutcomeIndex, setOrderMarket, setOrderOutcome, setOrderAmount } = orderStore

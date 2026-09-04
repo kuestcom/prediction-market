@@ -43,7 +43,7 @@ export function ErrorDisplay({ fallbackValue, className = '', showRefresh = true
 
 export function ErrorDisplayBlock({
   className = '',
-  title = 'Unable to load data',
+  title,
 }: {
   error: AffiliateDataError
   className?: string

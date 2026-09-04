@@ -37,6 +37,12 @@ export function useLocalizedSportsLabel() {
           return t('Both Teams to Score?')
         case 'Draw':
           return t('Draw')
+        case 'DRAW':
+          return t('Draw')
+        case 'YES':
+          return t('Yes')
+        case 'NO':
+          return t('No')
         case 'Neither':
           return t('Neither')
         case 'Over':

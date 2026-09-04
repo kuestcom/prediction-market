@@ -23,19 +23,20 @@ export default function NotFoundContent({
     <Component className={className}>
       <NotFoundIllustration />
       <p className="mt-5 text-center text-2xl font-medium text-primary">{title}</p>
-      {discordLink && (
+      {(description || discordLink) && (
         <p className="mt-3 text-center text-sm text-muted-foreground">
-          {description ?? (
-            <>
-              If reloading doesn&apos;t fix it, let us know via{' '}
-              <span className="inline">
-                <a href={discordLink} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                  Discord
-                </a>
-                .
-              </span>
-            </>
-          )}
+          {description ??
+            (discordLink ? (
+              <>
+                If reloading doesn&apos;t fix it, let us know via{' '}
+                <span className="inline">
+                  <a href={discordLink} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                    Discord
+                  </a>
+                  .
+                </span>
+              </>
+            ) : null)}
         </p>
       )}
       <Button className="mt-5" nativeButton={false} render={homeLink} />

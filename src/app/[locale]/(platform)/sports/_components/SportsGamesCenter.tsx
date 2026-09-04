@@ -186,23 +186,6 @@ export default function SportsGamesCenter({
   const isFeedPage = isLivePage || isLiveAndSoonPage || isSoonPage
   const { resolveCardCategory } = useCategoryResolver(categoryTitleBySlug)
 
-  function translateMarketColumnLabel(label: string) {
-    switch (label) {
-      case 'Moneyline':
-        return t('Moneyline')
-      case 'Spread':
-        return t('Spread')
-      case 'Total':
-        return t('Total')
-      case 'Market':
-        return t('Market')
-      case 'Both Teams to Score':
-        return t('Both Teams to Score')
-      default:
-        return label
-    }
-  }
-
   useOddsFormatAndSpreadsTotalsPersistence({ oddsFormat, showSpreadsAndTotals })
 
   useResetMobileOrderPanelOnDeviceChange({ isMobile, setIsMobileOrderPanelOpen })
@@ -413,7 +396,7 @@ export default function SportsGamesCenter({
         {headerColumns.map((column) => (
           <div key={`${headerKeyPrefix}-${column.key}-header`} className="flex w-full items-center justify-center">
             <p className="text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {translateMarketColumnLabel(column.label)}
+              {translateSportsLabel(column.label)}
             </p>
           </div>
         ))}

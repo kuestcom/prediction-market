@@ -25,6 +25,7 @@ import {
   handleOrderErrorFeedback,
   handleOrderSuccessFeedback,
   handleValidationError,
+  useOrderFeedbackTranslate,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { useMergePositionsAction } from '@/app/[locale]/(platform)/profile/_hooks/useMergePositionsAction'
 import { usePublicPositionsQuery } from '@/app/[locale]/(platform)/profile/_hooks/usePublicPositionsQuery'
@@ -738,6 +739,7 @@ function useSellPositionFlow({
 
 export default function PublicPositionsList({ userAddress }: PublicPositionsListProps) {
   const t = useExtracted()
+  const translateFeedback = useOrderFeedbackTranslate()
   const queryClient = useQueryClient()
   const router = useRouter()
   const { open: openAppKit } = useAppKit()
@@ -821,7 +823,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       runWithSignaturePrompt,
       signTypedDataAsync,
       resolveOutcomeIndex,
-      translate: t,
+      translate: translateFeedback,
     })
 
   useScrollToTopOnFilterChange({
