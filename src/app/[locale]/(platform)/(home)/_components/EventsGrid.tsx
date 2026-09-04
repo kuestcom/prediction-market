@@ -610,7 +610,7 @@ export default function EventsGrid({
       ? { pages: [{ events: initialEvents, hasMore: initialHasMore }], pageParams: [0] }
       : undefined,
     enabled: shouldEnableEventsQuery,
-    refetchOnMount: shouldAutoRefreshEvents ? 'always' : false,
+    refetchOnMount: shouldAutoRefreshEvents ? true : false,
     refetchOnWindowFocus: false,
     staleTime: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : 'static',
     refetchInterval: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : false,

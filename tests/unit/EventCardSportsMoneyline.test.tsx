@@ -27,6 +27,7 @@ vi.mock('@/i18n/navigation', () => ({
       </a>
     )
   },
+  useRouter: () => ({ prefetch: vi.fn() }),
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({

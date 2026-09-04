@@ -21,6 +21,7 @@ vi.mock('@/i18n/navigation', () => ({
       {children}
     </a>
   ),
+  useRouter: () => ({ prefetch: vi.fn() }),
 }))
 
 vi.mock('@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest', () => ({

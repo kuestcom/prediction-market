@@ -36,6 +36,7 @@ vi.mock('@/i18n/navigation', () => ({
       {children}
     </a>
   ),
+  useRouter: () => ({ prefetch: vi.fn() }),
   usePathname: () => mocks.pathname,
 }))
 

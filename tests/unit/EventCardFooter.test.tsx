@@ -17,6 +17,7 @@ vi.mock('lucide-react', () => ({
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
+  useRouter: () => ({ prefetch: vi.fn() }),
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
