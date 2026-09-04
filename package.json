@@ -118,7 +118,6 @@
     "bun": "1.4.1",
     "node": "24.x"
   },
-  "packageManager": "bun@1.4.1",
   "trustedDependencies": [
     "@sentry/cli",
     "@swc/core",
