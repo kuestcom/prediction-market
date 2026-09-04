@@ -3,6 +3,12 @@ import { afterEach, expect, mock, vi } from 'bun:test'
 
 import './bun-test-compat'
 
+if (process.env.BUN_TEST_VERBOSE !== '1') {
+  for (const method of ['debug', 'error', 'info', 'log', 'warn'] as const) {
+    console[method] = () => {}
+  }
+}
+
 GlobalRegistrator.register({ url: 'http://localhost:3000' })
 
 const matchers = await import('@testing-library/jest-dom/matchers')

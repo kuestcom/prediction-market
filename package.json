@@ -14,9 +14,9 @@
     "knip": "knip --fix",
     "lint": "oxlint . --fix",
     "fmt": "oxfmt",
-    "test": "bun test --parallel tests/unit",
+    "test": "AGENT=1 bun test --parallel tests/unit --reporter=dots",
     "test:e2e": "playwright test",
-    "test:unit": "bun test --parallel tests/unit",
+    "test:unit": "AGENT=1 bun test --parallel tests/unit --reporter=dots",
     "postinstall": "husky",
     "db:push": "bun scripts/migrate.ts"
   },
