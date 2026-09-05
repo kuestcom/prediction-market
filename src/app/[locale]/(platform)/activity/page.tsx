@@ -2,15 +2,12 @@
 
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 
 import ActivityFeed from '@/app/[locale]/(platform)/activity/_components/ActivityFeed'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/activity'>): Promise<Metadata> {
-  const { locale } = await params
-  setRequestLocale(locale)
-
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getExtracted()
 
   const runtimeTheme = await loadRuntimeThemeState()
@@ -22,10 +19,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/activity
   }
 }
 
-export default async function ActivityPage({ params }: PageProps<'/[locale]/activity'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
-
+export default async function ActivityPage() {
   return (
     <main className="container py-6 md:py-8">
       <ActivityFeed />

@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -50,10 +50,9 @@ export async function generateStaticParams() {
   return getEnglishDocsStaticParams()
 }
 
-async function generateCachedDocsMetadata({ locale, slug }: { locale: string; slug?: string[] }): Promise<Metadata> {
+async function generateCachedDocsMetadata({ slug }: { slug?: string[] }): Promise<Metadata> {
   'use cache'
 
-  setRequestLocale(locale)
   const runtimeTheme = await loadRuntimeThemeState()
   const siteDocumentationTitle = `${runtimeTheme.site.name} Documentation`
 
@@ -72,13 +71,13 @@ async function generateCachedDocsMetadata({ locale, slug }: { locale: string; sl
 }
 
 export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slug]]'>): Promise<Metadata> {
-  return generateCachedDocsMetadata(await props.params)
+  const { slug } = await props.params
+  return generateCachedDocsMetadata({ slug })
 }
 
 async function renderCachedDocsPage({ locale, slug }: { locale: string; slug?: string[] }) {
   'use cache'
 
-  setRequestLocale(locale)
   const t = await getExtracted()
 
   const page = source.getPage(slug)

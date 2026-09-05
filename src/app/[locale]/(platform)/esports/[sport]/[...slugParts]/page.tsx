@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
@@ -216,8 +215,6 @@ async function generateCachedEsportsSlugMetadata({
 }): Promise<Metadata> {
   'use cache'
 
-  setRequestLocale(await getRootLocale())
-
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
     if (shouldBypassPublicShellPlaceholder(sport, slugParts)) {
       return {}
@@ -275,8 +272,6 @@ export async function generateMetadata({
 
 async function renderCachedEsportsSlugPage({ sport, slugParts }: { sport: string; slugParts: string[] }) {
   'use cache'
-
-  setRequestLocale(await getRootLocale())
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
     if (shouldBypassPublicShellPlaceholder(sport, slugParts)) {

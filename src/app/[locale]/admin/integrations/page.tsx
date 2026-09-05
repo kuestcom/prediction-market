@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
@@ -97,7 +97,6 @@ async function AdminIntegrationsContent() {
 }
 
 export default async function AdminIntegrationsPage() {
-  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return (

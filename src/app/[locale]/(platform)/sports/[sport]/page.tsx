@@ -1,4 +1,3 @@
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -18,7 +17,6 @@ export async function generateStaticParams() {
 
 export default async function SportsBySportRedirectPage({ params }: PageProps<'/[locale]/sports/[sport]'>) {
   const { locale, sport } = await params
-  setRequestLocale(locale)
   if (sport === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(sport)) {
       return null

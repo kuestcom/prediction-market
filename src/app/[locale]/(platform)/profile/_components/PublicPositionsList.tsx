@@ -4,7 +4,7 @@ import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
@@ -372,6 +372,7 @@ function useSellPositionFlow({
   signTypedDataAsync,
   resolveOutcomeIndex,
   translate,
+  locale,
 }: {
   clobUrl: string
   userAddress: string
@@ -387,6 +388,7 @@ function useSellPositionFlow({
   signTypedDataAsync: ReturnType<typeof useSignTypedData>['signTypedDataAsync']
   resolveOutcomeIndex: (position: PublicPosition) => number
   translate: (message: string, values?: Record<string, string | number | Date>) => string
+  locale: string
 }) {
   const [sellModalPayload, setSellModalPayload] = useState<SellModalPayload | null>(null)
   const [isCashOutSubmitting, setIsCashOutSubmitting] = useState(false)
@@ -637,6 +639,7 @@ function useSellPositionFlow({
           orderType: ORDER_TYPE.MARKET,
           conditionId,
           slug: eventSlug,
+          locale,
         })
 
         if (result?.error) {
@@ -723,6 +726,7 @@ function useSellPositionFlow({
       sellModalPayload,
       signTypedDataAsync,
       translate,
+      locale,
       user,
       userAddress,
     ],
@@ -739,6 +743,7 @@ function useSellPositionFlow({
 
 export default function PublicPositionsList({ userAddress }: PublicPositionsListProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const translateFeedback = useOrderFeedbackTranslate()
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -824,6 +829,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       signTypedDataAsync,
       resolveOutcomeIndex,
       translate: translateFeedback,
+      locale,
     })
 
   useScrollToTopOnFilterChange({

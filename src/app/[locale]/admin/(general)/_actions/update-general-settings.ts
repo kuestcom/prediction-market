@@ -642,7 +642,23 @@ async function syncGeoblockSettings() {
   throw new Error(detail || `Geoblock sync failed with status ${response.status}.`)
 }
 
-async function resolveCurrentLocale(): Promise<SupportedLocale> {
+function getLocaleOverride(formData: FormData): SupportedLocale | undefined {
+  const rawLocale = formData.get('locale')
+  if (typeof rawLocale !== 'string') {
+    return undefined
+  }
+
+  const normalizedLocale = rawLocale.trim().toLowerCase()
+  return SUPPORTED_LOCALES.includes(normalizedLocale as SupportedLocale)
+    ? (normalizedLocale as SupportedLocale)
+    : undefined
+}
+
+async function resolveCurrentLocale(localeOverride?: SupportedLocale): Promise<SupportedLocale> {
+  if (localeOverride) {
+    return localeOverride
+  }
+
   try {
     const locale = await getLocale()
     return SUPPORTED_LOCALES.includes(locale as SupportedLocale) ? (locale as SupportedLocale) : DEFAULT_LOCALE
@@ -1154,7 +1170,7 @@ async function updateGeneralSettingsActionImpl(
 
   if (validatedHomeFeaturedData?.useAi) {
     await runOptionalGeneralSettingsTask('regenerate featured markets', async () => {
-      const locale = await resolveCurrentLocale()
+      const locale = await resolveCurrentLocale(getLocaleOverride(formData))
       const { regenerateHomeFeaturedEvents } = await import('@/lib/home-featured-ai')
       const regenerateResult = await regenerateHomeFeaturedEvents(locale, {
         settings: validatedHomeFeaturedData,

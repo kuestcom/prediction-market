@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 
 import type { SupportedLocale } from '@/i18n/locales'
 
@@ -24,7 +24,6 @@ async function getPopularPredictionsCopy(locale: SupportedLocale) {
 export async function generateMetadata({ params }: PageProps<'/[locale]/predictions'>): Promise<Metadata> {
   const { locale } = await params
   const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
   const copy = await getPopularPredictionsCopy(resolvedLocale)
 
   return generatePredictionResultsMetadata({
@@ -42,7 +41,6 @@ export default async function PopularPredictionsPage({ params, searchParams }: P
     searchParams.then(resolvePredictionResultsFiltersFromSearchParams),
   ])
   const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
   const copy = await getPopularPredictionsCopy(resolvedLocale)
 
   return renderPredictionResultsPage({

@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
@@ -91,7 +91,6 @@ async function AdminGeneralSettingsContent() {
 }
 
 export default async function AdminGeneralSettingsPage() {
-  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return (

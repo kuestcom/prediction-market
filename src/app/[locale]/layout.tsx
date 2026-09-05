@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 
 import { NextIntlClientProvider } from 'next-intl'
-import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
 
@@ -137,8 +136,6 @@ async function loadLocaleRuntimeData(locale: SupportedLocale): Promise<LocaleRun
   const globalAnnouncement = await loadGlobalAnnouncementSettings()
   const hasGlobalAnnouncement = globalAnnouncement.message.trim().length > 0
 
-  setRequestLocale(locale)
-
   return {
     globalAnnouncement,
     hasGlobalAnnouncement,
@@ -243,9 +240,6 @@ async function RuntimeLocaleDocument({ children }: LocaleDocumentProps) {
 }
 
 export default async function LocaleLayout({ children }: LayoutProps<'/[locale]'>) {
-  const locale = await getRootLocale()
-  setRequestLocale(locale)
-
   return shouldPrerenderPublicShell() ? (
     <PrerenderedLocaleDocument>{children}</PrerenderedLocaleDocument>
   ) : (

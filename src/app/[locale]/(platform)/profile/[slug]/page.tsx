@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -31,8 +30,6 @@ function resolveProfileNamespaceSlug(slug: string) {
 export async function generateMetadata({ params }: PageProps<'/[locale]/profile/[slug]'>): Promise<Metadata> {
   const { locale, slug } = await params
   const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
-
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {
       return {}
@@ -47,8 +44,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/profile/
 }
 
 export default async function ProfileSlugPage({ params }: PageProps<'/[locale]/profile/[slug]'>) {
-  const { locale, slug } = await params
-  setRequestLocale(locale)
+  const { slug } = await params
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {
       return null

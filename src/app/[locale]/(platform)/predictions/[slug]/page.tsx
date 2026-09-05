@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -25,8 +24,6 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<'/[locale]/predictions/[slug]'>): Promise<Metadata> {
   const { locale, slug } = await params
   const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
-
   if (shouldBypassPublicShellPlaceholder(slug)) {
     return {}
   }
@@ -46,8 +43,6 @@ export default async function PredictionResultsPage({
     searchParams.then(resolvePredictionResultsFiltersFromSearchParams),
   ])
   const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
-
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {
       return null

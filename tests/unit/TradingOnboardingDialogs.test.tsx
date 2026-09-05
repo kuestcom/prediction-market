@@ -302,6 +302,41 @@ describe('tradingOnboardingDialogs', () => {
     expect(onEmailSkip).toHaveBeenCalledTimes(1)
   })
 
+  it('resets the email draft when the dialog is reopened', async () => {
+    const user = userEvent.setup()
+    const view = render(
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: 'email',
+          emailDefaultValue: 'first@example.com',
+        })}
+      />,
+    )
+
+    const input = screen.getByPlaceholderText('Email address')
+    await user.clear(input)
+    await user.type(input, 'draft@example.com')
+
+    view.rerender(
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: null,
+          emailDefaultValue: 'updated@example.com',
+        })}
+      />,
+    )
+    view.rerender(
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: 'email',
+          emailDefaultValue: 'updated@example.com',
+        })}
+      />,
+    )
+
+    expect(screen.getByPlaceholderText('Email address')).toHaveValue('updated@example.com')
+  })
+
   it('keeps enable trading non-dismissible until an error appears', async () => {
     const user = userEvent.setup()
     const onModalOpenChange = mock()

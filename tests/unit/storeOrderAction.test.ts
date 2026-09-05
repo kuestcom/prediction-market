@@ -556,6 +556,62 @@ describe('storeOrderAction', () => {
     expect(mocks.createOrder).not.toHaveBeenCalled()
   })
 
+  it.each([null, undefined])('returns a validation error for malformed batch input: %s', async (payloads) => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    const fetchMock = mock()
+    globalThis.fetch = fetchMock as any
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrdersAction(payloads as StoreOrdersInput)
+
+    expect(result).toEqual({
+      error: 'Something went wrong while processing your order. Please try again.',
+      results: null,
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('uses a supported raw locale when batch schema validation fails', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    mocks.getExtracted.mockImplementation(
+      async ({ locale }: { locale: string }) =>
+        (message: string) =>
+          `${locale}:${message}`,
+    )
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrdersAction([
+      { ...basePayload({ locale: 'pt', maker: depositWallet, signer: depositWallet }), side: 2 },
+    ] as unknown as StoreOrdersInput)
+
+    expect(result).toEqual({
+      error: 'pt:Something went wrong while processing your order. Please try again.',
+      results: null,
+    })
+  })
+
   it('preserves individual failures returned by the CLOB batch endpoint', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const depositWallet = address('01')
@@ -596,6 +652,55 @@ describe('storeOrderAction', () => {
       results: [
         { error: null, orderId: 'yes-123' },
         { error: 'Not enough liquidity to fully fill this order right now.', orderId: null },
+      ],
+    })
+  })
+
+  it('uses each order locale for individual batch errors', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    mocks.getExtracted.mockImplementation(
+      async ({ locale }: { locale: string }) =>
+        (message: string) =>
+          `${locale}:${message}`,
+    )
+
+    globalThis.fetch = mock().mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      json: async () => [
+        { success: true, errorMsg: '', orderID: 'yes-123', status: 'matched' },
+        {
+          success: false,
+          errorMsg: "order couldn't be fully filled, FOK orders are fully filled/killed",
+          orderID: '',
+          status: 'unmatched',
+        },
+      ],
+    }) as any
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrdersAction([
+      basePayload({ maker: depositWallet, signer: depositWallet, token_id: '1' }),
+      basePayload({ maker: depositWallet, signer: depositWallet, token_id: '2', salt: '2', locale: 'pt' }),
+    ])
+
+    expect(result).toEqual({
+      error: null,
+      results: [
+        { error: null, orderId: 'yes-123' },
+        { error: 'pt:Not enough liquidity to fully fill this order right now.', orderId: null },
       ],
     })
   })

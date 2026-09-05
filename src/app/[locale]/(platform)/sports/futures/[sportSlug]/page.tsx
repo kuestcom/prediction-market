@@ -2,12 +2,10 @@
 
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
-import { getRootLocale } from '@/i18n/root-locale'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import {
   getPublicShellStaticParams,
@@ -25,7 +23,6 @@ export const metadata: Metadata = {
 
 export default async function SportsFuturesBySportPage({ params }: PageProps<'/[locale]/sports/futures/[sportSlug]'>) {
   const { sportSlug } = await params
-  setRequestLocale(await getRootLocale())
   if (sportSlug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(sportSlug)) {
       return null

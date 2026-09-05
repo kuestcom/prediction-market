@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { BookOpenIcon, HomeIcon, SquareTerminalIcon } from 'lucide-react'
-import { setRequestLocale } from 'next-intl/server'
 
 import DiscordIcon from '@/components/icons/DiscordIcon'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
@@ -27,9 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function Layout({ params, children }: DocsSlugLayoutProps) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function Layout({ children }: DocsSlugLayoutProps) {
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site
 

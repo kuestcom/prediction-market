@@ -8,12 +8,10 @@ const mocks = hoisted(() => ({
   getTranslations: mock(),
   getThemeSiteSettingsFormState: mock(),
   loadRuntimeThemeState: mock(),
-  setRequestLocale: mock(),
 }))
 
 void mock.module('next-intl/server', () => ({
   getExtracted: () => (value: string) => value,
-  setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
 void mock.module('@/lib/db/queries/settings', () => ({
@@ -39,7 +37,6 @@ describe('termsOfUsePage', () => {
     mocks.getTranslations.mockReset()
     mocks.getThemeSiteSettingsFormState.mockReset()
     mocks.loadRuntimeThemeState.mockReset()
-    mocks.setRequestLocale.mockReset()
 
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
     mocks.getTranslations.mockResolvedValue({

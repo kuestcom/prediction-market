@@ -1,12 +1,7 @@
-import { setRequestLocale } from 'next-intl/server'
-
 import AdminCreateEventCalendar from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventCalendar'
 
 export const instant = false
 
-export default async function AdminCreateEventPage({ params }: PageProps<'/[locale]/admin/events/calendar'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
-
+export default async function AdminCreateEventPage() {
   return <AdminCreateEventCalendar />
 }

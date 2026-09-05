@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 
 import MarketMakingDiscovery from '@/app/[locale]/admin/market-making/_components/MarketMakingDiscovery'
 import { getRootLocale } from '@/i18n/root-locale'
@@ -18,7 +18,6 @@ export default async function AdminMarketMakingPage({ searchParams }: AdminMarke
   const locale = await getRootLocale()
   const resolvedSearchParams = await searchParams
   const linkedCampaignId = resolveCampaignId(resolvedSearchParams.campaign)
-  setRequestLocale(locale)
   const t = await getExtracted()
 
   return (

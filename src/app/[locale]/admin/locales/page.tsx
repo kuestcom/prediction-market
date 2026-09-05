@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 
@@ -25,7 +25,6 @@ async function AdminLocalesSettingsContent({ params }: PageProps<'/[locale]/admi
   'use cache'
 
   const { locale } = await params
-  setRequestLocale(locale)
   const t = await getExtracted()
 
   const { data: allSettings } = await SettingsRepository.getSettings()
@@ -46,6 +45,7 @@ async function AdminLocalesSettingsContent({ params }: PageProps<'/[locale]/admi
       </div>
 
       <AdminLocalesSettingsForm
+        locale={locale}
         supportedLocales={SUPPORTED_LOCALES}
         enabledLocales={enabledLocales}
         localeOrder={localeOrder ?? undefined}

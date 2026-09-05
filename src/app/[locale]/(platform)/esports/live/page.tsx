@@ -1,14 +1,11 @@
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 
 import SportsFeedPageContent from '@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent'
-import { getRootLocale } from '@/i18n/root-locale'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export async function generateMetadata(): Promise<Metadata> {
-  setRequestLocale(await getRootLocale())
-
   const t = await getExtracted()
 
   const runtimeTheme = await loadRuntimeThemeState()
@@ -24,7 +21,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function EsportsLivePage() {
-  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return <SportsFeedPageContent sportSlug="live" sportTitle={t('Live')} pageMode="liveAndSoon" vertical="esports" />

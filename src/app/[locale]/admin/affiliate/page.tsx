@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
@@ -204,9 +204,7 @@ async function AdminAffiliateContent() {
   )
 }
 
-export default async function AdminSettingsPage({ params }: PageProps<'/[locale]/admin/affiliate'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminSettingsPage() {
   const t = await getExtracted()
 
   return (

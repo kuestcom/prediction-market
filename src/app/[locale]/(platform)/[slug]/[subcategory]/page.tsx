@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import {
@@ -8,7 +7,6 @@ import {
   DynamicHomeSubcategoryPageContent,
   generateDynamicHomeSubcategoryStaticParams,
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
-import { getRootLocale } from '@/i18n/root-locale'
 import { hasDatabaseEnv } from '@/lib/db/env'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
@@ -99,8 +97,6 @@ async function renderRuntimePlatformSubcategoryPage({ slug, subcategory }: { slu
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>): Promise<Metadata> {
   const { slug, subcategory } = await params
-  setRequestLocale(await getRootLocale())
-
   return await generatePlatformSubcategoryMetadata({
     slug,
     subcategory,
@@ -109,7 +105,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[
 
 export default async function PlatformSubcategoryPage({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>) {
   const { slug, subcategory } = await params
-  setRequestLocale(await getRootLocale())
   const renderPage = shouldPrerenderPublicShell()
     ? renderCachedPlatformSubcategoryPage
     : renderRuntimePlatformSubcategoryPage

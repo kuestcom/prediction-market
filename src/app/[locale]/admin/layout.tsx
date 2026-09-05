@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 
 import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
@@ -35,12 +34,10 @@ function getForkRepositoryUrl() {
   return `https://github.com/${encodeURIComponent(repoOwner)}/${encodeURIComponent(repoSlug)}`
 }
 
-export default async function AdminLayout({ params, children }: LayoutProps<'/[locale]/admin'>) {
+export default async function AdminLayout({ children }: LayoutProps<'/[locale]/admin'>) {
   'use cache'
 
   cacheTag(cacheTags.settings)
-  const { locale } = await params
-  setRequestLocale(locale)
   const forkRepositoryUrl = getForkRepositoryUrl()
   const { data: settings } = await SettingsRepository.getSettings()
   const supportSettings = getKuestSupportSettings(settings)

@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.1 AS build
+FROM oven/bun:1.4.2 AS build
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -17,7 +17,7 @@ RUN bun run build
 RUN mkdir -p /tmp/runtime-node_modules \
   && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres
 
-FROM oven/bun:1.4.1 AS runner
+FROM oven/bun:1.4.2 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

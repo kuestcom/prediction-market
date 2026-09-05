@@ -4,7 +4,7 @@ import type { InfiniteData } from '@tanstack/react-query'
 
 import { useQueryClient } from '@tanstack/react-query'
 import { BotIcon, TriangleAlertIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
 
@@ -105,6 +105,7 @@ export default function EventProvideLiquidityDialog({
   onSuccess,
 }: EventProvideLiquidityDialogProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const queryClient = useQueryClient()
   const user = useUser()
   const { open: openAppKit } = useAppKit()
@@ -269,6 +270,7 @@ export default function EventProvideLiquidityDialog({
           postOnly: true,
           conditionId: market.condition_id,
           slug: eventSlug,
+          locale,
         })
         setSignatureProgress(signatureNumber)
       }

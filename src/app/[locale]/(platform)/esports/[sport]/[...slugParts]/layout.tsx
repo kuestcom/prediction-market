@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react'
 
-import { setRequestLocale } from 'next-intl/server'
-
 import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
@@ -9,14 +7,10 @@ export async function generateStaticParams() {
 }
 
 export default async function EsportsSlugPartsLayout({
-  params,
   children,
 }: {
   params: Promise<{ locale: string; sport: string; slugParts: string[] }>
   children: ReactNode
 }) {
-  const { locale } = await params
-  setRequestLocale(locale)
-
   return <div className="pb-20 min-[1200px]:h-full min-[1200px]:min-h-0 md:pb-0">{children}</div>
 }

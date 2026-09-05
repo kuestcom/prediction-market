@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 
 import { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
@@ -61,10 +61,7 @@ async function PlatformLayoutContent({ children }: { children: ReactNode }) {
 }
 
 export default async function PlatformLayout({ children }: LayoutProps<'/[locale]'>) {
-  const resolvedLocale = await getRootLocale()
   const wagmiCookie = shouldPrerenderPublicShell() ? null : await getWagmiStateCookieValue()
-  setRequestLocale(resolvedLocale)
-
   return (
     <AppKitProvider wagmiCookie={wagmiCookie}>
       <CommunityFollowsProvider>

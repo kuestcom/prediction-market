@@ -1556,6 +1556,7 @@ export default function EventOrderPanelForm({
         clobOrderType: state.type === ORDER_TYPE.LIMIT && hasExpirationLimit ? CLOB_ORDER_TYPE.GTD : undefined,
         conditionId: activeMarket.condition_id,
         slug: event.slug,
+        locale,
       })
 
       if (result?.error) {
@@ -2018,6 +2019,7 @@ export default function EventOrderPanelForm({
           clobOrderType: CLOB_ORDER_TYPE.FOK,
           conditionId: activeMarket.condition_id,
           slug: event.slug,
+          locale,
         }),
         preparedPolymarketOrder.post(),
       ])
