@@ -26,6 +26,7 @@ import type {
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
+import { getFeaturedChartEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
 import {
   buildLinePickerOptions,
@@ -2144,12 +2145,13 @@ function FeaturedSlide({
   const shouldRenderChart = isChartEnabled && (isPrevious || isActive || isNext)
   const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>(shouldRenderChart)
   const isSingleMarket = item.event.total_markets_count === 1 || item.event.markets.length === 1
+  const chartEvent = useMemo(() => getFeaturedChartEvent(item.event, isSingleMarket), [isSingleMarket, item.event])
   const shouldRenderLiveSeriesChart = Boolean(
     item.liveChartConfig && shouldUseLiveSeriesChart(item.event, item.liveChartConfig),
   )
   const sportsGraphCard = useMemo(
-    () => (item.kind === 'sports' ? (buildSportsGamesCards([item.event])[0] ?? null) : null),
-    [item.event, item.kind],
+    () => (item.kind === 'sports' ? (buildSportsGamesCards([chartEvent])[0] ?? null) : null),
+    [chartEvent, item.kind],
   )
   const sportsGraphSelection = useMemo(
     () => (sportsGraphCard ? resolveSportsGraphSelection(sportsGraphCard) : null),
@@ -2176,10 +2178,10 @@ function FeaturedSlide({
       )}
     >
       {shouldRenderChart && (
-        <EventMarketChannelProvider markets={item.event.markets}>
+        <EventMarketChannelProvider markets={chartEvent.markets}>
           {shouldRenderLiveSeriesChart && item.liveChartConfig ? (
             <HomeEventLiveSeriesChart
-              event={item.event}
+              event={chartEvent}
               isMobile={isMobile}
               seriesEvents={item.seriesEvents}
               config={item.liveChartConfig}
@@ -2205,7 +2207,7 @@ function FeaturedSlide({
             />
           ) : (
             <HomeEventChart
-              event={item.event}
+              event={chartEvent}
               isMobile={isMobile}
               showControls={false}
               showSeriesNavigation={false}

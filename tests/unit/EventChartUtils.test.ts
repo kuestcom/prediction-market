@@ -2,11 +2,36 @@ import { describe, expect, it } from 'bun:test'
 
 import {
   buildHistoryWithLatestPointOverride,
+  getFeaturedChartEvent,
   getSportsMoneylineMarketIds,
   resolveChartRangeStartMs,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 
 describe('eventChartUtils', () => {
+  it('keeps only unresolved markets for a mixed multi-market chart', () => {
+    const unresolvedMarket = { condition_id: 'active-market', is_resolved: false, condition: { resolved: false } }
+    const resolvedMarket = { condition_id: 'resolved-market', is_resolved: true, condition: { resolved: false } }
+    const conditionResolvedMarket = {
+      condition_id: 'condition-resolved-market',
+      is_resolved: false,
+      condition: { resolved: true },
+    }
+    const event = { markets: [unresolvedMarket, resolvedMarket, conditionResolvedMarket] }
+
+    expect(getFeaturedChartEvent(event, false).markets.map((market) => market.condition_id)).toEqual(['active-market'])
+  })
+
+  it('falls back to the original event when no market remains or when there is a single market', () => {
+    const resolvedMarket = { condition_id: 'resolved-market', is_resolved: true, condition: { resolved: true } }
+    const allResolvedEvent = {
+      markets: [resolvedMarket, { ...resolvedMarket, condition_id: 'resolved-market-2' }],
+    }
+    const singleMarketEvent = { markets: [resolvedMarket] }
+
+    expect(getFeaturedChartEvent(allResolvedEvent, false)).toBe(allResolvedEvent)
+    expect(getFeaturedChartEvent(singleMarketEvent, true)).toBe(singleMarketEvent)
+  })
+
   it('builds a flat series across the selected range when only a current quote exists', () => {
     const start = new Date('2026-07-30T12:00:00.000Z')
     const end = new Date('2026-07-30T13:00:00.000Z')

@@ -19,6 +19,27 @@ export function getMaxSeriesCount() {
   return MAX_SERIES
 }
 
+interface FeaturedChartEventLike {
+  markets: Array<{
+    condition_id: string
+    is_resolved: boolean
+    condition?: { resolved: boolean } | null
+  }>
+}
+
+export function getFeaturedChartEvent<T extends FeaturedChartEventLike>(event: T, isSingleMarket: boolean): T {
+  if (isSingleMarket) {
+    return event
+  }
+
+  const unresolvedMarkets = event.markets.filter((market) => !market.is_resolved && !market.condition?.resolved)
+  if (unresolvedMarkets.length === 0 || unresolvedMarkets.length === event.markets.length) {
+    return event
+  }
+
+  return { ...event, markets: unresolvedMarkets } as T
+}
+
 export function buildMarketSignature(event: Event) {
   return event.markets
     .map((market) => {

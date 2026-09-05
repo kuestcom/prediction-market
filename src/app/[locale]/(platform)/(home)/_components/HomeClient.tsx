@@ -2,7 +2,8 @@
 
 import type { Route } from 'next'
 
-import { useExtracted } from 'next-intl'
+import { useQueryClient } from '@tanstack/react-query'
+import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -20,9 +21,16 @@ import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/
 import EventFaq from '@/app/[locale]/(platform)/event/[slug]/_components/EventFaq'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { resolveCategorySidebarPageTitle } from '@/lib/category-sidebar-config'
+import {
+  fetchHomeEventsQueryPage,
+  getHomeEventsNextPageParam,
+  getHomeEventsQueryKey,
+  HOME_FEED_REFRESH_INTERVAL_MS,
+} from '@/lib/home-events-query'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { parsePlatformPathname, resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
+import { useUser } from '@/stores/useUser'
 
 const CategorySidebar = dynamic(() => import('@/app/[locale]/(platform)/(home)/_components/CategorySidebar'))
 
@@ -208,6 +216,9 @@ function useHomeClientContentState({
   targetTag,
 }: HomeClientContentStateInput) {
   const router = useRouter()
+  const locale = useLocale()
+  const queryClient = useQueryClient()
+  const user = useUser()
   const { updateFilters } = useFilters()
   const [homeFilters, setHomeFilters] = useState<FilterState>(() => createHomeRouteFilters(targetTag, targetMainTag))
   const canUseServerInitialEvents = useMemo(
@@ -315,29 +326,94 @@ function useHomeClientContentState({
       })
     : null
 
+  const resolveSecondaryNavigationPath = useCallback(
+    ({ slug: targetTag, href }: { href?: string; slug: string }) => {
+      if (!activeNavigationTag) {
+        return null
+      }
+
+      if (href) {
+        return href
+      }
+
+      if (shouldUsePathSubcategoryNavigation) {
+        return targetTag === activeNavigationTag.slug
+          ? `/${activeNavigationTag.slug}`
+          : `/${activeNavigationTag.slug}/${targetTag}`
+      }
+
+      return null
+    },
+    [activeNavigationTag, shouldUsePathSubcategoryNavigation],
+  )
+
   const handleSecondaryNavigation = useCallback(
+    ({ slug: targetTag, href }: { href?: string; slug: string }) => {
+      const nextPath = resolveSecondaryNavigationPath({ slug: targetTag, href })
+      if (nextPath) {
+        router.push(nextPath as Route)
+        return
+      }
+
+      if (activeNavigationTag) {
+        handleFiltersChange({ tag: targetTag, mainTag: activeNavigationTag.slug })
+      }
+    },
+    [activeNavigationTag, handleFiltersChange, resolveSecondaryNavigationPath, router],
+  )
+
+  const handlePrefetchSecondaryNavigation = useCallback(
     ({ slug: targetTag, href }: { href?: string; slug: string }) => {
       if (!activeNavigationTag) {
         return
       }
 
+      const nextPath = resolveSecondaryNavigationPath({ slug: targetTag, href })
+      if (nextPath) {
+        router.prefetch(nextPath as Route)
+      }
+
       if (href) {
-        router.push(href as Route)
         return
       }
 
-      if (shouldUsePathSubcategoryNavigation) {
-        const nextPath =
-          targetTag === activeNavigationTag.slug
-            ? `/${activeNavigationTag.slug}`
-            : `/${activeNavigationTag.slug}/${targetTag}`
-        router.push(nextPath as Route)
-        return
-      }
+      const targetFilters = shouldUsePathSubcategoryNavigation
+        ? createHomeRouteFilters(targetTag, activeNavigationTag.slug)
+        : { ...homeFilters, tag: targetTag, mainTag: activeNavigationTag.slug }
+      const homeFeedClockState = targetFilters.status === 'active' ? 'clock-ready' : 'clock-static'
+      const queryKey = getHomeEventsQueryKey({
+        filters: targetFilters,
+        locale,
+        queryUserScope: user?.id ?? 'guest',
+        homeFeedClockState,
+      })
 
-      handleFiltersChange({ tag: targetTag, mainTag: activeNavigationTag.slug })
+      void queryClient
+        .prefetchInfiniteQuery({
+          queryKey,
+          queryFn: ({ pageParam }) =>
+            fetchHomeEventsQueryPage({
+              pageParam,
+              currentTimestamp: targetFilters.status === 'active' ? Date.now() : null,
+              filters: targetFilters,
+              locale,
+            }),
+          getNextPageParam: getHomeEventsNextPageParam,
+          initialPageParam: 0,
+          staleTime: HOME_FEED_REFRESH_INTERVAL_MS,
+        })
+        .catch(() => undefined)
     },
-    [activeNavigationTag, handleFiltersChange, router, shouldUsePathSubcategoryNavigation],
+    [
+      activeNavigationTag,
+      homeFilters,
+      locale,
+      queryClient,
+      resolveSecondaryNavigationPath,
+      router,
+      shouldUsePathSubcategoryNavigation,
+      user?.id,
+    ],
   )
 
   const secondaryNavigation = activeNavigationTag ? (
@@ -347,6 +423,7 @@ function useHomeClientContentState({
       heading={categoryPageTitle ?? undefined}
       showCategoryTitle={showCategoryPathTitle}
       hideOnDesktop={hasCategorySidebar}
+      onPrefetchTag={handlePrefetchSecondaryNavigation}
       onSelectTag={handleSecondaryNavigation}
     />
   ) : null

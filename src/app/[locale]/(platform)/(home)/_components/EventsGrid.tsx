@@ -23,8 +23,13 @@ import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { matchesCryptoCadenceRoute } from '@/lib/crypto-cadence-event'
-import { fetchHomeEventsPageApi } from '@/lib/events-api'
 import { filterHomeEvents, isEventResolvedLike } from '@/lib/home-events'
+import {
+  fetchHomeEventsQueryPage,
+  getHomeEventsNextPageParam,
+  getHomeEventsQueryKey,
+  HOME_FEED_REFRESH_INTERVAL_MS,
+} from '@/lib/home-events-query'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
@@ -47,8 +52,6 @@ const eventsSnapshotCache = new Map<string, Event[]>()
 const EVENTS_SNAPSHOT_CACHE_LIMIT = 24
 const HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN = '200px 0px'
 const HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS = 2_000
-const HOME_FEED_REFRESH_INTERVAL_MS = 60_000
-
 function hasFiniteTimestamp(value: number | null | undefined) {
   return typeof value === 'number' && Number.isFinite(value)
 }
@@ -103,34 +106,6 @@ function setEventsSnapshot(key: string, events: Event[]) {
 
     eventsSnapshotCache.delete(oldestKey)
   }
-}
-
-async function fetchEvents({
-  pageParam,
-  currentTimestamp,
-  filters,
-  locale,
-}: {
-  currentTimestamp: number | null
-  pageParam: number
-  filters: FilterState
-  locale: string
-}): Promise<HomeEventsApiPage> {
-  return fetchHomeEventsPageApi({
-    tag: filters.tag,
-    mainTag: filters.mainTag,
-    search: filters.search,
-    bookmarked: filters.bookmarked,
-    frequency: filters.frequency,
-    status: filters.status,
-    sort: filters.sortBy,
-    offset: pageParam,
-    locale,
-    currentTimestamp,
-    hideSports: filters.hideSports,
-    hideCrypto: filters.hideCrypto,
-    hideEarnings: filters.hideEarnings,
-  })
 }
 
 interface UseEventsListParams {
@@ -608,22 +583,7 @@ export default function EventsGrid({
   })
   const infiniteScrollEnabled = infiniteScrollState.key === loadMoreStateKey && infiniteScrollState.enabled
 
-  const eventsQueryKey = [
-    'events',
-    filters.tag,
-    filters.mainTag,
-    filters.search,
-    filters.bookmarked,
-    filters.frequency,
-    filters.sortBy,
-    filters.status,
-    filters.hideSports,
-    filters.hideCrypto,
-    filters.hideEarnings,
-    locale,
-    queryUserScope,
-    homeFeedClockState,
-  ]
+  const eventsQueryKey = getHomeEventsQueryKey({ filters, locale, queryUserScope, homeFeedClockState })
 
   const {
     status,
@@ -638,20 +598,19 @@ export default function EventsGrid({
   } = useInfiniteQuery({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) =>
-      fetchEvents({
+      fetchHomeEventsQueryPage({
         pageParam,
         currentTimestamp: shouldAutoRefreshEvents ? Date.now() : resolvedCurrentTimestamp,
         filters,
         locale,
       }),
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.hasMore ? allPages.reduce((offset, page) => offset + page.events.length, 0) : undefined,
+    getNextPageParam: getHomeEventsNextPageParam,
     initialPageParam: 0,
     initialData: shouldUseInitialData
       ? { pages: [{ events: initialEvents, hasMore: initialHasMore }], pageParams: [0] }
       : undefined,
     enabled: shouldEnableEventsQuery,
-    refetchOnMount: shouldAutoRefreshEvents ? 'always' : false,
+    refetchOnMount: shouldAutoRefreshEvents ? true : false,
     refetchOnWindowFocus: false,
     staleTime: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : 'static',
     refetchInterval: shouldAutoRefreshEvents ? HOME_FEED_REFRESH_INTERVAL_MS : false,

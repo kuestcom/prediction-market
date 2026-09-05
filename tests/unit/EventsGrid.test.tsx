@@ -634,7 +634,7 @@ describe('eventsGrid', () => {
     })
 
     expect(mocks.refetch).not.toHaveBeenCalled()
-    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].refetchOnMount).toBe('always')
+    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].refetchOnMount).toBe(true)
     expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].staleTime).toBe(60_000)
   })
 

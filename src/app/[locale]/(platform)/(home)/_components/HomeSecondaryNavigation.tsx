@@ -17,6 +17,7 @@ interface HomeSecondaryNavigationProps {
   activeSubtagSlug: string
   heading?: string
   hideOnDesktop?: boolean
+  onPrefetchTag?: (target: Pick<PlatformCategorySidebarLinkItem, 'href' | 'slug'>) => void
   onSelectTag: (target: Pick<PlatformCategorySidebarLinkItem, 'href' | 'slug'>) => void
   showCategoryTitle?: boolean
   tag: Pick<PlatformNavigationTag, 'childs' | 'name' | 'sidebarItems' | 'slug'>
@@ -203,6 +204,7 @@ export default function HomeSecondaryNavigation({
   activeSubtagSlug,
   heading,
   onSelectTag,
+  onPrefetchTag,
   showCategoryTitle = false,
   hideOnDesktop = false,
 }: HomeSecondaryNavigationProps) {
@@ -241,7 +243,10 @@ export default function HomeSecondaryNavigation({
               ref={(element: HTMLButtonElement | null) => {
                 buttonRef.current[index] = element
               }}
+              onFocus={() => onPrefetchTag?.({ slug: item.slug, href: item.href })}
               onClick={() => onSelectTag({ slug: item.slug, href: item.href })}
+              onPointerDown={() => onPrefetchTag?.({ slug: item.slug, href: item.href })}
+              onPointerEnter={() => onPrefetchTag?.({ slug: item.slug, href: item.href })}
               variant="ghost"
               size="sm"
               className={cn(
