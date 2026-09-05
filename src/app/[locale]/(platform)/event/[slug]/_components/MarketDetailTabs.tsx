@@ -273,7 +273,7 @@ export default function MarketDetailTabs({
               summaries={orderBookData.summaries}
               isLoadingSummaries={orderBookData.isLoading}
               eventSlug={event.slug}
-              surfaceVariant={isNegRiskEnabled ? 'transparent' : 'default'}
+              surfaceVariant="transparent"
               openMobileOrderPanelOnLevelSelect={isMobile}
               rewardHighlight={showRewardHighlight}
             />
