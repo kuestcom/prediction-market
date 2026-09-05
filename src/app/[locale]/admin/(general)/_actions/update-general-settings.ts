@@ -644,8 +644,13 @@ async function syncGeoblockSettings() {
 
 function getLocaleOverride(formData: FormData): SupportedLocale | undefined {
   const rawLocale = formData.get('locale')
-  return typeof rawLocale === 'string' && SUPPORTED_LOCALES.includes(rawLocale as SupportedLocale)
-    ? (rawLocale as SupportedLocale)
+  if (typeof rawLocale !== 'string') {
+    return undefined
+  }
+
+  const normalizedLocale = rawLocale.trim().toLowerCase()
+  return SUPPORTED_LOCALES.includes(normalizedLocale as SupportedLocale)
+    ? (normalizedLocale as SupportedLocale)
     : undefined
 }
 

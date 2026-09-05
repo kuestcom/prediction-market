@@ -381,7 +381,6 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
   return useMemo(
     () =>
       JSON.stringify({
-        locale: props.locale,
         supportedLocales: props.supportedLocales,
         enabledLocales: props.enabledLocales,
         localeOrder: props.localeOrder,
@@ -390,7 +389,6 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
         isOpenRouterConfigured: props.isOpenRouterConfigured,
       }),
     [
-      props.locale,
       props.supportedLocales,
       props.enabledLocales,
       props.localeOrder,

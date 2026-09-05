@@ -71,7 +71,8 @@ async function generateCachedDocsMetadata({ slug }: { slug?: string[] }): Promis
 }
 
 export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slug]]'>): Promise<Metadata> {
-  return generateCachedDocsMetadata(await props.params)
+  const { slug } = await props.params
+  return generateCachedDocsMetadata({ slug })
 }
 
 async function renderCachedDocsPage({ locale, slug }: { locale: string; slug?: string[] }) {

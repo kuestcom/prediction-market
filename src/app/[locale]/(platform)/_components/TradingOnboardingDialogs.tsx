@@ -1029,6 +1029,7 @@ export default function TradingOnboardingDialogs({
       />
 
       <EmailDialog
+        key={activeModal === 'email' ? 'open' : 'closed'}
         open={activeModal === 'email'}
         onOpenChange={(open) => onModalOpenChange('email', open)}
         defaultValue={emailDefaultValue}

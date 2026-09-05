@@ -81,4 +81,18 @@ describe('adminLocalesSettingsForm', () => {
       ),
     ).toEqual(['en', 'fr', 'de'])
   })
+
+  it('preserves unsaved changes when the UI locale changes', () => {
+    const view = render(<AdminLocalesSettingsForm {...props} />)
+
+    fireEvent.click(view.getByRole('button', { name: 'Move Deutsch up' }))
+    view.rerender(<AdminLocalesSettingsForm {...props} locale="pt" />)
+
+    expect(
+      Array.from(view.container.querySelectorAll('input[name="enabled_locales"]')).map((input) =>
+        input.getAttribute('value'),
+      ),
+    ).toEqual(['en', 'de', 'fr'])
+    expect(view.container.querySelector('input[name="locale"]')).toHaveValue('pt')
+  })
 })
