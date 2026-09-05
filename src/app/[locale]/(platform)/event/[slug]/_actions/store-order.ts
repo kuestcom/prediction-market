@@ -278,9 +278,15 @@ async function mapClobErrorMessage(rawError: string | null, locale: SupportedLoc
   return t('Something went wrong while processing your order. Please try again.')
 }
 
-function resolveBatchLocale(orders: StoreOrderInput[]) {
-  const locale = orders
-    .map((order) => order.locale?.trim().toLowerCase())
+function resolveBatchLocale(payloads: unknown) {
+  if (!Array.isArray(payloads)) {
+    return DEFAULT_LOCALE
+  }
+
+  const locale = payloads
+    .map((payload) =>
+      isRecord(payload) && typeof payload.locale === 'string' ? payload.locale.trim().toLowerCase() : null,
+    )
     .find((value): value is SupportedLocale => SUPPORTED_LOCALES.includes(value as SupportedLocale))
 
   return locale ?? DEFAULT_LOCALE
@@ -498,7 +504,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
   }
 
   const validated = StoreOrdersSchema.safeParse(payloads)
-  const batchLocale = validated.success ? resolveBatchLocale(validated.data) : DEFAULT_LOCALE
+  const batchLocale = resolveBatchLocale(payloads)
 
   function getLocalizedClobError(rawError: string | null) {
     return mapClobErrorMessage(rawError, batchLocale)
@@ -610,7 +616,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
               orderId: null,
             })),
           )
-          batchFailureError ??= batchResults[0]?.error ?? (await getLocalizedClobError(responseError))
+          batchFailureError ??= batchResults[0]!.error
           results.push(...batchResults)
           continue
         }
@@ -623,7 +629,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
               orderId: null,
             })),
           )
-          batchFailureError ??= batchResults[0]?.error ?? (await getLocalizedClobError(null))
+          batchFailureError ??= batchResults[0]!.error
           results.push(...batchResults)
           continue
         }
@@ -686,7 +692,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
             orderId: null,
           })),
         )
-        batchFailureError ??= batchResults[0]?.error ?? (await getLocalizedClobError(null))
+        batchFailureError ??= batchResults[0]!.error
         results.push(...batchResults)
       }
     }

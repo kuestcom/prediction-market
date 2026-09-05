@@ -582,6 +582,36 @@ describe('storeOrderAction', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('uses a supported raw locale when batch schema validation fails', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    mocks.getExtracted.mockImplementation(
+      async ({ locale }: { locale: string }) =>
+        (message: string) =>
+          `${locale}:${message}`,
+    )
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrdersAction([
+      { ...basePayload({ locale: 'pt', maker: depositWallet, signer: depositWallet }), side: 2 },
+    ] as unknown as StoreOrdersInput)
+
+    expect(result).toEqual({
+      error: 'pt:Something went wrong while processing your order. Please try again.',
+      results: null,
+    })
+  })
+
   it('preserves individual failures returned by the CLOB batch endpoint', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const depositWallet = address('01')
