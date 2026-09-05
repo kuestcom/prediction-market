@@ -1,10 +1,10 @@
+import { afterEach, describe, expect, it, spyOn, jest } from 'bun:test'
 import { Buffer } from 'node:buffer'
 import { createHmac } from 'node:crypto'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { normalizeSumsubApplicantStatus, SumsubClient } from '@/lib/sumsub/client'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => jest.restoreAllMocks())
 
 describe('sumsub client', () => {
   it('signs timestamp, uppercase method, path/query and exact body', () => {
@@ -17,8 +17,8 @@ describe('sumsub client', () => {
   })
 
   it('sends the exact signed access-token body and authenticated headers', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
           token: 'temporary-token',
@@ -39,7 +39,7 @@ describe('sumsub client', () => {
   })
 
   it('moves existing applicants to a newly configured verification level', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
     const client = new SumsubClient({ appToken: 'app-token', secretKey: 'secret-key' })
 
     await client.moveApplicantToLevel('applicant/1', 'enhanced kyc')
@@ -57,7 +57,7 @@ describe('sumsub client', () => {
     })
     expect(body.length).toBeLessThan(64 * 1024)
     expect(Buffer.byteLength(body, 'utf8')).toBeGreaterThan(64 * 1024)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(body, {
         status: 200,
         headers: { 'Content-Type': 'application/json' },

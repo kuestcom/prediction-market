@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, spyOn } from 'bun:test'
 
 import { ORDER_SIDE } from '@/lib/constants'
 import {
@@ -154,7 +154,7 @@ describe('validateOrder', () => {
       ),
     ).toEqual({ ok: false, reason: 'INVALID_LIMIT_EXPIRATION' })
 
-    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
+    const nowSpy = spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
     try {
       const nowSeconds = Math.floor(Date.now() / 1000)
       expect(

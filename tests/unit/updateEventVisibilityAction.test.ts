@@ -1,27 +1,29 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  revalidatePath: vi.fn(),
-  setEventHiddenState: vi.fn(),
-  updateTag: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  revalidatePath: mock(),
+  setEventHiddenState: mock(),
+  updateTag: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   revalidatePath: (...args: any[]) => mocks.revalidatePath(...args),
   updateTag: (...args: any[]) => mocks.updateTag(...args),
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     setEventHiddenState: (...args: any[]) => mocks.setEventHiddenState(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },

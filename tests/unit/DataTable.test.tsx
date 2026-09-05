@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import type { DataTableColumnDef } from '@/lib/data-table'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (key: string, values?: Record<string, string>) => {
     if (!values) {
       return key
@@ -34,7 +34,7 @@ const columns: DataTableColumnDef<TestRow>[] = [
 
 describe('dataTable', () => {
   it('renders rows and forwards v9 sorting changes', () => {
-    const onSortChange = vi.fn()
+    const onSortChange = mock()
 
     render(
       <DataTable
@@ -42,14 +42,14 @@ describe('dataTable', () => {
         data={[{ id: '1', name: 'Alpha' }]}
         totalCount={1}
         search=""
-        onSearchChange={vi.fn()}
+        onSearchChange={mock()}
         sortBy={null}
         sortOrder={null}
         onSortChange={onSortChange}
         pageIndex={0}
         pageSize={10}
-        onPageChange={vi.fn()}
-        onPageSizeChange={vi.fn()}
+        onPageChange={mock()}
+        onPageSizeChange={mock()}
         enableColumnVisibility={false}
         enablePagination={false}
       />,

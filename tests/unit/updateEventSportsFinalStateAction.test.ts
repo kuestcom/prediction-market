@@ -1,24 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-  getCurrentUser: vi.fn(),
-  setEventSportsFinalState: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  revalidatePath: mock(),
+  updateTag: mock(),
+  getCurrentUser: mock(),
+  setEventSportsFinalState: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   revalidatePath: (...args: any[]) => mocks.revalidatePath(...args),
   updateTag: (...args: any[]) => mocks.updateTag(...args),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     setEventSportsFinalState: (...args: any[]) => mocks.setEventSportsFinalState(...args),
   },
@@ -45,7 +47,6 @@ function mockSavedSportsFinalState() {
 
 describe('updateEventSportsFinalStateAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.revalidatePath.mockReset()
     mocks.updateTag.mockReset()
     mocks.getCurrentUser.mockReset()

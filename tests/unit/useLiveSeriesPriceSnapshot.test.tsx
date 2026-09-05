@@ -1,9 +1,19 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import type { EventLiveChartConfig } from '@/types'
 
 import { useLiveSeriesPriceSnapshot } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesPriceSnapshot'
+
+import {
+  advanceTimersByTimeAsync,
+  spyOn,
+  spyOnAccessor,
+  stubGlobal,
+  unstubAllGlobals,
+  useFakeTimers,
+  useRealTimers,
+} from '../bun-test-helpers'
 
 function getRequestUrl(input: unknown) {
   if (typeof input === 'string') {
@@ -20,20 +30,20 @@ describe('useLiveSeriesPriceSnapshot', () => {
 
   beforeEach(() => {
     now = 1_800_000_000_000
-    vi.spyOn(Date, 'now').mockImplementation(() => now)
-    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+    spyOn(Date, 'now').mockImplementation(() => now)
+    spyOnAccessor(document, 'hidden', 'get').mockReturnValue(false)
     window.localStorage.clear()
   })
 
   afterEach(() => {
     cleanup()
-    vi.useRealTimers()
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
+    useRealTimers()
+    jest.restoreAllMocks()
+    unstubAllGlobals()
   })
 
   it('requests a current snapshot again when a live tab becomes visible', async () => {
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL) => ({
+    const fetchMock = mock(async (_input: RequestInfo | URL) => ({
       ok: true,
       json: async () => ({
         opening_price: 100,
@@ -42,7 +52,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
         event_window_end_ms: now,
       }),
     }))
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const config = {
       series_slug: 'snapshot-resume-test',
@@ -60,7 +70,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
     )
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    const firstUrl = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]), window.location.origin)
+    const firstUrl = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]), 'https://example.test')
     expect(firstUrl.searchParams.get('eventEndMs')).toBe(String(now))
 
     now += 2 * 60 * 60 * 1000
@@ -69,19 +79,19 @@ describe('useLiveSeriesPriceSnapshot', () => {
     })
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    const resumedUrl = new URL(getRequestUrl(fetchMock.mock.calls[1]?.[0]), window.location.origin)
+    const resumedUrl = new URL(getRequestUrl(fetchMock.mock.calls[1]?.[0]), 'https://example.test')
     expect(resumedUrl.searchParams.get('eventEndMs')).toBe(String(now))
   })
 
   it('exposes loading and unavailable states before a reference snapshot is confirmed', async () => {
     let resolveFetch: ((value: { ok: boolean }) => void) | null = null
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       () =>
         new Promise<{ ok: boolean }>((resolve) => {
           resolveFetch = resolve
         }),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const config = {
       series_slug: 'snapshot-status-test',
@@ -110,11 +120,10 @@ describe('useLiveSeriesPriceSnapshot', () => {
   })
 
   it('retries five seconds after a new window starts until its opening price is available', async () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const eventStartTimestamp = now
     const eventEndTimestamp = eventStartTimestamp + 5 * 60 * 1000
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -133,7 +142,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
           event_window_end_ms: eventEndTimestamp,
         }),
       })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const config = {
       series_slug: 'snapshot-opening-retry-test',
@@ -151,14 +160,14 @@ describe('useLiveSeriesPriceSnapshot', () => {
     )
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(0)
+      await advanceTimersByTimeAsync(0)
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(result.current.referenceSnapshot?.opening_price).toBeNull()
 
     now += 5_000
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5_000)
+      await advanceTimersByTimeAsync(5_000)
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(2)

@@ -1,23 +1,25 @@
-import type { MockInstance } from 'vitest'
+import type { Mock } from 'bun:test'
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
 
-const mocks = vi.hoisted(() => ({
+import { hoisted, spyOn } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
   pathname: '/admin/events',
   searchParams: new URLSearchParams(),
 }))
 
-let replaceStateSpy: MockInstance<History['replaceState']>
+let replaceStateSpy: Mock<History['replaceState']>
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   usePathname: () => mocks.pathname,
   useSearchParams: () => mocks.searchParams,
 }))
 
-vi.mock('@/app/[locale]/admin/events/_components/AdminEventsTable', () => {
+void mock.module('@/app/[locale]/admin/events/_components/AdminEventsTable', () => {
   return {
     default: function MockAdminEventsTable({
       tableState,
@@ -80,11 +82,11 @@ describe('adminEventsTableFromUrl', () => {
     mocks.pathname = '/admin/events'
     mocks.searchParams = new URLSearchParams()
     window.history.replaceState(null, '', '/admin/events')
-    replaceStateSpy = vi.spyOn(window.history, 'replaceState')
+    replaceStateSpy = spyOn(window.history, 'replaceState')
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
   })
 
   it('applies filters from the current URL', () => {

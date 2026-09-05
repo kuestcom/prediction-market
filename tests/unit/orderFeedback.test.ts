@@ -1,36 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { handleOrderSuccessFeedback } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 
-const mocks = vi.hoisted(() => ({
-  toastSuccess: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  toastSuccess: mock(),
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     success: mocks.toastSuccess,
-    error: vi.fn(),
-    info: vi.fn(),
+    error: mock(),
+    info: mock(),
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast', () => ({
   default: ({ children }: { children: unknown }) => children,
 }))
 
-vi.mock('@/lib/utils', () => ({
-  triggerConfetti: vi.fn(),
+void mock.module('@/lib/utils', () => ({
+  triggerConfetti: mock(),
 }))
 
 describe('handleOrderSuccessFeedback', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   it('uses buyAmountValue when provided for buy success copy', () => {
     const queryClient = {
-      invalidateQueries: vi.fn(),
+      invalidateQueries: mock(),
     }
 
     handleOrderSuccessFeedback({
@@ -59,7 +61,7 @@ describe('handleOrderSuccessFeedback', () => {
 
   it('formats limit order toast prices from cents', () => {
     const queryClient = {
-      invalidateQueries: vi.fn(),
+      invalidateQueries: mock(),
     }
 
     handleOrderSuccessFeedback({

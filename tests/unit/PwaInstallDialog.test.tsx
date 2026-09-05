@@ -2,26 +2,29 @@ import type { ReactNode } from 'react'
 
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import PwaInstallDialog from '@/components/PwaInstallDialog'
 
-const mocks = vi.hoisted(() => ({
-  useIsMobile: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  useIsMobile: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: () => <span data-testid="pwa-icon" />,
 }))
 
-vi.mock('@/components/PwaInstallIosInstructions', () => ({
+void mock.module('@/components/PwaInstallIosInstructions', () => ({
   default: () => <span>Follow the Safari instructions</span>,
 }))
 
-vi.mock('@/components/ui/dialog', () => ({
+void mock.module('@/components/ui/dialog', () => ({
   Dialog: ({ children }: any) => <div data-testid="install-dialog">{children}</div>,
   DialogClose: ({ children, ...props }: any) => <button {...props}>{children}</button>,
   DialogContent: ({ children }: any) => <div>{children}</div>,
@@ -29,7 +32,7 @@ vi.mock('@/components/ui/dialog', () => ({
   DialogTitle: ({ children }: any) => <h2>{children}</h2>,
 }))
 
-vi.mock('@/components/ui/drawer', () => ({
+void mock.module('@/components/ui/drawer', () => ({
   Drawer: ({ children }: any) => <div data-testid="install-drawer">{children}</div>,
   DrawerContent: ({ children }: any) => <div>{children}</div>,
   DrawerDescription: ({ children }: any) => <p>{children}</p>,
@@ -37,11 +40,11 @@ vi.mock('@/components/ui/drawer', () => ({
   DrawerTitle: ({ children }: any) => <h2>{children}</h2>,
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => mocks.useIsMobile(),
 }))
 
-vi.mock('@/hooks/useSiteIdentity', () => ({
+void mock.module('@/hooks/useSiteIdentity', () => ({
   useSiteIdentity: () => ({ pwaIcon192Url: '/pwa-icon.png' }),
 }))
 
@@ -63,7 +66,7 @@ describe('pwaInstallDialog', () => {
 
   it('uses a drawer on mobile and closes it from the close button', async () => {
     mocks.useIsMobile.mockReturnValue(true)
-    const onOpenChange = vi.fn()
+    const onOpenChange = mock()
     const { user } = setup(<PwaInstallDialog open onOpenChange={onOpenChange} />)
 
     await user.click(screen.getByRole('button', { name: 'Close' }))

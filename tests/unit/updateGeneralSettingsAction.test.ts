@@ -1,17 +1,20 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 import { Buffer } from 'node:buffer'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  replaceFeaturedEventsWithSettings: vi.fn(),
-  updateSettings: vi.fn(),
-  updateSettingsWithTermsOfService: vi.fn(),
-  decryptSecret: vi.fn(),
-  encryptSecret: vi.fn(),
-  upload: vi.fn(),
-  fetch: vi.fn(),
+import { hoisted, spyOn, stubGlobal } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  revalidatePath: mock(),
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  replaceFeaturedEventsWithSettings: mock(),
+  updateSettings: mock(),
+  updateSettingsWithTermsOfService: mock(),
+  decryptSecret: mock(),
+  encryptSecret: mock(),
+  upload: mock(),
+  fetch: mock(),
 }))
 
 const VALID_JPEG_BASE64 =
@@ -58,15 +61,16 @@ function buildHomeFeaturedFormData() {
   return formData
 }
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
     updateSettings: (...args: any[]) => mocks.updateSettings(...args),
@@ -74,26 +78,24 @@ vi.mock('@/lib/db/queries/settings', () => ({
   },
 }))
 
-vi.mock('@/lib/db/queries/home-featured-events', () => ({
+void mock.module('@/lib/db/queries/home-featured-events', () => ({
   HomeFeaturedEventsRepository: {
     replaceFeaturedEventsWithSettings: (...args: any[]) => mocks.replaceFeaturedEventsWithSettings(...args),
   },
 }))
 
-vi.mock('@/lib/encryption', () => ({
+void mock.module('@/lib/encryption', () => ({
   decryptSecret: (...args: any[]) => mocks.decryptSecret(...args),
   encryptSecret: (...args: any[]) => mocks.encryptSecret(...args),
 }))
 
-vi.mock('@/lib/storage-upload', () => ({
+void mock.module('@/lib/storage-upload', () => ({
   uploadPublicAsset: (...args: any[]) => mocks.upload(...args),
 }))
 
 describe('updateGeneralSettingsAction', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.doUnmock('sharp')
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
     mocks.getSettings.mockReset()
@@ -112,7 +114,7 @@ describe('updateGeneralSettingsAction', () => {
     mocks.decryptSecret.mockReturnValue('')
     mocks.fetch.mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue({}),
+      json: mock().mockResolvedValue({}),
     })
   })
 
@@ -351,7 +353,7 @@ describe('updateGeneralSettingsAction', () => {
   it('saves SVG settings without loading sharp', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
-    vi.doMock('sharp', () => {
+    void mock.module('sharp', () => {
       throw new Error('sharp should not load for SVG-only settings saves')
     })
 
@@ -372,14 +374,13 @@ describe('updateGeneralSettingsAction', () => {
       expect(result).toEqual({ error: null })
       expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
     } finally {
-      vi.doUnmock('sharp')
     }
   })
 
   it('returns a form error when raster logo processing is unavailable', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.doMock('sharp', () => {
+    const consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
+    void mock.module('sharp', () => {
       throw new Error('sharp missing')
     })
 
@@ -402,7 +403,6 @@ describe('updateGeneralSettingsAction', () => {
       expect(mocks.updateSettings).not.toHaveBeenCalled()
     } finally {
       consoleErrorSpy.mockRestore()
-      vi.doUnmock('sharp')
     }
   })
 
@@ -423,7 +423,7 @@ describe('updateGeneralSettingsAction', () => {
   ])('validates and uploads a $label side card image without loading sharp', async (sample) => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
-    vi.doMock('sharp', () => {
+    void mock.module('sharp', () => {
       throw new Error('sharp should not load for side card uploads')
     })
 
@@ -467,7 +467,6 @@ describe('updateGeneralSettingsAction', () => {
         new RegExp(`^home-featured/side-card-\\d+-[a-z0-9]+\\.${sample.extension}$`),
       )
     } finally {
-      vi.doUnmock('sharp')
     }
   })
 
@@ -577,7 +576,7 @@ describe('updateGeneralSettingsAction', () => {
     mocks.revalidatePath.mockImplementationOnce(() => {
       throw new Error('revalidation failed')
     })
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {})
 
     try {
       const { updateGeneralSettingsAction } =

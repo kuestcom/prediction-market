@@ -2,14 +2,16 @@ import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { AdminEventsTableState } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import { DEFAULT_ADMIN_EVENTS_TABLE_STATE } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 
-const fetchMock = vi.fn()
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const fetchMock = mock()
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -37,15 +39,15 @@ describe('useAdminEventsTable', () => {
         seriesOptions: [],
       }),
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('fetches with the complete URL-controlled state', async () => {
-    const onStateChange = vi.fn()
+    const onStateChange = mock()
     const view = renderHook(
       ({ state }: { state: AdminEventsTableState }) => useAdminEventsTable(state, onStateChange, true),
       {
@@ -87,7 +89,7 @@ describe('useAdminEventsTable', () => {
   })
 
   it('writes every table control through state patches', async () => {
-    const onStateChange = vi.fn()
+    const onStateChange = mock()
     const view = renderHook(() => useAdminEventsTable(DEFAULT_ADMIN_EVENTS_TABLE_STATE, onStateChange), {
       wrapper: createWrapper(),
     })

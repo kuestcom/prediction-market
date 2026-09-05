@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test'
 import { getTableColumns } from 'drizzle-orm'
 import { createTableRelationsHelpers, extractTablesRelationalConfig } from 'drizzle-orm/relations'
-import { describe, expect, it } from 'vitest'
 
 import * as schema from '@/lib/db/schema'
 

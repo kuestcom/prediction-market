@@ -1,19 +1,21 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
 
-const mocks = vi.hoisted(() => ({
-  updateGeneralSettingsAction: vi.fn(),
-  optimizeSideCardImage: vi.fn(),
-  createObjectURL: vi.fn(),
-  revokeObjectURL: vi.fn(),
-  toastSuccess: vi.fn(),
-  toastError: vi.fn(),
-  useIsMobile: vi.fn(() => false),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  updateGeneralSettingsAction: mock(),
+  optimizeSideCardImage: mock(),
+  createObjectURL: mock(),
+  revokeObjectURL: mock(),
+  toastSuccess: mock(),
+  toastError: mock(),
+  useIsMobile: mock(() => false),
 }))
 
 const marketContextProps = {
@@ -45,7 +47,7 @@ const termsOfServiceTranslations = {
   ko: '# Kuest 이용약관\n\n한국어 콘텐츠.',
 }
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string, variables?: Record<string, string>) =>
     Object.entries(variables ?? {}).reduce(
       (message, [key, replacement]) => message.replaceAll(`{${key}}`, replacement),
@@ -53,11 +55,11 @@ vi.mock('next-intl', () => ({
     ),
 }))
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
+void mock.module('next/navigation', () => ({
+  useRouter: () => ({ refresh: mock() }),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
     <a href={href} {...props}>
       {children}
@@ -65,31 +67,31 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: mocks.useIsMobile,
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   __esModule: true,
   default: ({ fill: _fill, unoptimized: _unoptimized, ...props }: any) => React.createElement('img', props),
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     success: (...args: any[]) => mocks.toastSuccess(...args),
     error: (...args: any[]) => mocks.toastError(...args),
   },
 }))
 
-vi.mock('@/app/[locale]/admin/(general)/_actions/update-general-settings', () => ({
+void mock.module('@/app/[locale]/admin/(general)/_actions/update-general-settings', () => ({
   updateGeneralSettingsAction: (...args: any[]) => mocks.updateGeneralSettingsAction(...args),
 }))
 
-vi.mock('@/lib/side-card-image-client', () => ({
+void mock.module('@/lib/side-card-image-client', () => ({
   optimizeSideCardImage: (...args: any[]) => mocks.optimizeSideCardImage(...args),
 }))
 
-vi.mock('@/app/[locale]/admin/(general)/_components/AllowedMarketCreatorsManager', () => ({
+void mock.module('@/app/[locale]/admin/(general)/_components/AllowedMarketCreatorsManager', () => ({
   __esModule: true,
   default: () => React.createElement('div', { 'data-testid': 'allowed-market-creators-manager' }),
 }))
@@ -116,24 +118,24 @@ describe('adminGeneralSettingsForm', () => {
     })
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
+      value: mock().mockImplementation((query: string) => ({
         matches: false,
         media: query,
         onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
+        addListener: mock(),
+        removeListener: mock(),
+        addEventListener: mock(),
+        removeEventListener: mock(),
+        dispatchEvent: mock(),
       })),
     })
     Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: mock(),
     })
     Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', {
       configurable: true,
-      value: vi.fn(),
+      value: mock(),
     })
   })
 

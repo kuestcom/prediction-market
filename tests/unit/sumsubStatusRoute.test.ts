@@ -1,20 +1,22 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  getForUser: vi.fn(),
-  consumeStatusRateLimit: vi.fn(),
-  getSettings: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  getForUser: mock(),
+  consumeStatusRateLimit: mock(),
+  getSettings: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
-vi.mock('@/lib/db/queries/sumsub', () => ({
+void mock.module('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
+void mock.module('@/lib/db/queries/sumsub', () => ({
   SumsubRepository: {
     getForUser: mocks.getForUser,
     consumeStatusRateLimit: mocks.consumeStatusRateLimit,
   },
 }))
-vi.mock('@/lib/sumsub/settings', () => ({
+void mock.module('@/lib/sumsub/settings', () => ({
   getSumsubSettings: mocks.getSettings,
   sanitizeSumsubSettings: (settings: Record<string, unknown>) => ({
     enabled: settings.enabled,
@@ -29,7 +31,7 @@ const { GET } = await import('@/app/api/sumsub/status/route')
 
 describe('sumsub status route', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'user-1' })
     mocks.consumeStatusRateLimit.mockResolvedValue(true)
     mocks.getSettings.mockResolvedValue({

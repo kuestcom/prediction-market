@@ -1,23 +1,24 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 import { createRef } from 'react'
 
 import PublicPositionsTable from '@/app/[locale]/(platform)/profile/_components/PublicPositionsTable'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicClosedPositionsRow', () => ({
+void mock.module('@/app/[locale]/(platform)/profile/_components/PublicClosedPositionsRow', () => ({
   default: () => null,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicPositionsRow', () => ({
+void mock.module('@/app/[locale]/(platform)/profile/_components/PublicPositionsRow', () => ({
   default: () => null,
 }))
 
 describe('publicPositionsTable', () => {
   it('shows closed-position columns instead of active-position columns', () => {
-    const onSortHeaderClick = vi.fn()
+    const onSortHeaderClick = mock()
 
     render(
       <PublicPositionsTable

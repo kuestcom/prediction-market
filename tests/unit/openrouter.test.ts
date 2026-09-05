@@ -1,10 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  loadRuntimeThemeSiteName: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  loadRuntimeThemeSiteName: mock(),
 }))
 
-vi.mock('@/lib/theme-settings', () => ({
+void mock.module('@/lib/theme-settings', () => ({
   loadRuntimeThemeSiteName: (...args: any[]) => mocks.loadRuntimeThemeSiteName(...args),
 }))
 
@@ -12,13 +14,12 @@ describe('openrouter helpers', () => {
   const originalSiteUrl = process.env.SITE_URL
 
   beforeEach(() => {
-    vi.resetModules()
     mocks.loadRuntimeThemeSiteName.mockReset()
     process.env.SITE_URL = 'https://kuest.test'
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
 
     if (originalSiteUrl === undefined) {
       delete process.env.SITE_URL
@@ -28,8 +29,8 @@ describe('openrouter helpers', () => {
   })
 
   it('sends runtime site name in completion headers', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
 
     fetchMock.mockResolvedValueOnce(
@@ -58,8 +59,8 @@ describe('openrouter helpers', () => {
   })
 
   it('rejects completions truncated by the max token limit', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
 
     fetchMock.mockResolvedValueOnce(
@@ -86,8 +87,8 @@ describe('openrouter helpers', () => {
   })
 
   it('loads only web-search-capable models and sends runtime site name in models headers', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
 
     fetchMock.mockResolvedValueOnce(
@@ -142,8 +143,8 @@ describe('openrouter helpers', () => {
   })
 
   it('loads all available models for translation selection', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
 
     fetchMock.mockResolvedValueOnce(
@@ -180,8 +181,8 @@ describe('openrouter helpers', () => {
   })
 
   it('shares the in-flight models response between both projections', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
 
     fetchMock.mockResolvedValueOnce(
@@ -216,8 +217,8 @@ describe('openrouter helpers', () => {
   })
 
   it('omits incompatible characters from the runtime site title header', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('测试站点名称')
 
     fetchMock.mockResolvedValueOnce(

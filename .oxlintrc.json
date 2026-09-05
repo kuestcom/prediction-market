@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "react", "nextjs", "node", "jsdoc", "vitest"],
+  "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "react", "nextjs", "node", "jsdoc"],
   "jsPlugins": ["eslint-plugin-react-you-might-not-need-an-effect"],
   "categories": {
     "correctness": "error"
@@ -75,7 +75,6 @@
     "unicorn/no-invalid-fetch-options": "off",
     "unicorn/no-useless-fallback-in-spread": "off",
     "unicorn/prefer-string-starts-ends-with": "off",
-    "vitest/require-mock-type-parameters": "off",
     "react-you-might-not-need-an-effect/no-adjust-state-on-prop-change": "warn",
     "react-you-might-not-need-an-effect/no-chain-state-updates": "warn",
     "react-you-might-not-need-an-effect/no-derived-state": "warn",
@@ -90,8 +89,7 @@
     {
       "files": ["tests/**/*.{ts,tsx}"],
       "rules": {
-        "unicorn/no-thenable": "off",
-        "vitest/no-conditional-expect": "off"
+        "unicorn/no-thenable": "off"
       }
     }
   ]

@@ -1,15 +1,17 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { createHmac } from 'node:crypto'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { POST } from '@/app/api/webhooks/sumsub/route'
 
-const mocks = vi.hoisted(() => ({
-  getSumsubSettings: vi.fn(),
-  processWebhook: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getSumsubSettings: mock(),
+  processWebhook: mock(),
 }))
 
-vi.mock('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSumsubSettings }))
-vi.mock('@/lib/db/queries/sumsub', () => ({ SumsubRepository: { processWebhook: mocks.processWebhook } }))
+void mock.module('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSumsubSettings }))
+void mock.module('@/lib/db/queries/sumsub', () => ({ SumsubRepository: { processWebhook: mocks.processWebhook } }))
 
 const payload = {
   applicantId: 'applicant-1',

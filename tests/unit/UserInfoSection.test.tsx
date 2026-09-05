@@ -1,17 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import UserInfoSection from '@/components/UserInfoSection'
 
-const mocks = vi.hoisted(() => ({
-  copy: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  copy: mock(),
 }))
 
-vi.mock('@/hooks/useClipboard', () => ({
+void mock.module('@/hooks/useClipboard', () => ({
   useClipboard: () => ({ copied: false, copy: mocks.copy }),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: React.ComponentProps<'a'>) => (
     <a href={href} {...props}>
       {children}
@@ -19,7 +21,7 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => ({
     address: '0x1234567890abcdef',
     deposit_wallet_address: '0x1234567890abcdef',
@@ -30,7 +32,7 @@ vi.mock('@/stores/useUser', () => ({
 
 describe('UserInfoSection', () => {
   it('copies the address without activating the containing menu item', () => {
-    const onMenuItemClick = vi.fn()
+    const onMenuItemClick = mock()
 
     render(
       <div onClick={onMenuItemClick}>

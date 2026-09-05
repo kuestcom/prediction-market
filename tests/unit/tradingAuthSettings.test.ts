@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { TOKEN_APPROVALS_VERSION } from '@/lib/trading-auth/approvals'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'

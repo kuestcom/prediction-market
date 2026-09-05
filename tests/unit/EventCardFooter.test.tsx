@@ -1,36 +1,39 @@
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 
-const mocks = vi.hoisted(() => ({
-  eventBookmark: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  eventBookmark: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string, values?: Record<string, string | number>) =>
     Object.entries(values ?? {}).reduce((label, [key, value]) => label.replace(`{${key}}`, String(value)), message),
 }))
 
-vi.mock('lucide-react', () => ({
+void mock.module('lucide-react', () => ({
   Repeat: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="repeat-icon" {...props} />,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
   default: function MockEventBookmark(props: any) {
     mocks.eventBookmark(props)
     return <span data-testid="event-bookmark" />
   },
 }))
 
-vi.mock('@/components/ui/new-badge', () => ({
+void mock.module('@/components/ui/new-badge', () => ({
   NewBadge: () => <span data-testid="new-badge">New</span>,
 }))
 
-vi.mock('@/lib/formatters', () => ({
+void mock.module('@/lib/formatters', () => ({
   formatVolume: () => '1.2K',
 }))
 

@@ -1,19 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  deleteReturning: vi.fn(),
-  insertValues: vi.fn(),
-  transaction: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  deleteReturning: mock(),
+  insertValues: mock(),
+  transaction: mock(),
 }))
 
-vi.mock('server-only', () => ({}))
+void mock.module('server-only', () => ({}))
 
-vi.mock('@/lib/drizzle', () => {
+void mock.module('@/lib/drizzle', () => {
   const tx = {
-    delete: vi.fn(() => ({
-      where: vi.fn(() => ({ returning: mocks.deleteReturning })),
+    delete: mock(() => ({
+      where: mock(() => ({ returning: mocks.deleteReturning })),
     })),
-    insert: vi.fn(() => ({ values: mocks.insertValues })),
+    insert: mock(() => ({ values: mocks.insertValues })),
   }
 
   return {

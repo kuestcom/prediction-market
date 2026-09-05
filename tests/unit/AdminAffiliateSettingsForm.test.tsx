@@ -1,43 +1,45 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 
-const mocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  updateAction: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  refresh: mock(),
+  updateAction: mock(),
   user: {
     deposit_wallet_address: '0x1111111111111111111111111111111111111111',
   },
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   useRouter: () => ({ refresh: mocks.refresh }),
 }))
 
-vi.mock('next/form', () => ({
+void mock.module('next/form', () => ({
   __esModule: true,
   default: ({ children, ...props }: any) => React.createElement('form', props, children),
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
-    success: vi.fn(),
-    error: vi.fn(),
+    success: mock(),
+    error: mock(),
   },
 }))
 
-vi.mock('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings', () => ({
+void mock.module('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings', () => ({
   updateForkSettingsAction: (...args: any[]) => mocks.updateAction(...args),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.user,
 }))
 

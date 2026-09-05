@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import {
   runOnPolymarketChain,
@@ -96,14 +96,14 @@ describe('polymarket wallet connection', () => {
 
   it('restores the site chain when preparing the Polymarket order fails', async () => {
     const error = new Error('Signing rejected')
-    const restoreSiteChain = vi.fn().mockResolvedValue(undefined)
+    const restoreSiteChain = mock().mockResolvedValue(undefined)
 
     await expect(
       runOnPolymarketChain({
         connectionChainId: 80_002,
-        switchToPolymarket: vi.fn().mockResolvedValue(undefined),
+        switchToPolymarket: mock().mockResolvedValue(undefined),
         restoreOriginalChain: restoreSiteChain,
-        operation: vi.fn().mockRejectedValue(error),
+        operation: mock().mockRejectedValue(error),
       }),
     ).rejects.toBe(error)
 
@@ -116,16 +116,16 @@ describe('polymarket wallet connection', () => {
     await expect(
       runOnPolymarketChain({
         connectionChainId: 80_002,
-        switchToPolymarket: vi.fn().mockResolvedValue(undefined),
-        restoreOriginalChain: vi.fn().mockRejectedValue(new Error('Restore rejected')),
-        operation: vi.fn().mockRejectedValue(operationError),
+        switchToPolymarket: mock().mockResolvedValue(undefined),
+        restoreOriginalChain: mock().mockRejectedValue(new Error('Restore rejected')),
+        operation: mock().mockRejectedValue(operationError),
       }),
     ).rejects.toBe(operationError)
   })
 
   it('leaves a separate Polymarket connection on Polygon when it was already ready', async () => {
-    const switchToPolymarket = vi.fn()
-    const restoreSiteChain = vi.fn().mockResolvedValue(undefined)
+    const switchToPolymarket = mock()
+    const restoreSiteChain = mock().mockResolvedValue(undefined)
 
     await expect(
       runOnPolymarketChain({

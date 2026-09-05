@@ -1,21 +1,23 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
+
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
 
 const CONDITION_ALLOWED = `0x${'a'.repeat(64)}`
 const CONDITION_BLOCKED = `0x${'b'.repeat(64)}`
 const CREATOR_ALLOWED = '0x1111111111111111111111111111111111111111'
 const CREATOR_BLOCKED = '0x2222222222222222222222222222222222222222'
 
-const mocks = vi.hoisted(() => ({
-  findEvents: vi.fn(),
-  findMarkets: vi.fn(),
-  loadAllowedMarketCreatorWallets: vi.fn(),
+const mocks = hoisted(() => ({
+  findEvents: mock(),
+  findMarkets: mock(),
+  loadAllowedMarketCreatorWallets: mock(),
 }))
 
-vi.mock('@/lib/allowed-market-creators-server', () => ({
+void mock.module('@/lib/allowed-market-creators-server', () => ({
   loadAllowedMarketCreatorWallets: (...args: unknown[]) => mocks.loadAllowedMarketCreatorWallets(...args),
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     query: {
       events: { findMany: (...args: unknown[]) => mocks.findEvents(...args) },
@@ -30,7 +32,7 @@ describe('global activity route', () => {
   const originalDataUrl = process.env.DATA_URL
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
     if (originalDataUrl === undefined) {
       delete process.env.DATA_URL
     } else {
@@ -69,7 +71,7 @@ describe('global activity route', () => {
   })
 
   it('loads a Data API page and keeps only trades from allowed market creators', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = mock().mockResolvedValue(
       Response.json([
         {
           id: 'fill-allowed',
@@ -103,7 +105,7 @@ describe('global activity route', () => {
         },
       ]),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const response = await GET(new Request('https://example.com/api/activity?limit=100&offset=50'))
 
@@ -136,7 +138,7 @@ describe('global activity route', () => {
   })
 
   it('returns an error when the Data API response is not an array', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ error: 'invalid' })))
+    stubGlobal('fetch', mock().mockResolvedValue(Response.json({ error: 'invalid' })))
 
     const response = await GET(new Request('https://example.com/api/activity'))
 

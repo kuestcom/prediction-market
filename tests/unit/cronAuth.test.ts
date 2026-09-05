@@ -1,14 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it } from 'bun:test'
 
 import { isCronAuthorized } from '@/lib/auth-cron'
 
+import { stubEnv, unstubAllEnvs } from '../bun-test-helpers'
+
 describe('isCronAuthorized', () => {
   afterEach(() => {
-    vi.unstubAllEnvs()
+    unstubAllEnvs()
   })
 
   it('rejects when no secret is configured', () => {
-    vi.stubEnv('CRON_SECRET', '')
+    stubEnv('CRON_SECRET', '')
     expect(isCronAuthorized('Bearer x', undefined)).toBe(false)
   })
 
@@ -18,7 +20,7 @@ describe('isCronAuthorized', () => {
   })
 
   it('can read secret from env', () => {
-    vi.stubEnv('CRON_SECRET', 'env-secret')
+    stubEnv('CRON_SECRET', 'env-secret')
     expect(isCronAuthorized('Bearer env-secret')).toBe(true)
     expect(isCronAuthorized('Bearer nope')).toBe(false)
   })

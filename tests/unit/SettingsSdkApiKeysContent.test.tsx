@@ -1,26 +1,28 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import SettingsSdkApiKeysContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkApiKeysContent'
 
-const mocks = vi.hoisted(() => ({
-  generateSdkApiKeyAction: vi.fn(),
-  getNextSdkApiKeyNonceAction: vi.fn(),
-  openAppKit: vi.fn(),
-  revokeSdkApiKeyAction: vi.fn(),
-  signTypedDataAsync: vi.fn(),
-  toastError: vi.fn(),
-  toastSuccess: vi.fn(),
-  toastWarning: vi.fn(),
-  useAccount: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  generateSdkApiKeyAction: mock(),
+  getNextSdkApiKeyNonceAction: mock(),
+  openAppKit: mock(),
+  revokeSdkApiKeyAction: mock(),
+  signTypedDataAsync: mock(),
+  toastError: mock(),
+  toastSuccess: mock(),
+  toastWarning: mock(),
+  useAccount: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     error: mocks.toastError,
     success: mocks.toastSuccess,
@@ -28,31 +30,31 @@ vi.mock('@/components/ui/toast', () => ({
   },
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   useAccount: () => mocks.useAccount(),
   useSignTypedData: () => ({
     signTypedDataAsync: mocks.signTypedDataAsync,
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys', () => ({
+void mock.module('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys', () => ({
   generateSdkApiKeyAction: (...args: unknown[]) => mocks.generateSdkApiKeyAction(...args),
   getNextSdkApiKeyNonceAction: (...args: unknown[]) => mocks.getNextSdkApiKeyNonceAction(...args),
   revokeSdkApiKeyAction: (...args: unknown[]) => mocks.revokeSdkApiKeyAction(...args),
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({
     isReady: true,
     open: mocks.openAppKit,
   }),
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({
     runWithSignaturePrompt: (callback: () => Promise<string>) => callback(),
   }),

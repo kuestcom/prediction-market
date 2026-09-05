@@ -1,7 +1,7 @@
 import type { ApiKeyCreds, ClobClient } from '@polymarket/clob-client-v2'
 
 import { ApiError } from '@polymarket/clob-client-v2'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock, spyOn, jest } from 'bun:test'
 
 import {
   buildPolymarketLimitOrder,
@@ -16,7 +16,7 @@ const credentials: ApiKeyCreds = {
 }
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  jest.restoreAllMocks()
 })
 
 function createAuthClient({
@@ -31,8 +31,8 @@ function createAuthClient({
 
 describe('polymarket API credentials', () => {
   it('derives an existing key without attempting to create a duplicate', async () => {
-    const deriveApiKey = vi.fn().mockResolvedValue(credentials)
-    const createApiKey = vi.fn()
+    const deriveApiKey = mock().mockResolvedValue(credentials)
+    const createApiKey = mock()
 
     await expect(
       deriveOrCreatePolymarketCredentials(
@@ -47,8 +47,8 @@ describe('polymarket API credentials', () => {
   })
 
   it('creates a key only when no key exists for the default nonce', async () => {
-    const deriveApiKey = vi.fn().mockRejectedValue(new ApiError('Could not derive api key', 400, {}))
-    const createApiKey = vi.fn().mockResolvedValue(credentials)
+    const deriveApiKey = mock().mockRejectedValue(new ApiError('Could not derive api key', 400, {}))
+    const createApiKey = mock().mockResolvedValue(credentials)
 
     await expect(
       deriveOrCreatePolymarketCredentials(
@@ -63,8 +63,8 @@ describe('polymarket API credentials', () => {
 
   it('does not create a key after an unrelated authentication failure', async () => {
     const error = new ApiError('Service unavailable', 503, {})
-    const deriveApiKey = vi.fn().mockRejectedValue(error)
-    const createApiKey = vi.fn()
+    const deriveApiKey = mock().mockRejectedValue(error)
+    const createApiKey = mock()
 
     await expect(
       deriveOrCreatePolymarketCredentials(
@@ -130,7 +130,7 @@ describe('polymarket arbitrage order', () => {
   })
 
   it('stops before signing when the server-side order preflight fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ error: 'Polymarket order service is temporarily unavailable.' }), {
         status: 503,
         headers: { 'Content-Type': 'application/json' },

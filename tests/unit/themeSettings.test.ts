@@ -1,15 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  cacheTag: vi.fn(),
-  getSettings: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  cacheTag: mock(),
+  getSettings: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   cacheTag: (...args: any[]) => mocks.cacheTag(...args),
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: { getSettings: (...args: any[]) => mocks.getSettings(...args) },
 }))
 
@@ -17,7 +19,6 @@ const originalPostgresUrl = process.env.POSTGRES_URL
 
 describe('theme settings runtime resolver', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.getSettings.mockReset()
     process.env.POSTGRES_URL = 'postgres://theme-settings-test'

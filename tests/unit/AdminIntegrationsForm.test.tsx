@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) =>
     React.createElement('img', {
       src: typeof src === 'string' ? src : undefined,
@@ -17,8 +17,8 @@ vi.mock('next/image', () => ({
     }),
 }))
 
-vi.mock('@/app/[locale]/admin/integrations/_actions/update-integrations-settings', () => ({
-  updateIntegrationsSettingsAction: vi.fn().mockResolvedValue({ error: null }),
+void mock.module('@/app/[locale]/admin/integrations/_actions/update-integrations-settings', () => ({
+  updateIntegrationsSettingsAction: mock().mockResolvedValue({ error: null }),
 }))
 
 const props = {

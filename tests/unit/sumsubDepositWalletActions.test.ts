@@ -1,35 +1,37 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  requireApproval: vi.fn(),
-  getDepositWalletAddress: vi.fn(),
-  getUserTradingAuthSecrets: vi.fn(),
+import { hoisted, spyOn } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  requireApproval: mock(),
+  getDepositWalletAddress: mock(),
+  getUserTradingAuthSecrets: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
-vi.mock('@/lib/sumsub/enforcement', () => ({
+void mock.module('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
+void mock.module('@/lib/sumsub/enforcement', () => ({
   requireSumsubTradingApproval: mocks.requireApproval,
   SUMSUB_APPROVAL_REQUIRED_MESSAGE: 'Complete identity verification to continue.',
 }))
-vi.mock('@/lib/deposit-wallet', () => ({
+void mock.module('@/lib/deposit-wallet', () => ({
   getDepositWalletAddress: mocks.getDepositWalletAddress,
-  isDepositWalletDeployed: vi.fn(),
+  isDepositWalletDeployed: mock(),
 }))
-vi.mock('@/lib/trading-auth/server', () => ({
+void mock.module('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: mocks.getUserTradingAuthSecrets,
-  markAutoRedeemApprovalCompleted: vi.fn(),
-  saveUserTradingAuthCredentials: vi.fn(),
+  markAutoRedeemApprovalCompleted: mock(),
+  saveUserTradingAuthCredentials: mock(),
 }))
-vi.mock('@/lib/drizzle', () => ({ db: {} }))
-vi.mock('next/headers', () => ({ cookies: vi.fn() }))
+void mock.module('@/lib/drizzle', () => ({ db: {} }))
+void mock.module('next/headers', () => ({ cookies: mock() }))
 
 const { createDepositWalletAction, enableTradingAuthAction } =
   await import('@/app/[locale]/(platform)/_actions/deposit-wallet')
 
 describe('sumsub deposit wallet enforcement', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({
       id: 'user-1',
       address: '0x0000000000000000000000000000000000000001',
@@ -48,7 +50,7 @@ describe('sumsub deposit wallet enforcement', () => {
   })
 
   it('blocks trading credential creation before validating or calling services', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = spyOn(globalThis, 'fetch')
     await expect(enableTradingAuthAction({ signature: '', timestamp: '', nonce: '' })).resolves.toEqual({
       error: 'Complete identity verification to continue.',
       data: null,

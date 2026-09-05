@@ -1,21 +1,21 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
-import HeaderMenu from '@/app/[locale]/(platform)/_components/HeaderMenu'
+import { hoisted } from '../bun-test-helpers'
 
-const mocks = vi.hoisted(() => ({
-  useSession: vi.fn(),
+const mocks = hoisted(() => ({
+  useSession: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('next/dynamic', () => ({
+void mock.module('next/dynamic', () => ({
   default: () => () => <div data-testid="header-deposit-button" />,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -23,47 +23,49 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest', () => ({
   default: () => <div data-testid="header-guest-menu" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/HeaderNotifications', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/HeaderNotifications', () => ({
   default: () => <div data-testid="header-notifications" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/_providers/TradingOnboardingContext', () => ({
+void mock.module('@/app/[locale]/(platform)/_providers/TradingOnboardingContext', () => ({
   useOptionalTradingOnboarding: () => null,
 }))
 
-vi.mock('@/components/HeaderDropdownUserMenuAuth', () => ({
+void mock.module('@/components/HeaderDropdownUserMenuAuth', () => ({
   default: () => <div data-testid="header-auth-menu" />,
 }))
 
-vi.mock('@/components/HeaderPortfolio', () => ({
+void mock.module('@/components/HeaderPortfolio', () => ({
   default: () => <div data-testid="header-portfolio" />,
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
-  useAppKit: () => ({ open: vi.fn() }),
+void mock.module('@/hooks/useAppKit', () => ({
+  useAppKit: () => ({ open: mock() }),
 }))
 
-vi.mock('@/hooks/useHasHydrated', () => ({
+void mock.module('@/hooks/useHasHydrated', () => ({
   useHasHydrated: () => true,
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+void mock.module('@/lib/auth-client', () => ({
   authClient: {
     useSession: mocks.useSession,
   },
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => null,
 }))
+
+const { default: HeaderMenu } = await import('@/app/[locale]/(platform)/_components/HeaderMenu')
 
 describe('HeaderMenu', () => {
   it('keeps the skeleton visible until a logged-in session resolves', () => {

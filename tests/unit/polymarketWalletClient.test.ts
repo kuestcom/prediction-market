@@ -1,17 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, spyOn, jest } from 'bun:test'
 
 import { syncPolymarketWallet } from '@/lib/polymarket-wallet-client'
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  jest.restoreAllMocks()
   usePolymarketWallet.getState().disconnect()
 })
 
 describe('polymarket wallet synchronization', () => {
   it('does not reconnect a stale wallet after a newer connection starts', async () => {
     let resolveProfile!: (response: Response) => void
-    vi.spyOn(globalThis, 'fetch').mockReturnValue(
+    spyOn(globalThis, 'fetch').mockReturnValue(
       new Promise((resolve) => {
         resolveProfile = resolve
       }),
@@ -45,7 +45,7 @@ describe('polymarket wallet synchronization', () => {
 
   it('does not disconnect or reconnect after a stale profile failure', async () => {
     let rejectProfile!: (error: Error) => void
-    vi.spyOn(globalThis, 'fetch').mockReturnValue(
+    spyOn(globalThis, 'fetch').mockReturnValue(
       new Promise((_resolve, reject) => {
         rejectProfile = reject
       }),

@@ -1,36 +1,38 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  isCronAuthorized: vi.fn(),
-  loadSportsSourceProviderSettings: vi.fn(),
-  resolveSportsEvent: vi.fn(),
-  revalidateTag: vi.fn(),
-  select: vi.fn(),
-  set: vi.fn(),
-  update: vi.fn(),
-  where: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  isCronAuthorized: mock(),
+  loadSportsSourceProviderSettings: mock(),
+  resolveSportsEvent: mock(),
+  revalidateTag: mock(),
+  select: mock(),
+  set: mock(),
+  update: mock(),
+  where: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   revalidateTag: (...args: any[]) => mocks.revalidateTag(...args),
 }))
 
-vi.mock('@/lib/auth-cron', () => ({
+void mock.module('@/lib/auth-cron', () => ({
   isCronAuthorized: (...args: any[]) => mocks.isCronAuthorized(...args),
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     select: (...args: any[]) => mocks.select(...args),
     update: (...args: any[]) => mocks.update(...args),
   },
 }))
 
-vi.mock('@/lib/sports-source', () => ({
+void mock.module('@/lib/sports-source', () => ({
   resolveSportsEvent: (...args: any[]) => mocks.resolveSportsEvent(...args),
 }))
 
-vi.mock('@/lib/sports-source/settings', () => ({
+void mock.module('@/lib/sports-source/settings', () => ({
   loadSportsSourceProviderSettings: (...args: any[]) => mocks.loadSportsSourceProviderSettings(...args),
 }))
 
@@ -48,7 +50,6 @@ function makeSelectChain(result: unknown[]) {
 
 describe('sync sports scores route', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.isCronAuthorized.mockReset()
     mocks.loadSportsSourceProviderSettings.mockReset()
     mocks.resolveSportsEvent.mockReset()

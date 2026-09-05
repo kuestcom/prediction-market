@@ -1,11 +1,11 @@
+import { describe, expect, it, mock } from 'bun:test'
 import { and, sql } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
-import { describe, expect, it, vi } from 'vitest'
 
 import { buildEndingSoonOrderBy, buildRelatedEventOrderBy, buildResolvedLikeCondition } from '@/lib/db/queries/event'
 
-vi.mock('next/cache', () => ({
-  cacheTag: vi.fn(),
+void mock.module('next/cache', () => ({
+  cacheTag: mock(),
   unstable_cache: (callback: unknown) => callback,
 }))
 

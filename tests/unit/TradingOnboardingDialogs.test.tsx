@@ -2,41 +2,44 @@ import type { ComponentProps } from 'react'
 
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import TradingOnboardingDialogs from '@/app/[locale]/(platform)/_components/TradingOnboardingDialogs'
 
-const mocks = vi.hoisted(() => ({
-  useIsMobile: vi.fn(() => false),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  useIsMobile: mock(() => false),
 }))
 
-const sdkMocks = vi.hoisted(() => ({
-  destroy: vi.fn(),
-  init: vi.fn(),
-  launch: vi.fn(),
+const sdkMocks = hoisted(() => ({
+  destroy: mock(),
+  init: mock(),
+  launch: mock(),
   messageHandler: null as ((type: string) => void) | null,
 }))
 
-vi.mock('@sumsub/websdk', () => ({
+void mock.module('@sumsub/websdk', () => ({
   default: { init: sdkMocks.init },
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
-  checkUsernameAvailabilityAction: vi.fn(),
+void mock.module('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
+  checkUsernameAvailabilityAction: mock(),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/TradingDialogs', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/TradingDialogs', () => ({
   FundAccountDialog: ({ open }: { open: boolean }) => (open ? <div data-testid="fund-account-dialog" /> : null),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/WalletFlow', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/WalletFlow', () => ({
   WalletFlow: () => null,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: any) {
     return (
       <a href={href} {...props}>
@@ -46,11 +49,11 @@ vi.mock('@/i18n/navigation', () => ({
   },
 }))
 
-vi.mock('@/hooks/useSiteIdentity', () => ({
+void mock.module('@/hooks/useSiteIdentity', () => ({
   useSiteIdentity: () => ({ name: 'Kuest' }),
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: mocks.useIsMobile,
 }))
 
@@ -59,16 +62,16 @@ type TradingOnboardingDialogsProps = ComponentProps<typeof TradingOnboardingDial
 function createProps(overrides: Partial<TradingOnboardingDialogsProps> = {}): TradingOnboardingDialogsProps {
   return {
     activeModal: null,
-    onModalOpenChange: vi.fn(),
+    onModalOpenChange: mock(),
     usernameDefaultValue: '',
     usernameError: null,
     isUsernameSubmitting: false,
-    onUsernameSubmit: vi.fn(),
+    onUsernameSubmit: mock(),
     emailDefaultValue: '',
     emailError: null,
     isEmailSubmitting: false,
-    onEmailSubmit: vi.fn(),
-    onEmailSkip: vi.fn(),
+    onEmailSubmit: mock(),
+    onEmailSkip: mock(),
     sumsubStatus: {
       enabled: true,
       configured: true,
@@ -79,27 +82,27 @@ function createProps(overrides: Partial<TradingOnboardingDialogsProps> = {}): Tr
       approvedAt: null,
       updatedAt: null,
     },
-    onSumsubStatusChange: vi.fn(),
+    onSumsubStatusChange: mock(),
     enableTradingStep: 'idle',
     enableTradingError: null,
-    onCreateDepositWallet: vi.fn(),
-    onEnableTradingAuth: vi.fn(),
+    onCreateDepositWallet: mock(),
+    onEnableTradingAuth: mock(),
     hasDeployedDepositWallet: false,
     hasTradingAuth: false,
     hasTokenApprovals: false,
     approvalsStep: 'idle',
     tokenApprovalError: null,
-    onApproveTokens: vi.fn(),
+    onApproveTokens: mock(),
     autoRedeemStep: 'idle',
     autoRedeemError: null,
-    onApproveAutoRedeem: vi.fn(),
+    onApproveAutoRedeem: mock(),
     fundModalOpen: false,
-    onFundOpenChange: vi.fn(),
-    onFundDeposit: vi.fn(),
+    onFundOpenChange: mock(),
+    onFundDeposit: mock(),
     depositModalOpen: false,
-    onDepositOpenChange: vi.fn(),
+    onDepositOpenChange: mock(),
     withdrawModalOpen: false,
-    onWithdrawOpenChange: vi.fn(),
+    onWithdrawOpenChange: mock(),
     user: null,
     meldUrl: null,
     ...overrides,
@@ -116,19 +119,19 @@ describe('tradingOnboardingDialogs', () => {
     sdkMocks.messageHandler = null
 
     const sdkBuilder = {
-      build: vi.fn(() => ({ destroy: sdkMocks.destroy, launch: sdkMocks.launch })),
-      onMessage: vi.fn((handler: (type: string) => void) => {
+      build: mock(() => ({ destroy: sdkMocks.destroy, launch: sdkMocks.launch })),
+      onMessage: mock((handler: (type: string) => void) => {
         sdkMocks.messageHandler = handler
         return sdkBuilder
       }),
-      withConf: vi.fn(() => sdkBuilder),
-      withOptions: vi.fn(() => sdkBuilder),
+      withConf: mock(() => sdkBuilder),
+      withOptions: mock(() => sdkBuilder),
     }
     sdkMocks.init.mockReturnValue(sdkBuilder)
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it.each([
@@ -153,7 +156,7 @@ describe('tradingOnboardingDialogs', () => {
 
   it('explains that Observe only is optional and allows dismissal', async () => {
     const user = userEvent.setup()
-    const onModalOpenChange = vi.fn()
+    const onModalOpenChange = mock()
     render(
       <TradingOnboardingDialogs
         {...createProps({
@@ -175,9 +178,9 @@ describe('tradingOnboardingDialogs', () => {
   })
 
   it('uses the latest verification state when the SDK reports submission', async () => {
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      mock().mockResolvedValue(
         new Response(JSON.stringify({ token: 'access-token' }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -185,7 +188,7 @@ describe('tradingOnboardingDialogs', () => {
       ),
     )
     const user = userEvent.setup()
-    const onStatusChange = vi.fn()
+    const onStatusChange = mock()
     const initialStatus = createProps().sumsubStatus
     const view = render(
       <TradingOnboardingDialogs
@@ -221,9 +224,9 @@ describe('tradingOnboardingDialogs', () => {
 
   it('does not start the SDK after the verification dialog closes during token loading', async () => {
     let resolveFetch: ((response: Response) => void) | undefined
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockImplementation(
+      mock().mockImplementation(
         () =>
           new Promise<Response>((resolve) => {
             resolveFetch = resolve
@@ -253,7 +256,7 @@ describe('tradingOnboardingDialogs', () => {
 
   it('does not let the username step close from dialog dismissal controls', async () => {
     const user = userEvent.setup()
-    const onModalOpenChange = vi.fn()
+    const onModalOpenChange = mock()
 
     render(
       <TradingOnboardingDialogs
@@ -274,8 +277,8 @@ describe('tradingOnboardingDialogs', () => {
 
   it('only lets the explicit email skip button skip the email step', async () => {
     const user = userEvent.setup()
-    const onModalOpenChange = vi.fn()
-    const onEmailSkip = vi.fn()
+    const onModalOpenChange = mock()
+    const onEmailSkip = mock()
 
     render(
       <TradingOnboardingDialogs
@@ -301,7 +304,7 @@ describe('tradingOnboardingDialogs', () => {
 
   it('keeps enable trading non-dismissible until an error appears', async () => {
     const user = userEvent.setup()
-    const onModalOpenChange = vi.fn()
+    const onModalOpenChange = mock()
 
     const view = render(
       <TradingOnboardingDialogs
@@ -340,7 +343,7 @@ describe('tradingOnboardingDialogs', () => {
 
   it('keeps enable trading status non-dismissible until an error appears', async () => {
     const user = userEvent.setup()
-    const onModalOpenChange = vi.fn()
+    const onModalOpenChange = mock()
 
     const view = render(
       <TradingOnboardingDialogs
@@ -381,7 +384,7 @@ describe('tradingOnboardingDialogs', () => {
 
   it('keeps approve tokens non-dismissible until an error appears', async () => {
     const user = userEvent.setup()
-    const onModalOpenChange = vi.fn()
+    const onModalOpenChange = mock()
 
     const view = render(
       <TradingOnboardingDialogs

@@ -1,18 +1,20 @@
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  fetch: vi.fn(),
-  getCurrentUser: vi.fn(),
-  select: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetch: mock(),
+  getCurrentUser: mock(),
+  select: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
-vi.mock('@/lib/drizzle', () => ({ db: { select: (...args: unknown[]) => mocks.select(...args) } }))
-vi.mock('@/lib/public-runtime-config.shared', () => ({
+void mock.module('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
+void mock.module('@/lib/drizzle', () => ({ db: { select: (...args: unknown[]) => mocks.select(...args) } }))
+void mock.module('@/lib/public-runtime-config.shared', () => ({
   resolvePublicRuntimeEnv: () => ({ escrowUrl: 'https://escrow.test', polymarketGammaUrl: 'https://gamma.test' }),
 }))
-vi.mock('@/lib/storage', () => ({ getPublicAssetUrl: (value: string) => value }))
+void mock.module('@/lib/storage', () => ({ getPublicAssetUrl: (value: string) => value }))
 
 const { GET } = await import('@/app/[locale]/admin/api/market-making/route')
 
@@ -30,7 +32,7 @@ function requestFor(query: string) {
 
 describe('market-making Polymarket URL search', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
     mocks.fetch.mockReset()
     mocks.getCurrentUser.mockReset()
     mocks.select.mockReset()
@@ -44,8 +46,8 @@ describe('market-making Polymarket URL search', () => {
   })
 
   afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+    useRealTimers()
+    unstubAllGlobals()
   })
 
   it.each([
@@ -83,7 +85,7 @@ describe('market-making Polymarket URL search', () => {
       title: 'Example market',
     },
   ])('looks up $query by slug', async ({ query, endpoint, payload, title }) => {
-    vi.setSystemTime(new Date('2026-08-30T00:00:00.000Z'))
+    jest.setSystemTime(new Date('2026-08-30T00:00:00.000Z'))
     mocks.fetch.mockResolvedValueOnce(jsonResponse(payload))
 
     const response = await GET(requestFor(query))
@@ -98,7 +100,7 @@ describe('market-making Polymarket URL search', () => {
     const slug = `market-${'a'.repeat(130)}`
     const query = `https://polymarket.com/market/${slug}`
     expect(query.length).toBeGreaterThan(120)
-    vi.setSystemTime(new Date('2026-08-30T00:00:00.000Z'))
+    jest.setSystemTime(new Date('2026-08-30T00:00:00.000Z'))
     mocks.fetch.mockResolvedValueOnce(
       jsonResponse({
         slug,

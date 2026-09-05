@@ -1,15 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
 
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
-vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm', () => ({
+void mock.module('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm', () => ({
   __esModule: true,
   default: function AdminAffiliateSettingsFormMock({ initialFeeRecipientWallet }: any) {
     const [draftWallet, setDraftWallet] = React.useState(initialFeeRecipientWallet)
@@ -30,7 +30,7 @@ vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm',
   },
 }))
 
-vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesCard', () => ({
+void mock.module('@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesCard', () => ({
   __esModule: true,
   default: ({ feeRecipientWallet }: any) =>
     React.createElement('div', { 'data-testid': 'claim-wallet' }, feeRecipientWallet),

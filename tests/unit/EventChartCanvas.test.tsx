@@ -1,11 +1,13 @@
 import { render } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  predictionChart: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  predictionChart: mock(),
 }))
 
-vi.mock('next/dynamic', () => ({
+void mock.module('next/dynamic', () => ({
   __esModule: true,
   default: () =>
     function MockPredictionChart(props: unknown) {
@@ -14,7 +16,7 @@ vi.mock('next/dynamic', () => ({
     },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventChartTradeFlow', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventChartTradeFlow', () => ({
   default: () => null,
 }))
 
@@ -36,7 +38,7 @@ describe('eventChartCanvas', () => {
         legendSeries={[{ key: 'market', name: 'Market', color: '#00ff00' }]}
         chartWidth={400}
         chartScopeKey="event:ALL:market"
-        onCursorDataChange={vi.fn()}
+        onCursorDataChange={mock()}
         isMobile={false}
         isSingleMarket
         chartSettings={{
@@ -66,7 +68,7 @@ describe('eventChartCanvas', () => {
         legendSeries={[{ key: 'market', name: '上涨', color: '#00ff00' }]}
         chartWidth={400}
         chartScopeKey="event:ALL:market"
-        onCursorDataChange={vi.fn()}
+        onCursorDataChange={mock()}
         isMobile={false}
         isSingleMarket
         chartSettings={{

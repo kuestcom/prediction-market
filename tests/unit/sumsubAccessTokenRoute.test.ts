@@ -1,22 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { POST } from '@/app/api/sumsub/access-token/route'
 import { SumsubClientError } from '@/lib/sumsub/client'
 
-const mocks = vi.hoisted(() => ({
-  attachApplicant: vi.fn(),
-  consumeRateLimit: vi.fn(),
-  createAccessToken: vi.fn(),
-  ensureUser: vi.fn(),
-  getApplicant: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  moveApplicantToLevel: vi.fn(),
-  syncApplicantStatus: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  attachApplicant: mock(),
+  consumeRateLimit: mock(),
+  createAccessToken: mock(),
+  ensureUser: mock(),
+  getApplicant: mock(),
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  moveApplicantToLevel: mock(),
+  syncApplicantStatus: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
-vi.mock('@/lib/db/queries/sumsub', () => ({
+void mock.module('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
+void mock.module('@/lib/db/queries/sumsub', () => ({
   SumsubRepository: {
     attachApplicant: mocks.attachApplicant,
     consumeAccessTokenRateLimit: mocks.consumeRateLimit,
@@ -24,9 +26,9 @@ vi.mock('@/lib/db/queries/sumsub', () => ({
     syncApplicantStatus: mocks.syncApplicantStatus,
   },
 }))
-vi.mock('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSettings }))
-vi.mock('@/lib/sumsub/client', () => ({
-  normalizeSumsubApplicantStatus: vi.fn(() => 'pending'),
+void mock.module('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSettings }))
+void mock.module('@/lib/sumsub/client', () => ({
+  normalizeSumsubApplicantStatus: mock(() => 'pending'),
   SumsubClientError: class extends Error {
     constructor(
       message: string,

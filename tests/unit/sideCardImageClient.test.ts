@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import {
   calculateSideCardImageTransform,
@@ -6,6 +6,8 @@ import {
   SIDE_CARD_IMAGE_MAX_INPUT_BYTES,
   SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES,
 } from '@/lib/side-card-image-client'
+
+import { spyOn, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
 
 function buildPngFile(width: number, height: number, name = 'side-card.png', lastModified = 0) {
   const bytes = new Uint8Array(24)
@@ -31,28 +33,28 @@ function buildJpegFile(width: number, height: number, name = 'side-card.jpg') {
 }
 
 describe('sideCardImageClient', () => {
-  const fillRect = vi.fn()
-  const drawImage = vi.fn()
+  const fillRect = mock()
+  const drawImage = mock()
   const context = {
     fillStyle: '',
     fillRect,
     drawImage,
   }
-  let getContextSpy: ReturnType<typeof vi.spyOn>
-  let toBlobSpy: ReturnType<typeof vi.spyOn>
+  let getContextSpy: ReturnType<typeof spyOn>
+  let toBlobSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
     fillRect.mockReset()
     drawImage.mockReset()
     context.fillStyle = ''
-    getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as any)
-    toBlobSpy = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob')
+    getContextSpy = spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as any)
+    toBlobSpy = spyOn(HTMLCanvasElement.prototype, 'toBlob')
   })
 
   afterEach(() => {
     getContextSpy.mockRestore()
     toBlobSpy.mockRestore()
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('calculates a centered 3:2 crop and caps large images at 1200x800', () => {
@@ -105,8 +107,8 @@ describe('sideCardImageClient', () => {
       message: 'Side card image must be 2MB or smaller.',
     },
   ])('rejects invalid input before decoding it', async ({ file, message }) => {
-    const createImageBitmapMock = vi.fn()
-    vi.stubGlobal('createImageBitmap', createImageBitmapMock)
+    const createImageBitmapMock = mock()
+    stubGlobal('createImageBitmap', createImageBitmapMock)
 
     await expect(optimizeSideCardImage(file)).rejects.toThrow(message)
     expect(createImageBitmapMock).not.toHaveBeenCalled()
@@ -117,25 +119,25 @@ describe('sideCardImageClient', () => {
     { label: 'JPEG', file: buildJpegFile(8_000, 6_000) },
     { label: 'malformed JPEG', file: new File(['not-an-image'], 'side-card.jpg', { type: 'image/jpeg' }) },
   ])('rejects an oversized or malformed $label before decoding it', async ({ file }) => {
-    const createImageBitmapMock = vi.fn()
-    vi.stubGlobal('createImageBitmap', createImageBitmapMock)
+    const createImageBitmapMock = mock()
+    stubGlobal('createImageBitmap', createImageBitmapMock)
 
     await expect(optimizeSideCardImage(file)).rejects.toThrow('Side card image dimensions are invalid or too large.')
     expect(createImageBitmapMock).not.toHaveBeenCalled()
   })
 
   it('applies orientation, center-crops, paints a white background, and returns a JPEG', async () => {
-    const close = vi.fn()
+    const close = mock()
     const bitmap = { width: 2400, height: 1000, close } as unknown as ImageBitmap
-    const createImageBitmapMock = vi.fn().mockResolvedValue(bitmap)
-    vi.stubGlobal('createImageBitmap', createImageBitmapMock)
+    const createImageBitmapMock = mock().mockResolvedValue(bitmap)
+    stubGlobal('createImageBitmap', createImageBitmapMock)
     toBlobSpy.mockImplementation(((callback: BlobCallback) => {
       callback(new Blob([new Uint8Array(100)], { type: 'image/jpeg' }))
     }) as typeof HTMLCanvasElement.prototype.toBlob)
     const input = buildPngFile(2400, 1000, 'campaign.banner.png', 1234)
 
     const output = await optimizeSideCardImage(input)
-    const canvas = getContextSpy.mock.instances[0] as HTMLCanvasElement
+    const canvas = getContextSpy.mock.contexts[0] as HTMLCanvasElement
 
     expect(createImageBitmapMock).toHaveBeenCalledWith(input, { imageOrientation: 'from-image' })
     expect(canvas.width).toBe(1200)
@@ -153,9 +155,9 @@ describe('sideCardImageClient', () => {
   })
 
   it('lowers JPEG quality until the encoded image fits the output limit', async () => {
-    const close = vi.fn()
+    const close = mock()
     const bitmap = { width: 1200, height: 800, close } as unknown as ImageBitmap
-    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(bitmap))
+    stubGlobal('createImageBitmap', mock().mockResolvedValue(bitmap))
     const encodedSizes = [
       SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 2,
       SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 1,
@@ -176,9 +178,9 @@ describe('sideCardImageClient', () => {
   })
 
   it('reduces resolution when quality changes alone cannot reach the output limit', async () => {
-    const close = vi.fn()
+    const close = mock()
     const bitmap = { width: 1200, height: 800, close } as unknown as ImageBitmap
-    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(bitmap))
+    stubGlobal('createImageBitmap', mock().mockResolvedValue(bitmap))
     const encodedSizes = [
       SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 3,
       SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 2,
@@ -191,7 +193,7 @@ describe('sideCardImageClient', () => {
     }) as typeof HTMLCanvasElement.prototype.toBlob)
 
     const output = await optimizeSideCardImage(buildJpegFile(1200, 800))
-    const resizedCanvas = getContextSpy.mock.instances[1] as HTMLCanvasElement
+    const resizedCanvas = getContextSpy.mock.contexts[1] as HTMLCanvasElement
 
     expect(toBlobSpy.mock.calls.map((call: Parameters<HTMLCanvasElement['toBlob']>) => call[2])).toEqual([
       0.82, 0.7, 0.58, 0.82,
@@ -203,9 +205,9 @@ describe('sideCardImageClient', () => {
   })
 
   it('closes the bitmap when every encoded quality remains too large', async () => {
-    const close = vi.fn()
+    const close = mock()
     const bitmap = { width: 1200, height: 800, close } as unknown as ImageBitmap
-    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(bitmap))
+    stubGlobal('createImageBitmap', mock().mockResolvedValue(bitmap))
     toBlobSpy.mockImplementation(((callback: BlobCallback) => {
       callback(new Blob([new Uint8Array(SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 1)], { type: 'image/jpeg' }))
     }) as typeof HTMLCanvasElement.prototype.toBlob)
@@ -214,7 +216,7 @@ describe('sideCardImageClient', () => {
       'Optimized side card image must be 100KB or smaller.',
     )
 
-    const smallestCanvas = getContextSpy.mock.instances.at(-1) as HTMLCanvasElement
+    const smallestCanvas = getContextSpy.mock.contexts.at(-1) as HTMLCanvasElement
     expect(smallestCanvas.width).toBe(3)
     expect(smallestCanvas.height).toBe(2)
     expect(toBlobSpy.mock.calls.length).toBeGreaterThan(3)

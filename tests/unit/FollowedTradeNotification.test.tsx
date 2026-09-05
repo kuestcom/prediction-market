@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import {
   FollowedTradeAvatar,
@@ -9,7 +9,7 @@ import {
   resolveTradeAlertOutcomeColorClass,
 } from '@/components/FollowedTradeNotification'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 

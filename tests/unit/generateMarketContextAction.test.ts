@@ -1,28 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  loadMarketContextSettings: vi.fn(),
-  getEventBySlug: vi.fn(),
-  generateMarketContext: vi.fn(),
-  getValidContext: vi.fn(),
-  upsertContext: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  loadMarketContextSettings: mock(),
+  getEventBySlug: mock(),
+  generateMarketContext: mock(),
+  getValidContext: mock(),
+  upsertContext: mock(),
 }))
 
-vi.mock('@/lib/ai/market-context-config', () => ({
+void mock.module('@/lib/ai/market-context-config', () => ({
   loadMarketContextSettings: mocks.loadMarketContextSettings,
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     getEventBySlug: (...args: any[]) => mocks.getEventBySlug(...args),
   },
 }))
 
-vi.mock('@/lib/ai/market-context', () => ({
+void mock.module('@/lib/ai/market-context', () => ({
   generateMarketContext: (...args: any[]) => mocks.generateMarketContext(...args),
 }))
 
-vi.mock('@/lib/db/queries/market-context-cache', () => ({
+void mock.module('@/lib/db/queries/market-context-cache', () => ({
   MarketContextCacheRepository: {
     getValidContext: (...args: any[]) => mocks.getValidContext(...args),
     upsertContext: (...args: any[]) => mocks.upsertContext(...args),
@@ -49,7 +51,6 @@ function makeEvent(overrides: Record<string, unknown> = {}) {
 
 describe('resolveMarketContextRequest', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.loadMarketContextSettings.mockReset()
     mocks.getEventBySlug.mockReset()
     mocks.generateMarketContext.mockReset()

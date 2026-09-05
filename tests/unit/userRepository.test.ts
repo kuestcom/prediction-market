@@ -1,15 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getSession: vi.fn(),
-  headers: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getSession: mock(),
+  headers: mock(),
 }))
 
-vi.mock('next/headers', () => ({
+void mock.module('next/headers', () => ({
   headers: (...args: any[]) => mocks.headers(...args),
 }))
 
-vi.mock('@/lib/auth', () => ({
+void mock.module('@/lib/auth', () => ({
   auth: {
     api: {
       getSession: (...args: any[]) => mocks.getSession(...args),

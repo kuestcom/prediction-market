@@ -1,12 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
   cookieStorage: {},
-  createStorage: vi.fn(() => 'cookie-storage'),
-  WagmiAdapter: vi.fn(),
+  createStorage: mock(() => 'cookie-storage'),
+  WagmiAdapter: mock(),
 }))
 
-vi.mock('@reown/appkit-adapter-wagmi', () => ({
+void mock.module('@reown/appkit-adapter-wagmi', () => ({
   WagmiAdapter: class WagmiAdapter {
     constructor(options: unknown) {
       mocks.WagmiAdapter(options)
@@ -14,7 +16,7 @@ vi.mock('@reown/appkit-adapter-wagmi', () => ({
   },
 }))
 
-vi.mock('@wagmi/core', () => ({
+void mock.module('@wagmi/core', () => ({
   cookieStorage: mocks.cookieStorage,
   createStorage: mocks.createStorage,
 }))

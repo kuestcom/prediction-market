@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
 

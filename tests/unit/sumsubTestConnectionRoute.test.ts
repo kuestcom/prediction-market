@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  consumeRateLimit: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  testConnection: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  consumeRateLimit: mock(),
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  testConnection: mock(),
 }))
 
 class MockSumsubClientError extends Error {
@@ -16,15 +18,15 @@ class MockSumsubClientError extends Error {
   }
 }
 
-vi.mock('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
-vi.mock('@/lib/db/queries/sumsub', () => ({
+void mock.module('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
+void mock.module('@/lib/db/queries/sumsub', () => ({
   SumsubRepository: { consumeTestConnectionRateLimit: mocks.consumeRateLimit },
 }))
-vi.mock('@/lib/sumsub/settings', () => ({
+void mock.module('@/lib/sumsub/settings', () => ({
   getSumsubSettings: mocks.getSettings,
   SUMSUB_LIMITS: { appToken: 256, secretKey: 256, levelName: 128 },
 }))
-vi.mock('@/lib/sumsub/client', () => ({
+void mock.module('@/lib/sumsub/client', () => ({
   SumsubClientError: MockSumsubClientError,
   SumsubClient: class {
     testConnection = mocks.testConnection
@@ -54,7 +56,7 @@ function malformedRequest() {
 
 describe('sumsub admin connection test', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     userSequence += 1
     mocks.getCurrentUser.mockResolvedValue({ id: `admin-${userSequence}`, is_admin: true })
     mocks.consumeRateLimit.mockResolvedValue(true)

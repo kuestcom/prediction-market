@@ -1,24 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  revalidatePath: vi.fn(),
-  updateSettingMaxValue: vi.fn(),
-  updateSettings: vi.fn(),
-  updateTag: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  revalidatePath: mock(),
+  updateSettingMaxValue: mock(),
+  updateSettings: mock(),
+  updateTag: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
   updateTag: mocks.updateTag,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: mocks.getCurrentUser },
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: mocks.getSettings,
     updateSettingMaxValue: mocks.updateSettingMaxValue,
@@ -28,7 +32,7 @@ vi.mock('@/lib/db/queries/settings', () => ({
 
 describe('admin support actions', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({
       address: '0x1111111111111111111111111111111111111111',
       is_admin: true,

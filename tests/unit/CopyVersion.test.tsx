@@ -1,8 +1,11 @@
 import { render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 import { createElement } from 'react'
 
-const mocks = vi.hoisted(() => ({
-  useQuery: vi.fn(),
+import { hoisted, stubGlobal, unstubAllEnvs, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  useQuery: mock(),
 }))
 
 const CURRENT_TIME_MS = new Date('2026-05-26T10:00:00.000Z').getTime()
@@ -10,21 +13,21 @@ const NINE_HOURS_MS = 9 * 60 * 60 * 1000
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
 const THIRTY_MINUTES_MS = 30 * 60 * 1000
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useQuery: mocks.useQuery,
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: function MockNextImage({ fill: _fill, ...props }: any) {
     return createElement('img', props)
   },
 }))
 
-vi.mock('@/components/ui/popover', () => ({
+void mock.module('@/components/ui/popover', () => ({
   Popover: function MockPopover({ children }: any) {
     return <div>{children}</div>
   },
@@ -51,7 +54,6 @@ async function renderCopyVersion(
   upstreamCommit: MockUpstreamCommit | null,
   config: { commitSha?: string; isVercel?: string } = {},
 ) {
-  vi.resetModules()
   mocks.useQuery.mockReturnValue({ data: upstreamCommit })
 
   const { default: CopyVersion } = await import('@/app/[locale]/admin/_components/CopyVersion')
@@ -74,15 +76,15 @@ async function renderCopyVersion(
 
 describe('copyVersion', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(CURRENT_TIME_MS)
+    useFakeTimers()
+    jest.setSystemTime(CURRENT_TIME_MS)
     mocks.useQuery.mockReset()
-    vi.unstubAllEnvs()
-    vi.unstubAllGlobals()
+    unstubAllEnvs()
+    unstubAllGlobals()
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('shows fork sync guidance when the upstream commit differs past the sync grace period', async () => {
@@ -139,8 +141,8 @@ describe('copyVersion', () => {
     await renderCopyVersion(null)
 
     const queryOptions = mocks.useQuery.mock.calls[0][0]
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false })
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock().mockResolvedValue({ ok: false })
+    stubGlobal('fetch', fetchMock)
 
     await expect(queryOptions.queryFn({})).resolves.toBeNull()
     expect(fetchMock).toHaveBeenCalledWith(

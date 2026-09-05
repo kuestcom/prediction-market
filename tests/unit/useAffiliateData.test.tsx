@@ -1,15 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import type { AffiliateDataResult } from '@/lib/affiliate-data'
 
 import { useAffiliateData } from '@/hooks/useAffiliateData'
 
-const mocks = vi.hoisted(() => ({
-  fetchAffiliateSettingsFromAPI: vi.fn<() => Promise<AffiliateDataResult>>(),
+import { hoisted, spyOn } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetchAffiliateSettingsFromAPI: mock<() => Promise<AffiliateDataResult>>(),
 }))
 
-vi.mock('@/lib/affiliate-data', () => ({
+void mock.module('@/lib/affiliate-data', () => ({
   fetchAffiliateSettingsFromAPI: mocks.fetchAffiliateSettingsFromAPI,
 }))
 
@@ -19,12 +21,12 @@ describe('useAffiliateData', () => {
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
   })
 
   it('stops loading when the affiliate settings request unexpectedly rejects', async () => {
     const error = new Error('network')
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const errorSpy = spyOn(console, 'error').mockImplementation(() => {})
     mocks.fetchAffiliateSettingsFromAPI.mockRejectedValue(error)
 
     const { result } = renderHook(() => useAffiliateData())

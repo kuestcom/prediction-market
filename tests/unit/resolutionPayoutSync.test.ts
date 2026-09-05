@@ -1,27 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  createPublicClient: vi.fn(),
-  createViemTransport: vi.fn((_rpcUrls: readonly string[]) => ({ transport: 'fallback' })),
-  parseAbi: vi.fn((abi: string[]) => abi),
-  readContract: vi.fn(),
-  select: vi.fn(),
-  update: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  createPublicClient: mock(),
+  createViemTransport: mock((_rpcUrls: readonly string[]) => ({ transport: 'fallback' })),
+  parseAbi: mock((abi: string[]) => abi),
+  readContract: mock(),
+  select: mock(),
+  update: mock(),
   updatePayloads: [] as Array<Record<string, unknown>>,
 }))
 
-vi.mock('viem', () => ({
+void mock.module('viem', () => ({
   createPublicClient: (...args: unknown[]) => mocks.createPublicClient(...args),
   parseAbi: (...args: [string[]]) => mocks.parseAbi(...args),
 }))
 
-vi.mock('@/lib/viem-network', () => ({
+void mock.module('@/lib/viem-network', () => ({
   createViemTransport: (rpcUrls: readonly string[]) => mocks.createViemTransport(rpcUrls),
   defaultViemNetwork: { id: 80002, name: 'amoy' },
   resolveRuntimeViemRpcUrls: () => ['https://polygon-amoy-bor-rpc.publicnode.com', 'https://polygon-amoy.drpc.org'],
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     select: (...args: unknown[]) => mocks.select(...args),
     update: (...args: unknown[]) => mocks.update(...args),
@@ -71,7 +73,6 @@ function makeUpdateChain(result: unknown[]) {
 
 describe('resolution payout sync', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.createPublicClient.mockReset()
     mocks.createViemTransport.mockClear()
     mocks.parseAbi.mockClear()

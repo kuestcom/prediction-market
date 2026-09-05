@@ -1,28 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 
-const mocks = vi.hoisted(() => ({
-  buildClobHmacSignature: vi.fn(() => 'sig'),
-  getUserTradingAuthSecrets: vi.fn(),
-  getCurrentUser: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  buildClobHmacSignature: mock(() => 'sig'),
+  getUserTradingAuthSecrets: mock(),
+  getCurrentUser: mock(),
 }))
 
-vi.mock('@/lib/hmac', () => ({
+void mock.module('@/lib/hmac', () => ({
   buildClobHmacSignature: mocks.buildClobHmacSignature,
 }))
 
-vi.mock('@/lib/trading-auth/server', () => ({
+void mock.module('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: mocks.getUserTradingAuthSecrets,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
 describe('cancelOrderAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.buildClobHmacSignature.mockReset()
     mocks.getUserTradingAuthSecrets.mockReset()
     mocks.getCurrentUser.mockReset()
@@ -61,7 +62,7 @@ describe('cancelOrderAction', () => {
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({ clob: { key: 'k', passphrase: 'p', secret: 's' } })
 
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+    globalThis.fetch = mock().mockResolvedValueOnce({
       ok: false,
       status: 404,
       json: async () => ({ error: 'not found' }),
@@ -80,7 +81,7 @@ describe('cancelOrderAction', () => {
     })
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({ clob: { key: 'k', passphrase: 'p', secret: 's' } })
 
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+    globalThis.fetch = mock().mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => ({}),

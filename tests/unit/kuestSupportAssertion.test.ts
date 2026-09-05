@@ -1,6 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import { createKuestSupportAssertion, verifyKuestSupportAssertion } from '@/lib/kuest-support-assertion'
+
+import { stubEnv, unstubAllEnvs } from '../bun-test-helpers'
 
 const CONTEXT = {
   appVersion: 'abc123',
@@ -14,11 +16,11 @@ const CONTEXT = {
 
 describe('kuest Support assertion', () => {
   beforeEach(() => {
-    vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret-with-at-least-thirty-two-characters')
+    stubEnv('BETTER_AUTH_SECRET', 'test-secret-with-at-least-thirty-two-characters')
   })
 
   afterEach(() => {
-    vi.unstubAllEnvs()
+    unstubAllEnvs()
   })
 
   it('signs and verifies a short-lived normalized admin context', () => {

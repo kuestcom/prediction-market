@@ -1,24 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  listHomeEventsPage: vi.fn(),
-  listEvents: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  listHomeEventsPage: mock(),
+  listEvents: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     listEvents: (...args: any[]) => mocks.listEvents(...args),
   },
 }))
 
-vi.mock('@/lib/home-events-page', () => ({
+void mock.module('@/lib/home-events-page', () => ({
   listHomeEventsPage: (...args: any[]) => mocks.listHomeEventsPage(...args),
 }))
 

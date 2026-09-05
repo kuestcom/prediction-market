@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, jest } from 'bun:test'
 
 import { getHomeInitialCurrentTimestamp, HOME_INITIAL_EVENTS_CACHE_LIFE } from '@/lib/home-initial-events-cache'
 
+import { useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
 describe('homeInitialEventsCache', () => {
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('uses a fifteen-minute revalidation window for cached initial home events', () => {
@@ -16,8 +18,8 @@ describe('homeInitialEventsCache', () => {
   })
 
   it('normalizes the runtime timestamp to the current fifteen-minute window', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-05-11T12:34:56.789Z'))
+    useFakeTimers()
+    jest.setSystemTime(new Date('2026-05-11T12:34:56.789Z'))
 
     expect(getHomeInitialCurrentTimestamp()).toBe(Date.parse('2026-05-11T12:30:00.000Z'))
   })

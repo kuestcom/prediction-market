@@ -1,22 +1,25 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, mock, jest } from 'bun:test'
 
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 
-const mocks = vi.hoisted(() => ({
-  open: vi.fn(),
+import { hoisted, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  open: mock(),
 }))
 
-vi.mock('@reown/appkit/react', () => ({
+void mock.module('@reown/appkit/react', () => ({
   useAppKitAccount: () => ({ isConnected: true }),
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({ open: mocks.open }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
@@ -35,7 +38,7 @@ const FILTERS = {
 
 describe('filterToolbar', () => {
   it('loads settings controls only after the settings toggle opens', async () => {
-    const onFiltersChange = vi.fn()
+    const onFiltersChange = mock()
 
     render(<FilterToolbar filters={FILTERS} onFiltersChange={onFiltersChange} />)
 
@@ -59,7 +62,7 @@ describe('filterToolbar', () => {
   })
 
   it('collapses the search input behind an icon button when requested', () => {
-    const onFiltersChange = vi.fn()
+    const onFiltersChange = mock()
 
     render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
 
@@ -75,7 +78,7 @@ describe('filterToolbar', () => {
   })
 
   it('closes the expanded empty search input when clicking outside', () => {
-    const onFiltersChange = vi.fn()
+    const onFiltersChange = mock()
 
     render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
 
@@ -94,7 +97,7 @@ describe('filterToolbar', () => {
   })
 
   it('clears a typed query before closing the search with Escape', () => {
-    const onFiltersChange = vi.fn()
+    const onFiltersChange = mock()
 
     render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
 
@@ -115,7 +118,7 @@ describe('filterToolbar', () => {
   })
 
   it('commits an emptied non-collapsible search when Escape is pressed', () => {
-    const onFiltersChange = vi.fn()
+    const onFiltersChange = mock()
     const filters = { ...FILTERS, search: 'bitcoin' }
 
     render(<FilterToolbar filters={filters} onFiltersChange={onFiltersChange} />)
@@ -129,8 +132,8 @@ describe('filterToolbar', () => {
   })
 
   it('does not cancel a non-collapsible search debounce when Escape is pressed with text', async () => {
-    vi.useFakeTimers()
-    const onFiltersChange = vi.fn()
+    useFakeTimers()
+    const onFiltersChange = mock()
 
     try {
       render(<FilterToolbar filters={FILTERS} onFiltersChange={onFiltersChange} />)
@@ -141,11 +144,11 @@ describe('filterToolbar', () => {
 
       expect(onFiltersChange).not.toHaveBeenCalled()
 
-      await act(() => vi.advanceTimersByTime(150))
+      await act(() => jest.advanceTimersByTime(150))
 
       expect(onFiltersChange).toHaveBeenCalledWith({ search: 'bitcoin' })
     } finally {
-      vi.useRealTimers()
+      useRealTimers()
     }
   })
 })

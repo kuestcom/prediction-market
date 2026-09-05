@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, spyOn, jest } from 'bun:test'
 
 import type { FeeReceiverTotal } from '@/lib/data-api/fees'
 
@@ -17,10 +17,10 @@ function total(totalAmount: string, totalVolume: string): FeeReceiverTotal {
 }
 
 describe('Data API fee receiver totals', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => jest.restoreAllMocks())
 
   it('requests totals filtered to affiliate fee events', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify([])))
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify([])))
 
     await fetchFeeReceiverTotals({ endpoint: 'referrers', address: '0xABC', feeType: 'AFFILIATE' })
 

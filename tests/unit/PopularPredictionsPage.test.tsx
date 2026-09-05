@@ -1,18 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  generatePredictionResultsMetadata: vi.fn(),
-  renderPredictionResultsPage: vi.fn(),
-  setRequestLocale: vi.fn(),
-  translate: vi.fn((value: string) => value),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  generatePredictionResultsMetadata: mock(),
+  renderPredictionResultsPage: mock(),
+  setRequestLocale: mock(),
+  translate: mock((value: string) => value),
 }))
 
-vi.mock('next-intl/server', () => ({
-  getExtracted: vi.fn(async () => mocks.translate),
+void mock.module('next-intl/server', () => ({
+  getExtracted: mock(async () => mocks.translate),
   setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
-vi.mock('@/app/[locale]/(platform)/predictions/[slug]/_lib/prediction-results-page', () => ({
+void mock.module('@/app/[locale]/(platform)/predictions/[slug]/_lib/prediction-results-page', () => ({
   generatePredictionResultsMetadata: (...args: any[]) => mocks.generatePredictionResultsMetadata(...args),
   renderPredictionResultsPage: (...args: any[]) => mocks.renderPredictionResultsPage(...args),
 }))

@@ -1,21 +1,24 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
 
-const mocks = vi.hoisted(() => ({
-  usePlatformNavigationData: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  usePlatformNavigationData: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('lucide-react', () => ({
+void mock.module('lucide-react', () => ({
   ArrowRightIcon: () => <svg data-testid="arrow-right-icon" />,
   LoaderIcon: () => <svg data-testid="loader-icon" />,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -23,17 +26,17 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_providers/PlatformNavigationProvider', () => ({
+void mock.module('@/app/[locale]/(platform)/_providers/PlatformNavigationProvider', () => ({
   usePlatformNavigationData: mocks.usePlatformNavigationData,
 }))
 
-vi.mock('@/components/EventIconImage', () => ({
+void mock.module('@/components/EventIconImage', () => ({
   default: function MockEventIconImage({ alt }: { alt: string }) {
     return <span>{alt}</span>
   },
 }))
 
-vi.mock('@/components/ProfileLink', () => ({
+void mock.module('@/components/ProfileLink', () => ({
   default: function MockProfileLink() {
     return <span>Profile</span>
   },
@@ -62,7 +65,7 @@ describe('searchResults', () => {
   })
 
   it('dedupes matching category chips and routes chips and footer to predictions pages', () => {
-    const onResultClick = vi.fn()
+    const onResultClick = mock()
 
     render(
       <SearchResults

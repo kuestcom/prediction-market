@@ -1,27 +1,27 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { DataApiRewardProposal } from '@/lib/data-api/resolution-rewards'
 
-import SettingsResolutionWithdrawalDialog from '@/app/[locale]/(platform)/settings/_components/SettingsResolutionWithdrawalDialog'
+import { hoisted } from '../bun-test-helpers'
 
-const mocks = vi.hoisted(() => ({
-  onOpenChange: vi.fn(),
-  onSubmitted: vi.fn(),
-  openAppKit: vi.fn(),
-  openTradeRequirements: vi.fn(),
-  runWithSignaturePrompt: vi.fn(),
-  signAndSubmit: vi.fn(),
-  signTypedDataAsync: vi.fn(),
-  toastError: vi.fn(),
-  toastSuccess: vi.fn(),
+const mocks = hoisted(() => ({
+  onOpenChange: mock(),
+  onSubmitted: mock(),
+  openAppKit: mock(),
+  openTradeRequirements: mock(),
+  runWithSignaturePrompt: mock(),
+  signAndSubmit: mock(),
+  signTypedDataAsync: mock(),
+  toastError: mock(),
+  toastSuccess: mock(),
 }))
 
-vi.mock('@reown/appkit/react', () => ({
+void mock.module('@reown/appkit/react', () => ({
   useAppKitAccount: () => ({ isConnected: true }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string, values?: Record<string, string>) =>
     Object.entries(values ?? {}).reduce(
       (translated, [key, replacement]) => translated.replaceAll(`{${key}}`, replacement),
@@ -29,31 +29,31 @@ vi.mock('next-intl', () => ({
     ),
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   useSignTypedData: () => ({ signTypedDataAsync: mocks.signTypedDataAsync }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_providers/TradingOnboardingProvider', () => ({
+void mock.module('@/app/[locale]/(platform)/_providers/TradingOnboardingProvider', () => ({
   useTradingOnboarding: () => ({ openTradeRequirements: mocks.openTradeRequirements }),
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({ open: mocks.openAppKit }),
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({ runWithSignaturePrompt: mocks.runWithSignaturePrompt }),
 }))
 
-vi.mock('@/lib/wallet/client', () => ({
+void mock.module('@/lib/wallet/client', () => ({
   signAndSubmitDepositWalletCalls: mocks.signAndSubmit,
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: { error: mocks.toastError, success: mocks.toastSuccess },
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => ({
     id: 'user-1',
     address: '0x1111111111111111111111111111111111111111',
@@ -61,6 +61,9 @@ vi.mock('@/stores/useUser', () => ({
     deposit_wallet_status: 'deployed',
   }),
 }))
+
+const { default: SettingsResolutionWithdrawalDialog } =
+  await import('@/app/[locale]/(platform)/settings/_components/SettingsResolutionWithdrawalDialog')
 
 const proposal = {
   id: '7',

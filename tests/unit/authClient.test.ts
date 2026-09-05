@@ -1,16 +1,18 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
-const pluginMocks = vi.hoisted(() => ({
-  createAuthClient: vi.fn(),
-  siweClient: vi.fn(() => ({ name: 'siwe' })),
-  twoFactorClient: vi.fn((options: any) => ({ name: '2fa', options })),
+import { hoisted } from '../bun-test-helpers'
+
+const pluginMocks = hoisted(() => ({
+  createAuthClient: mock(),
+  siweClient: mock(() => ({ name: 'siwe' })),
+  twoFactorClient: mock((options: any) => ({ name: '2fa', options })),
 }))
 
-vi.mock('better-auth/react', () => ({
+void mock.module('better-auth/react', () => ({
   createAuthClient: pluginMocks.createAuthClient,
 }))
 
-vi.mock('better-auth/client/plugins', () => ({
+void mock.module('better-auth/client/plugins', () => ({
   siweClient: pluginMocks.siweClient,
   twoFactorClient: pluginMocks.twoFactorClient,
 }))

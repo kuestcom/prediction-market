@@ -2,38 +2,41 @@ import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { User } from '@/types'
 
 import ManageFollowedTradersDialog from '@/components/ManageFollowedTradersDialog'
+import * as actualCommunityFollows from '@/lib/community-follows'
+
+import { hoisted } from '../bun-test-helpers'
 
 const WALLET_A = '0x1111111111111111111111111111111111111111'
 const WALLET_B = '0x2222222222222222222222222222222222222222'
-const mocks = vi.hoisted(() => ({
-  ensureCommunityToken: vi.fn(),
-  fetchCommunityFollowing: vi.fn(),
+const mocks = hoisted(() => ({
+  ensureCommunityToken: mock(),
+  fetchCommunityFollowing: mock(),
 }))
 
-vi.mock('next-intl', () => ({ useExtracted: () => (message: string) => message }))
-vi.mock('wagmi', () => ({ useSignMessage: () => ({ signMessageAsync: vi.fn() }) }))
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('next-intl', () => ({ useExtracted: () => (message: string) => message }))
+void mock.module('wagmi', () => ({ useSignMessage: () => ({ signMessageAsync: mock() }) }))
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ communityUrl: 'https://community.example' }),
 }))
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({ runWithSignaturePrompt: (action: () => unknown) => action() }),
 }))
-vi.mock('@/lib/community-auth', () => ({
-  clearCommunityAuth: vi.fn(),
+void mock.module('@/lib/community-auth', () => ({
+  clearCommunityAuth: mock(),
   ensureCommunityToken: (...args: unknown[]) => mocks.ensureCommunityToken(...args),
 }))
-vi.mock('@/lib/community-follows', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/lib/community-follows')>()
+void mock.module('@/lib/community-follows', () => {
   return {
-    ...original,
+    ...actualCommunityFollows,
     fetchCommunityFollowing: (...args: unknown[]) => mocks.fetchCommunityFollowing(...args),
   }
 })
-vi.mock('@/components/ProfileLink', () => ({
+void mock.module('@/components/ProfileLink', () => ({
   default: ({ user, trailing }: { user: { username: string }; trailing?: ReactNode }) => (
     <div>
       <span>{user.username}</span>
@@ -41,7 +44,7 @@ vi.mock('@/components/ProfileLink', () => ({
     </div>
   ),
 }))
-vi.mock('@/components/CommunityFollowButton', () => ({
+void mock.module('@/components/CommunityFollowButton', () => ({
   default: ({ initialStatus, variant }: { initialStatus: { isFollowing: boolean }; variant: string }) => (
     <button type="button">{`${variant}:${initialStatus.isFollowing ? 'Unfollow' : 'Follow'}`}</button>
   ),

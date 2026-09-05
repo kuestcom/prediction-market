@@ -1,11 +1,13 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Buffer } from 'node:buffer'
-import { beforeEach, describe, expect, it } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  execSync: vi.fn(),
+import { hoisted, stubEnv, unstubAllEnvs } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  execSync: mock(),
 }))
 
-vi.mock('node:child_process', () => ({
+void mock.module('node:child_process', () => ({
   default: {
     execSync: mocks.execSync,
   },
@@ -41,18 +43,17 @@ async function importGitWithBuildEnv({
   vercelCommitMessage?: string
   vercelCommitSha?: string
 } = {}) {
-  vi.resetModules()
-  vi.stubEnv('COMMIT_SHA', commitSha)
-  vi.stubEnv('VERCEL_GIT_COMMIT_MESSAGE', vercelCommitMessage)
-  vi.stubEnv('VERCEL_GIT_COMMIT_SHA', vercelCommitSha)
+  stubEnv('COMMIT_SHA', commitSha)
+  stubEnv('VERCEL_GIT_COMMIT_MESSAGE', vercelCommitMessage)
+  stubEnv('VERCEL_GIT_COMMIT_SHA', vercelCommitSha)
 
-  return import('@/lib/git')
+  return import(`@/lib/git?bun-test=${Math.random()}`)
 }
 
 describe('resolveCommitSha', () => {
   beforeEach(() => {
     mocks.execSync.mockReset()
-    vi.unstubAllEnvs()
+    unstubAllEnvs()
   })
 
   it('uses the upstream SHA from a sync commit message', async () => {

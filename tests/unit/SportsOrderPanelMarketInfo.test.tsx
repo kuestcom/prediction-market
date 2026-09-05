@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
 import SportsOrderPanelMarketInfo from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsOrderPanelMarketInfo'
 
-vi.mock('@/components/EventIconImage', () => ({
+void mock.module('@/components/EventIconImage', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => <span role="img" aria-label={alt} data-src={src} />,
 }))
 

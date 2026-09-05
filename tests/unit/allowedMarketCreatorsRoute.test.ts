@@ -1,22 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
+import { hoisted, spyOn } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/allowed-market-creators', () => ({
+void mock.module('@/lib/db/queries/allowed-market-creators', () => ({
   AllowedMarketCreatorRepository: {
-    list: vi.fn(),
-    upsertMany: vi.fn(),
-    replaceSiteSource: vi.fn(),
-    deleteBySourceUrl: vi.fn(),
-    deleteByWallet: vi.fn(),
+    list: mock(),
+    upsertMany: mock(),
+    replaceSiteSource: mock(),
+    deleteBySourceUrl: mock(),
+    deleteByWallet: mock(),
   },
 }))
 
@@ -24,13 +26,13 @@ const { POST } = await import('@/app/[locale]/admin/api/event-creations/allowed-
 
 describe('allowed market creators route', () => {
   beforeEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
     mocks.getCurrentUser.mockReset()
   })
 
   it('rejects non-https site sources before fetching the remote allowlist', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = spyOn(globalThis, 'fetch')
 
     const response = await POST(
       new Request('https://example.com/admin/api/event-creations/allowed-creators', {

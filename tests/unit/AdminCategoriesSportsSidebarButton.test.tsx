@@ -2,51 +2,51 @@ import type { ReactNode } from 'react'
 
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import AdminCategoriesTable from '@/app/[locale]/admin/categories/_components/AdminCategoriesTable'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
-    setQueriesData: vi.fn(),
+    invalidateQueries: mock(),
+    setQueriesData: mock(),
   }),
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-vi.mock('@/app/[locale]/admin/categories/_hooks/useAdminCategories', () => ({
+void mock.module('@/app/[locale]/admin/categories/_hooks/useAdminCategories', () => ({
   useAdminCategoriesTable: () => ({
     categories: [],
     totalCount: 0,
     isLoading: false,
     error: null,
-    retry: vi.fn(),
+    retry: mock(),
     search: '',
-    handleSearchChange: vi.fn(),
+    handleSearchChange: mock(),
     sortBy: 'display_order',
     sortOrder: 'asc',
     mainOnly: false,
-    handleSortChange: vi.fn(),
-    handleMainOnlyChange: vi.fn(),
+    handleSortChange: mock(),
+    handleMainOnlyChange: mock(),
     pageIndex: 0,
     pageSize: 10,
-    handlePageChange: vi.fn(),
-    handlePageSizeChange: vi.fn(),
+    handlePageChange: mock(),
+    handlePageSizeChange: mock(),
   }),
 }))
 
-vi.mock('@/app/[locale]/admin/categories/_components/columns', () => ({
+void mock.module('@/app/[locale]/admin/categories/_components/columns', () => ({
   useAdminCategoryColumns: () => [],
 }))
 
-vi.mock('@/app/[locale]/admin/_components/DataTable', () => ({
+void mock.module('@/app/[locale]/admin/_components/DataTable', () => ({
   DataTable: ({
     aboveTableContent,
     toolbarRightContent,
@@ -62,11 +62,11 @@ vi.mock('@/app/[locale]/admin/_components/DataTable', () => ({
   ),
 }))
 
-vi.mock('@/app/[locale]/admin/categories/_components/MainCategorySortDialog', () => ({
+void mock.module('@/app/[locale]/admin/categories/_components/MainCategorySortDialog', () => ({
   default: () => null,
 }))
 
-vi.mock('@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager', () => ({
+void mock.module('@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager', () => ({
   default: ({ open, vertical = 'sports' }: { open: boolean; vertical?: string }) =>
     open ? <div>{vertical === 'esports' ? 'Esports manager open' : 'Sports manager open'}</div> : null,
 }))

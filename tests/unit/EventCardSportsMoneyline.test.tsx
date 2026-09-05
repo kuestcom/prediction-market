@@ -1,25 +1,28 @@
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { createElement, type AnchorHTMLAttributes } from 'react'
 
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 
-const mocks = vi.hoisted(() => ({
-  eventBookmark: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  eventBookmark: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string, values?: Record<string, string | number>) =>
     Object.entries(values ?? {}).reduce((label, [key, value]) => label.replace(`{${key}}`, String(value)), message),
   useLocale: () => 'en-US',
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: function MockImage({ fill: _fill, ...props }: any) {
     return createElement('img', props)
   },
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
     return (
       <a href={href} {...props}>
@@ -29,18 +32,18 @@ vi.mock('@/i18n/navigation', () => ({
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
   default: function MockEventBookmark(props: any) {
     mocks.eventBookmark(props)
     return <span data-testid="event-bookmark" />
   },
 }))
 
-vi.mock('@/components/ui/new-badge', () => ({
+void mock.module('@/components/ui/new-badge', () => ({
   NewBadge: () => <span data-testid="new-badge">New</span>,
 }))
 
-vi.mock('@/lib/events-routing', () => ({
+void mock.module('@/lib/events-routing', () => ({
   resolveEventOutcomePath: (_event: unknown, payload: { conditionId: string; outcomeIndex: number }) =>
     `/event/${payload.conditionId}/${payload.outcomeIndex}`,
 }))

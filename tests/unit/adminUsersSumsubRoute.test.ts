@@ -1,38 +1,40 @@
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  listUsers: vi.fn(),
-  getUsersByIds: vi.fn(),
-  getStatusesForUsers: vi.fn(),
-  getSettings: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  listUsers: mock(),
+  getUsersByIds: mock(),
+  getStatusesForUsers: mock(),
+  getSettings: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: mocks.getCurrentUser,
     listUsers: mocks.listUsers,
     getUsersByIds: mocks.getUsersByIds,
   },
 }))
-vi.mock('@/lib/db/queries/sumsub', () => ({
+void mock.module('@/lib/db/queries/sumsub', () => ({
   SumsubRepository: { getStatusesForUsers: mocks.getStatusesForUsers },
 }))
-vi.mock('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSettings }))
-vi.mock('@/lib/admin', () => ({ isAdminWallet: () => false }))
-vi.mock('@/lib/platform-routing', () => ({
+void mock.module('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSettings }))
+void mock.module('@/lib/admin', () => ({ isAdminWallet: () => false }))
+void mock.module('@/lib/platform-routing', () => ({
   buildPublicProfilePath: () => '/profile/user',
   buildUsernameProfilePath: () => '/profile/referrer',
 }))
-vi.mock('@/lib/site-url', () => ({ default: () => 'https://example.test' }))
-vi.mock('@/lib/storage', () => ({ getPublicAssetUrl: (path: string) => path }))
+void mock.module('@/lib/site-url', () => ({ default: () => 'https://example.test' }))
+void mock.module('@/lib/storage', () => ({ getPublicAssetUrl: (path: string) => path }))
 
 const { GET } = await import('@/app/[locale]/admin/api/users/route')
 
 describe('admin users Sumsub status', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'admin', is_admin: true })
     mocks.listUsers.mockResolvedValue({
       data: [

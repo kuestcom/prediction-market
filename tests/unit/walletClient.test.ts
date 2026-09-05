@@ -1,13 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
 
-const mocks = vi.hoisted(() => ({
-  getDepositWalletNonceAction: vi.fn(),
-  submitDepositWalletTransactionAction: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getDepositWalletNonceAction: mock(),
+  submitDepositWalletTransactionAction: mock(),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
+void mock.module('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
   getDepositWalletNonceAction: mocks.getDepositWalletNonceAction,
   submitDepositWalletTransactionAction: mocks.submitDepositWalletTransactionAction,
 }))
@@ -20,7 +22,7 @@ const {
 
 describe('wallet client', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   it('maps stale wagmi connector signature failures to a reconnect result', async () => {
@@ -41,7 +43,7 @@ describe('wallet client', () => {
           data: '0x',
         },
       ],
-      signTypedDataAsync: vi.fn().mockRejectedValue({
+      signTypedDataAsync: mock().mockRejectedValue({
         name: 'ConnectorNotConnectedError',
         message: 'Connector not connected.\n\nVersion:\n@wagmi/core@2.22.1',
       }),
@@ -63,8 +65,8 @@ describe('wallet client', () => {
     mocks.submitDepositWalletTransactionAction
       .mockResolvedValueOnce({ error: 'Nonce changed.', code: 'wallet_nonce_mismatch' })
       .mockResolvedValueOnce({ error: null, txHash: '0x2' })
-    const onSigning = vi.fn()
-    const onSigned = vi.fn()
+    const onSigning = mock()
+    const onSigned = mock()
 
     const result = await signAndSubmitDepositWalletCalls({
       user: {
@@ -78,7 +80,7 @@ describe('wallet client', () => {
           data: '0x',
         },
       ],
-      signTypedDataAsync: vi.fn().mockResolvedValue('0xsignature'),
+      signTypedDataAsync: mock().mockResolvedValue('0xsignature'),
       onSigning,
       onSigned,
     })
@@ -109,7 +111,7 @@ describe('wallet client', () => {
         data: '0x',
       }),
       maxChunkSize: 2,
-      signTypedDataAsync: vi.fn().mockResolvedValue('0xsignature'),
+      signTypedDataAsync: mock().mockResolvedValue('0xsignature'),
     })
 
     await expect(request).rejects.toMatchObject({
@@ -127,8 +129,8 @@ describe('wallet client', () => {
     mocks.submitDepositWalletTransactionAction.mockResolvedValueOnce({
       error: 'Enable trading to continue.',
     })
-    const signTypedDataAsync = vi.fn().mockResolvedValue('0xsignature')
-    const onProgress = vi.fn()
+    const signTypedDataAsync = mock().mockResolvedValue('0xsignature')
+    const onProgress = mock()
 
     const result = await signAndSubmitDepositWalletCallItemsWithSplitFallback({
       user: {

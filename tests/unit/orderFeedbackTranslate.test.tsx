@@ -1,9 +1,9 @@
 import { renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { useOrderFeedbackTranslate } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => {
     if (message === 'An unexpected error occurred. Please try again.') {
       return 'Ocorreu um erro inesperado. Tente novamente.'

@@ -1,16 +1,24 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 
+import {
+  advanceTimersByTimeAsync,
+  stubGlobal,
+  unstubAllGlobals,
+  useFakeTimers,
+  useRealTimers,
+} from '../bun-test-helpers'
+
 describe('profileLinkStats', () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.useRealTimers()
+    unstubAllGlobals()
+    useRealTimers()
   })
 
   it('uses user-pnl for profit/loss and the reconciled volume aggregate', async () => {
     const address = '0x0000000000000000000000000000000000000001'
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const fetchMock = mock(async (input: string | URL | Request) => {
       const requestUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
       const url = new URL(requestUrl)
       let body: unknown
@@ -30,7 +38,7 @@ describe('profileLinkStats', () => {
 
       return Response.json(body)
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const stats = await fetchProfileLinkStats(address, {
       dataApiUrl: 'https://data-api.test',
@@ -46,16 +54,16 @@ describe('profileLinkStats', () => {
   })
 
   it('reuses a pending request after the freshness TTL has elapsed', async () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const address = '0x0000000000000000000000000000000000000002'
     const responseResolvers: Array<(response: Response) => void> = []
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       () =>
         new Promise<Response>((resolve) => {
           responseResolvers.push(resolve)
         }),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const options = {
       dataApiUrl: 'https://data-api-delayed.test',
@@ -65,7 +73,7 @@ describe('profileLinkStats', () => {
     await Promise.resolve()
     expect(fetchMock).toHaveBeenCalledTimes(3)
 
-    await vi.advanceTimersByTimeAsync(2_001)
+    await advanceTimersByTimeAsync(2_001)
     const secondRequest = fetchProfileLinkStats(address, options)
     await Promise.resolve()
     expect(fetchMock).toHaveBeenCalledTimes(3)

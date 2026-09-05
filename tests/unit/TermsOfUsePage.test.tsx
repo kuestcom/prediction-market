@@ -1,32 +1,34 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getSettings: vi.fn(),
-  getTranslations: vi.fn(),
-  getThemeSiteSettingsFormState: vi.fn(),
-  loadRuntimeThemeState: vi.fn(),
-  setRequestLocale: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getSettings: mock(),
+  getTranslations: mock(),
+  getThemeSiteSettingsFormState: mock(),
+  loadRuntimeThemeState: mock(),
+  setRequestLocale: mock(),
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   getExtracted: () => (value: string) => value,
   setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/terms-of-service', () => ({
+void mock.module('@/lib/db/queries/terms-of-service', () => ({
   TermsOfServiceRepository: {
     getTranslations: (...args: any[]) => mocks.getTranslations(...args),
   },
 }))
 
-vi.mock('@/lib/theme-settings', () => ({
+void mock.module('@/lib/theme-settings', () => ({
   getThemeSiteSettingsFormState: (...args: any[]) => mocks.getThemeSiteSettingsFormState(...args),
   loadRuntimeThemeState: (...args: any[]) => mocks.loadRuntimeThemeState(...args),
 }))

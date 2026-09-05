@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { resolveAutomaticSportsSourceCardCandidate } from '@/lib/sports-source/auto-selection'
 

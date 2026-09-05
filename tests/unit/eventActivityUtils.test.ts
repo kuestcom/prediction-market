@@ -1,5 +1,5 @@
 import { InfiniteQueryObserver, QueryClient } from '@tanstack/react-query'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import type { ActivityOrder } from '@/types'
 

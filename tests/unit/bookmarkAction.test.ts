@@ -1,24 +1,26 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  isBookmarked: vi.fn(),
-  toggleBookmark: vi.fn(),
-  updateTag: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  isBookmarked: mock(),
+  toggleBookmark: mock(),
+  updateTag: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   updateTag: (...args: any[]) => mocks.updateTag(...args),
 }))
 
-vi.mock('@/lib/db/queries/bookmark', () => ({
+void mock.module('@/lib/db/queries/bookmark', () => ({
   BookmarkRepository: {
     isBookmarked: (...args: any[]) => mocks.isBookmarked(...args),
     toggleBookmark: (...args: any[]) => mocks.toggleBookmark(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },

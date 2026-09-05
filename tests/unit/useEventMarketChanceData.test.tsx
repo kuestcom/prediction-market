@@ -1,9 +1,11 @@
 import { renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { useEventMarketChanceData } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketChanceData'
 
-const mocks = vi.hoisted(() => ({
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
   marketQuotes: {} as Record<string, { bid: number | null; ask: number | null; mid: number | null }>,
   priceHistory: {
     normalizedHistory: [],
@@ -12,17 +14,17 @@ const mocks = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory', () => ({
   buildMarketTargets: (markets: Array<{ condition_id: string }>) =>
     markets.map((market) => ({ conditionId: market.condition_id, tokenId: `${market.condition_id}-token` })),
   useEventPriceHistory: () => mocks.priceHistory,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades', () => ({
   useEventLastTrades: () => ({}),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices', () => ({
   useEventMarketQuotes: () => mocks.marketQuotes,
 }))
 

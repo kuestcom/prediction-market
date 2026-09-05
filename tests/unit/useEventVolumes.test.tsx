@@ -2,24 +2,26 @@ import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { Event } from '@/types'
 
 import { useEventVolumes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventVolumes'
 
-const mocks = vi.hoisted(() => ({
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
   clobUrl: 'https://clob.example',
-  fetch: vi.fn(),
+  fetch: mock(),
   liveVolumeByCondition: {} as Record<string, number>,
-  resetLiveVolumes: vi.fn(),
+  resetLiveVolumes: mock(),
 }))
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ clobUrl: mocks.clobUrl }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider', () => ({
   useOptionalMarketChannelLiveVolumes: () => ({
     liveVolumeByCondition: mocks.liveVolumeByCondition,
     resetLiveVolumes: mocks.resetLiveVolumes,
@@ -48,7 +50,7 @@ function createResponse(payload: unknown, options: { ok?: boolean; status?: numb
     ok,
     status: options.status ?? (ok ? 200 : 500),
     statusText: ok ? 'OK' : 'Internal Server Error',
-    json: vi.fn().mockResolvedValue(payload),
+    json: mock().mockResolvedValue(payload),
   } as unknown as Response
 }
 
@@ -94,14 +96,14 @@ function createQueryClient() {
 
 describe('useEventVolumes', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
     mocks.fetch.mockReset()
     mocks.liveVolumeByCondition = {}
     mocks.resetLiveVolumes.mockReset()
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('loads all chunks successfully and respects the 100-condition request limit', async () => {

@@ -1,13 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
+
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
 
 describe('fetchPortfolioSnapshot', () => {
   const originalDataUrl = process.env.DATA_URL
   const originalUserPnlUrl = process.env.USER_PNL_URL
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
     if (originalDataUrl === undefined) {
       delete process.env.DATA_URL
     } else {
@@ -24,7 +26,7 @@ describe('fetchPortfolioSnapshot', () => {
     process.env.DATA_URL = 'https://data-api.test'
     process.env.USER_PNL_URL = 'https://user-pnl.test'
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : input instanceof URL ? input.toString() : input)
       if (url.pathname === '/value') {
         return Response.json([{ value: 25 }])
@@ -43,7 +45,7 @@ describe('fetchPortfolioSnapshot', () => {
       }
       return new Response(null, { status: 404 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     await expect(fetchPortfolioSnapshot(`0x${'a'.repeat(40)}`)).resolves.toEqual({
       positionsValue: 25,
@@ -73,7 +75,7 @@ describe('fetchPortfolioSnapshot', () => {
     process.env.DATA_URL = 'https://data-api.test'
     process.env.USER_PNL_URL = 'https://user-pnl.test'
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(input instanceof Request ? input.url : input instanceof URL ? input.toString() : input)
       if (url.pathname === '/value') {
         return Response.json([{ value: 0 }])
@@ -98,7 +100,7 @@ describe('fetchPortfolioSnapshot', () => {
       }
       return new Response(null, { status: 404 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     await expect(fetchPortfolioSnapshot(`0x${'b'.repeat(40)}`)).resolves.toMatchObject({
       profitLoss: 20,

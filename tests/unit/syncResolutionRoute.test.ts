@@ -1,22 +1,24 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  execute: vi.fn(),
-  fetch: vi.fn(),
-  isCronAuthorized: vi.fn(),
-  select: vi.fn(),
-  update: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  execute: mock(),
+  fetch: mock(),
+  isCronAuthorized: mock(),
+  select: mock(),
+  update: mock(),
 }))
 
-vi.mock('@/lib/auth-cron', () => ({
+void mock.module('@/lib/auth-cron', () => ({
   isCronAuthorized: (...args: any[]) => mocks.isCronAuthorized(...args),
 }))
 
-vi.mock('@/lib/db/utils/run-query', () => ({
+void mock.module('@/lib/db/utils/run-query', () => ({
   runQuery: async (callback: () => Promise<unknown>) => await callback(),
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     execute: (...args: any[]) => mocks.execute(...args),
     select: (...args: any[]) => mocks.select(...args),
@@ -46,8 +48,7 @@ function makeUpdateChain(result: Array<{ id: string }>) {
 
 describe('sync resolution route', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
 
     mocks.execute.mockReset()
     mocks.fetch.mockReset()
@@ -57,8 +58,8 @@ describe('sync resolution route', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    unstubAllGlobals()
+    jest.restoreAllMocks()
   })
 
   it('hits the resolution subgraph and exits cleanly when no tracked authors are returned', async () => {

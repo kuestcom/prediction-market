@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
 
 describe('trade alert service worker', () => {
   const source = readFileSync(new URL('../../public/sw.js', import.meta.url), 'utf8')

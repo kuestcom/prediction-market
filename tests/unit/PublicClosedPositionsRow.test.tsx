@@ -1,16 +1,17 @@
 import type { AnchorHTMLAttributes } from 'react'
 
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 
 import PublicClosedPositionsRow from '@/app/[locale]/(platform)/profile/_components/PublicClosedPositionsRow'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
     return (
       <a href={href} {...props}>
@@ -20,7 +21,7 @@ vi.mock('@/i18n/navigation', () => ({
   },
 }))
 
-vi.mock('@/components/EventIconImage', () => ({
+void mock.module('@/components/EventIconImage', () => ({
   default: () => <span data-testid="event-icon" />,
 }))
 

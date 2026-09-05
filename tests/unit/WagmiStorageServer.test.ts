@@ -1,11 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  cookies: vi.fn(),
-  get: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  cookies: mock(),
+  get: mock(),
 }))
 
-vi.mock('next/headers', () => ({
+void mock.module('next/headers', () => ({
   cookies: mocks.cookies,
 }))
 

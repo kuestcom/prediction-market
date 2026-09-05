@@ -1,13 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  fetch: vi.fn(),
-  listWallets: vi.fn(),
-  listSiteSources: vi.fn(),
-  replaceSiteSource: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetch: mock(),
+  listWallets: mock(),
+  listSiteSources: mock(),
+  replaceSiteSource: mock(),
 }))
 
-vi.mock('@/lib/db/queries/allowed-market-creators', () => ({
+void mock.module('@/lib/db/queries/allowed-market-creators', () => ({
   AllowedMarketCreatorRepository: {
     listWallets: (...args: any[]) => mocks.listWallets(...args),
     listSiteSources: (...args: any[]) => mocks.listSiteSources(...args),
@@ -17,8 +19,7 @@ vi.mock('@/lib/db/queries/allowed-market-creators', () => ({
 
 describe('allowed market creators server helpers', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
     mocks.fetch.mockReset()
     mocks.listWallets.mockReset()
     mocks.listSiteSources.mockReset()
@@ -26,7 +27,7 @@ describe('allowed market creators server helpers', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('normalizes wallet lists without casing duplicates', async () => {

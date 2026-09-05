@@ -1,12 +1,15 @@
 import type { ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import EventLiveSeriesChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChartHeader'
 
-const mocks = vi.hoisted(() => ({ locale: 'en' }))
+import { hoisted } from '../bun-test-helpers'
 
-vi.mock('next-intl', () => ({
+const mocks = hoisted(() => ({ locale: 'en' }))
+
+void mock.module('next-intl', () => ({
   useLocale: () => mocks.locale,
   useExtracted: () => (message: string, values?: Record<string, string | number>) => {
     const translations: Record<string, Record<string, string>> = {
@@ -54,7 +57,7 @@ vi.mock('next-intl', () => ({
   },
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
 }))
 

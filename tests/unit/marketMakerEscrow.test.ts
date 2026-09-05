@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { ESCROW_CAMPAIGN_STATUS, getEffectiveCampaignStatus, MARKET_MAKER_ESCROW_ABI } from '@/lib/market-maker-escrow'
 

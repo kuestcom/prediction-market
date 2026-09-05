@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import {
   fetchCommunityFollowLeaderboard,
@@ -8,19 +8,21 @@ import {
   setCommunityFollow,
 } from '@/lib/community-follows'
 
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
 const WALLET_A = '0x1111111111111111111111111111111111111111'
 const WALLET_B = '0x2222222222222222222222222222222222222222'
 
 describe('community follows client', () => {
-  const fetchMock = vi.fn()
+  const fetchMock = mock()
 
   beforeEach(() => {
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
     fetchMock.mockReset()
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('uses authenticated idempotent methods and sends no fork identity in the body', async () => {

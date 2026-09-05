@@ -1,17 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  fetchResolutionRewardAccount: vi.fn(),
-  getMarketsByConditionIds: vi.fn(),
+import { hoisted, waitFor } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetchResolutionRewardAccount: mock(),
+  getMarketsByConditionIds: mock(),
 }))
 
-vi.mock('server-only', () => ({}))
+void mock.module('server-only', () => ({}))
 
-vi.mock('@/lib/data-api/resolution-rewards', () => ({
+void mock.module('@/lib/data-api/resolution-rewards', () => ({
   fetchResolutionRewardAccount: mocks.fetchResolutionRewardAccount,
 }))
 
-vi.mock('@/lib/db/queries/resolution-report-context', () => ({
+void mock.module('@/lib/db/queries/resolution-report-context', () => ({
   ResolutionReportContextRepository: {
     getMarketsByConditionIds: mocks.getMarketsByConditionIds,
   },
@@ -36,7 +38,7 @@ describe('fetchDisplayResolutionRewardAccount', () => {
       signal: controller.signal,
     })
 
-    await vi.waitFor(() => expect(mocks.getMarketsByConditionIds).toHaveBeenCalledOnce())
+    await waitFor(() => expect(mocks.getMarketsByConditionIds).toHaveBeenCalledOnce())
     controller.abort(new Error('profile reward deadline exceeded'))
 
     await expect(request).rejects.toThrow('profile reward deadline exceeded')

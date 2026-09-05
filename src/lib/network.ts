@@ -28,7 +28,11 @@ function resolveNetworkKeyByChainId(chainId: string | number | null | undefined)
   return parseNetworkChainId(chainId) === POLYGON_MAINNET_CHAIN_ID ? 'polygon' : 'amoy'
 }
 
-export const DEFAULT_NETWORK_KEY: DefaultNetworkKey = resolveNetworkKeyByChainId(getRuntimeChainId())
+export function resolveDefaultNetworkKey(): DefaultNetworkKey {
+  return resolveNetworkKeyByChainId(getRuntimeChainId())
+}
+
+export const DEFAULT_NETWORK_KEY: DefaultNetworkKey = resolveDefaultNetworkKey()
 
 const NETWORK_CONFIG = {
   amoy: {

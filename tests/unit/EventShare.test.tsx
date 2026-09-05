@@ -3,27 +3,30 @@ import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { Event } from '@/types'
 
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 
-const mocks = vi.hoisted(() => ({
-  fetchAffiliateSettingsFromAPI: vi.fn(),
-  maybeShowAffiliateToast: vi.fn(),
-  resolveEventMarketPath: vi.fn(),
-  resolveEventPagePath: vi.fn(),
-  useSiteIdentity: vi.fn(),
-  useUser: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetchAffiliateSettingsFromAPI: mock(),
+  maybeShowAffiliateToast: mock(),
+  resolveEventMarketPath: mock(),
+  resolveEventPagePath: mock(),
+  useSiteIdentity: mock(),
+  useUser: mock(),
 }))
 
-vi.mock('@/components/ui/button', () => ({
+void mock.module('@/components/ui/button', () => ({
   Button: function MockButton({ children, nativeButton: _nativeButton, render, ...props }: any) {
     return render ?? <button {...props}>{children}</button>
   },
 }))
 
-vi.mock('@/components/ui/dropdown-menu', () => ({
+void mock.module('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: function MockDropdownMenu({ children, open }: any) {
     return (
       <div data-testid="share-menu" data-state={open ? 'open' : 'closed'}>
@@ -49,24 +52,24 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   },
 }))
 
-vi.mock('@/hooks/useSiteIdentity', () => ({
+void mock.module('@/hooks/useSiteIdentity', () => ({
   useSiteIdentity: () => mocks.useSiteIdentity(),
 }))
 
-vi.mock('@/lib/affiliate-data', () => ({
+void mock.module('@/lib/affiliate-data', () => ({
   fetchAffiliateSettingsFromAPI: () => mocks.fetchAffiliateSettingsFromAPI(),
 }))
 
-vi.mock('@/lib/affiliate-toast', () => ({
+void mock.module('@/lib/affiliate-toast', () => ({
   maybeShowAffiliateToast: (...args: any[]) => mocks.maybeShowAffiliateToast(...args),
 }))
 
-vi.mock('@/lib/events-routing', () => ({
+void mock.module('@/lib/events-routing', () => ({
   resolveEventMarketPath: (...args: any[]) => mocks.resolveEventMarketPath(...args),
   resolveEventPagePath: (...args: any[]) => mocks.resolveEventPagePath(...args),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
 
@@ -141,7 +144,7 @@ function renderWithQueryClient(component: ReactNode) {
 }
 
 describe('eventShare', () => {
-  const writeText = vi.fn()
+  const writeText = mock()
 
   beforeEach(() => {
     mocks.fetchAffiliateSettingsFromAPI.mockReset()
@@ -152,10 +155,9 @@ describe('eventShare', () => {
     mocks.useUser.mockReset()
 
     writeText.mockReset()
-    Object.assign(navigator, {
-      clipboard: {
-        writeText,
-      },
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
     })
 
     mocks.useSiteIdentity.mockReturnValue({ name: 'Kuest' })

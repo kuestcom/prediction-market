@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { buildOrderPayload, calculateOrderAmounts, submitOrder, submitOrders } from '@/lib/orders'
 
-const storeOrderActionMock = vi.fn()
-const storeOrdersActionMock = vi.fn()
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_actions/store-order', () => ({
+const storeOrderActionMock = mock()
+const storeOrdersActionMock = mock()
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_actions/store-order', () => ({
   storeOrderAction: (...args: any[]) => storeOrderActionMock(...args),
   storeOrdersAction: (...args: any[]) => storeOrdersActionMock(...args),
 }))

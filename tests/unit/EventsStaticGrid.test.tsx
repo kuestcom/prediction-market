@@ -1,10 +1,11 @@
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
 import EventsStaticGrid, {
   getStaticGridColumnsClassName,
 } from '@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid'
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCard', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventCard', () => ({
   default: function MockEventCard({ event }: { event: { title: string } }) {
     return <article>{event.title}</article>
   },

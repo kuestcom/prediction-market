@@ -1,18 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  runQuery: vi.fn(),
-  update: vi.fn(),
-  set: vi.fn(),
-  where: vi.fn(),
-  returning: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  runQuery: mock(),
+  update: mock(),
+  set: mock(),
+  where: mock(),
+  returning: mock(),
 }))
 
-vi.mock('@/lib/db/utils/run-query', () => ({
+void mock.module('@/lib/db/utils/run-query', () => ({
   runQuery: (...args: any[]) => mocks.runQuery(...args),
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     update: (...args: any[]) => mocks.update(...args),
   },
@@ -22,7 +24,7 @@ const { EventCreationRepository } = await import('@/lib/db/queries/event-creatio
 
 describe('event creation repository', () => {
   beforeEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
     mocks.runQuery.mockReset()
     mocks.update.mockReset()
     mocks.set.mockReset()

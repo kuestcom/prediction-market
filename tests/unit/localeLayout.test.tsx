@@ -1,74 +1,76 @@
 import type { ReactElement, ReactNode } from 'react'
 
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 import { Suspense } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  deferPublicShellPrerenderIfNeeded: vi.fn(),
-  getPublicRuntimeConfig: vi.fn(),
-  loadEnabledLocales: vi.fn(),
-  loadGlobalAnnouncementSettings: vi.fn(),
-  loadRuntimeThemeState: vi.fn(),
-  setRequestLocale: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  deferPublicShellPrerenderIfNeeded: mock(),
+  getPublicRuntimeConfig: mock(),
+  loadEnabledLocales: mock(),
+  loadGlobalAnnouncementSettings: mock(),
+  loadRuntimeThemeState: mock(),
+  setRequestLocale: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   hasLocale: () => true,
   NextIntlClientProvider: 'next-intl-provider',
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   setRequestLocale: (...args: unknown[]) => mocks.setRequestLocale(...args),
 }))
 
-vi.mock('next/cache', () => ({
-  cacheTag: vi.fn(),
+void mock.module('next/cache', () => ({
+  cacheTag: mock(),
 }))
 
-vi.mock('next/navigation', () => ({
-  notFound: vi.fn(),
+void mock.module('next/navigation', () => ({
+  notFound: mock(),
 }))
 
-vi.mock('@/components/CustomJavascriptCode', () => ({ default: 'custom-javascript-code' }))
-vi.mock('@/components/GlobalAnnouncementBanner', () => ({ default: 'global-announcement-banner' }))
-vi.mock('@/components/PublicRuntimeConfigScript', () => ({ default: 'public-runtime-config-script' }))
-vi.mock('@/components/PwaInstallStateSync', () => ({ default: 'pwa-install-state-sync' }))
-vi.mock('@/components/PwaServiceWorker', () => ({ default: 'pwa-service-worker' }))
-vi.mock('@/components/seo/SiteStructuredData', () => ({ default: 'site-structured-data' }))
-vi.mock('@/components/TestModeBannerDeferred', () => ({ default: 'test-mode-banner' }))
+void mock.module('@/components/CustomJavascriptCode', () => ({ default: 'custom-javascript-code' }))
+void mock.module('@/components/GlobalAnnouncementBanner', () => ({ default: 'global-announcement-banner' }))
+void mock.module('@/components/PublicRuntimeConfigScript', () => ({ default: 'public-runtime-config-script' }))
+void mock.module('@/components/PwaInstallStateSync', () => ({ default: 'pwa-install-state-sync' }))
+void mock.module('@/components/PwaServiceWorker', () => ({ default: 'pwa-service-worker' }))
+void mock.module('@/components/seo/SiteStructuredData', () => ({ default: 'site-structured-data' }))
+void mock.module('@/components/TestModeBannerDeferred', () => ({ default: 'test-mode-banner' }))
 
-vi.mock('@/i18n/locale-settings', () => ({
+void mock.module('@/i18n/locale-settings', () => ({
   loadEnabledLocales: (...args: unknown[]) => mocks.loadEnabledLocales(...args),
 }))
 
-vi.mock('@/lib/fonts', () => ({
+void mock.module('@/lib/fonts', () => ({
   openSauceOne: { variable: 'font-open-sauce-one' },
 }))
 
-vi.mock('@/lib/global-announcement-settings', () => ({
+void mock.module('@/lib/global-announcement-settings', () => ({
   loadGlobalAnnouncementSettings: (...args: unknown[]) => mocks.loadGlobalAnnouncementSettings(...args),
 }))
 
-vi.mock('@/lib/public-runtime-config.server', () => ({
+void mock.module('@/lib/public-runtime-config.server', () => ({
   getPublicRuntimeConfig: (...args: unknown[]) => mocks.getPublicRuntimeConfig(...args),
 }))
 
-vi.mock('@/lib/public-shell-rendering', () => ({
+void mock.module('@/lib/public-shell-rendering', () => ({
   deferPublicShellPrerenderIfNeeded: (...args: unknown[]) => mocks.deferPublicShellPrerenderIfNeeded(...args),
   shouldPrerenderPublicShell: () => false,
 }))
 
-vi.mock('@/lib/theme-settings', () => ({
+void mock.module('@/lib/theme-settings', () => ({
   loadRuntimeThemeState: (...args: unknown[]) => mocks.loadRuntimeThemeState(...args),
 }))
 
-vi.mock('@/providers/AppProviders', () => ({ AppProviders: 'app-providers' }))
-vi.mock('@/providers/PublicRuntimeConfigProvider', () => ({ default: 'public-runtime-config-provider' }))
-vi.mock('@/providers/SiteIdentityProvider', () => ({ default: 'site-identity-provider' }))
+void mock.module('@/providers/AppProviders', () => ({ AppProviders: 'app-providers' }))
+void mock.module('@/providers/PublicRuntimeConfigProvider', () => ({ default: 'public-runtime-config-provider' }))
+void mock.module('@/providers/SiteIdentityProvider', () => ({ default: 'site-identity-provider' }))
 
 describe('locale layout', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.deferPublicShellPrerenderIfNeeded.mockResolvedValue(undefined)
     mocks.loadEnabledLocales.mockResolvedValue(['en'])
     mocks.loadRuntimeThemeState.mockResolvedValue({

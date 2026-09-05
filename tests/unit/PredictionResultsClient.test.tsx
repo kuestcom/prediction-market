@@ -1,16 +1,19 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 import { cloneElement } from 'react'
 
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
 
-const mocks = vi.hoisted(() => {
+import { hoisted, stubGlobal, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => {
   let intersectionCallback: ((entries: Array<{ isIntersecting: boolean }>) => void) | null = null
 
   return {
-    fetchNextPage: vi.fn().mockResolvedValue(undefined),
-    replace: vi.fn(),
-    useInfiniteQuery: vi.fn(),
-    useSearchParams: vi.fn(),
+    fetchNextPage: mock().mockResolvedValue(undefined),
+    replace: mock(),
+    useInfiniteQuery: mock(),
+    useSearchParams: mock(),
     getIntersectionCallback: () => intersectionCallback,
     setIntersectionCallback: (callback: typeof intersectionCallback) => {
       intersectionCallback = callback
@@ -26,24 +29,24 @@ function mockSearchParams(value: string) {
   window.history.replaceState(null, '', `/predictions/test${query ? `?${query}` : ''}`)
 }
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useInfiniteQuery: (options: any) => mocks.useInfiniteQuery(options),
 }))
 
-vi.mock('@reown/appkit/react', () => ({
+void mock.module('@reown/appkit/react', () => ({
   useAppKitAccount: () => ({ isConnected: true }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
   useLocale: () => 'en',
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   useSearchParams: () => mocks.useSearchParams(),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, prefetch: _prefetch, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -53,23 +56,23 @@ vi.mock('@/i18n/navigation', () => ({
   useRouter: () => ({ replace: mocks.replace }),
 }))
 
-vi.mock('@/components/EventIconImage', () => ({
+void mock.module('@/components/EventIconImage', () => ({
   default: function MockEventIconImage({ alt }: { alt: string }) {
     return <span>{alt}</span>
   },
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
-  useAppKit: () => ({ open: vi.fn() }),
+void mock.module('@/hooks/useAppKit', () => ({
+  useAppKit: () => ({ open: mock() }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics', () => ({
   useCommentMetrics: () => ({
     data: { comments_count: 3417 },
   }),
 }))
 
-vi.mock('@/components/ui/drawer', () => ({
+void mock.module('@/components/ui/drawer', () => ({
   Drawer: ({ children }: any) => <div>{children}</div>,
   DrawerTrigger: ({ children, render: trigger }: any) => cloneElement(trigger, {}, children),
   DrawerContent: () => null,
@@ -80,7 +83,7 @@ vi.mock('@/components/ui/drawer', () => ({
 
 describe('predictionResultsClient', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
+    useFakeTimers()
     mocks.fetchNextPage.mockClear()
     mocks.replace.mockClear()
     mocks.useInfiniteQuery.mockReset()
@@ -135,7 +138,7 @@ describe('predictionResultsClient', () => {
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('debounces search navigation and preserves active filters in the url', async () => {
@@ -158,13 +161,13 @@ describe('predictionResultsClient', () => {
     })
 
     await act(async () => {
-      vi.advanceTimersByTime(299)
+      jest.advanceTimersByTime(299)
     })
 
     expect(mocks.replace).not.toHaveBeenCalled()
 
     await act(async () => {
-      vi.advanceTimersByTime(1)
+      jest.advanceTimersByTime(1)
     })
 
     const [href, options] = mocks.replace.mock.calls.at(-1) ?? []
@@ -297,7 +300,7 @@ describe('predictionResultsClient', () => {
     expect(window.location.search).toBe('?_status=all')
 
     await act(async () => {
-      vi.advanceTimersByTime(300)
+      jest.advanceTimersByTime(300)
     })
 
     expect(screen.getByTestId('prediction-status-all')).toHaveAttribute('aria-pressed', 'true')
@@ -404,11 +407,11 @@ describe('predictionResultsClient', () => {
   })
 
   it('filters stale resolved search rows by the prediction query before rendering', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => [],
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
     mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation((options: any) => ({
       data: {
@@ -494,7 +497,7 @@ describe('predictionResultsClient', () => {
       expect(requestUrl).not.toContain('homeFeed=')
       expect(requestUrl).not.toContain('sort=')
     } finally {
-      vi.unstubAllGlobals()
+      unstubAllGlobals()
     }
   })
 
@@ -574,11 +577,11 @@ describe('predictionResultsClient', () => {
   })
 
   it('shows only bookmarked matching rows when the prediction bookmark filter is active', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => [],
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
     mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation((options: any) => ({
       data: {
@@ -672,7 +675,7 @@ describe('predictionResultsClient', () => {
       expect(requestUrl).toContain('status=resolved')
       expect(requestUrl).not.toContain('homeFeed=')
     } finally {
-      vi.unstubAllGlobals()
+      unstubAllGlobals()
     }
   })
 

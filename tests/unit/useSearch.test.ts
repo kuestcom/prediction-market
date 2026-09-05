@@ -1,6 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { useSearch } from '@/hooks/useSearch'
+
+import { stubGlobal, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
 
 function getRequestUrl(input: RequestInfo | URL) {
   if (typeof input === 'string') {
@@ -10,7 +13,7 @@ function getRequestUrl(input: RequestInfo | URL) {
 }
 
 describe('useSearch', () => {
-  const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+  const fetchMock = mock((input: RequestInfo | URL, _init?: RequestInit) => {
     const url = getRequestUrl(input)
 
     if (url.includes('/api/events')) {
@@ -91,14 +94,14 @@ describe('useSearch', () => {
   })
 
   beforeEach(() => {
-    vi.useFakeTimers()
+    useFakeTimers()
     fetchMock.mockClear()
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
   })
 
   afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+    useRealTimers()
+    unstubAllGlobals()
   })
 
   it('reopens the existing search results when the input is focused again', async () => {
@@ -135,7 +138,7 @@ describe('useSearch', () => {
     })
 
     await act(async () => {
-      vi.advanceTimersByTime(300)
+      jest.advanceTimersByTime(300)
       await Promise.resolve()
     })
 
@@ -166,7 +169,7 @@ describe('useSearch', () => {
     })
 
     await act(async () => {
-      vi.advanceTimersByTime(300)
+      jest.advanceTimersByTime(300)
       await Promise.resolve()
     })
 
@@ -205,7 +208,7 @@ describe('useSearch', () => {
     })
 
     await act(async () => {
-      vi.advanceTimersByTime(300)
+      jest.advanceTimersByTime(300)
       await Promise.resolve()
     })
 

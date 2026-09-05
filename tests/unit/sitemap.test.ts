@@ -1,16 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
-const mocks = vi.hoisted(() => ({
-  cacheTag: vi.fn(),
-  getPages: vi.fn(),
+import { hoisted, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  cacheTag: mock(),
+  getPages: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
   cacheTag: (...args: any[]) => mocks.cacheTag(...args),
   unstable_cache: (callback: (...args: any[]) => unknown) => callback,
 }))
 
-vi.mock('@/lib/source', () => ({
+void mock.module('@/lib/source', () => ({
   source: {
     getPages: (...args: any[]) => mocks.getPages(...args),
   },
@@ -25,7 +29,7 @@ describe('sitemap docs entries', () => {
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('keeps only canonical docs paths sorted and deduped', () => {
@@ -48,8 +52,8 @@ describe('sitemap docs entries', () => {
   })
 
   it('serves the docs sitemap from the docs source', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-04-27T12:00:00.000Z'))
+    useFakeTimers()
+    jest.setSystemTime(new Date('2026-04-27T12:00:00.000Z'))
     mocks.getPages.mockReturnValue([{ url: '/docs' }, { url: '/docs/api-reference/rate-limits' }])
 
     await expect(getDynamicSitemapEntriesById(DOCS_SITEMAP_ID)).resolves.toEqual([

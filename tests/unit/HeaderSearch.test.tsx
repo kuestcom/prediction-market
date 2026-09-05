@@ -1,39 +1,42 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import HeaderSearch from '@/app/[locale]/(platform)/_components/HeaderSearch'
 
-const mocks = vi.hoisted(() => ({
-  clearSearch: vi.fn(),
-  handleQueryChange: vi.fn(),
-  hideResults: vi.fn(),
-  push: vi.fn(),
-  setActiveTab: vi.fn(),
-  showSearchResults: vi.fn(),
-  useSearch: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  clearSearch: mock(),
+  handleQueryChange: mock(),
+  hideResults: mock(),
+  push: mock(),
+  setActiveTab: mock(),
+  showSearchResults: mock(),
+  useSearch: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('lucide-react', () => ({
+void mock.module('lucide-react', () => ({
   SearchIcon: () => <svg data-testid="search-icon" />,
   XIcon: () => <svg data-testid="clear-search-icon" />,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }))
 
-vi.mock('@/hooks/useSearch', () => ({
+void mock.module('@/hooks/useSearch', () => ({
   useSearch: () => mocks.useSearch(),
 }))
 
-vi.mock('@/hooks/useSiteIdentity', () => ({
+void mock.module('@/hooks/useSiteIdentity', () => ({
   useSiteIdentity: () => ({ name: 'Events and profiles' }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/SearchResults', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/SearchResults', () => ({
   SearchResults: () => <div data-testid="search-results" />,
 }))
 

@@ -1,17 +1,20 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import CommunityFollowButton from '@/components/CommunityFollowButton'
 
-const mocks = vi.hoisted(() => ({
-  toggleFollow: vi.fn(),
-  useCommunityFollow: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  toggleFollow: mock(),
+  useCommunityFollow: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/providers/CommunityFollowsProvider', () => ({
+void mock.module('@/providers/CommunityFollowsProvider', () => ({
   useCommunityFollow: (...args: unknown[]) => mocks.useCommunityFollow(...args),
 }))
 
@@ -28,7 +31,7 @@ describe('CommunityFollowButton', () => {
   })
 
   it('exposes an accessible pressed state and stops parent navigation', () => {
-    const parentClick = vi.fn()
+    const parentClick = mock()
     render(
       <div onClick={parentClick}>
         <CommunityFollowButton wallet="0x1111111111111111111111111111111111111111" variant="icon" />

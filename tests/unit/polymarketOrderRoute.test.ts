@@ -1,10 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { GET, POST } from '@/app/api/arbitrage/polymarket-order/route'
 
-const sumsubMocks = vi.hoisted(() => ({ requireApproval: vi.fn() }))
+import { hoisted, spyOn } from '../bun-test-helpers'
 
-vi.mock('@/lib/sumsub/enforcement', () => ({
+const sumsubMocks = hoisted(() => ({ requireApproval: mock() }))
+
+void mock.module('@/lib/sumsub/enforcement', () => ({
   requireSumsubTradingApproval: sumsubMocks.requireApproval,
   SUMSUB_APPROVAL_REQUIRED_CODE: 'SUMSUB_APPROVAL_REQUIRED',
   SUMSUB_APPROVAL_REQUIRED_MESSAGE: 'Complete identity verification to continue.',
@@ -16,19 +18,19 @@ const {
   getCurrentUser,
   isActivePolymarketMirrorToken,
   isArbitrageOrderSubmissionEnabled,
-} = vi.hoisted(() => ({
-  consumeArbitrageOrderQuota: vi.fn(),
-  getArbitrageOrderQuotaStatus: vi.fn(),
-  getCurrentUser: vi.fn(),
-  isActivePolymarketMirrorToken: vi.fn(),
-  isArbitrageOrderSubmissionEnabled: vi.fn(),
+} = hoisted(() => ({
+  consumeArbitrageOrderQuota: mock(),
+  getArbitrageOrderQuotaStatus: mock(),
+  getCurrentUser: mock(),
+  isActivePolymarketMirrorToken: mock(),
+  isArbitrageOrderSubmissionEnabled: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser },
 }))
 
-vi.mock('@/lib/arbitrage-order-security', () => ({
+void mock.module('@/lib/arbitrage-order-security', () => ({
   consumeArbitrageOrderQuota,
   getArbitrageOrderQuotaStatus,
   isActivePolymarketMirrorToken,
@@ -74,7 +76,7 @@ function createRequest(body: unknown) {
 
 describe('polymarket order proxy', () => {
   beforeEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
     getCurrentUser.mockReset()
     consumeArbitrageOrderQuota.mockReset()
     getArbitrageOrderQuotaStatus.mockReset()
@@ -136,7 +138,7 @@ describe('polymarket order proxy', () => {
   it('blocks arbitrage before quota consumption or upstream submission', async () => {
     getCurrentUser.mockResolvedValue({ id: 'user-id' })
     sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = spyOn(globalThis, 'fetch')
 
     const response = await POST(createRequest({ headers: polymarketHeaders, body: orderBody }))
     expect(response.status).toBe(403)
@@ -201,7 +203,7 @@ describe('polymarket order proxy', () => {
       nonce: '0',
       taker: '0x0000000000000000000000000000000000000000',
     })
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
     )
 
@@ -220,7 +222,7 @@ describe('polymarket order proxy', () => {
     const contractOrder = JSON.parse(orderBody)
     contractOrder.order.signatureType = 3
     contractOrder.order.signer = contractOrder.order.maker
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
     )
 
@@ -284,7 +286,7 @@ describe('polymarket order proxy', () => {
       success: true,
       orderID: 'order-id',
     }
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(upstreamResponse), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, spyOn, jest } from 'bun:test'
 
 const STORAGE_ENV_KEYS = [
   'SUPABASE_URL',
@@ -28,20 +28,17 @@ function clearStorageEnv() {
 }
 
 async function loadStorageModule() {
-  vi.resetModules()
   return await import('@/lib/storage')
 }
 
 async function loadStorageUploadModule() {
-  vi.resetModules()
   return await import('@/lib/storage-upload')
 }
 
 describe('storage compatibility', () => {
   beforeEach(() => {
     clearStorageEnv()
-    vi.restoreAllMocks()
-    vi.resetModules()
+    jest.restoreAllMocks()
   })
 
   afterEach(() => {
@@ -53,8 +50,7 @@ describe('storage compatibility', () => {
         process.env[key] = snapshotValue
       }
     })
-    vi.restoreAllMocks()
-    vi.resetModules()
+    jest.restoreAllMocks()
   })
 
   it('uses Supabase public URL when Supabase env vars are configured', async () => {
@@ -110,7 +106,7 @@ describe('storage compatibility', () => {
     process.env.S3_ACCESS_KEY_ID = 's3-key'
     process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
 
-    const sendMock = vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
+    const sendMock = spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
     const { uploadPublicAsset } = await loadStorageUploadModule()
     const { error } = await uploadPublicAsset('users/avatar.jpg', 'binary-body', {
       contentType: 'image/jpeg',

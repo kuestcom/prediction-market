@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 import { createElement } from 'react'
 
 import EventIconImage from '@/components/EventIconImage'
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: function MockNextImage({ fill: _fill, ...props }: any) {
     return createElement('img', props)
   },

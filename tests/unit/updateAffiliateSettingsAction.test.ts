@@ -1,25 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
-const mocks = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  updateSettings: vi.fn(),
-  upsertSettingsWithUpdatedAt: vi.fn(),
-  touchSettings: vi.fn(),
-  deleteSettings: vi.fn(),
-  syncBuilderFeesForAdmin: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  revalidatePath: mock(),
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  updateSettings: mock(),
+  upsertSettingsWithUpdatedAt: mock(),
+  touchSettings: mock(),
+  deleteSettings: mock(),
+  syncBuilderFeesForAdmin: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
     updateSettings: (...args: any[]) => mocks.updateSettings(...args),
@@ -29,13 +33,12 @@ vi.mock('@/lib/db/queries/settings', () => ({
   },
 }))
 
-vi.mock('@/lib/affiliate-fee-sync', () => ({
+void mock.module('@/lib/affiliate-fee-sync', () => ({
   syncBuilderFeesForAdmin: (...args: any[]) => mocks.syncBuilderFeesForAdmin(...args),
 }))
 
 describe('updateForkSettingsAction', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
     mocks.getSettings.mockReset()

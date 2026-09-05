@@ -1,24 +1,26 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  fetch: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetch: mock(),
 }))
 
-vi.mock('@/lib/openapi-servers', () => ({
+void mock.module('@/lib/openapi-servers', () => ({
   OPENAPI_SERVER_URLS: {
     dataApi: 'https://data-api.kuest.com',
   },
 }))
 
-vi.mock('@/lib/site-url', () => ({
-  default: vi.fn(() => 'https://prediction.example'),
+void mock.module('@/lib/site-url', () => ({
+  default: mock(() => 'https://prediction.example'),
 }))
 
 const { GET } = await import('@/lib/openapi-proxy')
 
 describe('openapi proxy', () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
     mocks.fetch.mockReset()
   })
 
@@ -33,7 +35,7 @@ describe('openapi proxy', () => {
         },
       }),
     )
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
 
     const response = await GET(
       new Request('https://prediction.example/docs/api/proxy?url=https%3A%2F%2Fdata-api.kuest.com%2Fv1%2Fevents', {

@@ -1,39 +1,41 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import AdminResolutionReportsDialog from '@/app/[locale]/admin/events/_components/AdminResolutionReportsDialog'
 
-const mocks = vi.hoisted(() => ({
-  fetchNextPage: vi.fn(),
-  useInfiniteQuery: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetchNextPage: mock(),
+  useInfiniteQuery: mock(),
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useInfiniteQuery: () => mocks.useInfiniteQuery(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: ({ alt }: any) => <span role="img" aria-label={alt} />,
 }))
 
-vi.mock('@/components/EventIconImage', () => ({
+void mock.module('@/components/EventIconImage', () => ({
   default: ({ alt }: { alt: string }) => <span aria-label={alt} />,
 }))
 
-vi.mock('@/components/ui/badge', () => ({
+void mock.module('@/components/ui/badge', () => ({
   Badge: ({ children }: any) => <span>{children}</span>,
 }))
 
-vi.mock('@/components/ui/button', () => ({
+void mock.module('@/components/ui/button', () => ({
   Button: ({ children, nativeButton: _nativeButton, render, ...props }: any) =>
     render ?? <button {...props}>{children}</button>,
 }))
 
-vi.mock('@/components/ui/dialog', () => ({
+void mock.module('@/components/ui/dialog', () => ({
   Dialog: ({ open, children }: any) => (open ? <div>{children}</div> : null),
   DialogContent: ({ children }: any) => <div>{children}</div>,
   DialogDescription: ({ children }: any) => <p>{children}</p>,
@@ -42,17 +44,17 @@ vi.mock('@/components/ui/dialog', () => ({
   DialogTitle: ({ children }: any) => <h2>{children}</h2>,
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
+void mock.module('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: any) => <>{children}</>,
   TooltipContent: ({ children }: any) => <span>{children}</span>,
   TooltipTrigger: ({ render }: any) => render,
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => false,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -107,7 +109,7 @@ describe('AdminResolutionReportsDialog', () => {
   it('keeps each market proposal count exact while other pages remain', () => {
     mocks.useInfiniteQuery.mockReturnValue(queryResult())
 
-    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+    render(<AdminResolutionReportsDialog event={event} onClose={mock()} />)
 
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.queryByText('1+')).not.toBeInTheDocument()
@@ -117,7 +119,7 @@ describe('AdminResolutionReportsDialog', () => {
   it('uses one event and market hierarchy instead of a duplicated event summary', () => {
     mocks.useInfiniteQuery.mockReturnValue(queryResult({ hasNextPage: false }))
 
-    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+    render(<AdminResolutionReportsDialog event={event} onClose={mock()} />)
 
     expect(screen.getAllByText('Event title')).toHaveLength(1)
     expect(screen.getByText('Market title')).toHaveClass('text-muted-foreground')
@@ -126,7 +128,7 @@ describe('AdminResolutionReportsDialog', () => {
   it('shows an exact market proposal count after the final page', () => {
     mocks.useInfiniteQuery.mockReturnValue(queryResult({ hasNextPage: false }))
 
-    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+    render(<AdminResolutionReportsDialog event={event} onClose={mock()} />)
 
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.queryByText('1+')).not.toBeInTheDocument()
@@ -140,7 +142,7 @@ describe('AdminResolutionReportsDialog', () => {
       }),
     )
 
-    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+    render(<AdminResolutionReportsDialog event={event} onClose={mock()} />)
 
     expect(screen.getByText('Reporter')).toBeInTheDocument()
     expect(screen.getByText('Could not load resolution reports.')).toBeInTheDocument()
@@ -164,7 +166,7 @@ describe('AdminResolutionReportsDialog', () => {
       }),
     )
 
-    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+    render(<AdminResolutionReportsDialog event={event} onClose={mock()} />)
 
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
@@ -174,7 +176,7 @@ describe('AdminResolutionReportsDialog', () => {
   it('identifies the reporter in the avatar profile link', () => {
     mocks.useInfiniteQuery.mockReturnValue(queryResult({ hasNextPage: false }))
 
-    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+    render(<AdminResolutionReportsDialog event={event} onClose={mock()} />)
 
     expect(screen.getByRole('link', { name: 'Reporter — Profile' })).toHaveAttribute('href', '/@reporter')
   })

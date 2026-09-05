@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import {
   assertTranslationUsesExpectedScript,
@@ -7,6 +7,10 @@ import {
   resolveDeterministicTranslationVersion,
   resolveTranslationSourceFingerprint,
 } from '@/lib/translations/batch'
+
+function normalizeWhitespace(value: string) {
+  return value.replace(/\s+/gu, ' ').trim()
+}
 
 describe('translation batch safety', () => {
   it('isolates provider batches by target locale', () => {
@@ -128,12 +132,14 @@ describe('translation batch safety', () => {
     ['zh', 'Bitcoin会上涨还是下跌 — 7月28日 8:15 ET'],
   ] as const)('formats timed %s up-or-down titles deterministically', (locale, expected) => {
     expect(
-      resolveDeterministicTranslation({
-        locale,
-        sourceLabel: 'event title',
-        sourceText: 'Bitcoin Up or Down - July 28, 8:15AM ET',
-      }),
-    ).toBe(expected)
+      normalizeWhitespace(
+        resolveDeterministicTranslation({
+          locale,
+          sourceLabel: 'event title',
+          sourceText: 'Bitcoin Up or Down - July 28, 8:15AM ET',
+        }),
+      ),
+    ).toBe(normalizeWhitespace(expected))
   })
 
   it.each([

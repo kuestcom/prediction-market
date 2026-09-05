@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { encodeErrorResult } from 'viem'
-import { describe, expect, it } from 'vitest'
 
 import type { Event } from '@/types'
 

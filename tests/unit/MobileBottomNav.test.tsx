@@ -1,15 +1,16 @@
 import { render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { cloneElement } from 'react'
 
-import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
+import { hoisted } from '../bun-test-helpers'
 
-const mocks = vi.hoisted(() => ({
-  useHasHydrated: vi.fn(),
-  useSession: vi.fn(),
-  useUser: vi.fn(),
+const mocks = hoisted(() => ({
+  useHasHydrated: mock(),
+  useSession: mock(),
+  useUser: mock(),
 }))
 
-vi.mock('next/dynamic', () => ({
+void mock.module('next/dynamic', () => ({
   __esModule: true,
   default: () =>
     function MockDynamicComponent() {
@@ -17,30 +18,30 @@ vi.mock('next/dynamic', () => ({
     },
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
   useLocale: () => 'en',
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/SearchDiscoveryContent', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/SearchDiscoveryContent', () => ({
   default: () => <div data-testid="search-discovery" />,
 }))
 
-vi.mock('@/components/PwaInstallDialog', () => ({
+void mock.module('@/components/PwaInstallDialog', () => ({
   default: () => <div data-testid="pwa-install-dialog" />,
 }))
 
-vi.mock('@/components/ThemeSelector', () => ({
+void mock.module('@/components/ThemeSelector', () => ({
   default: () => <div data-testid="theme-selector" />,
 }))
 
-vi.mock('@/components/ui/button', () => ({
+void mock.module('@/components/ui/button', () => ({
   Button: function MockButton({ children, nativeButton: _nativeButton, render, ...props }: any) {
     return render ?? <button {...props}>{children}</button>
   },
 }))
 
-vi.mock('@/components/ui/drawer', () => ({
+void mock.module('@/components/ui/drawer', () => ({
   Drawer: ({ children }: any) => <div>{children}</div>,
   DrawerClose: ({ children, render: close }: any) => cloneElement(close, {}, children),
   DrawerContent: ({ children, ...props }: any) => <div {...props}>{children}</div>,
@@ -48,36 +49,36 @@ vi.mock('@/components/ui/drawer', () => ({
   DrawerTitle: ({ children }: any) => <div>{children}</div>,
 }))
 
-vi.mock('@/components/ui/skeleton', () => ({
+void mock.module('@/components/ui/skeleton', () => ({
   Skeleton: (props: any) => <span {...props} />,
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
-  useAppKit: () => ({ open: vi.fn() }),
+void mock.module('@/hooks/useAppKit', () => ({
+  useAppKit: () => ({ open: mock() }),
 }))
 
-vi.mock('@/hooks/useBalance', () => ({
+void mock.module('@/hooks/useBalance', () => ({
   useBalance: () => ({ balance: { raw: 0 }, isLoadingBalance: false }),
 }))
 
-vi.mock('@/hooks/useHasHydrated', () => ({
+void mock.module('@/hooks/useHasHydrated', () => ({
   useHasHydrated: () => mocks.useHasHydrated(),
 }))
 
-vi.mock('@/hooks/usePortfolioValue', () => ({
+void mock.module('@/hooks/usePortfolioValue', () => ({
   usePortfolioValue: () => ({ isLoading: false, value: 0 }),
 }))
 
-vi.mock('@/hooks/usePwaInstall', () => ({
+void mock.module('@/hooks/usePwaInstall', () => ({
   usePwaInstall: () => ({
     canShowInstallUi: false,
     isIos: false,
     isPrompting: false,
-    requestInstall: vi.fn(),
+    requestInstall: mock(),
   }),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: any) {
     return (
       <a href={href} {...props}>
@@ -86,22 +87,24 @@ vi.mock('@/i18n/navigation', () => ({
     )
   },
   usePathname: () => '/crypto',
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mock() }),
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+void mock.module('@/lib/auth-client', () => ({
   authClient: {
     useSession: () => mocks.useSession(),
   },
 }))
 
-vi.mock('@/stores/usePortfolioValueVisibility', () => ({
+void mock.module('@/stores/usePortfolioValueVisibility', () => ({
   usePortfolioValueVisibility: (selector: (state: { isHidden: boolean }) => unknown) => selector({ isHidden: false }),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
+
+const { default: MobileBottomNav } = await import('@/app/[locale]/(platform)/_components/MobileBottomNav')
 
 describe('mobileBottomNav', () => {
   beforeEach(() => {

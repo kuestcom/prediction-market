@@ -1,22 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { createElement } from 'react'
 
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 
-const mocks = vi.hoisted(() => ({
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
   isMobile: false,
-  push: vi.fn(),
-  setIsMobileOrderPanelOpen: vi.fn(),
+  push: mock(),
+  setIsMobileOrderPanelOpen: mock(),
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: function MockImage({ fill: _fill, ...props }: any) {
     return createElement('img', props)
   },
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useLocale: () => 'en',
   useExtracted: () => (message: string, values?: Record<string, unknown>) =>
     values
@@ -29,7 +32,7 @@ vi.mock('next-intl', () => ({
       : message,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: any) {
     return (
       <a href={href} {...props}>
@@ -40,25 +43,25 @@ vi.mock('@/i18n/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }))
 
-vi.mock('@/hooks/useCurrentTimestamp', () => ({
+void mock.module('@/hooks/useCurrentTimestamp', () => ({
   useCurrentTimestamp: () => Date.parse('2026-03-12T12:00:00.000Z'),
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: () => mocks.isMobile,
 }))
 
-vi.mock('@/stores/useOrder', () => ({
+void mock.module('@/stores/useOrder', () => ({
   useOrder: Object.assign(
     (selector: any) =>
       selector({
         event: null,
         market: null,
         outcome: null,
-        setEvent: vi.fn(),
-        setMarket: vi.fn(),
-        setOutcome: vi.fn(),
-        setSide: vi.fn(),
+        setEvent: mock(),
+        setMarket: mock(),
+        setOutcome: mock(),
+        setSide: mock(),
         setIsMobileOrderPanelOpen: mocks.setIsMobileOrderPanelOpen,
       }),
     {
@@ -71,39 +74,39 @@ vi.mock('@/stores/useOrder', () => ({
   ),
 }))
 
-vi.mock('@/stores/useSportsLivestream', () => ({
-  useSportsLivestream: (selector: any) => selector({ openStream: vi.fn() }),
+void mock.module('@/stores/useSportsLivestream', () => ({
+  useSportsLivestream: (selector: any) => selector({ openStream: mock() }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook', () => ({
-  useOrderBookSummaries: () => ({ data: null, isLoading: false, isRefetching: false, refetch: vi.fn() }),
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook', () => ({
+  useOrderBookSummaries: () => ({ data: null, isLoading: false, isRefetching: false, refetch: mock() }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm', () => ({
   default: function MockEventOrderPanelForm() {
     return <div data-testid="order-panel-form" />
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile', () => ({
   default: function MockEventOrderPanelMobile() {
     return <div data-testid="mobile-order-panel" />
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer', () => ({
   default: function MockEventOrderPanelTermsDisclaimer() {
     return <div data-testid="order-panel-disclaimer" />
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer', () => ({
+void mock.module('@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer', () => ({
   default: function MockSportsLivestreamFloatingPlayer() {
     return null
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsGameDetailsPanel', () => ({
+void mock.module('@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsGameDetailsPanel', () => ({
   default: function MockSportsGameDetailsPanel(props: { showBottomContent: boolean; activeDetailsTab: string }) {
     if (!props.showBottomContent) {
       return null
@@ -113,19 +116,22 @@ vi.mock('@/app/[locale]/(platform)/sports/_components/_sports-games-center/Sport
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsOrderPanelMarketInfo', () => ({
-  default: function MockSportsOrderPanelMarketInfo() {
-    return <div data-testid="sports-order-panel-market-info" />
-  },
-}))
+void mock.module(
+  '@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsOrderPanelMarketInfo',
+  () => ({
+    default: function MockSportsOrderPanelMarketInfo() {
+      return <div data-testid="sports-order-panel-market-info" />
+    },
+  }),
+)
 
-vi.mock('@/components/ui/button', () => ({
+void mock.module('@/components/ui/button', () => ({
   Button: function MockButton({ nativeButton: _nativeButton, render, ...props }: any) {
     return render ?? <button {...props} />
   },
 }))
 
-vi.mock('@/components/ui/dropdown-menu', () => ({
+void mock.module('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: any) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
   DropdownMenuGroup: ({ children }: any) => <div>{children}</div>,
@@ -139,7 +145,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
 }))
 
-vi.mock('@/components/ui/select', () => ({
+void mock.module('@/components/ui/select', () => ({
   Select: ({ children }: any) => <div>{children}</div>,
   SelectContent: ({ children }: any) => <div>{children}</div>,
   SelectItem: ({ children }: any) => <div>{children}</div>,
@@ -151,7 +157,7 @@ vi.mock('@/components/ui/select', () => ({
   SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
+void mock.module('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: any) => <>{children}</>,
   TooltipContent: ({ children }: any) => <div>{children}</div>,
   TooltipTrigger: ({ children, render }: any) => render ?? <>{children}</>,

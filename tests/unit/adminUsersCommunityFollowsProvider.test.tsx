@@ -1,33 +1,34 @@
 import type { ReactNode } from 'react'
 
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
-import AdminLayout from '@/app/[locale]/admin/layout'
+void mock.module('next-intl/server', () => ({ setRequestLocale: mock() }))
+void mock.module('next/cache', () => ({ cacheTag: mock() }))
 
-vi.mock('next-intl/server', () => ({ setRequestLocale: vi.fn() }))
-vi.mock('next/cache', () => ({ cacheTag: vi.fn() }))
-
-vi.mock('@/app/[locale]/(platform)/_components/PlatformViewerState', () => ({ default: () => null }))
-vi.mock('@/app/[locale]/admin/_components/AdminHeader', () => ({ default: () => null }))
-vi.mock('@/app/[locale]/admin/_components/AdminOnboardingSupportWidget', () => ({ default: () => null }))
-vi.mock('@/app/[locale]/admin/_components/AdminSidebar', () => ({ default: () => null }))
-vi.mock('@/app/[locale]/admin/_components/CopyVersion', () => ({ default: () => null }))
-vi.mock('@/lib/admin-support-settings', () => ({
-  getCompletedAdminOnboardingTasks: vi.fn(() => []),
-  getKuestSupportSettings: vi.fn(() => ({ enabled: false, position: 'bottom-right' })),
-  getSupportAnnouncementDismissedAt: vi.fn(() => null),
+void mock.module('@/app/[locale]/(platform)/_components/PlatformViewerState', () => ({ default: () => null }))
+void mock.module('@/app/[locale]/admin/_components/AdminHeader', () => ({ default: () => null }))
+void mock.module('@/app/[locale]/admin/_components/AdminOnboardingSupportWidget', () => ({ default: () => null }))
+void mock.module('@/app/[locale]/admin/_components/AdminSidebar', () => ({ default: () => null }))
+void mock.module('@/app/[locale]/admin/_components/CopyVersion', () => ({ default: () => null }))
+void mock.module('@/lib/admin-support-settings', () => ({
+  getCompletedAdminOnboardingTasks: mock(() => []),
+  getKuestSupportSettings: mock(() => ({ enabled: false, position: 'bottom-right' })),
+  getSupportAnnouncementDismissedAt: mock(() => null),
 }))
-vi.mock('@/lib/db/queries/settings', () => ({
-  SettingsRepository: { getSettings: vi.fn(async () => ({ data: {} })) },
+void mock.module('@/lib/db/queries/settings', () => ({
+  SettingsRepository: { getSettings: mock(async () => ({ data: {} })) },
 }))
-vi.mock('@/providers/AppKitProvider', () => ({
+void mock.module('@/providers/AppKitProvider', () => ({
   default: ({ children }: { children: ReactNode }) => <div data-testid="app-kit-provider">{children}</div>,
 }))
-vi.mock('@/providers/CommunityFollowsProvider', () => ({
+void mock.module('@/providers/CommunityFollowsProvider', () => ({
   CommunityFollowsProvider: ({ children }: { children: ReactNode }) => (
     <div data-testid="community-follows-provider">{children}</div>
   ),
 }))
+
+const { default: AdminLayout } = await import('@/app/[locale]/admin/layout')
 
 describe('admin users community follows provider', () => {
   it('renders admin page content inside the community follows provider', async () => {

@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import type { NonDefaultLocale } from '@/i18n/locales'
 
 import { NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
+
+import { hoisted } from '../bun-test-helpers'
 
 function completeTranslations(overrides: Partial<Record<NonDefaultLocale, string>> = {}) {
   return NON_DEFAULT_LOCALES.reduce<Record<NonDefaultLocale, string>>(
@@ -15,25 +17,25 @@ function completeTranslations(overrides: Partial<Record<NonDefaultLocale, string
   )
 }
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  revalidatePath: vi.fn(),
-  updateEventTranslationsById: vi.fn(),
-  updateTag: vi.fn(),
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  revalidatePath: mock(),
+  updateEventTranslationsById: mock(),
+  updateTag: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   revalidatePath: (...args: any[]) => mocks.revalidatePath(...args),
   updateTag: (...args: any[]) => mocks.updateTag(...args),
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     updateEventTranslationsById: (...args: any[]) => mocks.updateEventTranslationsById(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
@@ -43,7 +45,7 @@ const { updateEventTranslationsAction } = await import('@/app/[locale]/admin/eve
 
 describe('updateEventTranslationsAction', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   it('updates event translations and invalidates public event caches', async () => {

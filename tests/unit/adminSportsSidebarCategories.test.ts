@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import {
   getEsportsSidebarCategoriesAction,
@@ -7,40 +7,42 @@ import {
   updateSportsSidebarCategoriesAction,
 } from '@/app/[locale]/admin/categories/_actions/sports-sidebar-categories'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  select: vi.fn(),
-  transaction: vi.fn(),
-  updateTag: vi.fn(),
-  revalidatePath: vi.fn(),
-  txSet: vi.fn(),
-  txWhere: vi.fn(),
-  txValues: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  select: mock(),
+  transaction: mock(),
+  updateTag: mock(),
+  revalidatePath: mock(),
+  txSet: mock(),
+  txWhere: mock(),
+  txValues: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: unknown[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     select: (...args: unknown[]) => mocks.select(...args),
     transaction: (...args: unknown[]) => mocks.transaction(...args),
   },
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mocks.revalidatePath(...args),
   updateTag: (...args: unknown[]) => mocks.updateTag(...args),
 }))
 
 function listQuery(rows: unknown[]) {
   const query = {
-    from: vi.fn(),
-    where: vi.fn(),
-    orderBy: vi.fn().mockResolvedValue(rows),
+    from: mock(),
+    where: mock(),
+    orderBy: mock().mockResolvedValue(rows),
   }
   query.from.mockReturnValue(query)
   query.where.mockReturnValue(query)
@@ -219,12 +221,12 @@ describe('admin sports sidebar category actions', () => {
       )
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -335,12 +337,12 @@ describe('admin sports sidebar category actions', () => {
     )
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -412,12 +414,12 @@ describe('admin sports sidebar category actions', () => {
     mocks.select.mockReturnValueOnce(listQuery([combatRow, legacyUfcRow])).mockReturnValueOnce(listQuery([combatRow]))
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -494,12 +496,12 @@ describe('admin sports sidebar category actions', () => {
       .mockReturnValueOnce(listQuery([tennisRow, generatedWtaRow]))
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -573,12 +575,12 @@ describe('admin sports sidebar category actions', () => {
     mocks.select.mockReturnValueOnce(listQuery(legacyRugbyRows)).mockReturnValueOnce(listQuery([]))
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -611,12 +613,12 @@ describe('admin sports sidebar category actions', () => {
     mocks.select.mockReturnValueOnce(listQuery([])).mockReturnValueOnce(listQuery([]))
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -695,12 +697,12 @@ describe('admin sports sidebar category actions', () => {
     mocks.select.mockReturnValueOnce(listQuery(rows)).mockReturnValueOnce(listQuery(rows))
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }
@@ -833,12 +835,12 @@ describe('admin sports sidebar category actions', () => {
     mocks.select.mockReturnValueOnce(listQuery(rows)).mockReturnValueOnce(listQuery(rows))
 
     const tx = {
-      update: vi.fn(() => ({
+      update: mock(() => ({
         set: mocks.txSet.mockImplementation(() => ({
           where: mocks.txWhere.mockResolvedValue([]),
         })),
       })),
-      insert: vi.fn(() => ({
+      insert: mock(() => ({
         values: mocks.txValues.mockResolvedValue([]),
       })),
     }

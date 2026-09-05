@@ -1,19 +1,20 @@
 import type { AnchorHTMLAttributes, ReactElement, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 import { cloneElement, createElement } from 'react'
 
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: function MockImage({ unoptimized: _unoptimized, ...props }: any) {
     return createElement('img', props)
   },
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: function MockLink({
     children,
     href,
@@ -29,7 +30,7 @@ vi.mock('@/i18n/navigation', () => ({
   },
 }))
 
-vi.mock('@/components/ui/drawer', () => ({
+void mock.module('@/components/ui/drawer', () => ({
   Drawer: ({ children }: { children: ReactNode }) => <>{children}</>,
   DrawerContent: () => null,
   DrawerTitle: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,

@@ -1,14 +1,15 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
 import PublicPositionsFilters from '@/app/[locale]/(platform)/profile/_components/PublicPositionsFilters'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/components/ui/select', () => ({
+void mock.module('@/components/ui/select', () => ({
   Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectContent: ({ alignItemWithTrigger, children }: { alignItemWithTrigger?: boolean; children: ReactNode }) => (
     <div data-testid="select-content" data-align-item-with-trigger={String(alignItemWithTrigger)}>
@@ -26,7 +27,7 @@ vi.mock('@/components/ui/select', () => ({
 
 describe('publicPositionsFilters', () => {
   it('shows the selected status and forwards status changes', () => {
-    const onMarketStatusChange = vi.fn()
+    const onMarketStatusChange = mock()
 
     render(
       <PublicPositionsFilters

@@ -1,31 +1,33 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  isDepositWalletDeployed: vi.fn(),
-  update: vi.fn(),
-  set: vi.fn(),
-  where: vi.fn(),
-  eq: vi.fn((..._args: any[]) => ({ eq: true })),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  isDepositWalletDeployed: mock(),
+  update: mock(),
+  set: mock(),
+  where: mock(),
+  eq: mock((..._args: any[]) => ({ eq: true })),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
-vi.mock('@/lib/deposit-wallet', () => ({
+void mock.module('@/lib/deposit-wallet', () => ({
   isDepositWalletDeployed: (...args: any[]) => mocks.isDepositWalletDeployed(...args),
 }))
 
-vi.mock('drizzle-orm', () => ({
+void mock.module('drizzle-orm', () => ({
   eq: (...args: any[]) => mocks.eq(...args),
 }))
 
-vi.mock('@/lib/db/schema/auth/tables', () => ({
+void mock.module('@/lib/db/schema/auth/tables', () => ({
   users: { id: 'id' },
 }))
 
-vi.mock('@/lib/drizzle', () => {
+void mock.module('@/lib/drizzle', () => {
   mocks.where.mockResolvedValue({ ok: true })
   mocks.set.mockReturnValue({ where: mocks.where })
   mocks.update.mockReturnValue({ set: mocks.set })

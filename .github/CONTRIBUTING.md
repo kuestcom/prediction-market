@@ -39,7 +39,7 @@ For code contributions:
 ### Development Setup
 
 1. Fork and clone the repository
-2. Use Bun 1.4.1 and Node.js 24.x (Vitest remains on Node for now)
+2. Use Bun 1.4.1
 3. Install dependencies: `bun install`
 4. Create a branch using the appropriate prefix, for example `feat/name-in-english` or `fix/name-in-english`
 5. Make your changes

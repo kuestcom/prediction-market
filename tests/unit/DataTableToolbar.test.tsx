@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import type { DataTableInstance } from '@/lib/data-table'
 
-vi.mock('next-intl', () => ({
+import { useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+void mock.module('next-intl', () => ({
   useExtracted: () => (key: string, values?: Record<string, string>) => {
     if (!values) {
       return key
@@ -29,19 +31,19 @@ function getSearchInput() {
 
 describe('dataTableToolbar', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
+    useFakeTimers()
   })
 
   afterEach(() => {
     act(() => {
-      vi.runOnlyPendingTimers()
+      jest.runOnlyPendingTimers()
     })
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('does not emit a stale debounced search after an external override', () => {
     const table = createTableStub()
-    const onSearchChange = vi.fn()
+    const onSearchChange = mock()
 
     const { rerender } = render(
       <DataTableToolbar table={table} search="alpha" onSearchChange={onSearchChange} enableColumnVisibility={false} />,
@@ -58,7 +60,7 @@ describe('dataTableToolbar', () => {
     expect(onSearchChange).not.toHaveBeenCalled()
 
     act(() => {
-      vi.advanceTimersByTime(300)
+      jest.advanceTimersByTime(300)
     })
 
     expect(onSearchChange).not.toHaveBeenCalled()
@@ -66,7 +68,7 @@ describe('dataTableToolbar', () => {
 
   it('still emits debounced user input after an external search sync', () => {
     const table = createTableStub()
-    const onSearchChange = vi.fn()
+    const onSearchChange = mock()
 
     const { rerender } = render(
       <DataTableToolbar table={table} search="alpha" onSearchChange={onSearchChange} enableColumnVisibility={false} />,
@@ -81,12 +83,12 @@ describe('dataTableToolbar', () => {
     fireEvent.change(getSearchInput(), { target: { value: 'betamax' } })
 
     act(() => {
-      vi.advanceTimersByTime(299)
+      jest.advanceTimersByTime(299)
     })
     expect(onSearchChange).not.toHaveBeenCalled()
 
     act(() => {
-      vi.advanceTimersByTime(1)
+      jest.advanceTimersByTime(1)
     })
     expect(onSearchChange).toHaveBeenCalledTimes(1)
     expect(onSearchChange).toHaveBeenCalledWith('betamax')

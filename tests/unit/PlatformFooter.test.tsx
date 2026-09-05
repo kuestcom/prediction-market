@@ -1,17 +1,20 @@
 import type { ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import PlatformFooter, { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import { createDefaultThemeSiteIdentity } from '@/lib/theme-site-identity'
 
-const mocks = vi.hoisted(() => ({
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
   pathname: '/',
   site: null as any,
   tags: [] as any[],
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useLocale: () => 'en',
   useExtracted: () => {
     function translate(value: string, values?: Record<string, string>) {
@@ -22,15 +25,15 @@ vi.mock('next-intl', () => ({
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/_providers/PlatformNavigationProvider', () => ({
+void mock.module('@/app/[locale]/(platform)/_providers/PlatformNavigationProvider', () => ({
   usePlatformNavigationData: () => ({ tags: mocks.tags, childParentMap: {} }),
 }))
 
-vi.mock('@/hooks/useSiteIdentity', () => ({
+void mock.module('@/hooks/useSiteIdentity', () => ({
   useSiteIdentity: () => mocks.site,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
     <a href={href} {...props}>
       {children}
@@ -39,11 +42,11 @@ vi.mock('@/i18n/navigation', () => ({
   usePathname: () => mocks.pathname,
 }))
 
-vi.mock('@/components/SiteLogoIcon', () => ({
+void mock.module('@/components/SiteLogoIcon', () => ({
   default: () => <span data-testid="site-logo" />,
 }))
 
-vi.mock('@/components/ui/dropdown-menu', () => ({
+void mock.module('@/components/ui/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DropdownMenuRadioGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -65,9 +68,9 @@ describe('platformFooter', () => {
       },
       { slug: 'empty', name: 'Empty', childs: [] },
     ]
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
+      mock().mockResolvedValue({
         ok: true,
         json: async () => ({ locales: ['en'] }),
       }),
@@ -75,7 +78,7 @@ describe('platformFooter', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('falls back to the default main-category footer when a category has no popular markets', () => {

@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test'
 import { sql } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
-import { describe, expect, it } from 'vitest'
 
 import { buildTranslationLocaleSchedulingExpressions } from '@/lib/translations/scheduling'
 

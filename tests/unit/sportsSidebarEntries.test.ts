@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import type { SportsMenuGroupEntry } from '@/lib/sports-menu-types'
 import type { SportsMenuSidebarRow } from '@/lib/sports-sidebar-entries'

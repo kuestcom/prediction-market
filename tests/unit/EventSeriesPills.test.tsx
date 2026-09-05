@@ -1,15 +1,18 @@
 import type { ComponentProps, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import EventSeriesPills from '@/app/[locale]/(platform)/event/[slug]/_components/EventSeriesPills'
 
-vi.mock('next-intl', () => ({
+import { useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
   useLocale: () => 'en-US',
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
     <a href={href} {...props}>
       {children}
@@ -35,12 +38,12 @@ function createSeriesEvent(
 
 describe('eventSeriesPills', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-07-28T12:47:00.000Z'))
+    useFakeTimers()
+    jest.setSystemTime(new Date('2026-07-28T12:47:00.000Z'))
   })
 
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('keeps LIVE and its next three 5-minute events visible, then moves later events into More', () => {

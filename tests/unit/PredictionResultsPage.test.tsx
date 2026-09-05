@@ -1,27 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  notFound: vi.fn(),
-  renderPredictionResultsPage: vi.fn(),
-  setRequestLocale: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  notFound: mock(),
+  renderPredictionResultsPage: mock(),
+  setRequestLocale: mock(),
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   notFound: (...args: any[]) => mocks.notFound(...args),
 }))
 
-vi.mock('@/app/[locale]/(platform)/predictions/[slug]/_lib/prediction-results-page', () => ({
-  generatePredictionResultsMetadata: vi.fn(),
+void mock.module('@/app/[locale]/(platform)/predictions/[slug]/_lib/prediction-results-page', () => ({
+  generatePredictionResultsMetadata: mock(),
   renderPredictionResultsPage: (...args: any[]) => mocks.renderPredictionResultsPage(...args),
 }))
 
-vi.mock('@/lib/static-params', () => ({
-  getPublicShellStaticParams: vi.fn(),
-  shouldBypassPublicShellPlaceholder: vi.fn(() => false),
+void mock.module('@/lib/static-params', () => ({
+  getPublicShellStaticParams: mock(),
+  shouldBypassPublicShellPlaceholder: mock(() => false),
   STATIC_PARAMS_PLACEHOLDER: '__placeholder__',
 }))
 

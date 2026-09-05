@@ -1,25 +1,27 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getPublicAssetUrl: vi.fn((path: string) => `https://assets.example/${path}`),
-  getUserPublicAddress: vi.fn(
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getPublicAssetUrl: mock((path: string) => `https://assets.example/${path}`),
+  getUserPublicAddress: mock(
     (user: { deposit_wallet_address?: string | null; address?: string | null }) =>
       user.deposit_wallet_address || user.address || '',
   ),
-  searchPublicProfiles: vi.fn(),
+  searchPublicProfiles: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     searchPublicProfiles: mocks.searchPublicProfiles,
   },
 }))
 
-vi.mock('@/lib/storage', () => ({
+void mock.module('@/lib/storage', () => ({
   getPublicAssetUrl: mocks.getPublicAssetUrl,
 }))
 
-vi.mock('@/lib/user-address', () => ({
+void mock.module('@/lib/user-address', () => ({
   getUserPublicAddress: mocks.getUserPublicAddress,
 }))
 

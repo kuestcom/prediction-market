@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { shouldHighlightSportsFinalAction } from '@/app/[locale]/admin/events/_components/sports-final-action-state'
 

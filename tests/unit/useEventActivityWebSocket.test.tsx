@@ -1,7 +1,9 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { useEventActivityWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityWebSocket'
+
+import { stubGlobal, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
 
 class MockWebSocket {
   static readonly CONNECTING = 0
@@ -16,7 +18,7 @@ class MockWebSocket {
   onmessage: ((event: MessageEvent<string>) => void) | null = null
   onerror: ((event: Event) => void) | null = null
   onclose: ((event: CloseEvent) => void) | null = null
-  send = vi.fn()
+  send = mock()
   private listeners = new Map<string, Set<EventListener>>()
 
   constructor(url: string) {
@@ -54,12 +56,12 @@ describe('useEventActivityWebSocket', () => {
   beforeEach(() => {
     MockWebSocket.instances = []
     Object.defineProperty(document, 'hidden', { configurable: true, value: false })
-    vi.stubGlobal('WebSocket', MockWebSocket)
+    stubGlobal('WebSocket', MockWebSocket)
   })
 
   afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+    useRealTimers()
+    unstubAllGlobals()
     if (hiddenDescriptor) {
       Object.defineProperty(document, 'hidden', hiddenDescriptor)
     } else {
@@ -68,37 +70,37 @@ describe('useEventActivityWebSocket', () => {
   })
 
   it('clears the heartbeat before replacing a socket that fails a visibility probe', async () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const { unmount } = renderHook(() =>
       useEventActivityWebSocket({
         eventSlug: 'My-Event',
-        onActivities: vi.fn(),
+        onActivities: mock(),
         wsUrl: 'wss://ws-live-data.example',
       }),
     )
     const socket = MockWebSocket.instances[0]!
 
     act(() => socket.open())
-    expect(vi.getTimerCount()).toBe(2)
+    expect(jest.getTimerCount()).toBe(2)
 
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    expect(vi.getTimerCount()).toBe(3)
+    expect(jest.getTimerCount()).toBe(3)
 
-    await act(async () => vi.advanceTimersByTime(5_000))
+    await act(async () => jest.advanceTimersByTime(5_000))
     expect(socket.readyState).toBe(MockWebSocket.CLOSED)
-    expect(vi.getTimerCount()).toBe(1)
+    expect(jest.getTimerCount()).toBe(1)
 
     act(() => {
-      vi.advanceTimersByTime(2_000)
+      jest.advanceTimersByTime(2_000)
     })
     expect(MockWebSocket.instances).toHaveLength(2)
     unmount()
   })
 
   it('subscribes by event slug and forwards matched activity payloads', () => {
-    const onActivities = vi.fn()
+    const onActivities = mock()
     const { unmount } = renderHook(() =>
       useEventActivityWebSocket({
         eventSlug: 'My-Event',

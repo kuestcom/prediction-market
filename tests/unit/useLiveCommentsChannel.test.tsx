@@ -2,11 +2,13 @@ import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import { useLiveCommentsChannel } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveCommentsChannel'
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+import { stubGlobal, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ wsLiveDataUrl: 'wss://example.com/live' }),
 }))
 
@@ -45,13 +47,13 @@ class MockWebSocket {
 describe('useLiveCommentsChannel', () => {
   beforeEach(() => {
     MockWebSocket.instances = []
-    vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
+    stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
   })
 
   afterEach(() => {
     cleanup()
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+    useRealTimers()
+    unstubAllGlobals()
   })
 
   it('reports live when the socket opens before any comments arrive', () => {
@@ -73,7 +75,7 @@ describe('useLiveCommentsChannel', () => {
   })
 
   it('reconnects a stale socket while the page remains visible', () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const queryClient = new QueryClient()
 
     function QueryClientWrapper({ children }: { children: ReactNode }) {
@@ -87,7 +89,7 @@ describe('useLiveCommentsChannel', () => {
 
     act(() => socket.emitOpen())
     act(() => {
-      vi.advanceTimersByTime(75_000)
+      jest.advanceTimersByTime(75_000)
     })
 
     expect(socket.sentMessages).toContain('PING')
@@ -95,7 +97,7 @@ describe('useLiveCommentsChannel', () => {
     expect(result.current.status).toBe('offline')
 
     act(() => {
-      vi.advanceTimersByTime(2_000)
+      jest.advanceTimersByTime(2_000)
     })
     expect(MockWebSocket.instances).toHaveLength(2)
   })

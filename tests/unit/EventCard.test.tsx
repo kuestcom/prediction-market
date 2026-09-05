@@ -1,24 +1,24 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
+import { hoisted } from '../bun-test-helpers'
 
-const mocks = vi.hoisted(() => ({
-  buildHomeSportsMoneylineModel: vi.fn(),
-  dynamicSportsCard: vi.fn(),
-  eventCardHeader: vi.fn(),
+const mocks = hoisted(() => ({
+  buildHomeSportsMoneylineModel: mock(),
+  dynamicSportsCard: mock(),
+  eventCardHeader: mock(),
   locale: 'en-US',
-  singleMarketActions: vi.fn(),
-  useXTrackerTweetCount: vi.fn(),
+  singleMarketActions: mock(),
+  useXTrackerTweetCount: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string, values?: Record<string, string | number>) =>
     Object.entries(values ?? {}).reduce((label, [key, value]) => label.replace(`{${key}}`, String(value)), message),
   useLocale: () => mocks.locale,
 }))
 
-vi.mock('next/dynamic', () => ({
+void mock.module('next/dynamic', () => ({
   __esModule: true,
   default: () =>
     function MockDynamicSportsCard(props: any) {
@@ -27,52 +27,54 @@ vi.mock('next/dynamic', () => ({
     },
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardFooter', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventCardFooter', () => ({
   default: () => <div data-testid="event-card-footer" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardHeader', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventCardHeader', () => ({
   default: (props: any) => {
     mocks.eventCardHeader(props)
     return <div data-testid="event-card-header" />
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventCardMarketsList', () => ({
   default: () => <div data-testid="event-card-markets-list" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventCardSingleMarketActions', () => ({
   default: (props: any) => {
     mocks.singleMarketActions(props)
     return <div data-testid="event-card-single-market-actions" />
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome', () => ({
   resolveEventCardResolvedOutcomeIndex: () => null,
   shouldUseResolvedXTracker: () => false,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount', () => ({
   useXTrackerTweetCount: (...args: any[]) => mocks.useXTrackerTweetCount(...args),
 }))
 
-vi.mock('@/lib/event-new-badge', () => ({
+void mock.module('@/lib/event-new-badge', () => ({
   shouldShowEventNewBadge: () => false,
 }))
 
-vi.mock('@/lib/home-events', () => ({
+void mock.module('@/lib/home-events', () => ({
   isEventResolvedLike: () => false,
 }))
 
-vi.mock('@/lib/market-chance', () => ({
+void mock.module('@/lib/market-chance', () => ({
   buildChanceByMarket: () => ({ 'market-1': 62 }),
 }))
 
-vi.mock('@/lib/sports-home-card', () => ({
+void mock.module('@/lib/sports-home-card', () => ({
   buildHomeSportsMoneylineModel: (event: any) => mocks.buildHomeSportsMoneylineModel(event),
 }))
+
+const { default: EventCard } = await import('@/app/[locale]/(platform)/(home)/_components/EventCard?bun-test')
 
 const EVENT = {
   id: 'event-1',

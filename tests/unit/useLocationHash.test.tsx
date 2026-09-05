@@ -1,7 +1,7 @@
 import type { RenderHookResult } from '@testing-library/react'
 
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, spyOn, jest } from 'bun:test'
 
 import { useLocationHash } from '@/hooks/useLocationHash'
 
@@ -24,20 +24,20 @@ describe('useLocationHash', () => {
     hook = null
     window.history.replaceState(null, '', '/#brand-identity')
 
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       const frameId = nextFrameId
       nextFrameId += 1
       callbacks.set(frameId, callback)
       return frameId
     })
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((frameId) => {
+    spyOn(window, 'cancelAnimationFrame').mockImplementation((frameId) => {
       callbacks.delete(frameId)
     })
   })
 
   afterEach(() => {
     hook?.unmount()
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
     document.body.replaceChildren()
     window.history.replaceState(null, '', '/')
   })

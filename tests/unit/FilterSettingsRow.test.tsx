@@ -1,16 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { createDefaultFilters } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
 import FilterSettingsRow from '@/app/[locale]/(platform)/(home)/_components/FilterSettingsRow'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
 describe('filterSettingsRow', () => {
   it('renders settings controls and forwards checkbox and clear actions', () => {
-    const onChange = vi.fn()
-    const onClear = vi.fn()
+    const onChange = mock()
+    const onClear = mock()
 
     render(
       <FilterSettingsRow filters={createDefaultFilters()} onChange={onChange} onClear={onClear} hasActiveFilters />,

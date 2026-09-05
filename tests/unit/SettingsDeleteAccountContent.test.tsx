@@ -1,39 +1,41 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { User } from '@/types'
 
 import SettingsDeleteAccountContent from '@/app/[locale]/(platform)/settings/_components/SettingsDeleteAccountContent'
 
-const mocks = vi.hoisted(() => ({
-  clearCommunityAuth: vi.fn(),
-  deleteAccountAction: vi.fn(),
-  deleteCommunityProfileData: vi.fn(),
-  deleteRelayerUserDataAction: vi.fn(),
-  ensureCommunityToken: vi.fn(),
-  openAppKit: vi.fn(),
-  parseCommunityError: vi.fn(),
-  requestCommunityProfileDeleteNonce: vi.fn(),
-  signMessageAsync: vi.fn(),
-  signOutAndRedirect: vi.fn(),
-  signTypedDataAsync: vi.fn(),
-  toastError: vi.fn(),
-  useAccount: vi.fn(),
-  useIsMobile: vi.fn(() => false),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  clearCommunityAuth: mock(),
+  deleteAccountAction: mock(),
+  deleteCommunityProfileData: mock(),
+  deleteRelayerUserDataAction: mock(),
+  ensureCommunityToken: mock(),
+  openAppKit: mock(),
+  parseCommunityError: mock(),
+  requestCommunityProfileDeleteNonce: mock(),
+  signMessageAsync: mock(),
+  signOutAndRedirect: mock(),
+  signTypedDataAsync: mock(),
+  toastError: mock(),
+  useAccount: mock(),
+  useIsMobile: mock(() => false),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     error: mocks.toastError,
   },
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   useAccount: () => mocks.useAccount(),
   useSignMessage: () => ({
     signMessageAsync: mocks.signMessageAsync,
@@ -43,46 +45,46 @@ vi.mock('wagmi', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({
     isReady: true,
     open: mocks.openAppKit,
   }),
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: mocks.useIsMobile,
 }))
 
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({
     communityUrl: 'https://community.example',
   }),
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({
     runWithSignaturePrompt: (callback: () => Promise<string>) => callback(),
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/settings/_actions/delete-account', () => ({
+void mock.module('@/app/[locale]/(platform)/settings/_actions/delete-account', () => ({
   deleteAccountAction: () => mocks.deleteAccountAction(),
   deleteRelayerUserDataAction: (input: unknown) => mocks.deleteRelayerUserDataAction(input),
 }))
 
-vi.mock('@/lib/community-auth', () => ({
+void mock.module('@/lib/community-auth', () => ({
   clearCommunityAuth: mocks.clearCommunityAuth,
   ensureCommunityToken: (...args: unknown[]) => mocks.ensureCommunityToken(...args),
   parseCommunityError: (...args: unknown[]) => mocks.parseCommunityError(...args),
 }))
 
-vi.mock('@/lib/community-profile', () => ({
+void mock.module('@/lib/community-profile', () => ({
   deleteCommunityProfileData: (...args: unknown[]) => mocks.deleteCommunityProfileData(...args),
   requestCommunityProfileDeleteNonce: (...args: unknown[]) => mocks.requestCommunityProfileDeleteNonce(...args),
 }))
 
-vi.mock('@/lib/logout', () => ({
+void mock.module('@/lib/logout', () => ({
   signOutAndRedirect: (args: { currentPathname: string }) => mocks.signOutAndRedirect(args),
 }))
 

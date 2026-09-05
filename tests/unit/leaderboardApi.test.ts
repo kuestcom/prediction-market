@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, spyOn, jest } from 'bun:test'
 
 import { DEFAULT_FILTERS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 
@@ -12,12 +12,12 @@ beforeAll(async () => {
 })
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  jest.restoreAllMocks()
 })
 
 describe('leaderboard API helpers', () => {
   it('loads leaderboard rows independently of the slower PNL hydration request', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(
         JSON.stringify({
           data: [
@@ -83,7 +83,7 @@ describe('leaderboard API helpers', () => {
 
   it('resolves snake_case proxy wallet fields when hydrating timeframe pnl', async () => {
     const proxyWallet = '0x2222222222222222222222222222222222222222'
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ values: { [proxyWallet]: 123 } }), {
         status: 200,
         headers: { 'content-type': 'application/json' },

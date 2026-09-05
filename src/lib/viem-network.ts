@@ -5,7 +5,7 @@ import { polygon, polygonAmoy } from 'viem/chains'
 
 import type { DefaultNetworkKey } from '@/lib/network'
 
-import { DEFAULT_NETWORK_KEY } from '@/lib/network'
+import { resolveDefaultNetworkKey } from '@/lib/network'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 const VIEM_NETWORKS_BY_KEY = {
@@ -17,7 +17,7 @@ const VIEM_NETWORKS_BY_CHAIN_ID = new Map<number, Chain>(
   Object.values(VIEM_NETWORKS_BY_KEY).map((network) => [network.id, network]),
 )
 
-export const defaultViemNetwork = VIEM_NETWORKS_BY_KEY[DEFAULT_NETWORK_KEY]
+export const defaultViemNetwork = VIEM_NETWORKS_BY_KEY[resolveDefaultNetworkKey()]
 
 export type ViemRpcUrls = readonly string[]
 

@@ -1,31 +1,31 @@
 import { render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn, jest } from 'bun:test'
 
 import EventLiveSeriesChartOverlay from '@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChartOverlay'
 
 function createCanvasContext(canvas: HTMLCanvasElement) {
   return {
     canvas,
-    beginPath: vi.fn(),
-    bezierCurveTo: vi.fn(),
-    clearRect: vi.fn(),
-    closePath: vi.fn(),
-    fill: vi.fn(),
-    lineTo: vi.fn(),
-    moveTo: vi.fn(),
-    setTransform: vi.fn(),
-    stroke: vi.fn(),
+    beginPath: mock(),
+    bezierCurveTo: mock(),
+    clearRect: mock(),
+    closePath: mock(),
+    fill: mock(),
+    lineTo: mock(),
+    moveTo: mock(),
+    setTransform: mock(),
+    stroke: mock(),
   } as unknown as CanvasRenderingContext2D
 }
 
 beforeEach(() => {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function getContext(this: HTMLCanvasElement) {
+  spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function getContext(this: HTMLCanvasElement) {
     return createCanvasContext(this)
   })
 })
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  jest.restoreAllMocks()
 })
 
 describe('EventLiveSeriesChartOverlay', () => {

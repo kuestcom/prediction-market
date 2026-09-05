@@ -1,23 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+
+import { hoisted } from '../bun-test-helpers'
 
 const CONDITION_A = `0x${'a'.repeat(64)}`
 const CONDITION_B = `0x${'b'.repeat(64)}`
 const CREATOR = '0x1111111111111111111111111111111111111111'
 
-const mocks = vi.hoisted(() => ({
-  findMany: vi.fn(),
-  loadAllowedMarketCreatorWallets: vi.fn(),
+const mocks = hoisted(() => ({
+  findMany: mock(),
+  loadAllowedMarketCreatorWallets: mock(),
 }))
 
-vi.mock('@/lib/allowed-market-creators-server', () => ({
+void mock.module('@/lib/allowed-market-creators-server', () => ({
   loadAllowedMarketCreatorWallets: (...args: unknown[]) => mocks.loadAllowedMarketCreatorWallets(...args),
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: (() => {
     const transactionDb = {
       query: { events: { findMany: (...args: unknown[]) => mocks.findMany(...args) } },
-      execute: vi.fn(),
+      execute: mock(),
       select: () => ({
         from: () => ({
           where: () => ({ getSQL: () => ({}) }),

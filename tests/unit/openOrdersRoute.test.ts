@@ -1,33 +1,35 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  buildClobHmacSignature: vi.fn(() => 'sig'),
-  fetch: vi.fn(),
-  findMany: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getEventMarketMetadata: vi.fn(),
-  getPublicAssetUrl: vi.fn((path: string) => `https://assets.test/${path}`),
-  getUserTradingAuthSecrets: vi.fn(),
-  runQuery: vi.fn(async (callback: () => Promise<unknown>) => await callback()),
+import { hoisted, stubEnv, stubGlobal, unstubAllEnvs, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  buildClobHmacSignature: mock(() => 'sig'),
+  fetch: mock(),
+  findMany: mock(),
+  getCurrentUser: mock(),
+  getEventMarketMetadata: mock(),
+  getPublicAssetUrl: mock((path: string) => `https://assets.test/${path}`),
+  getUserTradingAuthSecrets: mock(),
+  runQuery: mock(async (callback: () => Promise<unknown>) => await callback()),
 }))
 
-vi.mock('@/lib/db/queries/event', () => ({
+void mock.module('@/lib/db/queries/event', () => ({
   EventRepository: {
     getEventMarketMetadata: mocks.getEventMarketMetadata,
   },
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: mocks.getCurrentUser,
   },
 }))
 
-vi.mock('@/lib/db/utils/run-query', () => ({
+void mock.module('@/lib/db/utils/run-query', () => ({
   runQuery: mocks.runQuery,
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     query: {
       markets: {
@@ -37,15 +39,15 @@ vi.mock('@/lib/drizzle', () => ({
   },
 }))
 
-vi.mock('@/lib/hmac', () => ({
+void mock.module('@/lib/hmac', () => ({
   buildClobHmacSignature: mocks.buildClobHmacSignature,
 }))
 
-vi.mock('@/lib/storage', () => ({
+void mock.module('@/lib/storage', () => ({
   getPublicAssetUrl: mocks.getPublicAssetUrl,
 }))
 
-vi.mock('@/lib/trading-auth/server', () => ({
+void mock.module('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: mocks.getUserTradingAuthSecrets,
 }))
 
@@ -55,9 +57,8 @@ function address(lastByte: string) {
 
 describe('open orders routes', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.stubEnv('CLOB_URL', 'https://clob.local')
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubEnv('CLOB_URL', 'https://clob.local')
+    stubGlobal('fetch', mocks.fetch)
 
     mocks.buildClobHmacSignature.mockReset()
     mocks.buildClobHmacSignature.mockReturnValue('sig')
@@ -72,9 +73,9 @@ describe('open orders routes', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllEnvs()
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    unstubAllEnvs()
+    unstubAllGlobals()
+    jest.restoreAllMocks()
   })
 
   it('normalizes portfolio open orders and keeps GTD intact', async () => {

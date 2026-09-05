@@ -1,58 +1,60 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { User } from '@/types'
 
 import SettingsProfileContent from '@/app/[locale]/(platform)/settings/_components/SettingsProfileContent'
 
-const mocks = vi.hoisted(() => ({
-  clearCommunityAuth: vi.fn(),
-  ensureCommunityToken: vi.fn(),
-  fetch: vi.fn(),
-  invalidateQueries: vi.fn(),
-  parseCommunityError: vi.fn(),
-  setUserState: vi.fn(),
-  signMessageAsync: vi.fn(),
-  toastError: vi.fn(),
-  toastSuccess: vi.fn(),
-  updateUserAction: vi.fn(),
+import { hoisted, stubGlobal } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  clearCommunityAuth: mock(),
+  ensureCommunityToken: mock(),
+  fetch: mock(),
+  invalidateQueries: mock(),
+  parseCommunityError: mock(),
+  setUserState: mock(),
+  signMessageAsync: mock(),
+  toastError: mock(),
+  toastSuccess: mock(),
+  updateUserAction: mock(),
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useQueryClient: () => ({
     invalidateQueries: mocks.invalidateQueries,
   }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   __esModule: true,
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => React.createElement('img', props),
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     error: mocks.toastError,
     success: mocks.toastSuccess,
   },
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   useSignMessage: () => ({
     signMessageAsync: mocks.signMessageAsync,
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/settings/_actions/update-profile', () => ({
+void mock.module('@/app/[locale]/(platform)/settings/_actions/update-profile', () => ({
   updateUserAction: (formData: FormData) => mocks.updateUserAction(formData),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={String(href)} {...props}>
       {children}
@@ -60,19 +62,19 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({
     runWithSignaturePrompt: (callback: () => Promise<string>) => callback(),
   }),
 }))
 
-vi.mock('@/lib/community-auth', () => ({
+void mock.module('@/lib/community-auth', () => ({
   clearCommunityAuth: mocks.clearCommunityAuth,
   ensureCommunityToken: (...args: unknown[]) => mocks.ensureCommunityToken(...args),
   parseCommunityError: (...args: unknown[]) => mocks.parseCommunityError(...args),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: {
     setState: mocks.setUserState,
   },
@@ -117,13 +119,13 @@ describe('settingsProfileContent', () => {
     })
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
-      value: vi.fn(() => 'blob:avatar-preview'),
+      value: mock(() => 'blob:avatar-preview'),
     })
     Object.defineProperty(URL, 'revokeObjectURL', {
       configurable: true,
-      value: vi.fn(),
+      value: mock(),
     })
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
     process.env.COMMUNITY_URL = 'https://community.example'
   })
 

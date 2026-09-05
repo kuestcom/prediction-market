@@ -1,9 +1,9 @@
 import { renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { useLocalizedSportsLabel } from '@/app/[locale]/(platform)/sports/_components/useLocalizedSportsLabel'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => {
     const translations: Record<string, string> = {
       Draw: 'Empate',

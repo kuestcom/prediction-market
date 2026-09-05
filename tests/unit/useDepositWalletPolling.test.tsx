@@ -1,8 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { useDepositWalletPolling } from '@/hooks/useDepositWalletPolling'
 import { useUser } from '@/stores/useUser'
+
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
 
 describe('useDepositWalletPolling', () => {
   beforeEach(() => {
@@ -22,12 +24,12 @@ describe('useDepositWalletPolling', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
     useUser.setState(null)
   })
 
   it('clears a stale transaction hash when the polling response normalizes it to null', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => ({
         deposit_wallet_address: '0x0000000000000000000000000000000000000002',
@@ -37,7 +39,7 @@ describe('useDepositWalletPolling', () => {
         deposit_wallet_tx_hash: null,
       }),
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     renderHook(() =>
       useDepositWalletPolling({

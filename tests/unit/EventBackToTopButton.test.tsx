@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn, jest } from 'bun:test'
 
 import EventBackToTopButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventBackToTopButton'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
@@ -17,11 +18,11 @@ describe('eventBackToTopButton', () => {
   beforeEach(() => {
     document.body.innerHTML = ''
     setWindowScrollY(0)
-    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    spyOn(window, 'scrollTo').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
   })
 
   it('does not render before the page has been scrolled far enough', () => {

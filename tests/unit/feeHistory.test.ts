@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, spyOn } from 'bun:test'
 
 import { combineAvailableDailyFeeSeries, combineDailyFeeSeries } from '@/lib/data-api/fees'
 
@@ -65,7 +65,7 @@ describe('fee history series', () => {
   })
 
   it('reports malformed fee amounts instead of silently dropping them', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const warn = spyOn(console, 'warn').mockImplementation(() => {})
     const currentDay = Date.UTC(2026, 6, 20) / 1000
 
     const result = combineDailyFeeSeries(

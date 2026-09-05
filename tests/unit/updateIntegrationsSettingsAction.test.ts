@@ -1,30 +1,34 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  getSettings: vi.fn(),
-  updateSettings: vi.fn(),
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  getSettings: mock(),
+  updateSettings: mock(),
+  revalidatePath: mock(),
+  updateTag: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
   revalidatePath: mocks.revalidatePath,
   updateTag: mocks.updateTag,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: mocks.getCurrentUser },
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: mocks.getSettings,
     updateSettings: mocks.updateSettings,
   },
 }))
 
-vi.mock('@/lib/encryption', () => ({
+void mock.module('@/lib/encryption', () => ({
   decryptSecret: (value: string) => (value.startsWith('encrypted:') ? value.slice('encrypted:'.length) : ''),
   encryptSecret: (value: string) => `encrypted:${value}`,
 }))
@@ -55,7 +59,7 @@ function formData() {
 
 describe('updateIntegrationsSettingsAction', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'admin-1', is_admin: true })
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
     mocks.updateSettings.mockResolvedValue({ data: [], error: null })

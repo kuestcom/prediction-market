@@ -1,30 +1,32 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const sumsubMocks = vi.hoisted(() => ({
-  requireApproval: vi.fn(),
+import { hoisted, spyOn, stubGlobal, unstubAllGlobals, useRealTimers } from '../bun-test-helpers'
+
+const sumsubMocks = hoisted(() => ({
+  requireApproval: mock(),
 }))
 
-vi.mock('@/lib/sumsub/enforcement', () => ({
+void mock.module('@/lib/sumsub/enforcement', () => ({
   requireSumsubTradingApproval: sumsubMocks.requireApproval,
   SUMSUB_APPROVAL_REQUIRED_MESSAGE: 'Complete identity verification to continue.',
 }))
 
-const mocks = vi.hoisted(() => ({
-  buildClobHmacSignature: vi.fn(() => 'l2-signature'),
-  dbLimit: vi.fn(),
-  getCurrentUser: vi.fn(),
-  getUserTradingAuthSecrets: vi.fn(),
+const mocks = hoisted(() => ({
+  buildClobHmacSignature: mock(() => 'l2-signature'),
+  dbLimit: mock(),
+  getCurrentUser: mock(),
+  getUserTradingAuthSecrets: mock(),
 }))
 
-vi.mock('@/lib/hmac', () => ({
+void mock.module('@/lib/hmac', () => ({
   buildClobHmacSignature: mocks.buildClobHmacSignature,
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args) },
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     select: () => ({
       from: () => ({
@@ -36,7 +38,7 @@ vi.mock('@/lib/drizzle', () => ({
   },
 }))
 
-vi.mock('@/lib/trading-auth/server', () => ({
+void mock.module('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: (...args: any[]) => mocks.getUserTradingAuthSecrets(...args),
 }))
 
@@ -76,8 +78,7 @@ function jsonResponse(payload: Record<string, unknown>, status = 200) {
 
 describe('sdk api key actions', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.useRealTimers()
+    useRealTimers()
     mocks.buildClobHmacSignature.mockClear()
     mocks.dbLimit.mockReset()
     mocks.dbLimit.mockResolvedValue([])
@@ -95,8 +96,8 @@ describe('sdk api key actions', () => {
 
   it('blocks SDK credential generation before contacting either service', async () => {
     sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
     const { generateSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
     await expect(generateSdkApiKeyAction(signedPayload)).resolves.toEqual({
@@ -107,16 +108,15 @@ describe('sdk api key actions', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    unstubAllGlobals()
+    jest.restoreAllMocks()
   })
 
   it('generates SDK credentials for CLOB and relayer with wallet auth headers only', async () => {
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { generateSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -162,11 +162,10 @@ describe('sdk api key actions', () => {
   it('uses the signed linked wallet address instead of a divergent session address', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1', address: sessionAddress })
     mocks.dbLimit.mockResolvedValueOnce([{ id: 'wallet-1' }])
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { generateSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -194,11 +193,10 @@ describe('sdk api key actions', () => {
   })
 
   it('reveals SDK credentials by deriving the signed nonce without request body secrets', async () => {
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { revealSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -222,12 +220,11 @@ describe('sdk api key actions', () => {
   })
 
   it('returns available credentials with a warning when one auth service fails', async () => {
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse({ error: 'temporarily unavailable' }, 503))
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.stubGlobal('fetch', fetchMock)
+    spyOn(console, 'error').mockImplementation(() => {})
+    stubGlobal('fetch', fetchMock)
 
     const { generateSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -244,14 +241,14 @@ describe('sdk api key actions', () => {
 
   it('revokes the signed nonce SDK key by deriving credentials and sending authenticated DELETEs', async () => {
     sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
-    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+    const fetchMock = mock(async (url: string, init: RequestInit) => {
       if (init.method === 'GET') {
         return jsonResponse(url.includes('clob') ? makeCredentialPayload('clob') : makeCredentialPayload('relayer'))
       }
 
       return jsonResponse({})
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { revokeSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -304,8 +301,7 @@ describe('sdk api key actions', () => {
   })
 
   it('resolves the next SDK key nonce from metadata across all services', async () => {
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockResolvedValueOnce(
         new Response(JSON.stringify([{ apiKey: 'clob-key-1', nonce: '100', status: 'active' }]), {
           status: 200,
@@ -318,7 +314,7 @@ describe('sdk api key actions', () => {
           headers: { 'Content-Type': 'application/json' },
         }),
       )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -358,9 +354,8 @@ describe('sdk api key actions', () => {
   })
 
   it('fails nonce resolution when one metadata service is unavailable', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const fetchMock = vi
-      .fn()
+    const consoleError = spyOn(console, 'error').mockImplementation(() => {})
+    const fetchMock = mock()
       .mockResolvedValueOnce(
         new Response(JSON.stringify([{ apiKey: 'clob-key-1', nonce: '100', status: 'active' }]), {
           status: 200,
@@ -373,7 +368,7 @@ describe('sdk api key actions', () => {
           headers: { 'Content-Type': 'application/json' },
         }),
       )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -386,9 +381,9 @@ describe('sdk api key actions', () => {
   })
 
   it('returns nonce zero when no internal API credentials are stored yet', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = mock()
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce(null)
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -401,12 +396,12 @@ describe('sdk api key actions', () => {
   })
 
   it('fails nonce resolution when a configured service has no stored internal credential', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const fetchMock = vi.fn()
+    const consoleError = spyOn(console, 'error').mockImplementation(() => {})
+    const fetchMock = mock()
     mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
       clob: makeCredential('clob'),
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
 
@@ -420,7 +415,7 @@ describe('sdk api key actions', () => {
   })
 
   it('does not expose backend error payload secrets in logs or returned errors', async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = mock(async () =>
       jsonResponse(
         {
           error: 'backend included leaked_secret and leaked_passphrase',
@@ -428,8 +423,8 @@ describe('sdk api key actions', () => {
         500,
       ),
     )
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.stubGlobal('fetch', fetchMock)
+    const consoleError = spyOn(console, 'error').mockImplementation(() => {})
+    stubGlobal('fetch', fetchMock)
 
     const { generateSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
     const result = await generateSdkApiKeyAction(signedPayload)

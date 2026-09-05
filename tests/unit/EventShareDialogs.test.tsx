@@ -1,100 +1,106 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-import EventMergeSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
-import EventSplitSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'
+import { hoisted } from '../bun-test-helpers'
 
 const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
 
-const mocks = vi.hoisted(() => ({
-  ensureTradingReady: vi.fn(),
-  openAppKit: vi.fn(),
-  signAndSubmitDepositWalletCalls: vi.fn(),
-  toastError: vi.fn(),
+const mocks = hoisted(() => ({
+  ensureTradingReady: mock(),
+  openAppKit: mock(),
+  signAndSubmitDepositWalletCalls: mock(),
+  toastError: mock(),
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
+  useQuery: mock(),
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mock(),
   }),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     error: mocks.toastError,
-    success: vi.fn(),
+    success: mock(),
   },
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   useSignTypedData: () => ({
-    signTypedDataAsync: vi.fn(),
+    signTypedDataAsync: mock(),
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_providers/TradingOnboardingProvider', () => ({
+void mock.module('@/app/[locale]/(platform)/_providers/TradingOnboardingProvider', () => ({
   useTradingOnboarding: () => ({
     ensureTradingReady: mocks.ensureTradingReady,
-    openTradeRequirements: vi.fn(),
+    openTradeRequirements: mock(),
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog', () => ({
   default: function MockResponsiveTradingDialog({ children }: { children: React.ReactNode }) {
     return <div>{children}</div>
   },
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({
     open: mocks.openAppKit,
   }),
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({
     runWithSignaturePrompt: (operation: (dismissPrompt: () => void, restorePrompt: () => void) => unknown) =>
-      operation(vi.fn(), vi.fn()),
+      operation(mock(), mock()),
   }),
 }))
 
-vi.mock('@/lib/trading-cache', () => ({
-  refreshTradingPositionsAfterMutation: vi.fn(),
+void mock.module('@/lib/trading-cache', () => ({
+  refreshTradingPositionsAfterMutation: mock(),
 }))
 
-vi.mock('@/lib/wallet/client', () => ({
+void mock.module('@/lib/wallet/client', () => ({
   signAndSubmitDepositWalletCalls: (...args: unknown[]) => mocks.signAndSubmitDepositWalletCalls(...args),
 }))
 
-vi.mock('@/lib/wallet/transactions', () => ({
-  buildMergePositionCall: vi.fn(() => ({
+void mock.module('@/lib/wallet/transactions', () => ({
+  buildMergePositionCall: mock(() => ({
     to: '0x0000000000000000000000000000000000000001',
     data: '0x',
     value: '0',
   })),
-  buildNegRiskSplitPositionCall: vi.fn(),
-  buildSplitPositionCall: vi.fn(() => ({
+  buildNegRiskSplitPositionCall: mock(),
+  buildSplitPositionCall: mock(() => ({
     to: '0x0000000000000000000000000000000000000001',
     data: '0x',
     value: '0',
   })),
 }))
 
-vi.mock('@/stores/useNotifications', () => ({
+void mock.module('@/stores/useNotifications', () => ({
   useNotifications: (selector: (state: { addLocalOrderFillNotification: () => void }) => unknown) =>
-    selector({ addLocalOrderFillNotification: vi.fn() }),
+    selector({ addLocalOrderFillNotification: mock() }),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => ({
     address: '0x0000000000000000000000000000000000000001',
     deposit_wallet_address: '0x0000000000000000000000000000000000000002',
   }),
 }))
+
+const { default: EventMergeSharesDialog } =
+  await import('@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog')
+const { default: EventSplitSharesDialog } =
+  await import('@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog')
 
 describe('event share dialogs', () => {
   beforeEach(() => {
@@ -111,7 +117,7 @@ describe('event share dialogs', () => {
   })
 
   it('opens AppKit when split signing reports an expired wallet connection', async () => {
-    render(<EventSplitSharesDialog open availableUsdc={10} conditionId="0x01" onOpenChange={vi.fn()} />)
+    render(<EventSplitSharesDialog open availableUsdc={10} conditionId="0x01" onOpenChange={mock()} />)
 
     await userEvent.type(screen.getByLabelText('Amount'), '1')
     await userEvent.click(screen.getByRole('button', { name: 'Split Shares' }))
@@ -123,7 +129,7 @@ describe('event share dialogs', () => {
   })
 
   it('opens AppKit when merge signing reports an expired wallet connection', async () => {
-    render(<EventMergeSharesDialog open availableShares={10} conditionId="0x01" onOpenChange={vi.fn()} />)
+    render(<EventMergeSharesDialog open availableShares={10} conditionId="0x01" onOpenChange={mock()} />)
 
     await userEvent.type(screen.getByLabelText('Amount'), '1')
     await userEvent.click(screen.getByRole('button', { name: 'Merge Shares' }))

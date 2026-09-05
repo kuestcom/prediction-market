@@ -2,30 +2,32 @@ import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { useBalance } from '@/hooks/useBalance'
 import { useUser } from '@/stores/useUser'
 
-const mocks = vi.hoisted(() => ({
-  createPublicClient: vi.fn(),
-  createViemTransport: vi.fn(),
-  getContract: vi.fn(),
-  resolveViemRpcUrls: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  createPublicClient: mock(),
+  createViemTransport: mock(),
+  getContract: mock(),
+  resolveViemRpcUrls: mock(),
 }))
 
-vi.mock('viem', () => ({
+void mock.module('viem', () => ({
   createPublicClient: mocks.createPublicClient,
   getContract: mocks.getContract,
 }))
 
-vi.mock('@/lib/viem-network', () => ({
+void mock.module('@/lib/viem-network', () => ({
   createViemTransport: (...args: unknown[]) => mocks.createViemTransport(...args),
   defaultViemNetwork: { id: 80002, name: 'Polygon Amoy' },
   resolveViemRpcUrls: (...args: unknown[]) => mocks.resolveViemRpcUrls(...args),
 }))
 
-vi.mock('@/lib/contracts', () => ({
+void mock.module('@/lib/contracts', () => ({
   COLLATERAL_TOKEN_ADDRESS: '0x0000000000000000000000000000000000000001',
 }))
 
@@ -73,7 +75,7 @@ describe('useBalance', () => {
   })
 
   it('loads the Deposit Wallet balance without requiring a live wallet connection', async () => {
-    const balanceOf = vi.fn().mockResolvedValue(123_450_000n)
+    const balanceOf = mock().mockResolvedValue(123_450_000n)
     mocks.getContract.mockReturnValue({
       read: {
         balanceOf,
@@ -110,7 +112,7 @@ describe('useBalance', () => {
   it('distinguishes an RPC failure from a confirmed zero balance', async () => {
     mocks.getContract.mockReturnValue({
       read: {
-        balanceOf: vi.fn().mockRejectedValue(new Error('RPC unavailable')),
+        balanceOf: mock().mockRejectedValue(new Error('RPC unavailable')),
       },
     })
 
@@ -140,7 +142,7 @@ describe('useBalance', () => {
   })
 
   it('uses an explicit Deposit Wallet address instead of the global user state', async () => {
-    const balanceOf = vi.fn().mockResolvedValue(75_000_000n)
+    const balanceOf = mock().mockResolvedValue(75_000_000n)
     mocks.getContract.mockReturnValue({
       read: {
         balanceOf,
@@ -182,7 +184,7 @@ describe('useBalance', () => {
   it('does not fall back to the global user state when the explicit Deposit Wallet address is null', async () => {
     mocks.getContract.mockReturnValue({
       read: {
-        balanceOf: vi.fn(),
+        balanceOf: mock(),
       },
     })
 
@@ -215,7 +217,7 @@ describe('useBalance', () => {
   it('stops loading when there is no Deposit Wallet to query yet', async () => {
     mocks.getContract.mockReturnValue({
       read: {
-        balanceOf: vi.fn(),
+        balanceOf: mock(),
       },
     })
 

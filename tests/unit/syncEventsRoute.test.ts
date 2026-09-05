@@ -1,36 +1,38 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  fetch: vi.fn(),
-  isCronAuthorized: vi.fn(),
-  loadAllowedMarketCreatorWallets: vi.fn(),
-  loadAutoDeployNewEventsEnabled: vi.fn(),
-  refreshAllowedMarketCreatorSiteSources: vi.fn(),
-  select: vi.fn(),
-  update: vi.fn(),
+import { hoisted, spyOn, stubGlobal, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  fetch: mock(),
+  isCronAuthorized: mock(),
+  loadAllowedMarketCreatorWallets: mock(),
+  loadAutoDeployNewEventsEnabled: mock(),
+  refreshAllowedMarketCreatorSiteSources: mock(),
+  select: mock(),
+  update: mock(),
 }))
 
-vi.mock('@/lib/auth-cron', () => ({
+void mock.module('@/lib/auth-cron', () => ({
   isCronAuthorized: (...args: any[]) => mocks.isCronAuthorized(...args),
 }))
 
-vi.mock('@/lib/allowed-market-creators-server', () => ({
+void mock.module('@/lib/allowed-market-creators-server', () => ({
   loadAllowedMarketCreatorWallets: (...args: any[]) => mocks.loadAllowedMarketCreatorWallets(...args),
   refreshAllowedMarketCreatorSiteSources: (...args: any[]) => mocks.refreshAllowedMarketCreatorSiteSources(...args),
 }))
 
-vi.mock('@/lib/db/utils/run-query', () => ({
+void mock.module('@/lib/db/utils/run-query', () => ({
   runQuery: async (callback: () => Promise<unknown>) => await callback(),
 }))
 
-vi.mock('@/lib/drizzle', () => ({
+void mock.module('@/lib/drizzle', () => ({
   db: {
     select: (...args: any[]) => mocks.select(...args),
     update: (...args: any[]) => mocks.update(...args),
   },
 }))
 
-vi.mock('@/lib/event-sync-settings', () => ({
+void mock.module('@/lib/event-sync-settings', () => ({
   loadAutoDeployNewEventsEnabled: (...args: any[]) => mocks.loadAutoDeployNewEventsEnabled(...args),
 }))
 
@@ -59,8 +61,7 @@ function makeUpdateChain(result: Array<{ id: string }>, onSet?: (payload: unknow
 
 describe('sync events route', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.stubGlobal('fetch', mocks.fetch)
+    stubGlobal('fetch', mocks.fetch)
 
     mocks.fetch.mockReset()
     mocks.isCronAuthorized.mockReset()
@@ -72,9 +73,9 @@ describe('sync events route', () => {
   })
 
   afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+    useRealTimers()
+    unstubAllGlobals()
+    jest.restoreAllMocks()
   })
 
   it('keeps an incoming additional context timestamp when only the timestamp field is present', async () => {
@@ -320,8 +321,8 @@ describe('sync events route', () => {
 
   it('hits the PnL subgraph and exits cleanly when no markets are returned', async () => {
     const updatePayloads: unknown[] = []
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
+    useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
       data: ['0xABCDEF0000000000000000000000000000000001'],
@@ -495,10 +496,10 @@ describe('sync events route', () => {
   })
 
   it('persists the initial cutoff with the cursor when the bootstrap reaches the time limit', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
+    useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
     const now = Date.parse('2026-08-03T12:00:00.000Z')
-    const dateNow = vi.spyOn(Date, 'now')
+    const dateNow = spyOn(Date, 'now')
     dateNow
       .mockReturnValueOnce(now)
       .mockReturnValueOnce(now)
@@ -577,8 +578,8 @@ describe('sync events route', () => {
   })
 
   it('reads metadata and skips expired new markets before persisting them', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
+    useFakeTimers()
+    jest.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
       data: ['0xabcdef0000000000000000000000000000000001'],

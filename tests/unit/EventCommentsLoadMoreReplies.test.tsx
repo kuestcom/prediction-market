@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import type { Comment } from '@/types'
 
@@ -31,10 +31,10 @@ describe('eventCommentsLoadMoreReplies', () => {
           replies_count: 2,
           recent_replies: [comment({ id: 'reply-1' })],
         })}
-        onRepliesLoaded={vi.fn()}
+        onRepliesLoaded={mock()}
         isLoading={false}
         error={null}
-        onRetry={vi.fn()}
+        onRetry={mock()}
       />,
     )
 
@@ -48,10 +48,10 @@ describe('eventCommentsLoadMoreReplies', () => {
           replies_count: 1,
           recent_replies: [comment({ id: 'reply-1' })],
         })}
-        onRepliesLoaded={vi.fn()}
+        onRepliesLoaded={mock()}
         isLoading={false}
         error={null}
-        onRetry={vi.fn()}
+        onRetry={mock()}
       />,
     )
 
@@ -74,10 +74,10 @@ describe('eventCommentsLoadMoreReplies', () => {
             }),
           ],
         })}
-        onRepliesLoaded={vi.fn()}
+        onRepliesLoaded={mock()}
         isLoading={false}
         error={null}
-        onRetry={vi.fn()}
+        onRetry={mock()}
       />,
     )
 

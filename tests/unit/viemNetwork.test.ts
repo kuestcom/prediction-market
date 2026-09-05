@@ -1,23 +1,23 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
+
+import { stubEnv, stubGlobal, unstubAllEnvs, unstubAllGlobals } from '../bun-test-helpers'
 
 async function importViemNetwork() {
-  vi.resetModules()
-  return await import('@/lib/viem-network')
+  return await import(`@/lib/viem-network?bun-test=${Math.random()}`)
 }
 
 describe('viem-network RPC URL resolution', () => {
   afterEach(() => {
-    vi.unstubAllEnvs()
-    vi.unstubAllGlobals()
+    unstubAllEnvs()
+    unstubAllGlobals()
     if (typeof window !== 'undefined') {
       delete (window as Window & { __PUBLIC_RUNTIME_CONFIG__?: unknown }).__PUBLIC_RUNTIME_CONFIG__
     }
-    vi.resetModules()
   })
 
   it('uses the default network RPC when POLYGON_RPC_URL is empty', async () => {
-    vi.stubEnv('CHAIN_ID', '')
-    vi.stubEnv('POLYGON_RPC_URL', '')
+    stubEnv('CHAIN_ID', '')
+    stubEnv('POLYGON_RPC_URL', '')
 
     const { defaultViemNetwork, defaultViemRpcUrls } = await importViemNetwork()
 
@@ -25,8 +25,8 @@ describe('viem-network RPC URL resolution', () => {
   })
 
   it('uses a valid POLYGON_RPC_URL override', async () => {
-    vi.stubEnv('CHAIN_ID', '')
-    vi.stubEnv('POLYGON_RPC_URL', ' https://rpc.example.com/path ')
+    stubEnv('CHAIN_ID', '')
+    stubEnv('POLYGON_RPC_URL', ' https://rpc.example.com/path ')
 
     const { resolveRuntimeViemRpcUrls } = await importViemNetwork()
 
@@ -34,8 +34,8 @@ describe('viem-network RPC URL resolution', () => {
   })
 
   it('parses comma-separated POLYGON_RPC_URL values in priority order', async () => {
-    vi.stubEnv('CHAIN_ID', '')
-    vi.stubEnv('POLYGON_RPC_URL', ' https://rpc-1.example.com , https://rpc-2.example.com/path ')
+    stubEnv('CHAIN_ID', '')
+    stubEnv('POLYGON_RPC_URL', ' https://rpc-1.example.com , https://rpc-2.example.com/path ')
 
     const { resolveRuntimeViemRpcUrls } = await importViemNetwork()
 
@@ -43,8 +43,8 @@ describe('viem-network RPC URL resolution', () => {
   })
 
   it('uses Polygon mainnet when CHAIN_ID is set to 137', async () => {
-    vi.stubEnv('CHAIN_ID', '137')
-    vi.stubEnv('POLYGON_RPC_URL', '')
+    stubEnv('CHAIN_ID', '137')
+    stubEnv('POLYGON_RPC_URL', '')
 
     const { defaultViemNetwork, defaultViemRpcUrls } = await importViemNetwork()
 
@@ -53,8 +53,8 @@ describe('viem-network RPC URL resolution', () => {
   })
 
   it('uses the runtime chain id from the public config when present', async () => {
-    vi.stubEnv('CHAIN_ID', '')
-    vi.stubEnv('POLYGON_RPC_URL', '')
+    stubEnv('CHAIN_ID', '')
+    stubEnv('POLYGON_RPC_URL', '')
     ;(
       window as Window & {
         __PUBLIC_RUNTIME_CONFIG__?: { chainId?: number }
@@ -70,10 +70,9 @@ describe('viem-network RPC URL resolution', () => {
   })
 
   it('tries the next RPC URL when the current endpoint is offline', async () => {
-    vi.stubEnv('CHAIN_ID', '137')
-    vi.stubEnv('POLYGON_RPC_URL', 'https://rpc-1.example.com,https://rpc-2.example.com')
-    const fetchMock = vi
-      .fn()
+    stubEnv('CHAIN_ID', '137')
+    stubEnv('POLYGON_RPC_URL', 'https://rpc-1.example.com,https://rpc-2.example.com')
+    const fetchMock = mock()
       .mockRejectedValueOnce(new TypeError('RPC offline'))
       .mockResolvedValueOnce(
         new Response(
@@ -88,7 +87,7 @@ describe('viem-network RPC URL resolution', () => {
           },
         ),
       )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } = await importViemNetwork()
     const transport = createViemTransport(resolveRuntimeViemRpcUrls())({
@@ -110,8 +109,8 @@ describe('viem-network RPC URL resolution', () => {
     'ws://rpc.example.com',
     'https://rpc.example.com,ftp://invalid.example.com',
   ])('rejects invalid POLYGON_RPC_URL value %s', async (rpcUrl) => {
-    vi.stubEnv('CHAIN_ID', '')
-    vi.stubEnv('POLYGON_RPC_URL', rpcUrl)
+    stubEnv('CHAIN_ID', '')
+    stubEnv('POLYGON_RPC_URL', rpcUrl)
 
     const { resolveRuntimeViemRpcUrls } = await importViemNetwork()
 

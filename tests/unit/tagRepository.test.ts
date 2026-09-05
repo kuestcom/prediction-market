@@ -1,23 +1,24 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  cacheTag: vi.fn(),
-  revalidatePath: vi.fn(),
-  runQuery: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  cacheTag: mock(),
+  revalidatePath: mock(),
+  runQuery: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   cacheTag: (...args: any[]) => mocks.cacheTag(...args),
   revalidatePath: (...args: any[]) => mocks.revalidatePath(...args),
 }))
 
-vi.mock('@/lib/db/utils/run-query', () => ({
+void mock.module('@/lib/db/utils/run-query', () => ({
   runQuery: (...args: any[]) => mocks.runQuery(...args),
 }))
 
 describe('tagRepository.getMainTags', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.revalidatePath.mockReset()
     mocks.runQuery.mockReset()
@@ -601,7 +602,6 @@ describe('tagRepository.getMainTags', () => {
 
 describe('tagRepository.listTags', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.revalidatePath.mockReset()
     mocks.runQuery.mockReset()
@@ -726,7 +726,6 @@ describe('tagRepository.listTags', () => {
 
 describe('tagRepository.updateMainCategoriesDisplayOrder', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.cacheTag.mockReset()
     mocks.revalidatePath.mockReset()
     mocks.runQuery.mockReset()

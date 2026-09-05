@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import type { User } from '@/types'
 
@@ -7,16 +7,18 @@ import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/Tradi
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useUser } from '@/stores/useUser'
 
-const mocks = vi.hoisted(() => ({
-  createDepositWalletAction: vi.fn(),
+import { hoisted, mocked, spyOn, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  createDepositWalletAction: mock(),
   dialogProps: null as any,
-  enableTradingAuthAction: vi.fn(),
-  getSession: vi.fn().mockResolvedValue({ data: { user: null } }),
-  markApprovalStateWithoutTransactionAction: vi.fn(),
-  openAppKit: vi.fn(),
-  signAndSubmitDepositWalletCalls: vi.fn(),
-  signTypedDataAsync: vi.fn(),
-  usePathname: vi.fn(() => '/'),
+  enableTradingAuthAction: mock(),
+  getSession: mock().mockResolvedValue({ data: { user: null } }),
+  markApprovalStateWithoutTransactionAction: mock(),
+  openAppKit: mock(),
+  signAndSubmitDepositWalletCalls: mock(),
+  signTypedDataAsync: mock(),
+  usePathname: mock(() => '/'),
 }))
 
 const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
@@ -25,37 +27,37 @@ const AUTO_REDEEM_RETRY_MESSAGE = 'Could not enable auto-redeem right now. Pleas
 const ENABLE_TRADING_RETRY_MESSAGE =
   'Could not create your Deposit Wallet right now. Please try again in a few moments.'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   usePathname: mocks.usePathname,
 }))
 
-vi.mock('wagmi', () => ({
+void mock.module('wagmi', () => ({
   useSignMessage: () => ({
-    signMessageAsync: vi.fn(),
+    signMessageAsync: mock(),
   }),
   useSignTypedData: () => ({
     signTypedDataAsync: mocks.signTypedDataAsync,
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
+void mock.module('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
   markApprovalStateWithoutTransactionAction: mocks.markApprovalStateWithoutTransactionAction,
 }))
 
-vi.mock('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
-  checkUsernameAvailabilityAction: vi.fn(),
+void mock.module('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
+  checkUsernameAvailabilityAction: mock(),
   createDepositWalletAction: mocks.createDepositWalletAction,
   enableTradingAuthAction: mocks.enableTradingAuthAction,
-  markAutoRedeemApprovalCompletedAction: vi.fn(),
-  updateOnboardingEmailAction: vi.fn(),
-  updateOnboardingUsernameAction: vi.fn(),
+  markAutoRedeemApprovalCompletedAction: mock(),
+  updateOnboardingEmailAction: mock(),
+  updateOnboardingUsernameAction: mock(),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/TradingOnboardingDialogs', () => ({
+void mock.module('@/app/[locale]/(platform)/_components/TradingOnboardingDialogs', () => ({
   __esModule: true,
   default: function MockTradingOnboardingDialogs(props: any) {
     mocks.dialogProps = props
@@ -63,7 +65,7 @@ vi.mock('@/app/[locale]/(platform)/_components/TradingOnboardingDialogs', () => 
   },
 }))
 
-vi.mock('@/hooks/useAffiliateOrderMetadata', () => ({
+void mock.module('@/hooks/useAffiliateOrderMetadata', () => ({
   useAffiliateOrderMetadata: () => ({
     affiliateAddress: null,
     affiliateSharePercent: null,
@@ -71,29 +73,29 @@ vi.mock('@/hooks/useAffiliateOrderMetadata', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({
     open: mocks.openAppKit,
   }),
 }))
 
-vi.mock('@/hooks/useDepositWalletPolling', () => ({
-  useDepositWalletPolling: vi.fn(),
+void mock.module('@/hooks/useDepositWalletPolling', () => ({
+  useDepositWalletPolling: mock(),
 }))
 
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({
     runWithSignaturePrompt: (callback: () => Promise<string>) => callback(),
   }),
 }))
 
-vi.mock('@/lib/auth-client', () => ({
+void mock.module('@/lib/auth-client', () => ({
   authClient: {
     getSession: mocks.getSession,
   },
 }))
 
-vi.mock('@/lib/wallet/client', () => ({
+void mock.module('@/lib/wallet/client', () => ({
   signAndSubmitDepositWalletCalls: mocks.signAndSubmitDepositWalletCalls,
 }))
 
@@ -156,9 +158,9 @@ function EnsureTradingReadyProbe({ onTradingReady }: { onTradingReady: () => voi
 
 describe('tradingOnboardingProvider', () => {
   beforeEach(() => {
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
+      mock().mockResolvedValue(
         new Response(
           JSON.stringify({
             enabled: false,
@@ -188,12 +190,12 @@ describe('tradingOnboardingProvider', () => {
 
   afterEach(() => {
     useUser.setState(null)
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
+    jest.restoreAllMocks()
+    unstubAllGlobals()
   })
 
   it('places Required Sumsub after profile details and before wallet setup', async () => {
-    vi.mocked(fetch).mockResolvedValue(
+    mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
           enabled: true,
@@ -222,13 +224,13 @@ describe('tradingOnboardingProvider', () => {
 
   it('does not report trading ready before the Sumsub status loads', async () => {
     let resolveStatus: ((response: Response) => void) | undefined
-    vi.mocked(fetch).mockImplementation(
+    mocked(fetch).mockImplementation(
       () =>
         new Promise<Response>((resolve) => {
           resolveStatus = resolve
         }),
     )
-    const onTradingReady = vi.fn()
+    const onTradingReady = mock()
     useUser.setState(
       createUser({
         deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
@@ -276,8 +278,8 @@ describe('tradingOnboardingProvider', () => {
   })
 
   it('keeps trading unresolved when the Sumsub status request fails', async () => {
-    vi.mocked(fetch).mockImplementation(async () => new Response(null, { status: 503 }))
-    const onTradingReady = vi.fn()
+    mocked(fetch).mockImplementation(async () => new Response(null, { status: 503 }))
+    const onTradingReady = mock()
     useUser.setState(
       createUser({
         deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
@@ -312,7 +314,7 @@ describe('tradingOnboardingProvider', () => {
   ] as const)(
     'continues trading when a failed status response confirms %s enforcement',
     async (_label, enabled, configured, effective, enforcement, levelName) => {
-      vi.mocked(fetch).mockResolvedValue(
+      mocked(fetch).mockResolvedValue(
         new Response(
           JSON.stringify({
             enabled,
@@ -328,7 +330,7 @@ describe('tradingOnboardingProvider', () => {
           { status: 503, headers: { 'Content-Type': 'application/json' } },
         ),
       )
-      const onTradingReady = vi.fn()
+      const onTradingReady = mock()
       useUser.setState(
         createUser({
           deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
@@ -358,7 +360,7 @@ describe('tradingOnboardingProvider', () => {
   )
 
   it('keeps trading blocked when a failed status response confirms Required enforcement', async () => {
-    vi.mocked(fetch).mockResolvedValue(
+    mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
           enabled: true,
@@ -374,7 +376,7 @@ describe('tradingOnboardingProvider', () => {
         { status: 503, headers: { 'Content-Type': 'application/json' } },
       ),
     )
-    const onTradingReady = vi.fn()
+    const onTradingReady = mock()
     useUser.setState(
       createUser({
         deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
@@ -403,7 +405,7 @@ describe('tradingOnboardingProvider', () => {
   })
 
   it('lets Observe only continue after the single Sumsub prompt is dismissed', async () => {
-    vi.mocked(fetch).mockResolvedValue(
+    mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
           enabled: true,
@@ -434,7 +436,7 @@ describe('tradingOnboardingProvider', () => {
   })
 
   it('resumes Required onboarding only after server-confirmed approval', async () => {
-    vi.mocked(fetch).mockResolvedValue(
+    mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
           enabled: true,
@@ -472,7 +474,7 @@ describe('tradingOnboardingProvider', () => {
     let poll: (() => void) | undefined
     let pollRegistrations = 0
     const originalSetInterval = window.setInterval.bind(window)
-    vi.spyOn(window, 'setInterval').mockImplementation((handler, timeout, ...args): ReturnType<typeof setInterval> => {
+    spyOn(window, 'setInterval').mockImplementation((handler, timeout, ...args): ReturnType<typeof setInterval> => {
       if (timeout === 5_000) {
         poll = handler as () => void
         pollRegistrations += 1
@@ -490,11 +492,11 @@ describe('tradingOnboardingProvider', () => {
       approvedAt: null,
       updatedAt: '2026-07-19T12:00:00.000Z',
     }
-    vi.mocked(fetch).mockImplementation(
+    mocked(fetch).mockImplementation(
       async () =>
         new Response(JSON.stringify(pendingStatus), { status: 200, headers: { 'Content-Type': 'application/json' } }),
     )
-    const onTradingReady = vi.fn()
+    const onTradingReady = mock()
     useUser.setState(
       createUser({
         deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
@@ -523,7 +525,7 @@ describe('tradingOnboardingProvider', () => {
     })
     await waitFor(() => expect(pollRegistrations).toBeGreaterThanOrEqual(2))
 
-    vi.mocked(fetch).mockImplementation(
+    mocked(fetch).mockImplementation(
       async () =>
         new Response(
           JSON.stringify({
@@ -707,7 +709,7 @@ describe('tradingOnboardingProvider', () => {
   })
 
   it('resumes a pending action after trading becomes ready again', async () => {
-    const onTradingReady = vi.fn()
+    const onTradingReady = mock()
     mocks.signTypedDataAsync.mockResolvedValue('0xsignature')
     mocks.enableTradingAuthAction.mockResolvedValue({
       error: null,

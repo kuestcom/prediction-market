@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import { fetchPendingResolutionRewardReports, fetchResolutionRewardAccount } from '@/lib/data-api/resolution-rewards'
 
-vi.mock('@/lib/data-api/client', () => ({
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+void mock.module('@/lib/data-api/client', () => ({
   buildDataApiUrl: (path: string, params?: URLSearchParams) =>
     `https://data.example${path}?${params?.toString() ?? ''}`,
 }))
@@ -22,16 +24,15 @@ function market(id: string) {
 
 describe('resolution rewards Data API reports', () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('splits a creator batch when the API result is truncated', async () => {
-    const fetchMock = vi
-      .fn()
+    const fetchMock = mock()
       .mockImplementationOnce(() => response({ totalCount: 2, rewardMarkets: [market('bulk')] }))
       .mockImplementationOnce(() => response({ totalCount: 1, rewardMarkets: [market('creator-a')] }))
       .mockImplementationOnce(() => response({ totalCount: 1, rewardMarkets: [market('creator-b')] }))
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const result = await fetchPendingResolutionRewardReports([
       '0x1111111111111111111111111111111111111111',
@@ -44,9 +45,9 @@ describe('resolution rewards Data API reports', () => {
   })
 
   it('fails instead of returning a silently truncated single-creator result', async () => {
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn(() => response({ totalCount: 2, rewardMarkets: [market('only-loaded-market')] })),
+      mock(() => response({ totalCount: 2, rewardMarkets: [market('only-loaded-market')] })),
     )
 
     await expect(fetchPendingResolutionRewardReports(['0x1111111111111111111111111111111111111111'])).rejects.toThrow(
@@ -55,8 +56,8 @@ describe('resolution rewards Data API reports', () => {
   })
 
   it('forwards an abort signal to optional public account requests', async () => {
-    const fetchMock = vi.fn(() => response({ rewardAccountStats: null, rewardProposals: [], rewardClaims: [] }))
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock(() => response({ rewardAccountStats: null, rewardProposals: [], rewardClaims: [] }))
+    stubGlobal('fetch', fetchMock)
     const controller = new AbortController()
 
     await fetchResolutionRewardAccount('0x1111111111111111111111111111111111111111', {

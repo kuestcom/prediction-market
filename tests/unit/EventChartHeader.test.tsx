@@ -1,22 +1,22 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import EventChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartHeader'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => (message === 'chance' ? '概率' : message),
 }))
 
-vi.mock('react-animated-counter', () => ({
+void mock.module('react-animated-counter', () => ({
   AnimatedCounter: ({ value }: { value: number }) => <span>{value}</span>,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventSeriesPills', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventSeriesPills', () => ({
   default: () => null,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventTweetMarketsPanel', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventTweetMarketsPanel', () => ({
   default: () => null,
 }))
 

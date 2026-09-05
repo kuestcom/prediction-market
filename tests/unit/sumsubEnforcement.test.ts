@@ -1,17 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import { requireSumsubTradingApproval } from '@/lib/sumsub/enforcement'
 
-const mocks = vi.hoisted(() => ({
-  getForUser: vi.fn(),
-  getSumsubSettings: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getForUser: mock(),
+  getSumsubSettings: mock(),
 }))
 
-vi.mock('@/lib/db/queries/sumsub', () => ({
+void mock.module('@/lib/db/queries/sumsub', () => ({
   SumsubRepository: { getForUser: mocks.getForUser },
 }))
 
-vi.mock('@/lib/sumsub/settings', () => ({
+void mock.module('@/lib/sumsub/settings', () => ({
   getSumsubSettings: mocks.getSumsubSettings,
 }))
 

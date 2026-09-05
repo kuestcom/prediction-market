@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { renderToString } from 'react-dom/server'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-constants'
 import {
@@ -109,7 +109,7 @@ describe('sportsGameGraphHeroLegend', () => {
   }
 
   beforeEach(() => {
-    getContextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => {
+    getContextSpy = spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation((() => {
       let currentFont = ''
 
       return {

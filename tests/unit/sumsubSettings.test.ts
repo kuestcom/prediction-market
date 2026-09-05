@@ -1,8 +1,10 @@
+import { afterEach, describe, expect, it } from 'bun:test'
 import { readFile } from 'node:fs/promises'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
 import { parseSumsubSettings, validateSumsubInput } from '@/lib/sumsub/settings'
+
+import { stubEnv, unstubAllEnvs } from '../bun-test-helpers'
 
 function settings(values: Record<string, string>) {
   return { integrations: Object.fromEntries(Object.entries(values).map(([key, value]) => [key, { value }])) }
@@ -10,7 +12,7 @@ function settings(values: Record<string, string>) {
 
 describe('sumsub settings', () => {
   afterEach(() => {
-    vi.unstubAllEnvs()
+    unstubAllEnvs()
   })
 
   it('defaults to inactive and disabled', () => {
@@ -85,7 +87,7 @@ describe('sumsub settings', () => {
   })
 
   it('encrypts secrets at rest', () => {
-    vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret-with-at-least-thirty-two-characters')
+    stubEnv('BETTER_AUTH_SECRET', 'test-secret-with-at-least-thirty-two-characters')
     const encrypted = encryptSecret('sumsub-secret')
     expect(encrypted).not.toContain('sumsub-secret')
     expect(decryptSecret(encrypted)).toBe('sumsub-secret')

@@ -1,39 +1,41 @@
 import { render, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { Event, Market, Outcome } from '@/types'
 
 import EventOrderStateSync from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderStateSync'
 import { ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 
-const mocks = vi.hoisted(() => {
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => {
   const orderState = {} as any
-  const useOrder = vi.fn((selector?: (state: any) => unknown) => {
+  const useOrder = mock((selector?: (state: any) => unknown) => {
     if (typeof selector === 'function') {
       return selector(orderState)
     }
     return orderState
   }) as any
-  useOrder.getState = vi.fn(() => orderState)
+  useOrder.getState = mock(() => orderState)
 
   return {
     orderState,
     searchParams: new URLSearchParams(),
-    useIsMobile: vi.fn(() => false),
+    useIsMobile: mock(() => false),
     useOrder,
-    useSyncLimitPriceWithOutcome: vi.fn(),
+    useSyncLimitPriceWithOutcome: mock(),
   }
 })
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   useSearchParams: () => mocks.searchParams,
 }))
 
-vi.mock('@/hooks/useIsMobile', () => ({
+void mock.module('@/hooks/useIsMobile', () => ({
   useIsMobile: mocks.useIsMobile,
 }))
 
-vi.mock('@/stores/useOrder', () => ({
+void mock.module('@/stores/useOrder', () => ({
   useOrder: mocks.useOrder,
   useSyncLimitPriceWithOutcome: mocks.useSyncLimitPriceWithOutcome,
 }))
@@ -67,28 +69,28 @@ function resetOrderState() {
     market: null,
     outcome: null,
     type: ORDER_TYPE.MARKET,
-    setAmount: vi.fn((amount: string) => {
+    setAmount: mock((amount: string) => {
       mocks.orderState.amount = amount
     }),
-    setEvent: vi.fn((event: Event) => {
+    setEvent: mock((event: Event) => {
       mocks.orderState.event = event
     }),
-    setIsMobileOrderPanelOpen: vi.fn((open: boolean) => {
+    setIsMobileOrderPanelOpen: mock((open: boolean) => {
       mocks.orderState.isMobileOrderPanelOpen = open
     }),
-    setLimitShares: vi.fn((shares: string) => {
+    setLimitShares: mock((shares: string) => {
       mocks.orderState.limitShares = shares
     }),
-    setMarket: vi.fn((market: Market) => {
+    setMarket: mock((market: Market) => {
       mocks.orderState.market = market
     }),
-    setOutcome: vi.fn((outcome: Outcome) => {
+    setOutcome: mock((outcome: Outcome) => {
       mocks.orderState.outcome = outcome
     }),
-    setSide: vi.fn((side: string) => {
+    setSide: mock((side: string) => {
       mocks.orderState.side = side
     }),
-    setType: vi.fn((type: string) => {
+    setType: mock((type: string) => {
       mocks.orderState.type = type
     }),
   })

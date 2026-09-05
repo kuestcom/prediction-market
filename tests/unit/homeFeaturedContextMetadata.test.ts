@@ -1,30 +1,32 @@
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Buffer } from 'node:buffer'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { deflateSync, gzipSync } from 'node:zlib'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  httpRequest: vi.fn(),
-  httpsRequest: vi.fn(),
-  lookup: vi.fn(),
+import { hoisted, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  httpRequest: mock(),
+  httpsRequest: mock(),
+  lookup: mock(),
 }))
 
-vi.mock('node:dns/promises', () => ({
+void mock.module('node:dns/promises', () => ({
   default: {
     lookup: (...args: unknown[]) => mocks.lookup(...args),
   },
   lookup: (...args: unknown[]) => mocks.lookup(...args),
 }))
 
-vi.mock('node:http', () => ({
+void mock.module('node:http', () => ({
   default: {
     request: (...args: unknown[]) => mocks.httpRequest(...args),
   },
   request: (...args: unknown[]) => mocks.httpRequest(...args),
 }))
 
-vi.mock('node:https', () => ({
+void mock.module('node:https', () => ({
   default: {
     request: (...args: unknown[]) => mocks.httpsRequest(...args),
   },
@@ -38,12 +40,12 @@ interface MockResponsePayload {
 }
 
 function createRequestMock(responses: MockResponsePayload[], lookupOptions: Record<string, unknown> = {}) {
-  return vi.fn((options: any, callback: (response: any) => void) => {
+  return mock((options: any, callback: (response: any) => void) => {
     const request = new EventEmitter() as any
-    request.destroy = vi.fn((error?: Error) => {
+    request.destroy = mock((error?: Error) => {
       request.emit('error', error ?? new Error('Request destroyed.'))
     })
-    request.end = vi.fn(() => {
+    request.end = mock(() => {
       function respond() {
         const payload = responses.shift()
         if (!payload) {
@@ -98,14 +100,13 @@ function createRequestMock(responses: MockResponsePayload[], lookupOptions: Reco
 
 describe('fetchHomeFeaturedNewsMetadata', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.httpRequest.mockReset()
     mocks.httpsRequest.mockReset()
     mocks.lookup.mockReset()
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('uses the final redirect URL for returned URL, source host, and relative favicon', async () => {
@@ -268,8 +269,8 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
     mocks.httpsRequest.mockImplementationOnce((options: any) => {
       const request = new EventEmitter() as any
-      request.destroy = vi.fn()
-      request.end = vi.fn(() => {
+      request.destroy = mock()
+      request.end = mock(() => {
         options.lookup(String(options.hostname), {}, (error: Error | null) => {
           request.emit('error', error ?? new Error('ECONNRESET private detail'))
         })

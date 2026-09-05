@@ -1,15 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  loadAllowedMarketCreatorWallets: vi.fn(),
-  loadRuntimeThemeState: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  loadAllowedMarketCreatorWallets: mock(),
+  loadRuntimeThemeState: mock(),
 }))
 
-vi.mock('@/lib/allowed-market-creators-server', () => ({
+void mock.module('@/lib/allowed-market-creators-server', () => ({
   loadAllowedMarketCreatorWallets: (...args: unknown[]) => mocks.loadAllowedMarketCreatorWallets(...args),
 }))
 
-vi.mock('@/lib/theme-settings', () => ({
+void mock.module('@/lib/theme-settings', () => ({
   loadRuntimeThemeState: (...args: unknown[]) => mocks.loadRuntimeThemeState(...args),
 }))
 

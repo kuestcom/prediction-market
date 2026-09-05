@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 
 import { NEGRISK_UMA_CTF_ADAPTER_ADDRESS, UMA_NEG_RISK_ADAPTER_ADDRESS } from '@/lib/contracts'
 import {

@@ -1,24 +1,24 @@
 import { fireEvent, render } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
 
 import type { SupportedLocale } from '@/i18n/locales'
 
 import AdminLocalesSettingsForm from '@/app/[locale]/admin/locales/_components/AdminLocalesSettingsForm'
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string | { message: string }, values?: Record<string, string>) => {
     const message = typeof value === 'string' ? value : value.message
     return values ? message.replace('{name}', values.name ?? '') : message
   },
 }))
 
-vi.mock('next/form', () => ({
+void mock.module('next/form', () => ({
   __esModule: true,
   default: ({ action: _action, children, ...props }: any) => React.createElement('form', props, children),
 }))
 
-vi.mock('next/image', () => ({
+void mock.module('next/image', () => ({
   default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) =>
     React.createElement('img', {
       src: typeof src === 'string' ? src : undefined,
@@ -27,11 +27,11 @@ vi.mock('next/image', () => ({
     }),
 }))
 
-vi.mock('@/app/[locale]/admin/locales/_actions/update-locales-settings', () => ({
-  updateLocalesSettingsAction: vi.fn().mockResolvedValue({ error: null }),
+void mock.module('@/app/[locale]/admin/locales/_actions/update-locales-settings', () => ({
+  updateLocalesSettingsAction: mock().mockResolvedValue({ error: null }),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
     <a href={href} {...props}>
       {children}

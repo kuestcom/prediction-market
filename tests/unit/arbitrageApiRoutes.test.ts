@@ -1,16 +1,16 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, spyOn, jest } from 'bun:test'
 
 import { POST as loadBooks } from '@/app/api/arbitrage/books/route'
 import { GET as loadMarketInfo } from '@/app/api/arbitrage/market-info/route'
 import { GET as loadPolymarketProfile } from '@/app/api/arbitrage/polymarket-profile/route'
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  jest.restoreAllMocks()
 })
 
 describe('arbitrage upstream routes', () => {
   it('returns 502 when the Polymarket books request fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network unavailable'))
+    spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network unavailable'))
 
     const response = await loadBooks(
       new Request('http://localhost/api/arbitrage/books', {
@@ -25,7 +25,7 @@ describe('arbitrage upstream routes', () => {
   })
 
   it('returns 502 when the Polymarket market-info request fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network unavailable'))
+    spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network unavailable'))
     const conditionId = `0x${'1'.repeat(64)}`
 
     const response = await loadMarketInfo(
@@ -37,7 +37,7 @@ describe('arbitrage upstream routes', () => {
   })
 
   it('returns a not-ready profile when Gamma is unavailable', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network unavailable'))
+    spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network unavailable'))
     const address = `0x${'1'.repeat(40)}`
 
     const response = await loadPolymarketProfile(

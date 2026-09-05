@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it, mock } from 'bun:test'
 
 import EventOrderPanelOutcomeButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 
-vi.mock('react-animated-counter', () => ({
+void mock.module('react-animated-counter', () => ({
   AnimatedCounter: ({ value }: { value: number }) => <span data-testid="animated-counter">{value}</span>,
 }))
 

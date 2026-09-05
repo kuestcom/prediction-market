@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import {
   ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY,
@@ -13,8 +13,8 @@ describe('admin events Hide crypto preference', () => {
   })
 
   it('persists the preference and notifies the current tab', () => {
-    const onStoreChange = vi.fn()
-    const onPreferenceChange = vi.fn()
+    const onStoreChange = mock()
+    const onPreferenceChange = mock()
     const unsubscribe = subscribeToHideCryptoPreference(onStoreChange, onPreferenceChange)
 
     storeHideCryptoPreference(true)
@@ -26,8 +26,8 @@ describe('admin events Hide crypto preference', () => {
   })
 
   it('notifies preference changes received from another tab', () => {
-    const onStoreChange = vi.fn()
-    const onPreferenceChange = vi.fn()
+    const onStoreChange = mock()
+    const onPreferenceChange = mock()
     const unsubscribe = subscribeToHideCryptoPreference(onStoreChange, onPreferenceChange)
 
     window.dispatchEvent(
@@ -43,8 +43,8 @@ describe('admin events Hide crypto preference', () => {
   })
 
   it('ignores unrelated local storage updates', () => {
-    const onStoreChange = vi.fn()
-    const onPreferenceChange = vi.fn()
+    const onStoreChange = mock()
+    const onPreferenceChange = mock()
     const unsubscribe = subscribeToHideCryptoPreference(onStoreChange, onPreferenceChange)
 
     window.dispatchEvent(new StorageEvent('storage', { key: 'unrelated-setting', newValue: 'true' }))

@@ -1,27 +1,29 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  cookieGet: vi.fn(),
-  cookieSet: vi.fn(),
-  getCurrentUser: vi.fn(),
-  safeParse: vi.fn(),
-  resolveMarketContextRequest: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  cookieGet: mock(),
+  cookieSet: mock(),
+  getCurrentUser: mock(),
+  safeParse: mock(),
+  resolveMarketContextRequest: mock(),
 }))
 
-vi.mock('next/headers', () => ({
-  cookies: vi.fn(async () => ({
+void mock.module('next/headers', () => ({
+  cookies: mock(async () => ({
     get: (...args: any[]) => mocks.cookieGet(...args),
     set: (...args: any[]) => mocks.cookieSet(...args),
   })),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/market-context-service', () => ({
+void mock.module('@/lib/market-context-service', () => ({
   MarketContextRequestSchema: {
     safeParse: (...args: any[]) => mocks.safeParse(...args),
   },

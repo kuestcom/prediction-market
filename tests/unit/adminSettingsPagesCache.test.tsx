@@ -1,56 +1,61 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import * as actualNextCache from 'next/cache'
+import * as actualNextNavigation from 'next/navigation'
 import * as React from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  io: vi.fn(),
-  getExtracted: vi.fn(),
-  setRequestLocale: vi.fn(),
-  getSettings: vi.fn(),
-  redirect: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  io: mock(),
+  getExtracted: mock(),
+  setRequestLocale: mock(),
+  getSettings: mock(),
+  redirect: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
   io: (...args: any[]) => mocks.io(...args),
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   getExtracted: (...args: any[]) => mocks.getExtracted(...args),
   setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
+  ...actualNextNavigation,
   redirect: (...args: any[]) => mocks.redirect(...args),
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
   },
 }))
 
-vi.mock('@/lib/ai/openrouter', () => ({
-  fetchAllOpenRouterModels: vi.fn(),
-  fetchOpenRouterModels: vi.fn(),
+void mock.module('@/lib/ai/openrouter', () => ({
+  fetchAllOpenRouterModels: mock(),
+  fetchOpenRouterModels: mock(),
 }))
 
-vi.mock('@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm', () => ({
+void mock.module('@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm', () => ({
   __esModule: true,
   default: () => React.createElement('div', { 'data-testid': 'admin-general-settings-form' }),
 }))
 
-vi.mock('@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm', () => ({
+void mock.module('@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm', () => ({
   __esModule: true,
   default: () => React.createElement('div', { 'data-testid': 'admin-integrations-form' }),
 }))
 
-vi.mock('@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm', () => ({
+void mock.module('@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm', () => ({
   __esModule: true,
   default: () => React.createElement('div', { 'data-testid': 'admin-theme-settings-form' }),
 }))
 
 describe('admin settings pages runtime behavior', () => {
   beforeEach(() => {
-    vi.resetModules()
     mocks.io.mockReset()
     mocks.getExtracted.mockReset()
     mocks.setRequestLocale.mockReset()

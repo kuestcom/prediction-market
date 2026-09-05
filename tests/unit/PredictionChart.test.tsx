@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, spyOn, jest } from 'bun:test'
 
 import { buildHistoryWithLatestPointOverride } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import PredictionChart from '@/components/PredictionChart'
@@ -12,48 +12,48 @@ const data = [
 const series = [{ key: 'price', name: 'Price', color: '#F59E0B' }]
 
 const canvasCalls = {
-  arc: vi.fn(),
-  bezierCurveTo: vi.fn(),
-  clearRect: vi.fn(),
-  createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-  fillText: vi.fn(),
-  lineTo: vi.fn(),
-  moveTo: vi.fn(),
-  rect: vi.fn(),
+  arc: mock(),
+  bezierCurveTo: mock(),
+  clearRect: mock(),
+  createLinearGradient: mock(() => ({ addColorStop: mock() })),
+  fillText: mock(),
+  lineTo: mock(),
+  moveTo: mock(),
+  rect: mock(),
 }
 
 function createCanvasContext(canvas: HTMLCanvasElement) {
   return {
     canvas,
     arc: canvasCalls.arc,
-    beginPath: vi.fn(),
+    beginPath: mock(),
     bezierCurveTo: canvasCalls.bezierCurveTo,
     clearRect: canvasCalls.clearRect,
-    clip: vi.fn(),
-    closePath: vi.fn(),
+    clip: mock(),
+    closePath: mock(),
     createLinearGradient: canvasCalls.createLinearGradient,
-    fill: vi.fn(),
+    fill: mock(),
     fillText: canvasCalls.fillText,
     lineTo: canvasCalls.lineTo,
     moveTo: canvasCalls.moveTo,
     rect: canvasCalls.rect,
-    restore: vi.fn(),
-    save: vi.fn(),
-    setLineDash: vi.fn(),
-    setTransform: vi.fn(),
-    stroke: vi.fn(),
+    restore: mock(),
+    save: mock(),
+    setLineDash: mock(),
+    setTransform: mock(),
+    stroke: mock(),
   } as unknown as CanvasRenderingContext2D
 }
 
 beforeEach(() => {
   Object.values(canvasCalls).forEach((mock) => mock.mockClear())
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function getContext(this: HTMLCanvasElement) {
+  spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function getContext(this: HTMLCanvasElement) {
     return createCanvasContext(this)
   })
 })
 
 afterEach(() => {
-  vi.restoreAllMocks()
+  jest.restoreAllMocks()
 })
 
 describe('predictionChart', () => {
@@ -137,7 +137,7 @@ describe('predictionChart', () => {
   })
 
   it('reports interpolated cursor data from canvas pointer movement', async () => {
-    const onCursorDataChange = vi.fn()
+    const onCursorDataChange = mock()
     const { getByRole } = render(
       <PredictionChart
         data={data}
@@ -149,7 +149,7 @@ describe('predictionChart', () => {
       />,
     )
     const canvas = getByRole('img', { name: 'Interactive prediction chart' })
-    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
       bottom: 220,
       height: 220,
       left: 0,
@@ -177,7 +177,7 @@ describe('predictionChart', () => {
   })
 
   it('places the normal-chart cursor on the rendered curve and restores color from that point', async () => {
-    const onCursorDataChange = vi.fn()
+    const onCursorDataChange = mock()
     const curvedData = [
       { date: data[0].date, price: 20 },
       { date: data[1].date, price: 80 },
@@ -198,7 +198,7 @@ describe('predictionChart', () => {
       />,
     )
     const canvas = getByRole('img', { name: 'Interactive prediction chart' })
-    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
       bottom: 220,
       height: 220,
       left: 0,
@@ -228,7 +228,7 @@ describe('predictionChart', () => {
   })
 
   it('keeps a stationary live cursor attached to the latest series line', async () => {
-    const onCursorDataChange = vi.fn()
+    const onCursorDataChange = mock()
     function renderChart(nextData: typeof data, domain = { start: data[0].date, end: data[1].date }) {
       return (
         <PredictionChart
@@ -249,7 +249,7 @@ describe('predictionChart', () => {
     }
     const { getByRole, rerender } = render(renderChart(data))
     const canvas = getByRole('img', { name: 'Interactive prediction chart' })
-    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
       bottom: 220,
       height: 220,
       left: 0,
@@ -294,7 +294,7 @@ describe('predictionChart', () => {
       <PredictionChart data={data} series={series} width={400} height={220} showXAxis={false} disableCursorSplit />,
     )
     const canvas = getByRole('img', { name: 'Interactive prediction chart' })
-    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
       bottom: 220,
       height: 220,
       left: 0,
@@ -377,8 +377,8 @@ describe('predictionChart', () => {
 
   it('reveals the chart before sweeping a highlight into the end marker', async () => {
     const animationFrames: FrameRequestCallback[] = []
-    vi.spyOn(window.performance, 'now').mockReturnValue(1_000)
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       animationFrames.push(callback)
       return animationFrames.length
     })

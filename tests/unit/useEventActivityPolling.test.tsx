@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import type { ActivityOrder } from '@/types'
 
@@ -7,29 +7,31 @@ import {
   EVENT_ACTIVITY_POLL_INTERVAL_MS,
   useEventActivityPolling,
 } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityPolling'
+import * as actualTrades from '@/lib/data-api/trades'
 import { EVENT_ACTIVITY_REFRESH_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
 
-vi.mock('@/lib/data-api/trades', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/data-api/trades')>()
+import { advanceTimersByTimeAsync, mocked, useFakeTimers, useRealTimers } from '../bun-test-helpers'
+
+void mock.module('@/lib/data-api/trades', () => {
   return {
-    ...actual,
-    fetchEventTrades: vi.fn(),
+    ...actualTrades,
+    fetchEventTrades: mock(),
   }
 })
 
-const fetchEventTradesMock = vi.mocked(fetchEventTrades)
+const fetchEventTradesMock = mocked(fetchEventTrades)
 
 describe('useEventActivityPolling', () => {
   const hiddenDescriptor = Object.getOwnPropertyDescriptor(document, 'hidden')
 
   beforeEach(() => {
-    vi.useFakeTimers()
+    useFakeTimers()
     Object.defineProperty(document, 'hidden', { configurable: true, value: false })
   })
 
   afterEach(() => {
-    vi.useRealTimers()
-    vi.clearAllMocks()
+    useRealTimers()
+    jest.clearAllMocks()
     if (hiddenDescriptor) {
       Object.defineProperty(document, 'hidden', hiddenDescriptor)
     } else {
@@ -40,7 +42,7 @@ describe('useEventActivityPolling', () => {
   it('skips polling during pagination and performs one bounded request afterward', async () => {
     const activities: ActivityOrder[] = []
     fetchEventTradesMock.mockResolvedValue(activities)
-    const onActivities = vi.fn()
+    const onActivities = mock()
     const marketIds = ['condition-1']
     const { rerender, unmount } = renderHook(
       ({ isActivityQueryFetching }) =>
@@ -55,13 +57,13 @@ describe('useEventActivityPolling', () => {
     )
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
+      await advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
     })
     expect(fetchEventTradesMock).not.toHaveBeenCalled()
 
     rerender({ isActivityQueryFetching: false })
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
+      await advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
     })
 
     expect(fetchEventTradesMock).toHaveBeenCalledOnce()
@@ -86,12 +88,12 @@ describe('useEventActivityPolling', () => {
         isActivityQueryFetching: false,
         marketIds: ['condition-1'],
         minAmountFilter: 'none',
-        onActivities: vi.fn(),
+        onActivities: mock(),
       }),
     )
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
+      await advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
     })
 
     expect(fetchEventTradesMock).not.toHaveBeenCalled()
@@ -107,7 +109,7 @@ describe('useEventActivityPolling', () => {
         isActivityQueryFetching: false,
         marketIds: ['condition-1'],
         minAmountFilter: 'none',
-        onActivities: vi.fn(),
+        onActivities: mock(),
       }),
     )
 
@@ -130,7 +132,7 @@ describe('useEventActivityPolling', () => {
         isActivityQueryFetching: false,
         marketIds: ['condition-1'],
         minAmountFilter: 'none',
-        onActivities: vi.fn(),
+        onActivities: mock(),
       }),
     )
 
@@ -152,12 +154,12 @@ describe('useEventActivityPolling', () => {
         isActivityQueryFetching: false,
         marketIds: ['condition-1'],
         minAmountFilter: 'none',
-        onActivities: vi.fn(),
+        onActivities: mock(),
       }),
     )
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
+      await advanceTimersByTimeAsync(EVENT_ACTIVITY_POLL_INTERVAL_MS)
     })
     const signal = fetchEventTradesMock.mock.calls[0]?.[0].signal
     expect(signal?.aborted).toBe(false)

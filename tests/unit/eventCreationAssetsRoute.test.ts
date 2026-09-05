@@ -1,30 +1,32 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  getDraftByIdForUser: vi.fn(),
-  updateDraftCoreFields: vi.fn(),
-  uploadPublicAsset: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  getDraftByIdForUser: mock(),
+  updateDraftCoreFields: mock(),
+  uploadPublicAsset: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/event-creations', () => ({
+void mock.module('@/lib/db/queries/event-creations', () => ({
   EventCreationRepository: {
     getDraftByIdForUser: (...args: any[]) => mocks.getDraftByIdForUser(...args),
     updateDraftCoreFields: (...args: any[]) => mocks.updateDraftCoreFields(...args),
   },
 }))
 
-vi.mock('@/lib/storage', () => ({
+void mock.module('@/lib/storage', () => ({
   getPublicAssetUrl: (path: string) => `https://example.com/${path}`,
 }))
 
-vi.mock('@/lib/storage-upload', () => ({
+void mock.module('@/lib/storage-upload', () => ({
   uploadPublicAsset: (...args: any[]) => mocks.uploadPublicAsset(...args),
 }))
 
@@ -52,7 +54,7 @@ describe('event creation assets route', () => {
 
     const response = await POST(
       {
-        formData: vi.fn().mockResolvedValue(formData),
+        formData: mock().mockResolvedValue(formData),
       } as any,
       {
         params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
@@ -81,7 +83,7 @@ describe('event creation assets route', () => {
 
     const response = await POST(
       {
-        formData: vi.fn().mockResolvedValue(formData),
+        formData: mock().mockResolvedValue(formData),
       } as any,
       {
         params: Promise.resolve({ id: 'draft-1', locale: 'en' }),

@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { lookup } from 'node:dns/promises'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   isPublicIpAddress,
@@ -8,18 +8,20 @@ import {
   validateOutboundImageUrl,
 } from '@/lib/og-image-security'
 
-const dnsMocks = vi.hoisted(() => ({
-  lookup: vi.fn(),
+import { hoisted, mocked } from '../bun-test-helpers'
+
+const dnsMocks = hoisted(() => ({
+  lookup: mock(),
 }))
 
-vi.mock('node:dns/promises', () => ({
+void mock.module('node:dns/promises', () => ({
   default: {
     lookup: dnsMocks.lookup,
   },
   lookup: dnsMocks.lookup,
 }))
 
-const lookupMock = vi.mocked(lookup)
+const lookupMock = mocked(lookup)
 
 describe('oG image security helpers', () => {
   beforeEach(() => {

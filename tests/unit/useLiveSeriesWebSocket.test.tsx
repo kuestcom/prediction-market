@@ -1,5 +1,5 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, jest } from 'bun:test'
 
 import { useLiveSeriesWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesWebSocket'
 import {
@@ -7,6 +7,8 @@ import {
   resolveLivePriceTransitionDuration,
   SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
+
+import { spyOn, spyOnAccessor, stubGlobal, unstubAllGlobals, useFakeTimers, useRealTimers } from '../bun-test-helpers'
 
 class MockWebSocket {
   static CONNECTING = 0
@@ -66,20 +68,20 @@ class MockWebSocket {
 
 describe('useLiveSeriesWebSocket', () => {
   let now = 1_800_000_000_000
-  let dateNowSpy: ReturnType<typeof vi.spyOn>
+  let dateNowSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
     now = 1_800_000_000_000
     MockWebSocket.instances = []
     window.localStorage.clear()
-    vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
-    dateNowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now)
+    stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket)
+    dateNowSpy = spyOn(Date, 'now').mockImplementation(() => now)
   })
 
   afterEach(() => {
     cleanup()
-    vi.restoreAllMocks()
-    vi.unstubAllGlobals()
+    jest.restoreAllMocks()
+    unstubAllGlobals()
   })
 
   function mountHook(eventEndTimestamp: number | null = null) {
@@ -123,56 +125,57 @@ describe('useLiveSeriesWebSocket', () => {
   )
 
   it('keeps the RTDS connection alive with application heartbeats', () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const { socket, unmount } = mountHook()
 
     act(() => {
-      vi.advanceTimersByTime(25_000)
+      jest.advanceTimersByTime(25_000)
     })
 
     expect(socket.sentMessages.at(-1)).toBe('PING')
     unmount()
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('reconnects a stale RTDS stream even when the socket still answers PONG', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(now)
+    useFakeTimers()
+    jest.setSystemTime(now)
     const { result, socket, unmount } = mountHook()
 
     act(() => {
-      vi.advanceTimersByTime(25_000)
+      jest.advanceTimersByTime(25_000)
     })
     act(() => socket.emitRawMessage('PONG'))
+    now += 75_000
     act(() => {
-      vi.advanceTimersByTime(50_000)
+      jest.advanceTimersByTime(25_000)
     })
 
     expect(socket.readyState).toBe(MockWebSocket.CLOSED)
     expect(result.current.status).toBe('offline')
 
     act(() => {
-      vi.advanceTimersByTime(2_000)
+      jest.advanceTimersByTime(2_000)
     })
     expect(MockWebSocket.instances).toHaveLength(2)
     unmount()
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('keeps the heartbeat and socket when a healthy stream becomes visible again', () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const { socket, unmount } = mountHook()
 
-    expect(vi.getTimerCount()).toBe(2)
+    expect(jest.getTimerCount()).toBe(2)
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'))
     })
 
     expect(MockWebSocket.instances).toHaveLength(1)
-    expect(vi.getTimerCount()).toBe(3)
+    expect(jest.getTimerCount()).toBe(3)
     act(() => socket.emitRawMessage('PONG'))
     unmount()
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('uses the latest batch value and retargets from the in-flight visual price', () => {
@@ -331,7 +334,7 @@ describe('useLiveSeriesWebSocket', () => {
   })
 
   it('does not replace an apparently open socket when the tab becomes visible again', () => {
-    const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+    const hiddenSpy = spyOnAccessor(document, 'hidden', 'get').mockReturnValue(false)
     const { socket } = mountHook()
 
     act(() => {
@@ -349,7 +352,7 @@ describe('useLiveSeriesWebSocket', () => {
   })
 
   it('retains rendered history when the tab becomes visible again', () => {
-    const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false)
+    const hiddenSpy = spyOnAccessor(document, 'hidden', 'get').mockReturnValue(false)
     const { result, socket } = mountHook()
 
     act(() =>
@@ -404,7 +407,7 @@ describe('useLiveSeriesWebSocket', () => {
 
   it('reanchors after a long hidden period even when updates arrived while hidden', () => {
     let isHidden = false
-    const hiddenSpy = vi.spyOn(document, 'hidden', 'get').mockImplementation(() => isHidden)
+    const hiddenSpy = spyOnAccessor(document, 'hidden', 'get').mockImplementation(() => isHidden)
     const { result, socket } = mountHook()
 
     act(() =>

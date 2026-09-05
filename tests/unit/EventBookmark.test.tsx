@@ -1,25 +1,28 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 
-vi.mock('next-intl', () => ({
+import { hoisted } from '../bun-test-helpers'
+
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-const mocks = vi.hoisted(() => ({
-  getBookmarkStatusAction: vi.fn(),
-  getQueriesData: vi.fn(),
-  open: vi.fn(),
-  removeQueries: vi.fn(),
-  setQueryData: vi.fn(),
-  toggleBookmarkAction: vi.fn(),
-  useUser: vi.fn(),
+const mocks = hoisted(() => ({
+  getBookmarkStatusAction: mock(),
+  getQueriesData: mock(),
+  open: mock(),
+  removeQueries: mock(),
+  setQueryData: mock(),
+  toggleBookmarkAction: mock(),
+  useUser: mock(),
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useQueryClient: () => ({
     getQueriesData: mocks.getQueriesData,
     removeQueries: mocks.removeQueries,
@@ -27,24 +30,24 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }))
 
-vi.mock('@/app/[locale]/(platform)/_actions/bookmark', () => ({
+void mock.module('@/app/[locale]/(platform)/_actions/bookmark', () => ({
   getBookmarkStatusAction: (...args: any[]) => mocks.getBookmarkStatusAction(...args),
   toggleBookmarkAction: (...args: any[]) => mocks.toggleBookmarkAction(...args),
 }))
 
-vi.mock('@/components/ui/button', () => ({
+void mock.module('@/components/ui/button', () => ({
   Button: function MockButton({ children, nativeButton: _nativeButton, render, ...props }: any) {
     return render ?? <button {...props}>{children}</button>
   },
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({
     open: mocks.open,
   }),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
 

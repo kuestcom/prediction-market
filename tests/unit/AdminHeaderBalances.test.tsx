@@ -1,27 +1,30 @@
 import type { ComponentProps } from 'react'
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import * as actualViem from 'viem'
 
 import AdminHeaderBalances from '@/app/[locale]/admin/_components/AdminHeaderBalances'
 
-const mocks = vi.hoisted(() => ({
-  useAppKitAccount: vi.fn(),
-  useBalance: vi.fn(),
-  useQuery: vi.fn(),
-  useUser: vi.fn(),
-  toastSuccess: vi.fn(),
-  toastError: vi.fn(),
-  writeText: vi.fn(),
-  createPublicClient: vi.fn(),
-  createViemTransport: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  useAppKitAccount: mock(),
+  useBalance: mock(),
+  useQuery: mock(),
+  useUser: mock(),
+  toastSuccess: mock(),
+  toastError: mock(),
+  writeText: mock(),
+  createPublicClient: mock(),
+  createViemTransport: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: ComponentProps<'a'>) => (
     <a href={href} {...props}>
       {children}
@@ -29,39 +32,38 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@reown/appkit/react', () => ({
+void mock.module('@reown/appkit/react', () => ({
   useAppKitAccount: () => mocks.useAppKitAccount(),
 }))
 
-vi.mock('@/hooks/useBalance', () => ({
+void mock.module('@/hooks/useBalance', () => ({
   useBalance: (options: unknown) => mocks.useBalance(options),
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   useQuery: (options: unknown) => mocks.useQuery(options),
 }))
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     success: (...args: unknown[]) => mocks.toastSuccess(...args),
     error: (...args: unknown[]) => mocks.toastError(...args),
   },
 }))
 
-vi.mock('@/lib/viem-network', () => ({
+void mock.module('@/lib/viem-network', () => ({
   createViemTransport: (...args: unknown[]) => mocks.createViemTransport(...args),
   defaultViemNetwork: { id: 137, name: 'Polygon' },
   resolveViemRpcUrls: () => ['https://rpc-1.example.test', 'https://rpc-2.example.test'],
 }))
 
-vi.mock('viem', async () => {
-  const actual = await vi.importActual<typeof import('viem')>('viem')
+void mock.module('viem', () => {
   return {
-    ...actual,
+    ...actualViem,
     createPublicClient: (...args: unknown[]) => mocks.createPublicClient(...args),
   }
 })
@@ -79,7 +81,7 @@ describe('adminHeaderBalances', () => {
       isLoadingBalance: false,
     })
     mocks.createPublicClient.mockReturnValue({
-      getBalance: vi.fn(),
+      getBalance: mock(),
     })
     mocks.createViemTransport.mockReturnValue('fallback-transport')
     mocks.useQuery.mockReturnValue({
@@ -92,10 +94,9 @@ describe('adminHeaderBalances', () => {
     mocks.toastError.mockReset()
     mocks.writeText.mockReset()
 
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: mocks.writeText.mockResolvedValue(undefined),
-      },
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: mocks.writeText.mockResolvedValue(undefined) },
     })
   })
 
@@ -134,14 +135,13 @@ describe('adminHeaderBalances', () => {
     }
 
     let claimableQuery: QueryOptions | undefined
-    const readContract = vi
-      .fn()
+    const readContract = mock()
       .mockResolvedValueOnce(1_000_000n)
       .mockRejectedValueOnce(new Error('RPC unavailable'))
       .mockResolvedValueOnce(2_000_000n)
       .mockResolvedValueOnce(3_000_000n)
     mocks.createPublicClient.mockReturnValue({
-      getBalance: vi.fn(),
+      getBalance: mock(),
       readContract,
     })
     mocks.useQuery.mockImplementation((options: unknown) => {

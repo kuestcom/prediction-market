@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import { Toaster, toast } from '@/components/ui/toast'
 
@@ -45,7 +45,7 @@ describe('Toast', () => {
   })
 
   it('renders custom content and actions', async () => {
-    const onAction = vi.fn()
+    const onAction = mock()
     render(<Toaster />)
 
     act(() => {
@@ -67,7 +67,7 @@ describe('Toast', () => {
       toast.message('Enable push notifications', {
         description: 'Get trade alerts from people you follow on this device.',
         icon: <span aria-label="Push notifications" role="img" />,
-        action: { label: 'Enable', onClick: vi.fn() },
+        action: { label: 'Enable', onClick: mock() },
       })
     })
 
@@ -92,7 +92,7 @@ describe('Toast', () => {
   })
 
   it('supports a compact button action', async () => {
-    const onAction = vi.fn()
+    const onAction = mock()
     render(<Toaster />)
 
     act(() => {
@@ -124,7 +124,7 @@ describe('Toast', () => {
   })
 
   it('supports an entirely clickable toast without making its close button navigate', async () => {
-    const onClick = vi.fn()
+    const onClick = mock()
     render(<Toaster />)
 
     act(() => {

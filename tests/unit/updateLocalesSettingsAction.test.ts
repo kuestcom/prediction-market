@@ -1,31 +1,33 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  loadOpenRouterProviderSettings: vi.fn(),
-  updateSettings: vi.fn(),
-  revalidatePath: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  loadOpenRouterProviderSettings: mock(),
+  updateSettings: mock(),
+  revalidatePath: mock(),
 }))
 
-vi.mock('next/cache', () => ({
+void mock.module('next/cache', () => ({
   revalidatePath: (...args: any[]) => mocks.revalidatePath(...args),
 }))
 
-vi.mock('next-intl/server', () => ({
+void mock.module('next-intl/server', () => ({
   getExtracted: async () => (message: string) => message,
 }))
 
-vi.mock('@/lib/ai/market-context-config', () => ({
+void mock.module('@/lib/ai/market-context-config', () => ({
   loadOpenRouterProviderSettings: (...args: any[]) => mocks.loadOpenRouterProviderSettings(...args),
 }))
 
-vi.mock('@/lib/db/queries/settings', () => ({
+void mock.module('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     updateSettings: (...args: any[]) => mocks.updateSettings(...args),
   },
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
   },
@@ -35,7 +37,7 @@ const { updateLocalesSettingsAction } = await import('@/app/[locale]/admin/local
 
 describe('updateLocalesSettingsAction', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'admin-1', is_admin: true })
     mocks.loadOpenRouterProviderSettings.mockResolvedValue({ configured: false })
     mocks.updateSettings.mockResolvedValue({ error: null })

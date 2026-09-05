@@ -1,17 +1,19 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { buildOrderPayload } from '@/lib/orders'
 
-vi.mock('@/app/(platform)/event/[slug]/_actions/store-order', () => ({
-  storeOrderAction: vi.fn(),
+import { unstubAllEnvs } from '../bun-test-helpers'
+
+void mock.module('@/app/(platform)/event/[slug]/_actions/store-order', () => ({
+  storeOrderAction: mock(),
 }))
 
 describe('buildOrderPayload money-safety defaults', () => {
   const makerAddress = '0x0000000000000000000000000000000000000001' as const
 
   afterEach(() => {
-    vi.unstubAllEnvs()
+    unstubAllEnvs()
   })
 
   it('keeps fee fields unsigned and normalizes expiration defensively', () => {

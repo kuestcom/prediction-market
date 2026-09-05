@@ -1,30 +1,34 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import * as actualNextCache from 'next/cache'
 import { isValidElement } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({
-  findDynamicHomeCategoryBySlug: vi.fn(),
-  findDynamicHomeSubcategoryBySlug: vi.fn(),
-  loadPlatformMainTags: vi.fn(),
-  notFound: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  findDynamicHomeCategoryBySlug: mock(),
+  findDynamicHomeSubcategoryBySlug: mock(),
+  loadPlatformMainTags: mock(),
+  notFound: mock(),
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   notFound: () => mocks.notFound(),
 }))
 
-vi.mock('next/cache', () => ({
-  cacheLife: vi.fn(),
+void mock.module('next/cache', () => ({
+  ...actualNextCache,
+  cacheLife: mock(),
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/HomeContent', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/HomeContent', () => ({
   default: () => null,
 }))
 
-vi.mock('@/lib/platform-main-tags', () => ({
+void mock.module('@/lib/platform-main-tags', () => ({
   loadPlatformMainTags: (...args: any[]) => mocks.loadPlatformMainTags(...args),
 }))
 
-vi.mock('@/lib/platform-routing', () => ({
+void mock.module('@/lib/platform-routing', () => ({
   findDynamicHomeCategoryBySlug: (...args: any[]) => mocks.findDynamicHomeCategoryBySlug(...args),
   findDynamicHomeSubcategoryBySlug: (...args: any[]) => mocks.findDynamicHomeSubcategoryBySlug(...args),
   getMainTagSeoTitle: (value: string) => value,

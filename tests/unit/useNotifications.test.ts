@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { Notification } from '@/types'
 
 import { useNotifications } from '@/stores/useNotifications'
+
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
 
 const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
 const DESCRIPTION_SEGMENT_SEPARATOR = ' \u2022 '
@@ -30,7 +32,7 @@ describe('useNotifications', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('dedupes repeated local order fill description segments before storing', () => {
@@ -62,9 +64,9 @@ describe('useNotifications', () => {
         },
       ]),
     )
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
+      mock().mockResolvedValue({
         ok: true,
         json: async () => [],
       }),

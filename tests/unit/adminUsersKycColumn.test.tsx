@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 
 import { render, renderHook, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 
 import { useAdminUsersColumns } from '@/app/[locale]/admin/users/_components/columns'
 
-vi.mock('next-intl', () => ({ useExtracted: () => (message: string) => message }))
-vi.mock('@/components/ProfileLink', () => ({ default: () => null }))
+void mock.module('next-intl', () => ({ useExtracted: () => (message: string) => message }))
+void mock.module('@/components/ProfileLink', () => ({ default: () => null }))
 
 function renderKycCell(status: string) {
   const { result } = renderHook(() => useAdminUsersColumns(true))

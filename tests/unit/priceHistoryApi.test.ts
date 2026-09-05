@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import {
   buildBatchPriceHistoryRequestBody,
@@ -6,9 +6,11 @@ import {
   mapTokenHistoryToConditionHistory,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
 describe('priceHistoryApi', () => {
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('builds a batch price history request body with numeric filters', () => {
@@ -44,9 +46,9 @@ describe('priceHistoryApi', () => {
   })
 
   it('rejects failed history requests so query retries can run', async () => {
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
+      mock().mockResolvedValue({
         ok: false,
         status: 503,
         statusText: 'Service Unavailable',

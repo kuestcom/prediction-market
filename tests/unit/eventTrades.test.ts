@@ -1,15 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, mock } from 'bun:test'
 
 import type { ActivityOrder } from '@/types'
 
 import { GET as getEventActivity } from '@/app/api/event-activity/route'
 import { EVENT_ACTIVITY_REFRESH_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
 
+import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
 describe('fetchEventTrades', () => {
   const originalDataUrl = process.env.DATA_URL
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
     if (originalDataUrl === undefined) {
       delete process.env.DATA_URL
     } else {
@@ -18,13 +20,13 @@ describe('fetchEventTrades', () => {
   })
 
   it('requests a bounded page with the timestamp and event id cursor', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = mock().mockResolvedValue(
       new Response(JSON.stringify([]), {
         headers: { 'content-type': 'application/json' },
         status: 200,
       }),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     await fetchEventTrades({
       marketIds: ['condition-1'],
@@ -49,8 +51,8 @@ describe('fetchEventTrades', () => {
   })
 
   it('rejects a partial cursor before sending a request', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
 
     await expect(
       fetchEventTrades({
@@ -64,13 +66,13 @@ describe('fetchEventTrades', () => {
 
   it('forwards the complete cursor through the event activity proxy', async () => {
     process.env.DATA_URL = 'https://data-api.test'
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = mock().mockResolvedValue(
       new Response(JSON.stringify([]), {
         headers: { 'content-type': 'application/json' },
         status: 200,
       }),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const response = await getEventActivity(
       new Request(
@@ -88,12 +90,10 @@ describe('fetchEventTrades', () => {
   })
 
   it('keeps up to 50 markets in one request and only splits the overflow', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockImplementation(
-        async () => new Response(JSON.stringify([]), { headers: { 'content-type': 'application/json' }, status: 200 }),
-      )
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock().mockImplementation(
+      async () => new Response(JSON.stringify([]), { headers: { 'content-type': 'application/json' }, status: 200 }),
+    )
+    stubGlobal('fetch', fetchMock)
 
     await fetchEventTrades({
       marketIds: Array.from({ length: 50 }, (_, index) => `condition-${index}`),
@@ -131,7 +131,7 @@ describe('fetchEventTrades', () => {
         status: 'completed',
       }
     }
-    const fetchMock = vi.fn().mockImplementation(async (input: string | URL | Request) => {
+    const fetchMock = mock().mockImplementation(async (input: string | URL | Request) => {
       const requestUrl = new URL(
         typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url,
         'https://example.com',
@@ -148,7 +148,7 @@ describe('fetchEventTrades', () => {
           ]
       return Response.json(activities)
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const activities = await fetchEventTrades({
       marketIds: ['condition-0', ...Array.from({ length: 49 }, (_, index) => `condition-${index + 1}`), 'condition-50'],
@@ -165,12 +165,10 @@ describe('fetchEventTrades', () => {
   })
 
   it('forwards start only when explicitly requested', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify([]), { headers: { 'content-type': 'application/json' }, status: 200 }),
-      )
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock().mockResolvedValue(
+      new Response(JSON.stringify([]), { headers: { 'content-type': 'application/json' }, status: 200 }),
+    )
+    stubGlobal('fetch', fetchMock)
 
     await fetchEventTrades({ marketIds: ['condition-1'], pageParam: 0, start: 1_786_017_600 })
 
@@ -181,14 +179,14 @@ describe('fetchEventTrades', () => {
   it('limits market batch concurrency without changing the logical result', async () => {
     let activeRequests = 0
     let maxActiveRequests = 0
-    const fetchMock = vi.fn().mockImplementation(async () => {
+    const fetchMock = mock().mockImplementation(async () => {
       activeRequests += 1
       maxActiveRequests = Math.max(maxActiveRequests, activeRequests)
       await new Promise((resolve) => setTimeout(resolve, 1))
       activeRequests -= 1
       return new Response(JSON.stringify([]), { headers: { 'content-type': 'application/json' }, status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     await fetchEventTrades({
       marketIds: Array.from({ length: 251 }, (_, index) => `condition-${index}`),
@@ -201,8 +199,8 @@ describe('fetchEventTrades', () => {
 
   it.each(['cursorId', 'cursorUser'])('rejects a whitespace-only %s in the event activity proxy', async (field) => {
     process.env.DATA_URL = 'https://data-api.test'
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
 
     const params = new URLSearchParams({ market: 'condition-1', [field]: '   ' })
     const response = await getEventActivity(new Request(`https://example.com/api/event-activity?${params}`))

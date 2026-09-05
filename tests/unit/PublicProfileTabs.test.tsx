@@ -1,22 +1,24 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import * as actualReact from 'react'
 
-import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
+import { hoisted } from '../bun-test-helpers'
 
-const mocks = vi.hoisted(() => ({
+const originalStartTransition = actualReact.startTransition
+
+const mocks = hoisted(() => ({
   inTransition: false,
   pathname: '/@ibruno',
-  replace: vi.fn(),
+  replace: mock(),
   replaceWasInTransition: false,
   searchParams: new URLSearchParams(),
 }))
 
-vi.mock('react', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react')>()
-
+void mock.module('react', () => {
   return {
-    ...actual,
+    ...actualReact,
     startTransition: (action: () => void) => {
-      actual.startTransition(() => {
+      originalStartTransition(() => {
         mocks.inTransition = true
         try {
           action()
@@ -28,23 +30,25 @@ vi.mock('react', async (importOriginal) => {
   }
 })
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('next/navigation', () => ({
+void mock.module('next/navigation', () => ({
   usePathname: () => mocks.pathname,
   useRouter: () => ({ replace: mocks.replace }),
   useSearchParams: () => mocks.searchParams,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicPositionsList', () => ({
+void mock.module('@/app/[locale]/(platform)/profile/_components/PublicPositionsList', () => ({
   default: () => <div>Positions content</div>,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () => ({
+void mock.module('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () => ({
   default: () => <div>Activity content</div>,
 }))
+
+const { default: PublicProfileTabs } = await import('@/app/[locale]/(platform)/profile/_components/PublicProfileTabs')
 
 const resolutionsContent = <div>Resolutions content</div>
 

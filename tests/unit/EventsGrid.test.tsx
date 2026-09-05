@@ -1,89 +1,90 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
+import * as actualHomeEvents from '@/lib/home-events'
+import * as actualMarketChance from '@/lib/market-chance'
 
-const mocks = vi.hoisted(() => ({
-  eventsStaticGrid: vi.fn(),
-  filterHomeEvents: vi.fn((events: any[], _options?: any) => events),
-  openLoginModal: vi.fn().mockResolvedValue(undefined),
-  refetch: vi.fn().mockResolvedValue(undefined),
-  useCurrentTimestamp: vi.fn(),
-  useInfiniteQuery: vi.fn(),
-  useUser: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  eventsStaticGrid: mock(),
+  filterHomeEvents: mock((events: any[], _options?: any) => events),
+  openLoginModal: mock().mockResolvedValue(undefined),
+  refetch: mock().mockResolvedValue(undefined),
+  useCurrentTimestamp: mock(),
+  useInfiniteQuery: mock(),
+  useUser: mock(),
 }))
 
-vi.mock('@tanstack/react-query', () => ({
+void mock.module('@tanstack/react-query', () => ({
   keepPreviousData: Symbol('keepPreviousData'),
   useInfiniteQuery: (options: any) => mocks.useInfiniteQuery(options),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string) => value,
   useLocale: () => 'en',
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton', () => ({
   default: () => <div data-testid="event-card-skeleton" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton', () => ({
   default: () => <div data-testid="events-grid-skeleton" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid', () => ({
+void mock.module('@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid', () => ({
   default: (props: any) => {
     mocks.eventsStaticGrid(props)
     return <div data-testid="events-static-grid" />
   },
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventsEmptyState', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/EventsEmptyState', () => ({
   default: () => <div data-testid="events-empty-state" />,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades', () => ({
   useEventLastTrades: () => ({}),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices', () => ({
   useEventMarketQuotes: () => ({}),
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory', () => ({
   buildMarketTargets: () => [],
 }))
 
-vi.mock('@/hooks/useColumns', () => ({
+void mock.module('@/hooks/useColumns', () => ({
   useColumns: () => 3,
 }))
 
-vi.mock('@/hooks/useCurrentTimestamp', () => ({
+void mock.module('@/hooks/useCurrentTimestamp', () => ({
   useCurrentTimestamp: (...args: any[]) => mocks.useCurrentTimestamp(...args),
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({
+void mock.module('@/hooks/useAppKit', () => ({
   useAppKit: () => ({ open: mocks.openLoginModal }),
 }))
 
-vi.mock('@/lib/home-events', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/home-events')>('@/lib/home-events')
-
+void mock.module('@/lib/home-events', () => {
   return {
-    ...actual,
+    ...actualHomeEvents,
     filterHomeEvents: (events: any[], options?: any) => mocks.filterHomeEvents(events, options),
   }
 })
 
-vi.mock('@/lib/market-chance', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/market-chance')>('@/lib/market-chance')
-
+void mock.module('@/lib/market-chance', () => {
   return {
-    ...actual,
+    ...actualMarketChance,
     resolveDisplayPrice: () => null,
   }
 })
 
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => mocks.useUser(),
 }))
 
@@ -119,7 +120,7 @@ describe('eventsGrid', () => {
       dataUpdatedAt: 0,
       isFetching: false,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mock(),
       hasNextPage: false,
       isPending: false,
       refetch: mocks.refetch,
@@ -198,7 +199,7 @@ describe('eventsGrid', () => {
 
   it('loads the next 32 markets only after the show more button is clicked', async () => {
     const event = createEvent({})
-    const fetchNextPage = vi.fn().mockResolvedValue({ isError: false })
+    const fetchNextPage = mock().mockResolvedValue({ isError: false })
     mocks.useUser.mockReturnValue({ id: 'user-1' })
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
@@ -281,7 +282,7 @@ describe('eventsGrid', () => {
 
   it('opens the login modal instead of loading more markets for guests', async () => {
     const event = createEvent({})
-    const fetchNextPage = vi.fn().mockResolvedValue({ isError: false })
+    const fetchNextPage = mock().mockResolvedValue({ isError: false })
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
       data: { pages: [{ events: [event], hasMore: true }] },
@@ -338,7 +339,7 @@ describe('eventsGrid', () => {
       dataUpdatedAt: 0,
       isFetching: true,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mock(),
       hasNextPage: false,
       isPending: false,
       refetch: mocks.refetch,
@@ -407,7 +408,7 @@ describe('eventsGrid', () => {
       dataUpdatedAt: 1,
       isFetching: false,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mock(),
       hasNextPage: false,
       isPending: false,
       isPlaceholderData: false,
@@ -475,7 +476,7 @@ describe('eventsGrid', () => {
       dataUpdatedAt: 1,
       isFetching: false,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mock(),
       hasNextPage: false,
       isPending: false,
       isPlaceholderData: false,
@@ -522,7 +523,7 @@ describe('eventsGrid', () => {
       dataUpdatedAt: 0,
       isFetching: true,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mock(),
       hasNextPage: false,
       isPending: false,
       isPlaceholderData: true,
@@ -562,7 +563,7 @@ describe('eventsGrid', () => {
       dataUpdatedAt: 0,
       isFetching: true,
       isFetchingNextPage: false,
-      fetchNextPage: vi.fn(),
+      fetchNextPage: mock(),
       hasNextPage: false,
       isPending: true,
       refetch: mocks.refetch,
@@ -640,12 +641,12 @@ describe('eventsGrid', () => {
   it('refreshes active series with the current client timestamp instead of the cached shell timestamp', async () => {
     const cachedTimestamp = Date.parse('2026-03-16T12:00:00.000Z')
     const liveTimestamp = Date.parse('2026-03-16T12:05:01.000Z')
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => ({ events: [], hasMore: false }),
     })
-    vi.stubGlobal('fetch', fetchMock)
-    vi.setSystemTime(liveTimestamp)
+    stubGlobal('fetch', fetchMock)
+    jest.setSystemTime(liveTimestamp)
 
     try {
       render(
@@ -676,7 +677,7 @@ describe('eventsGrid', () => {
       expect(requestUrl).toContain(`currentTimestamp=${liveTimestamp}`)
       expect(requestUrl).not.toContain(`currentTimestamp=${cachedTimestamp}`)
     } finally {
-      vi.unstubAllGlobals()
+      unstubAllGlobals()
     }
   })
 
@@ -747,11 +748,11 @@ describe('eventsGrid', () => {
       volume_24h: 10_000,
     }
     const newestFirstEvents = [newestLowVolumeEvent, olderHighVolumeEvent] as any[]
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => [],
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     try {
       render(
@@ -793,16 +794,16 @@ describe('eventsGrid', () => {
       expect(requestUrl).toContain('tag=new')
       expect(requestUrl).toContain('sort=created_at')
     } finally {
-      vi.unstubAllGlobals()
+      unstubAllGlobals()
     }
   })
 
   it('passes the selected sort to the events API request', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = mock().mockResolvedValue({
       ok: true,
       json: async () => [],
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     render(
       <EventsGrid
@@ -833,6 +834,6 @@ describe('eventsGrid', () => {
     const requestUrl = fetchMock.mock.calls[0]?.[0] as string
     expect(requestUrl).toContain('sort=volume')
 
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 })

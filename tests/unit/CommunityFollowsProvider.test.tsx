@@ -1,77 +1,80 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
+import * as actualCommunityFollows from '@/lib/community-follows'
 import { CommunityFollowsProvider, useCommunityFollow } from '@/providers/CommunityFollowsProvider'
+
+import { hoisted } from '../bun-test-helpers'
 
 const WALLET_A = '0x1111111111111111111111111111111111111111'
 const WALLET_B = '0x2222222222222222222222222222222222222222'
 
-const mocks = vi.hoisted(() => ({
-  ensureCommunityToken: vi.fn(),
-  fetchCommunityFollowStatuses: vi.fn(),
-  enableTradeAlerts: vi.fn(),
-  open: vi.fn(),
-  push: vi.fn(),
-  refreshTradeAlerts: vi.fn(),
-  setCommunityFollow: vi.fn(),
-  toastError: vi.fn(),
-  toastDismiss: vi.fn(),
-  toastMessage: vi.fn(),
-  toastSuccess: vi.fn(),
+const mocks = hoisted(() => ({
+  ensureCommunityToken: mock(),
+  fetchCommunityFollowStatuses: mock(),
+  enableTradeAlerts: mock(),
+  open: mock(),
+  push: mock(),
+  refreshTradeAlerts: mock(),
+  setCommunityFollow: mock(),
+  toastError: mock(),
+  toastDismiss: mock(),
+  toastMessage: mock(),
+  toastSuccess: mock(),
   tradeAlertState: { enabled: false, permission: 'default' },
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('wagmi', () => ({
-  useSignMessage: () => ({ signMessageAsync: vi.fn() }),
+void mock.module('wagmi', () => ({
+  useSignMessage: () => ({ signMessageAsync: mock() }),
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
     dismiss: (...args: unknown[]) => mocks.toastDismiss(...args),
     error: (...args: unknown[]) => mocks.toastError(...args),
     message: (...args: unknown[]) => mocks.toastMessage(...args),
     success: (...args: unknown[]) => mocks.toastSuccess(...args),
-    warning: vi.fn(),
+    warning: mock(),
   },
 }))
 
-vi.mock('@/hooks/useAppKit', () => ({ useAppKit: () => ({ open: mocks.open }) }))
-vi.mock('@/hooks/usePwaInstall', () => ({ usePwaInstall: () => ({ isIos: false, isStandalone: false }) }))
-vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
+void mock.module('@/hooks/useAppKit', () => ({ useAppKit: () => ({ open: mocks.open }) }))
+void mock.module('@/hooks/usePwaInstall', () => ({ usePwaInstall: () => ({ isIos: false, isStandalone: false }) }))
+void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
   usePublicRuntimeConfig: () => ({ communityUrl: 'https://community.example' }),
 }))
-vi.mock('@/hooks/useSignaturePromptRunner', () => ({
+void mock.module('@/hooks/useSignaturePromptRunner', () => ({
   useSignaturePromptRunner: () => ({ runWithSignaturePrompt: (action: () => unknown) => action() }),
 }))
-vi.mock('@/hooks/useTradeAlerts', () => ({
+void mock.module('@/hooks/useTradeAlerts', () => ({
   useTradeAlerts: () => ({
     enable: mocks.enableTradeAlerts,
     refreshState: mocks.refreshTradeAlerts,
   }),
 }))
-vi.mock('@/i18n/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }))
-vi.mock('@/stores/useTradeAlerts', () => ({
+void mock.module('@/i18n/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }))
+void mock.module('@/stores/useTradeAlerts', () => ({
   useTradeAlertsStore: { getState: () => mocks.tradeAlertState },
 }))
-vi.mock('@/stores/useUser', () => ({
+void mock.module('@/stores/useUser', () => ({
   useUser: () => ({
     address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     deposit_wallet_address: '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   }),
 }))
-vi.mock('@/lib/community-auth', () => ({
-  clearCommunityAuth: vi.fn(),
+void mock.module('@/lib/community-auth', () => ({
+  clearCommunityAuth: mock(),
   ensureCommunityToken: (...args: unknown[]) => mocks.ensureCommunityToken(...args),
   loadCommunityAuth: () => ({ token: 'token-1' }),
 }))
-vi.mock('@/lib/community-follows', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@/lib/community-follows')>()
+void mock.module('@/lib/community-follows', () => {
   return {
-    ...original,
+    ...actualCommunityFollows,
     fetchCommunityFollowStatuses: (...args: unknown[]) => mocks.fetchCommunityFollowStatuses(...args),
     setCommunityFollow: (...args: unknown[]) => mocks.setCommunityFollow(...args),
   }

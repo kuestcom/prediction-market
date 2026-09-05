@@ -1,8 +1,10 @@
 import { act, renderHook } from '@testing-library/react'
+import { afterEach, describe, expect, it, jest } from 'bun:test'
 import { renderToString } from 'react-dom/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { useNowTimestamp } from '@/hooks/useNowTimestamp'
+
+import { useFakeTimers, useRealTimers } from '../bun-test-helpers'
 
 function NowTimestampProbe() {
   const nowTimestamp = useNowTimestamp()
@@ -11,7 +13,7 @@ function NowTimestampProbe() {
 
 describe('useNowTimestamp', () => {
   afterEach(() => {
-    vi.useRealTimers()
+    useRealTimers()
   })
 
   it('uses a non-temporal sentinel while server rendering', () => {
@@ -19,15 +21,15 @@ describe('useNowTimestamp', () => {
   })
 
   it('updates the shared clock once per second', () => {
-    vi.useFakeTimers()
+    useFakeTimers()
     const initialTimestamp = Date.UTC(2026, 7, 6, 12, 0, 0)
-    vi.setSystemTime(initialTimestamp)
+    jest.setSystemTime(initialTimestamp)
 
     const { result, unmount } = renderHook(() => useNowTimestamp())
     expect(result.current).toBe(initialTimestamp)
 
     act(() => {
-      vi.advanceTimersByTime(1000)
+      jest.advanceTimersByTime(1000)
     })
     expect(result.current).toBe(initialTimestamp + 1000)
 

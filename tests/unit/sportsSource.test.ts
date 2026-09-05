@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
+
+import { stubGlobal } from '../bun-test-helpers'
 
 function getRequestUrl(input: unknown) {
   if (typeof input === 'string') {
@@ -10,21 +12,21 @@ function getRequestUrl(input: unknown) {
   return input instanceof Request ? input.url : ''
 }
 
-vi.mock('@/lib/ai/market-context-config', () => ({
-  loadOpenRouterProviderSettings: vi.fn(async () => ({ apiKey: '', model: '' })),
+void mock.module('@/lib/ai/market-context-config', () => ({
+  loadOpenRouterProviderSettings: mock(async () => ({ apiKey: '', model: '' })),
 }))
 
-vi.mock('@/lib/ai/openrouter', () => ({
-  requestOpenRouterCompletion: vi.fn(),
+void mock.module('@/lib/ai/openrouter', () => ({
+  requestOpenRouterCompletion: mock(),
 }))
 
 describe('sports source providers', () => {
   beforeEach(() => {
-    vi.restoreAllMocks()
+    jest.restoreAllMocks()
   })
 
   it('uses admin-provided provider auth when suggesting sports events', async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -44,7 +46,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -112,8 +114,8 @@ describe('sports source providers', () => {
   })
 
   it('only searches providers configured for the selected sports category', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -139,7 +141,7 @@ describe('sports source providers', () => {
   })
 
   it('uses one PandaScore videogame and date request', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === 'Team Solid') {
         return new Response(JSON.stringify([{ id: 137098, slug: 'team-solid-valorant', name: 'Team Solid' }]), {
@@ -189,7 +191,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify([]), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -214,7 +216,7 @@ describe('sports source providers', () => {
   })
 
   it('loads PandaScore map results for a resolved match', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === '/matches/7001') {
         return new Response(
@@ -245,7 +247,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({}), { status: 404 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { resolveSportsEvent } = await import('@/lib/sports-source')
     const candidate = await resolveSportsEvent({
@@ -259,7 +261,7 @@ describe('sports source providers', () => {
   })
 
   it('does not request PandaScore map results before a match starts', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === '/matches/7002') {
         return new Response(
@@ -276,7 +278,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({}), { status: 404 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { resolveSportsEvent } = await import('@/lib/sports-source')
     const candidate = await resolveSportsEvent({
@@ -290,7 +292,7 @@ describe('sports source providers', () => {
   })
 
   it('keeps map results returned by the match when the supplemental request fails', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === '/matches/7003') {
         return new Response(
@@ -315,7 +317,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({}), { status: 503 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { resolveSportsEvent } = await import('@/lib/sports-source')
     const candidate = await resolveSportsEvent({
@@ -342,7 +344,7 @@ describe('sports source providers', () => {
     ['dota', 'dota2', 'dota-2'],
     ['dota-2', 'dota2', 'dota-2'],
   ])('maps PandaScore sport alias %s to one /%s/matches request', async (sport, endpoint, providerSportSlug) => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify([
@@ -359,7 +361,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -380,7 +382,7 @@ describe('sports source providers', () => {
   })
 
   it('maps the counter sport slug to PandaScore CS2 matches and ignores generic market outcomes', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === '/csgo/teams') {
         const teamName = url.searchParams.get('search[name]')
@@ -410,7 +412,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify([]), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -435,7 +437,7 @@ describe('sports source providers', () => {
   })
 
   it('keeps PandaScore matches fallback for sport-only searches', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === '/valorant/matches' && !url.searchParams.has('search[name]')) {
         return new Response(
@@ -460,7 +462,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify([]), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -499,7 +501,7 @@ describe('sports source providers', () => {
       videogame: { id: 4, name: 'Dota 2', slug: 'dota-2' },
     },
   ])('matches structured $label moneyline opponents', async (sample) => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname === `/${sample.endpoint}/teams`) {
         const teamName = url.searchParams.get('search[name]')
@@ -524,7 +526,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify([]), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -547,7 +549,7 @@ describe('sports source providers', () => {
   })
 
   it('normalizes TheSportsDB matchup punctuation before event search', async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -567,7 +569,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -605,7 +607,7 @@ describe('sports source providers', () => {
     ['power-slap', 'Fighting'],
     ['ufc', 'Fighting'],
   ])('matches TheSportsDB sport alias %s as %s', async (sport, providerSport) => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -625,7 +627,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -651,7 +653,7 @@ describe('sports source providers', () => {
   })
 
   it('cleans prediction-question text before TheSportsDB event search', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('e=Arsenal+vs+Chelsea')) {
         return new Response(
@@ -675,7 +677,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -693,7 +695,7 @@ describe('sports source providers', () => {
   })
 
   it('prefers matchup teams from the event title over yes/no outcomes', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
@@ -717,7 +719,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -739,7 +741,7 @@ describe('sports source providers', () => {
   })
 
   it('normalizes away-at-home matchup order for TheSportsDB event search', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('e=Celtics+vs+Lakers')) {
         return new Response(
@@ -763,7 +765,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -780,7 +782,7 @@ describe('sports source providers', () => {
   })
 
   it('tries the reversed order for an already simplified TheSportsDB matchup', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('e=Beta+vs+Alpha')) {
         return new Response(
@@ -803,7 +805,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -824,7 +826,7 @@ describe('sports source providers', () => {
   })
 
   it('tries TheSportsDB team aliases for United States matches', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
@@ -848,7 +850,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -866,7 +868,7 @@ describe('sports source providers', () => {
   })
 
   it('retries TheSportsDB football matchups with canonical club names and accepts the adjacent UTC date', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname.endsWith('/searchevents.php') && url.searchParams.get('e') === 'Cruzeiro vs Flamengo') {
         return new Response(
@@ -891,7 +893,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -914,7 +916,7 @@ describe('sports source providers', () => {
   })
 
   it('normalizes provider-specific football team aliases before retrying TheSportsDB', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname.endsWith('/searchevents.php') && url.searchParams.get('e') === 'Toulouse vs Real Sociedad') {
         return new Response(
@@ -939,7 +941,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -964,7 +966,7 @@ describe('sports source providers', () => {
   })
 
   it('uses TheSportsDB team search as a canonical-name fallback', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname.endsWith('/searchteams.php')) {
         const query = url.searchParams.get('t')
@@ -1013,7 +1015,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -1041,7 +1043,7 @@ describe('sports source providers', () => {
       teams: [{ name: 'Alexander Poppeck' }, { name: 'Jovan Leka' }],
     },
   ])('matches UFC undercard fight $title to the dated parent card', async ({ title, teams }) => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -1062,7 +1064,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -1084,7 +1086,7 @@ describe('sports source providers', () => {
   })
 
   it('resolves TheSportsDB live halftime scores by event id', async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -1106,7 +1108,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { resolveSportsEvent } = await import('@/lib/sports-source')
     const candidate = await resolveSportsEvent({
@@ -1122,7 +1124,7 @@ describe('sports source providers', () => {
   })
 
   it('marks finished TheSportsDB events as no longer live', async () => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -1144,7 +1146,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { resolveSportsEvent } = await import('@/lib/sports-source')
     const candidate = await resolveSportsEvent({
@@ -1158,7 +1160,7 @@ describe('sports source providers', () => {
   })
 
   it('uses one TheSportsDB filename request when league and date are provided', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/searchfilename.php')) {
         return new Response(
@@ -1182,7 +1184,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -1207,7 +1209,7 @@ describe('sports source providers', () => {
     ['ufc', 'Fighting'],
     ['wnba', 'Basketball'],
   ])('uses one TheSportsDB day request for the %s series', async (series, providerSport) => {
-    const fetchMock = vi.fn(
+    const fetchMock = mock(
       async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
@@ -1227,7 +1229,7 @@ describe('sports source providers', () => {
           { status: 200 },
         ),
     )
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -1250,7 +1252,7 @@ describe('sports source providers', () => {
   })
 
   it('falls back from TheSportsDB filename search to the generic event search', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
@@ -1274,7 +1276,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -1296,7 +1298,7 @@ describe('sports source providers', () => {
   })
 
   it('falls back to TheSportsDB eventsday when primary search has no dated match', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/eventsday.php')) {
         return new Response(
@@ -1319,7 +1321,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
@@ -1341,7 +1343,7 @@ describe('sports source providers', () => {
   })
 
   it('keeps other dates out of the primary TheSportsDB request', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
@@ -1384,7 +1386,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -1408,7 +1410,7 @@ describe('sports source providers', () => {
   })
 
   it('matches UFC events whose TheSportsDB payload only provides an event name', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = new URL(getRequestUrl(input))
       if (url.pathname.endsWith('/eventsday.php')) {
         return new Response(
@@ -1433,7 +1435,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { findSportsEvents } = await import('@/lib/sports-source')
     const candidates = await findSportsEvents({
@@ -1458,7 +1460,7 @@ describe('sports source providers', () => {
   })
 
   it('does not return unrelated TheSportsDB day fallback matches', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const fetchMock = mock(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
       if (url.includes('/eventsday.php')) {
         return new Response(
@@ -1481,7 +1483,7 @@ describe('sports source providers', () => {
 
       return new Response(JSON.stringify({ event: null }), { status: 200 })
     })
-    vi.stubGlobal('fetch', fetchMock)
+    stubGlobal('fetch', fetchMock)
 
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({

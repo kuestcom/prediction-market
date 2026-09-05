@@ -1,21 +1,23 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import type { Event } from '@/types'
 
 import { useOrder } from '@/stores/useOrder'
 
-const mocks = vi.hoisted(() => ({
-  useLocale: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  useLocale: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (message: string | { message: string }) =>
     typeof message === 'string' ? message : message.message,
   useLocale: () => mocks.useLocale(),
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: any) => (
     <a href={href} {...props}>
       {children}
@@ -23,21 +25,21 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }))
 
-vi.mock('@/components/ui/button', () => ({
+void mock.module('@/components/ui/button', () => ({
   Button: function MockButton({ children, nativeButton: _nativeButton, render, ...props }: any) {
     return render ?? <button {...props}>{children}</button>
   },
 }))
 
-vi.mock('@/hooks/useSiteIdentity', () => ({
+void mock.module('@/hooks/useSiteIdentity', () => ({
   useSiteIdentity: () => ({ name: 'Kuest' }),
 }))
 
-vi.mock('@/lib/uma', () => ({
+void mock.module('@/lib/uma', () => ({
   resolveUmaProposeTarget: () => null,
 }))
 
-vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton', () => ({
+void mock.module('@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton', () => ({
   default: ({ market, resolutionSourceLabel, onResolutionRewardAmountChange }: any) => (
     <section>
       <h4>{market.is_resolved ? 'Resolution' : 'Propose resolution'}</h4>

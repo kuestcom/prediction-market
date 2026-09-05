@@ -1,11 +1,13 @@
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  captureRouterTransitionStart: vi.fn(),
-  init: vi.fn(),
+import { hoisted } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  captureRouterTransitionStart: mock(),
+  init: mock(),
 }))
 
-vi.mock('@sentry/nextjs', () => mocks)
+void mock.module('@sentry/nextjs', () => mocks)
 
 describe('client instrumentation', () => {
   let options: any

@@ -1,34 +1,36 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 import * as React from 'react'
-import { beforeEach, describe, expect, afterEach, it, vi } from 'vitest'
 
 import AdminOnboardingSupportWidget from '@/app/[locale]/admin/_components/AdminOnboardingSupportWidget'
 
-const mocks = vi.hoisted(() => ({
-  updateAdminOnboardingTaskAction: vi.fn(),
+import { hoisted, stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  updateAdminOnboardingTaskAction: mock(),
 }))
 
-vi.mock('next-intl', () => ({
+void mock.module('next-intl', () => ({
   useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
-vi.mock('@/app/[locale]/admin/_actions/update-admin-support', () => ({
-  createAdminSupportContextAction: vi.fn(),
-  dismissSupportAnnouncementAction: vi.fn(),
+void mock.module('@/app/[locale]/admin/_actions/update-admin-support', () => ({
+  createAdminSupportContextAction: mock(),
+  dismissSupportAnnouncementAction: mock(),
   updateAdminOnboardingTaskAction: mocks.updateAdminOnboardingTaskAction,
 }))
 
-vi.mock('@/app/[locale]/admin/_components/AdminSupportInvoicePaymentHandler', () => ({
+void mock.module('@/app/[locale]/admin/_components/AdminSupportInvoicePaymentHandler', () => ({
   default: () => null,
 }))
 
-vi.mock('@/components/ui/toast', () => ({
+void mock.module('@/components/ui/toast', () => ({
   toast: {
-    error: vi.fn(),
+    error: mock(),
   },
 }))
 
-vi.mock('@/i18n/navigation', () => ({
+void mock.module('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
     <a href={href} {...props}>
       {children}
@@ -38,11 +40,11 @@ vi.mock('@/i18n/navigation', () => ({
 
 describe('admin onboarding support widget', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
     window.localStorage.clear()
-    vi.stubGlobal(
+    stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
+      mock().mockResolvedValue({
         ok: false,
         json: async () => ({}),
       }),
@@ -51,7 +53,7 @@ describe('admin onboarding support widget', () => {
   })
 
   afterEach(() => {
-    vi.unstubAllGlobals()
+    unstubAllGlobals()
   })
 
   it('links to translation settings with guidance and records the task', async () => {

@@ -24,7 +24,8 @@ jobs:
       - run: bunx --no-install knip
       - run: bunx --no-install --bun fumadocs-mdx docs.config.ts
       - run: bunx --no-install --bun next typegen
-      - run: bunx --no-install oxlint .
+      - run: bunx --no-install oxlint . --ignore-pattern 'tests/**'
+      - run: bunx --no-install oxlint --config .oxlintrc.tests.json tests
       - run: bunx --no-install oxfmt --check
 
   unit:
@@ -36,9 +37,6 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: 1.4.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version-file: .nvmrc
       - run: bun install --frozen-lockfile
       - run: bun run test
 

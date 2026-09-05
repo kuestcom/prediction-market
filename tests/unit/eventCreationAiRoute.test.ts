@@ -1,29 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
-const mocks = vi.hoisted(() => ({
-  getCurrentUser: vi.fn(),
-  loadOpenRouterProviderSettings: vi.fn(),
-  requestOpenRouterCompletion: vi.fn(),
+import { hoisted, stubGlobal } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  getCurrentUser: mock(),
+  loadOpenRouterProviderSettings: mock(),
+  requestOpenRouterCompletion: mock(),
 }))
 
-vi.mock('@/lib/db/queries/user', () => ({
+void mock.module('@/lib/db/queries/user', () => ({
   UserRepository: {
     getCurrentUser: (...args: unknown[]) => mocks.getCurrentUser(...args),
   },
 }))
 
-vi.mock('@/lib/ai/market-context-config', () => ({
+void mock.module('@/lib/ai/market-context-config', () => ({
   loadOpenRouterProviderSettings: (...args: unknown[]) => mocks.loadOpenRouterProviderSettings(...args),
 }))
 
-vi.mock('@/lib/ai/openrouter', () => ({
+void mock.module('@/lib/ai/openrouter', () => ({
   requestOpenRouterCompletion: (...args: unknown[]) => mocks.requestOpenRouterCompletion(...args),
 }))
 
 describe('event creation AI route', () => {
   beforeEach(() => {
-    vi.resetModules()
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Gamma unavailable')))
+    stubGlobal('fetch', mock().mockRejectedValue(new Error('Gamma unavailable')))
     mocks.getCurrentUser.mockReset()
     mocks.loadOpenRouterProviderSettings.mockReset()
     mocks.requestOpenRouterCompletion.mockReset()
