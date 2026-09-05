@@ -8,7 +8,6 @@ import { hoisted } from '../bun-test-helpers'
 const mocks = hoisted(() => ({
   io: mock(),
   getExtracted: mock(),
-  setRequestLocale: mock(),
   getSettings: mock(),
   redirect: mock(),
 }))
@@ -20,7 +19,6 @@ void mock.module('next/cache', () => ({
 
 void mock.module('next-intl/server', () => ({
   getExtracted: (...args: any[]) => mocks.getExtracted(...args),
-  setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
 void mock.module('next/navigation', () => ({
@@ -58,7 +56,6 @@ describe('admin settings pages runtime behavior', () => {
   beforeEach(() => {
     mocks.io.mockReset()
     mocks.getExtracted.mockReset()
-    mocks.setRequestLocale.mockReset()
     mocks.getSettings.mockReset()
     mocks.redirect.mockReset()
 

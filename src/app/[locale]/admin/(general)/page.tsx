@@ -9,7 +9,7 @@ import {
   UsersIcon,
   VolleyballIcon,
 } from 'lucide-react'
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
@@ -260,9 +260,7 @@ async function AdminDashboardCards() {
   )
 }
 
-export default async function AdminDashboardPage({ params }: PageProps<'/[locale]/admin'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminDashboardPage() {
   const t = await getExtracted()
 
   return (

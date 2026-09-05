@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SportsVertical } from '@/lib/sports-vertical'
@@ -94,7 +93,6 @@ export async function generateSportsVerticalEventMetadata({
   event,
 }: SportsVerticalEventPageParams): Promise<Metadata> {
   const locale = await getRootLocale()
-  setRequestLocale(locale)
 
   if (shouldBypassPublicShellPlaceholder(sport, league, event)) {
     return {}
@@ -194,7 +192,6 @@ export async function generateSportsVerticalEventMarketMetadata({
   market,
 }: SportsVerticalEventMarketPageParams): Promise<Metadata> {
   const locale = await getRootLocale()
-  setRequestLocale(locale)
 
   if (shouldBypassPublicShellPlaceholder(sport, league, event, market)) {
     return {}

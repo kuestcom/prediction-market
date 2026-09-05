@@ -40,6 +40,7 @@ void mock.module('@/i18n/navigation', () => ({
 }))
 
 const props = {
+  locale: 'en',
   supportedLocales: ['en', 'de', 'es', 'pt', 'fr'] as const,
   enabledLocales: ['en', 'fr', 'de'] as SupportedLocale[],
   localeOrder: ['en', 'fr', 'de', 'pt', 'es'] as SupportedLocale[],

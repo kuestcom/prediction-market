@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import {
@@ -72,8 +71,6 @@ async function renderPlatformSlugPage({ slug }: { slug: string }) {
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]'>): Promise<Metadata> {
   const { slug } = await params
-  setRequestLocale(await getRootLocale())
-
   return await generatePlatformSlugMetadata({
     slug,
   })
@@ -81,8 +78,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]'>
 
 export default async function PlatformSlugPage({ params }: PageProps<'/[locale]/[slug]'>) {
   const { slug } = await params
-  setRequestLocale(await getRootLocale())
-
   return await renderPlatformSlugPage({
     slug,
   })

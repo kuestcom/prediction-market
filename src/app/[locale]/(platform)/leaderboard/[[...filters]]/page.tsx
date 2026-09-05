@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { Suspense } from 'react'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -64,8 +64,6 @@ export async function generateMetadata({
 
   const { filters } = await params
   const locale = await getRootLocale()
-  setRequestLocale(locale)
-
   const t = await getExtracted()
 
   const runtimeTheme = await loadRuntimeThemeState()
@@ -147,8 +145,6 @@ async function LeaderboardPageWithParams({
 
 async function LeaderboardPageContent({ filters }: { filters?: string[] }) {
   'use cache'
-
-  setRequestLocale(await getRootLocale())
 
   const initialFilters = parseLeaderboardFilters(filters)
 

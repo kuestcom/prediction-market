@@ -10,7 +10,7 @@ import {
   serializeEnabledLocales,
   serializeLocaleOrder,
 } from '@/i18n/locale-settings'
-import { SUPPORTED_LOCALES } from '@/i18n/locales'
+import { resolveSupportedLocale, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -60,7 +60,9 @@ export async function updateLocalesSettingsAction(
   _prevState: LocalesSettingsActionState,
   formData: FormData,
 ): Promise<LocalesSettingsActionState> {
-  const t = await getExtracted()
+  const rawLocale = formData.get('locale')
+  const locale = resolveSupportedLocale(typeof rawLocale === 'string' ? rawLocale : undefined)
+  const t = await getExtracted({ locale })
   const user = await UserRepository.getCurrentUser({ minimal: true })
 
   if (!user || !user.is_admin) {

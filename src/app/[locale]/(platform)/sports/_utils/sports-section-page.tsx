@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SportsVertical } from '@/lib/sports-vertical'
@@ -77,9 +77,6 @@ export async function generateSportsVerticalSectionMetadata({
   section,
   week,
 }: SportsVerticalSectionPageParams): Promise<Metadata> {
-  const locale = await getRootLocale()
-  setRequestLocale(locale)
-
   if (!assertValidSportsSectionParams({ sport, week })) {
     return {}
   }
@@ -146,7 +143,6 @@ export async function renderSportsVerticalSectionPage({
   week,
 }: SportsVerticalSectionPageParams) {
   const locale = await getRootLocale()
-  setRequestLocale(locale)
 
   if (!assertValidSportsSectionParams({ sport, week })) {
     return null

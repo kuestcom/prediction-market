@@ -5,13 +5,11 @@ import { hoisted } from '../bun-test-helpers'
 const mocks = hoisted(() => ({
   generatePredictionResultsMetadata: mock(),
   renderPredictionResultsPage: mock(),
-  setRequestLocale: mock(),
   translate: mock((value: string) => value),
 }))
 
 void mock.module('next-intl/server', () => ({
   getExtracted: mock(async () => mocks.translate),
-  setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
 void mock.module('@/app/[locale]/(platform)/predictions/[slug]/_lib/prediction-results-page', () => ({
@@ -23,7 +21,6 @@ describe('popular predictions page', () => {
   beforeEach(() => {
     mocks.generatePredictionResultsMetadata.mockReset()
     mocks.renderPredictionResultsPage.mockReset()
-    mocks.setRequestLocale.mockReset()
     mocks.translate.mockClear()
     mocks.renderPredictionResultsPage.mockResolvedValue(null)
   })

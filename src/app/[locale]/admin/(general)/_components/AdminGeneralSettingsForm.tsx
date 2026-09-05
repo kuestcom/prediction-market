@@ -401,6 +401,7 @@ function AdminGeneralSettingsFormInner({
 
   return (
     <form action={formAction} className="grid max-w-full min-w-0 gap-6">
+      <input type="hidden" name="locale" value={locale} />
       <input type="hidden" name="logo_mode" value={logoMode} />
       <input type="hidden" name="logo_image_path" value={logoImagePath} />
       <input type="hidden" name="logo_svg" value={logoSvg} />

@@ -1,4 +1,3 @@
-import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -82,7 +81,6 @@ interface SeriesPageProps {
 
 export default async function SeriesPage({ params }: SeriesPageProps) {
   const { locale, slug } = await params
-  setRequestLocale(locale)
 
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {

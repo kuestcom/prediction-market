@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import SettingsDeleteAccountContent from '@/app/[locale]/(platform)/settings/_components/SettingsDeleteAccountContent'
@@ -9,9 +9,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 
 export const instant = false
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/settings/account'>): Promise<Metadata> {
-  const { locale } = await params
-  setRequestLocale(locale)
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getExtracted()
 
   return {
@@ -19,10 +17,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/settings
   }
 }
 
-export default async function AccountSettingsPage({ params }: PageProps<'/[locale]/settings/account'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
-
+export default async function AccountSettingsPage() {
   const t = await getExtracted()
 
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })

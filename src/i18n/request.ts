@@ -1,15 +1,19 @@
 import { hasLocale } from 'next-intl'
 import { getRequestConfig } from 'next-intl/server'
+import { notFound } from 'next/navigation'
+import { locale as rootLocale } from 'next/root-params'
 
 import { routing } from './routing'
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  const requested = await requestLocale
-  const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale
+export default getRequestConfig(async ({ locale: localeOverride }) => {
+  const requested = localeOverride ?? (await rootLocale())
+  if (!hasLocale(routing.locales, requested)) {
+    notFound()
+  }
 
   return {
-    locale,
+    locale: requested,
     timeZone: 'America/New_York',
-    messages: (await import(`./messages/${locale}.json`)).default,
+    messages: (await import(`./messages/${requested}.json`)).default,
   }
 })

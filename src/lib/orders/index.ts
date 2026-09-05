@@ -25,6 +25,7 @@ export interface BuildOrderPayloadArgs extends CalculateOrderAmountsArgs {
 }
 
 export interface SubmitOrderArgs {
+  locale?: string
   order: BlockchainOrder
   signature: string
   orderType: OrderType
@@ -174,6 +175,7 @@ function toStoreOrderInput({
   postOnly,
   conditionId,
   slug,
+  locale,
 }: SubmitOrderArgs) {
   return {
     ...serializeOrder(order),
@@ -184,6 +186,7 @@ function toStoreOrderInput({
     ...(typeof postOnly === 'boolean' ? { post_only: postOnly } : {}),
     condition_id: conditionId,
     slug,
+    ...(locale ? { locale } : {}),
   }
 }
 
@@ -195,6 +198,7 @@ export async function submitOrder({
   postOnly,
   conditionId,
   slug,
+  locale,
 }: SubmitOrderArgs) {
   return storeOrderAction(
     toStoreOrderInput({
@@ -205,6 +209,7 @@ export async function submitOrder({
       postOnly,
       conditionId,
       slug,
+      locale,
     }),
   )
 }

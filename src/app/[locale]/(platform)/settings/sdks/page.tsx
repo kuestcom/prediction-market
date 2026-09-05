@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 import { ArrowRightIcon, BookOpenIcon } from 'lucide-react'
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { isAddress, zeroAddress } from 'viem'
 
@@ -21,9 +21,7 @@ import { cn } from '@/lib/utils'
 
 export const instant = false
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/settings/sdks'>): Promise<Metadata> {
-  const { locale } = await params
-  setRequestLocale(locale)
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getExtracted()
 
   return {
@@ -31,10 +29,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/settings
   }
 }
 
-export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[locale]/settings/sdks'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
-
+export default async function SdkDownloadsSettingsPage() {
   const t = await getExtracted()
 
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })

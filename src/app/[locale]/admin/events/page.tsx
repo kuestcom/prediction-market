@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { Suspense } from 'react'
 
 import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSkeleton'
@@ -35,7 +35,6 @@ async function AdminEventsContent() {
 }
 
 export default async function AdminEventsPage() {
-  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return (

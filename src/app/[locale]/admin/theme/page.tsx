@@ -1,4 +1,4 @@
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 
@@ -49,9 +49,7 @@ async function AdminThemeSettingsContent() {
   )
 }
 
-export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminThemeSettingsPage() {
   const t = await getExtracted()
 
   return (

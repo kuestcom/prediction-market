@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
@@ -73,9 +73,7 @@ function buildResolutionRewardSeries(
   })
 }
 
-export async function generateMetadata({ params }: RewardsSettingsPageProps): Promise<Metadata> {
-  const { locale } = await params
-  setRequestLocale(locale)
+export async function generateMetadata(): Promise<Metadata> {
   const t = await getExtracted()
 
   return {
@@ -85,7 +83,6 @@ export async function generateMetadata({ params }: RewardsSettingsPageProps): Pr
 
 export default async function RewardsSettingsPage({ params }: RewardsSettingsPageProps) {
   const { locale } = await params
-  setRequestLocale(locale)
   const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
     ? (locale as SupportedLocale)
     : DEFAULT_LOCALE

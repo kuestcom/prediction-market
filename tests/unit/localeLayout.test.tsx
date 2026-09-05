@@ -11,16 +11,11 @@ const mocks = hoisted(() => ({
   loadEnabledLocales: mock(),
   loadGlobalAnnouncementSettings: mock(),
   loadRuntimeThemeState: mock(),
-  setRequestLocale: mock(),
 }))
 
 void mock.module('next-intl', () => ({
   hasLocale: () => true,
   NextIntlClientProvider: 'next-intl-provider',
-}))
-
-void mock.module('next-intl/server', () => ({
-  setRequestLocale: (...args: unknown[]) => mocks.setRequestLocale(...args),
 }))
 
 void mock.module('next/cache', () => ({

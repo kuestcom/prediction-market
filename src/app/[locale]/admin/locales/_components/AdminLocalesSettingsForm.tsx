@@ -25,6 +25,7 @@ const initialState = {
 }
 
 interface AdminLocalesSettingsFormProps {
+  locale: string
   supportedLocales: readonly SupportedLocale[]
   enabledLocales: SupportedLocale[]
   localeOrder?: SupportedLocale[]
@@ -134,6 +135,7 @@ function useLocalesSettingsForm(
 }
 
 function AdminLocalesSettingsFormInner({
+  locale,
   supportedLocales,
   enabledLocales,
   localeOrder,
@@ -228,6 +230,7 @@ function AdminLocalesSettingsFormInner({
   return (
     <Form action={formAction} className="grid gap-4">
       <section className="grid gap-4 rounded-lg border p-6">
+        <input type="hidden" name="locale" value={locale} />
         <ul className="grid gap-2">
           {orderedLocales.map((locale, index) => {
             const isDefault = locale === DEFAULT_LOCALE
@@ -378,6 +381,7 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
   return useMemo(
     () =>
       JSON.stringify({
+        locale: props.locale,
         supportedLocales: props.supportedLocales,
         enabledLocales: props.enabledLocales,
         localeOrder: props.localeOrder,
@@ -386,6 +390,7 @@ function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
         isOpenRouterConfigured: props.isOpenRouterConfigured,
       }),
     [
+      props.locale,
       props.supportedLocales,
       props.enabledLocales,
       props.localeOrder,

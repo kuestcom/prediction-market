@@ -5,11 +5,6 @@ import { hoisted } from '../bun-test-helpers'
 const mocks = hoisted(() => ({
   notFound: mock(),
   renderPredictionResultsPage: mock(),
-  setRequestLocale: mock(),
-}))
-
-void mock.module('next-intl/server', () => ({
-  setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
 void mock.module('next/navigation', () => ({
@@ -31,7 +26,6 @@ describe('prediction results page', () => {
   beforeEach(() => {
     mocks.notFound.mockReset()
     mocks.renderPredictionResultsPage.mockReset()
-    mocks.setRequestLocale.mockReset()
     mocks.renderPredictionResultsPage.mockResolvedValue(null)
   })
 

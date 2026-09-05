@@ -1,5 +1,5 @@
 import { ArrowLeftIcon } from 'lucide-react'
-import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { getExtracted } from 'next-intl/server'
 import { Suspense } from 'react'
 
 import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
@@ -125,9 +125,7 @@ async function AdminCreateEventNewContent({ searchParams }: Pick<AdminCreateEven
   )
 }
 
-export default async function AdminCreateEventNewPage({ params, searchParams }: AdminCreateEventNewPageProps) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminCreateEventNewPage({ searchParams }: AdminCreateEventNewPageProps) {
   const t = await getExtracted()
 
   return (

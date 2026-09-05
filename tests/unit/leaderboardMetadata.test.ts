@@ -8,12 +8,10 @@ const mocks = hoisted(() => ({
   getExtracted: mock(),
   loadRuntimeThemeState: mock(),
   resolveSiteUrl: mock(),
-  setRequestLocale: mock(),
 }))
 
 void mock.module('next-intl/server', () => ({
   getExtracted: (...args: any[]) => mocks.getExtracted(...args),
-  setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
 }))
 
 void mock.module('@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient', () => ({
@@ -43,7 +41,6 @@ describe('leaderboard metadata', () => {
     mocks.getExtracted.mockReset()
     mocks.loadRuntimeThemeState.mockReset()
     mocks.resolveSiteUrl.mockReset()
-    mocks.setRequestLocale.mockReset()
 
     mocks.deferPublicShellPrerenderIfNeeded.mockImplementation(async () => {
       mocks.calls.push('defer')
