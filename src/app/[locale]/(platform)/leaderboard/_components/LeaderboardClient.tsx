@@ -47,7 +47,13 @@ import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
 export default function LeaderboardClient({ initialFilters }: { initialFilters: LeaderboardFilters }) {
-  const { translateCategory, translateLeaderboardTitle, translatePeriodQualifier } = useLeaderboardTranslations()
+  const {
+    translateCategory,
+    translateLeaderboardError,
+    translateLeaderboardTitle,
+    translatePeriodQualifier,
+    translateTryAgain,
+  } = useLeaderboardTranslations()
   const router = useRouter()
   const user = useUser()
   const { dataUrl } = usePublicRuntimeConfig()
@@ -91,10 +97,11 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     retry: 1,
   })
 
+  const hasLeaderboardError = leaderboardQuery.isError
   const baseEntries = leaderboardQuery.data ?? []
-  const entries = baseEntries
-  const isLoading = leaderboardQuery.isPending || leaderboardQuery.isPlaceholderData
-  const hasNextPage = !isLoading && baseEntries.length === PAGE_SIZE
+  const entries = hasLeaderboardError ? [] : baseEntries.slice(0, PAGE_SIZE)
+  const isLoading = !hasLeaderboardError && (leaderboardQuery.isPending || leaderboardQuery.isPlaceholderData)
+  const hasNextPage = !isLoading && !hasLeaderboardError && baseEntries.length > PAGE_SIZE
 
   const userEntryQuery = useQuery({
     queryKey: ['leaderboard-user', leaderboardApiUrl, userAddress, filters.category, filters.period, filters.order],
@@ -176,7 +183,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   }, [filters.period, translatePeriodQualifier])
 
   const pinnedEntry = useMemo(() => {
-    if (!userAddress) {
+    if (!userAddress || hasLeaderboardError) {
       return null
     }
 
@@ -204,7 +211,15 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
       medalSrc,
       medalAlt,
     }
-  }, [entries, leaderboardQuery.isPlaceholderData, userAddress, userEntry, user?.image, user?.username])
+  }, [
+    entries,
+    hasLeaderboardError,
+    leaderboardQuery.isPlaceholderData,
+    userAddress,
+    userEntry,
+    user?.image,
+    user?.username,
+  ])
 
   const setPageValue = useCallback(
     (nextPage: number | ((currentPage: number) => number)) => {
@@ -223,12 +238,12 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   /* oxlint-disable react/set-state-in-effect, react-you-might-not-need-an-effect/no-event-handler */
   useEffect(
     function returnToPreviousLeaderboardPageWhenCurrentPageIsEmpty() {
-      if (!isLoading && page > 1 && entries.length === 0) {
+      if (!isLoading && !hasLeaderboardError && page > 1 && entries.length === 0) {
         // The empty response is the server-derived pagination boundary.
         setPageValue(page - 1)
       }
     },
-    [entries.length, isLoading, page, setPageValue],
+    [entries.length, hasLeaderboardError, isLoading, page, setPageValue],
   )
   /* oxlint-enable react/set-state-in-effect, react-you-might-not-need-an-effect/no-event-handler */
 
@@ -262,6 +277,19 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
             />
             <div className={listContainerClassName}>
               {isLoading && <LeaderboardListSkeleton count={10} rowClassName={LEADERBOARD_ROW_CLASS_NAME} />}
+
+              {hasLeaderboardError && (
+                <div className="flex flex-col items-center gap-3 py-8 text-center" role="alert">
+                  <p className="text-sm text-muted-foreground">{translateLeaderboardError()}</p>
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-primary hover:underline"
+                    onClick={() => void leaderboardQuery.refetch()}
+                  >
+                    {translateTryAgain()}
+                  </button>
+                </div>
+              )}
 
               {!isLoading &&
                 entries.map((entry, index) => {

@@ -135,7 +135,7 @@ export function resolveLeaderboardApiUrl(dataApiUrl: string) {
 
 function buildLeaderboardParams(filters: LeaderboardFilters, page: number, searchQuery?: string, userAddress?: string) {
   const params = new URLSearchParams({
-    limit: String(userAddress ? 1 : PAGE_SIZE),
+    limit: String(userAddress ? 1 : PAGE_SIZE + 1),
     offset: String(userAddress ? 0 : (page - 1) * PAGE_SIZE),
     category: resolveCategoryApiValue(filters.category),
     timePeriod: resolvePeriodApiValue(filters.period),
