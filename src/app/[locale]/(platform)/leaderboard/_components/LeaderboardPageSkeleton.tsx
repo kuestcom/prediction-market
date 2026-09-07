@@ -33,7 +33,7 @@ export default function LeaderboardPageSkeleton() {
             <div className="divide-y divide-border/80">
               <LeaderboardListSkeleton count={10} rowClassName={LEADERBOARD_ROW_CLASS_NAME} />
             </div>
-            <LeaderboardPagination page={1} setPageValue={ignoreSkeletonInteraction} />
+            <LeaderboardPagination hasItems hasNextPage page={1} setPageValue={ignoreSkeletonInteraction} />
           </div>
         </section>
 
