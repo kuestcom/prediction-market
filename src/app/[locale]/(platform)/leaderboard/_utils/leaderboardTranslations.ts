@@ -87,6 +87,7 @@ export function useLeaderboardTranslations() {
   return {
     translateBiggestWins,
     translateCategory,
+    translateLeaderboardError: () => t('Unable to load data'),
     translateLeaderboardTitle: () => t('Leaderboard'),
     translateMedalAlt,
     translateNextPage: () => t('Next page'),
@@ -95,5 +96,6 @@ export function useLeaderboardTranslations() {
     translatePeriodQualifier,
     translatePreviousPage: () => t('Previous page'),
     translateSearchByName: () => t('Search by name'),
+    translateTryAgain: () => t('Try again'),
   }
 }

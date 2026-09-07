@@ -1,9 +1,5 @@
 import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
-import type {
-  BiggestWinEntry,
-  LeaderboardEntry,
-  TimeframePnlBatchResponse,
-} from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
+import type { BiggestWinEntry, LeaderboardEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
 
 import {
   resolveCategoryApiValue,
@@ -139,7 +135,7 @@ export function resolveLeaderboardApiUrl(dataApiUrl: string) {
 
 function buildLeaderboardParams(filters: LeaderboardFilters, page: number, searchQuery?: string, userAddress?: string) {
   const params = new URLSearchParams({
-    limit: String(userAddress ? 1 : PAGE_SIZE),
+    limit: String(userAddress ? 1 : PAGE_SIZE + 1),
     offset: String(userAddress ? 0 : (page - 1) * PAGE_SIZE),
     category: resolveCategoryApiValue(filters.category),
     timePeriod: resolvePeriodApiValue(filters.period),
@@ -209,113 +205,4 @@ export async function fetchBiggestWins(
   }
   const result_2 = await response.json()
   return normalizeBiggestWinsResponse(result_2)
-}
-
-async function fetchTimeframePnlBatch(
-  userAddresses: string[],
-  period: LeaderboardFilters['period'],
-  signal: AbortSignal,
-): Promise<Map<string, number>> {
-  const response = await fetch('/api/leaderboard/timeframe-pnl', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      period,
-      addresses: userAddresses,
-    }),
-    signal,
-  })
-
-  if (!response.ok) {
-    return new Map()
-  }
-
-  const payload = (await response.json()) as TimeframePnlBatchResponse
-  if (!payload || typeof payload !== 'object' || !payload.values || typeof payload.values !== 'object') {
-    return new Map()
-  }
-
-  const values = new Map<string, number>()
-  for (const [address, rawValue] of Object.entries(payload.values)) {
-    const normalizedAddress = normalizeWalletAddress(address)
-    if (!normalizedAddress) {
-      continue
-    }
-    if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
-      values.set(normalizedAddress, rawValue)
-    }
-  }
-
-  return values
-}
-
-export async function hydrateEntriesWithPortfolioPnl(
-  entries: LeaderboardEntry[],
-  filters: LeaderboardFilters,
-  signal: AbortSignal,
-): Promise<LeaderboardEntry[]> {
-  if (entries.length === 0) {
-    return entries
-  }
-
-  if (filters.category !== 'overall') {
-    return entries
-  }
-
-  const addresses = Array.from(
-    new Set(
-      entries
-        .map((entry) => normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)))
-        .filter((address) => address.length > 0),
-    ),
-  )
-
-  if (addresses.length === 0) {
-    return entries
-  }
-
-  const pnlByAddress = await fetchTimeframePnlBatch(addresses, filters.period, signal).catch(() => new Map())
-
-  if (pnlByAddress.size === 0) {
-    return entries
-  }
-
-  return entries.map((entry) => {
-    const address = normalizeWalletAddress(resolveLeaderboardProxyWallet(entry))
-    const pnl = pnlByAddress.get(address)
-    if (typeof pnl !== 'number') {
-      return entry
-    }
-    return { ...entry, pnl }
-  })
-}
-
-export function sortEntriesForDisplay(
-  entries: LeaderboardEntry[],
-  filters: LeaderboardFilters,
-  page: number,
-): LeaderboardEntry[] {
-  if (entries.length === 0 || filters.category !== 'overall' || filters.order !== 'profit') {
-    return entries
-  }
-
-  const sorted = [...entries].sort((left, right) => {
-    const leftPnl = Number.isFinite(left.pnl) ? Number(left.pnl) : Number.NEGATIVE_INFINITY
-    const rightPnl = Number.isFinite(right.pnl) ? Number(right.pnl) : Number.NEGATIVE_INFINITY
-    if (leftPnl !== rightPnl) {
-      return rightPnl - leftPnl
-    }
-
-    return normalizeWalletAddress(resolveLeaderboardProxyWallet(left)).localeCompare(
-      normalizeWalletAddress(resolveLeaderboardProxyWallet(right)),
-    )
-  })
-
-  const rankOffset = (page - 1) * PAGE_SIZE
-  return sorted.map((entry, index) => ({
-    ...entry,
-    rank: String(rankOffset + index + 1),
-  }))
 }

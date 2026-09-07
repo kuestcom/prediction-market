@@ -30,7 +30,3 @@ export interface BiggestWinEntry extends LeaderboardWalletAliases {
   amountOut?: number
   [key: string]: unknown
 }
-
-export interface TimeframePnlBatchResponse {
-  values?: Record<string, number>
-}
