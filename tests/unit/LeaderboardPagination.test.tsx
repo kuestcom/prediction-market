@@ -14,11 +14,12 @@ describe('leaderboardPagination', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
-  it('does not expose future pages after a partial response', () => {
+  it('keeps previous navigation available on a non-first-page boundary', () => {
     render(<LeaderboardPagination hasItems hasNextPage={false} page={2} setPageValue={mock()} />)
 
     expect(screen.getByRole('button', { name: '1' })).toBeVisible()
     expect(screen.getByRole('button', { name: '2' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Previous page' })).not.toBeDisabled()
     expect(screen.queryByRole('button', { name: '3' })).not.toBeInTheDocument()
     expect(screen.queryByText('…')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled()

@@ -102,6 +102,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   const entries = hasLeaderboardError ? [] : baseEntries.slice(0, PAGE_SIZE)
   const isLoading = !hasLeaderboardError && (leaderboardQuery.isPending || leaderboardQuery.isPlaceholderData)
   const hasNextPage = !isLoading && !hasLeaderboardError && baseEntries.length > PAGE_SIZE
+  const hasPaginationItems = !isLoading && (entries.length > 0 || (hasLeaderboardError && page > 1))
 
   const userEntryQuery = useQuery({
     queryKey: ['leaderboard-user', leaderboardApiUrl, userAddress, filters.category, filters.period, filters.order],
@@ -322,7 +323,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
               />
             )}
             <LeaderboardPagination
-              hasItems={!isLoading && entries.length > 0}
+              hasItems={hasPaginationItems}
               hasNextPage={hasNextPage}
               page={page}
               setPageValue={setPageValue}
