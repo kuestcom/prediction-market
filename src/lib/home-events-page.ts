@@ -3,7 +3,7 @@ import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-fi
 import type { Event } from '@/types'
 
 import { EventRepository } from '@/lib/db/queries/event'
-import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
+import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE, isSportsPrimaryHomeEvent } from '@/lib/home-events'
 
 const HOME_EVENTS_QUERY_BATCH_SIZE = 128
 
@@ -27,6 +27,77 @@ interface ListHomeEventsPageOptions {
 }
 
 interface LoadHomeEventCandidatesOptions extends Omit<ListHomeEventsPageOptions, 'currentTimestamp'> {}
+
+interface LoadHomeEventBatchesOptions extends Omit<LoadHomeEventCandidatesOptions, 'offset'> {
+  initialEvents?: Event[]
+  offset: number
+}
+
+async function loadHomeEventBatches({
+  bookmarked,
+  frequency = 'all',
+  hideCrypto = false,
+  hideEarnings = false,
+  hideSports = false,
+  initialEvents = [],
+  locale,
+  mainTag,
+  offset,
+  search = '',
+  sortBy,
+  sportsSection = '',
+  sportsSportSlug = '',
+  status = 'active',
+  tag,
+  userId,
+}: LoadHomeEventBatchesOptions) {
+  let rawOffset = Math.max(0, offset)
+  const accumulatedEvents = [...initialEvents]
+
+  while (true) {
+    const { data: rawEvents, error } = await EventRepository.listEvents({
+      tag,
+      mainTag,
+      search,
+      sortBy,
+      userId,
+      bookmarked,
+      frequency,
+      status,
+      offset: rawOffset,
+      limit: HOME_EVENTS_QUERY_BATCH_SIZE,
+      locale,
+      sportsSportSlug,
+      sportsSection,
+      hideSports,
+      hideCrypto,
+      hideEarnings,
+      excludeSportsAuxiliary: true,
+    })
+
+    if (error) {
+      return { data: [], error }
+    }
+
+    const batch = rawEvents ?? []
+    if (batch.length === 0) {
+      break
+    }
+
+    accumulatedEvents.push(...batch)
+
+    if (batch.length < HOME_EVENTS_QUERY_BATCH_SIZE) {
+      break
+    }
+
+    rawOffset += batch.length
+  }
+
+  return {
+    data: accumulatedEvents,
+    error: null,
+  }
+}
 
 async function loadHomeEventCandidates({
   bookmarked,
@@ -140,11 +211,10 @@ async function loadHomeEventCandidates({
     }
   }
 
-  let rawOffset = 0
-  const accumulatedEvents: Event[] = []
-
-  while (true) {
-    const { data: rawEvents, error } = await EventRepository.listEvents({
+  if (status === 'active' && !hasHomeVisibilityFilters && targetOffset === 0) {
+    // Only non-sports-primary recurring series can be replaced by later candidates during home filtering.
+    // A page without one is already final, so avoid scanning the rest of the category.
+    const { data: firstPage, error } = await EventRepository.listEvents({
       tag,
       mainTag,
       search,
@@ -153,8 +223,8 @@ async function loadHomeEventCandidates({
       bookmarked,
       frequency,
       status,
-      offset: rawOffset,
-      limit: HOME_EVENTS_QUERY_BATCH_SIZE,
+      offset: 0,
+      limit: HOME_EVENTS_PAGE_SIZE + 1,
       locale,
       sportsSportSlug,
       sportsSection,
@@ -165,24 +235,55 @@ async function loadHomeEventCandidates({
       return { data: [], error }
     }
 
-    const batch = rawEvents ?? []
-    if (batch.length === 0) {
-      break
+    const candidates = firstPage ?? []
+    const firstPageHasReplaceableSeries = candidates
+      .slice(0, HOME_EVENTS_PAGE_SIZE)
+      .some((event) => Boolean(event.series_slug?.trim()) && !isSportsPrimaryHomeEvent(event))
+
+    if (candidates.length < HOME_EVENTS_PAGE_SIZE + 1 || !firstPageHasReplaceableSeries) {
+      return {
+        data: candidates,
+        error: null,
+      }
     }
 
-    accumulatedEvents.push(...batch)
-
-    if (batch.length < HOME_EVENTS_QUERY_BATCH_SIZE) {
-      break
-    }
-
-    rawOffset += HOME_EVENTS_QUERY_BATCH_SIZE
+    return loadHomeEventBatches({
+      bookmarked,
+      frequency,
+      hideCrypto,
+      hideEarnings,
+      hideSports,
+      initialEvents: candidates,
+      locale,
+      mainTag,
+      offset: candidates.length,
+      search,
+      sortBy,
+      sportsSection,
+      sportsSportSlug,
+      status,
+      tag,
+      userId,
+    })
   }
 
-  return {
-    data: accumulatedEvents,
-    error: null,
-  }
+  return loadHomeEventBatches({
+    bookmarked,
+    frequency,
+    hideCrypto,
+    hideEarnings,
+    hideSports,
+    locale,
+    mainTag,
+    offset: 0,
+    search,
+    sortBy,
+    sportsSection,
+    sportsSportSlug,
+    status,
+    tag,
+    userId,
+  })
 }
 
 export async function listHomeEventsPage({

@@ -29,6 +29,7 @@ void mock.module('@/lib/home-events', () => {
 
 describe('listHomeEventsPage', () => {
   const queryBatchSize = 128
+  const initialPageSize = 33
 
   beforeEach(() => {
     mocks.cacheTag.mockReset()
@@ -189,14 +190,122 @@ describe('listHomeEventsPage', () => {
     )
   })
 
-  it('does not stop early for active pages because later batches can replace series entries', async () => {
-    const firstBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-1-${index}` }))
-    const secondBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-2-${index}` }))
-    const thirdBatch: any[] = []
-    const visibleAfterAllBatches = [...secondBatch.slice(0, 8), ...firstBatch.slice(8)]
+  it('stops after the first page when no recurring series can be replaced', async () => {
+    const firstPage = Array.from({ length: initialPageSize }, (_, index) => ({ id: `event-${index}` }))
+
+    mocks.listEvents.mockResolvedValueOnce({ data: firstPage, error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce(firstPage)
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    const result = await listHomeEventsPage({
+      bookmarked: false,
+      locale: 'en',
+      mainTag: 'tech',
+      status: 'active',
+      tag: 'tech',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledTimes(1)
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: initialPageSize,
+        offset: 0,
+      }),
+    )
+    expect(result).toEqual({
+      data: firstPage.slice(0, 32),
+      error: null,
+      currentTimestamp: null,
+      hasMore: true,
+    })
+  })
+
+  it('stops after the first page for sports-primary series events', async () => {
+    const firstPage = Array.from({ length: initialPageSize }, (_, index) => ({
+      id: `event-${index}`,
+      ...(index === 0 ? { series_slug: 'sports-series', sports_event_id: 'sports-event-1' } : {}),
+    }))
+
+    mocks.listEvents.mockResolvedValueOnce({ data: firstPage, error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce(firstPage)
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    const result = await listHomeEventsPage({
+      bookmarked: false,
+      locale: 'en',
+      mainTag: 'sports',
+      status: 'active',
+      tag: 'sports',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({
+      data: firstPage.slice(0, 32),
+      error: null,
+      currentTimestamp: null,
+      hasMore: true,
+    })
+  })
+
+  it('forwards active home visibility filters to every candidate batch', async () => {
+    const firstBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `event-${index}` }))
+    const secondBatch = [{ id: 'event-last' }]
 
     mocks.listEvents
       .mockResolvedValueOnce({ data: firstBatch, error: null })
+      .mockResolvedValueOnce({ data: secondBatch, error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce([...firstBatch, ...secondBatch])
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    await listHomeEventsPage({
+      bookmarked: false,
+      hideCrypto: true,
+      hideEarnings: true,
+      hideSports: true,
+      locale: 'en',
+      mainTag: 'trending',
+      status: 'active',
+      tag: 'trending',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledTimes(2)
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        hideCrypto: true,
+        hideEarnings: true,
+        hideSports: true,
+        limit: queryBatchSize,
+        offset: 0,
+      }),
+    )
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        hideCrypto: true,
+        hideEarnings: true,
+        hideSports: true,
+        limit: queryBatchSize,
+        offset: queryBatchSize,
+      }),
+    )
+  })
+
+  it('keeps scanning active pages when recurring series can replace earlier events', async () => {
+    const firstPage = Array.from({ length: initialPageSize }, (_, index) => ({
+      id: `page-1-${index}`,
+      ...(index === 0 ? { series_slug: 'series-1' } : {}),
+    }))
+    const secondBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-2-${index}` }))
+    const thirdBatch: any[] = []
+    const visibleAfterAllBatches = [...secondBatch.slice(0, 8), ...firstPage.slice(8)]
+
+    mocks.listEvents
+      .mockResolvedValueOnce({ data: firstPage, error: null })
       .mockResolvedValueOnce({ data: secondBatch, error: null })
       .mockResolvedValueOnce({ data: thirdBatch, error: null })
 
@@ -218,7 +327,7 @@ describe('listHomeEventsPage', () => {
       1,
       expect.objectContaining({
         excludeSportsAuxiliary: true,
-        limit: queryBatchSize,
+        limit: initialPageSize,
         offset: 0,
       }),
     )
@@ -227,7 +336,7 @@ describe('listHomeEventsPage', () => {
       expect.objectContaining({
         excludeSportsAuxiliary: true,
         limit: queryBatchSize,
-        offset: queryBatchSize,
+        offset: initialPageSize,
       }),
     )
     expect(mocks.listEvents).toHaveBeenNthCalledWith(
@@ -235,7 +344,7 @@ describe('listHomeEventsPage', () => {
       expect.objectContaining({
         excludeSportsAuxiliary: true,
         limit: queryBatchSize,
-        offset: queryBatchSize * 2,
+        offset: initialPageSize + queryBatchSize,
       }),
     )
     expect(result).toEqual({
@@ -264,7 +373,7 @@ describe('listHomeEventsPage', () => {
     expect(mocks.listEvents).toHaveBeenCalledWith(
       expect.objectContaining({
         excludeSportsAuxiliary: true,
-        limit: queryBatchSize,
+        limit: initialPageSize,
         sortBy: 'volume_24h',
       }),
     )
