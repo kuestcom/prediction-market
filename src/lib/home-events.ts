@@ -68,7 +68,7 @@ function hasTrimmedValue(value: string | null | undefined) {
   return Boolean(value?.trim())
 }
 
-function isSportsPrimaryHomeEvent(event: HomeVisibleEventCandidate) {
+export function isSportsPrimaryHomeEvent(event: HomeVisibleEventCandidate) {
   if (isSportsAuxiliaryHomeEvent(event)) {
     return false
   }

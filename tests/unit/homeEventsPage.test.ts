@@ -222,6 +222,34 @@ describe('listHomeEventsPage', () => {
     })
   })
 
+  it('stops after the first page for sports-primary series events', async () => {
+    const firstPage = Array.from({ length: initialPageSize }, (_, index) => ({
+      id: `event-${index}`,
+      ...(index === 0 ? { series_slug: 'sports-series', sports_event_id: 'sports-event-1' } : {}),
+    }))
+
+    mocks.listEvents.mockResolvedValueOnce({ data: firstPage, error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce(firstPage)
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    const result = await listHomeEventsPage({
+      bookmarked: false,
+      locale: 'en',
+      mainTag: 'sports',
+      status: 'active',
+      tag: 'sports',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({
+      data: firstPage.slice(0, 32),
+      error: null,
+      currentTimestamp: null,
+      hasMore: true,
+    })
+  })
+
   it('keeps scanning active pages when recurring series can replace earlier events', async () => {
     const firstPage = Array.from({ length: initialPageSize }, (_, index) => ({
       id: `page-1-${index}`,
