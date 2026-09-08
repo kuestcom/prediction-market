@@ -963,17 +963,14 @@ export default function EventOrderPanelForm({
     function updateCountdown() {
       const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000))
       if (seconds === 0) {
-        toast.close(id)
         setPostOnlyWarmupToast(null)
         return
       }
 
-      toast.update(id, t('Trade failed'), {
-        description: t(
-          'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
-          { seconds: seconds.toString() },
-        ),
-        duration: 120_000,
+      toast.update(id, t('Trading paused'), {
+        description: t('Restart in progress. Trading resumes in {seconds}s. Cancels still available.', {
+          seconds: seconds.toString(),
+        }),
       })
     }
 
@@ -981,7 +978,6 @@ export default function EventOrderPanelForm({
     const intervalId = window.setInterval(updateCountdown, 1_000)
     return () => {
       window.clearInterval(intervalId)
-      toast.close(id)
     }
   }, [postOnlyWarmupToast, t])
 
@@ -1609,12 +1605,11 @@ export default function EventOrderPanelForm({
           }
           const retryAfterSeconds = result.retryAfterSeconds
           let warmupToastId = ''
-          warmupToastId = toast.error(t('Trade failed'), {
-            description: t(
-              'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
-              { seconds: retryAfterSeconds.toString() },
-            ),
-            duration: 120_000,
+          warmupToastId = toast.error(t('Trading paused'), {
+            description: t('Restart in progress. Trading resumes in {seconds}s. Cancels still available.', {
+              seconds: retryAfterSeconds.toString(),
+            }),
+            duration: retryAfterSeconds * 1_000,
             onClose: () => {
               setPostOnlyWarmupToast((current) => (current?.id === warmupToastId ? null : current))
             },

@@ -329,10 +329,9 @@ async function mapClobErrorMessage(
       if (retryAfterSeconds == null || retryAfterSeconds < 1) {
         return t('The matching engine is restarting. Please try again shortly. You can still cancel open orders.')
       }
-      return t(
-        'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
-        { seconds: retryAfterSeconds.toString() },
-      )
+      return t('Restart in progress. Trading resumes in {seconds}s. Cancels still available.', {
+        seconds: retryAfterSeconds.toString(),
+      })
     case 'tradingRestarting':
       return t('The matching engine is restarting. Please try again shortly. You can still cancel open orders.')
     case 'default':

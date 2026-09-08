@@ -583,8 +583,7 @@ describe('storeOrderAction', () => {
     )
 
     expect(result).toEqual({
-      error:
-        'The market is resuming after a restart. New orders will be available in approximately 79 seconds. You can still cancel open orders.',
+      error: 'Restart in progress. Trading resumes in 79s. Cancels still available.',
       code: 'post_only_mode',
       retryAfterSeconds: 79,
       results: null,
@@ -633,8 +632,7 @@ describe('storeOrderAction', () => {
     )
 
     expect(result).toEqual({
-      error:
-        'The market is resuming after a restart. New orders will be available in approximately 79 seconds. You can still cancel open orders.',
+      error: 'Restart in progress. Trading resumes in 79s. Cancels still available.',
       retryAfterSeconds: 79,
       results: null,
     })
@@ -879,8 +877,7 @@ describe('storeOrderAction', () => {
     )
 
     expect(result).toEqual({
-      error:
-        'The market is resuming after a restart. New orders will be available in approximately 79 seconds. You can still cancel open orders.',
+      error: 'Restart in progress. Trading resumes in 79s. Cancels still available.',
       code: 'post_only_mode',
       retryAfterSeconds: 79,
     })
