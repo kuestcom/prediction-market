@@ -592,6 +592,57 @@ describe('storeOrderAction', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(2)
   })
 
+  it('preserves a later warmup failure after an earlier batch throws', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    mocks.getExtracted.mockResolvedValue((message: string, values?: { seconds?: string }) =>
+      message.replace('{seconds}', values?.seconds ?? ''),
+    )
+
+    globalThis.fetch = mock()
+      .mockRejectedValueOnce(new Error('first batch transport failure'))
+      .mockResolvedValueOnce({
+        status: 503,
+        statusText: 'Service Unavailable',
+        ok: false,
+        json: async () => ({
+          error: 'post-only mode: only post-only orders and cancels are allowed',
+          code: 'post_only_mode',
+          retry_after_seconds: 79,
+        }),
+      }) as any
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrdersAction(
+      Array.from({ length: MAX_ORDER_SUBMISSION_ORDERS }, (_, index) =>
+        basePayload({
+          maker: depositWallet,
+          signer: depositWallet,
+          salt: (index + 1).toString(),
+        }),
+      ),
+    )
+
+    expect(result).toEqual({
+      error:
+        'The market is resuming after a restart. New orders will be available in approximately 79 seconds. You can still cancel open orders.',
+      code: 'post_only_mode',
+      retryAfterSeconds: 79,
+      results: null,
+    })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+
   it('blocks batch order storage when Sumsub approval is required', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })

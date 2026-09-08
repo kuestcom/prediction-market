@@ -227,6 +227,14 @@ function buildClobActionError(
   }
 }
 
+function isPostOnlyModeError(rawError: string | null, code: string | null) {
+  return (
+    code?.trim().toLowerCase() === 'post_only_mode' ||
+    rawError?.trim().toLowerCase() === 'post-only mode: only post-only orders and cancels are allowed' ||
+    rawError?.trim().toLowerCase() === 'post_only_mode'
+  )
+}
+
 function mapClobErrorMessageKey(rawError: string | null): ClobErrorMessageKey {
   if (!rawError) {
     return 'default'
@@ -623,6 +631,11 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
     let batchFailureError: string | null = null
     let batchFailureCode: string | null = null
     let batchFailureRetryAfterSeconds: number | null = null
+    let postOnlyBatchFailure: {
+      error: string
+      code: string | null
+      retryAfterSeconds: number | null
+    } | null = null
 
     for (let batchOffset = 0; batchOffset < preparedOrders.length; batchOffset += MAX_CLOB_BATCH_ORDERS) {
       const preparedBatch = preparedOrders.slice(batchOffset, batchOffset + MAX_CLOB_BATCH_ORDERS)
@@ -698,6 +711,13 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
               }
             }),
           )
+          if (postOnlyBatchFailure == null && isPostOnlyModeError(responseError, responseCode)) {
+            postOnlyBatchFailure = {
+              error: await getLocalizedClobError(responseError, retryAfterSeconds),
+              code: responseCode,
+              retryAfterSeconds,
+            }
+          }
           if (batchFailureError == null) {
             batchFailureError = batchResults[0]!.error
             batchFailureCode = responseCode
@@ -793,10 +813,13 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
     }
 
     if (processedBatchCount === 0) {
-      return {
+      const topLevelFailure = postOnlyBatchFailure ?? {
         error: batchFailureError ?? (await getLocalizedClobError(null)),
-        ...(batchFailureCode ? { code: batchFailureCode } : {}),
-        ...(batchFailureRetryAfterSeconds != null ? { retryAfterSeconds: batchFailureRetryAfterSeconds } : {}),
+        code: batchFailureCode,
+        retryAfterSeconds: batchFailureRetryAfterSeconds,
+      }
+      return {
+        ...buildClobActionError(topLevelFailure.error, topLevelFailure.code, topLevelFailure.retryAfterSeconds),
         results: null,
       }
     }
