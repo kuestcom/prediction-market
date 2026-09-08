@@ -228,14 +228,10 @@ function buildClobActionError(
 }
 
 function isPostOnlyModeError(rawError: string | null, code: string | null) {
-  return (
-    code?.trim().toLowerCase() === 'post_only_mode' ||
-    rawError?.trim().toLowerCase() === 'post-only mode: only post-only orders and cancels are allowed' ||
-    rawError?.trim().toLowerCase() === 'post_only_mode'
-  )
+  return code?.trim().toLowerCase() === 'post_only_mode' || mapClobErrorMessageKey(rawError, false) === 'postOnlyMode'
 }
 
-function mapClobErrorMessageKey(rawError: string | null): ClobErrorMessageKey {
+function mapClobErrorMessageKey(rawError: string | null, logUnmapped = true): ClobErrorMessageKey {
   if (!rawError) {
     return 'default'
   }
@@ -256,7 +252,9 @@ function mapClobErrorMessageKey(rawError: string | null): ClobErrorMessageKey {
     }
   }
 
-  console.error('Unmapped CLOB error message.', normalized)
+  if (logUnmapped) {
+    console.error('Unmapped CLOB error message.', normalized)
+  }
   return 'default'
 }
 

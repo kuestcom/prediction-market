@@ -616,8 +616,7 @@ describe('storeOrderAction', () => {
         statusText: 'Service Unavailable',
         ok: false,
         json: async () => ({
-          error: 'post-only mode: only post-only orders and cancels are allowed',
-          code: 'post_only_mode',
+          error: 'Post-only mode: only post-only orders and cancels are allowed.',
           retry_after_seconds: 79,
         }),
       }) as any
@@ -636,7 +635,6 @@ describe('storeOrderAction', () => {
     expect(result).toEqual({
       error:
         'The market is resuming after a restart. New orders will be available in approximately 79 seconds. You can still cancel open orders.',
-      code: 'post_only_mode',
       retryAfterSeconds: 79,
       results: null,
     })
