@@ -978,6 +978,7 @@ export default function EventOrderPanelForm({
     const intervalId = window.setInterval(updateCountdown, 1_000)
     return () => {
       window.clearInterval(intervalId)
+      toast.close(id)
     }
   }, [postOnlyWarmupToast, t])
 
