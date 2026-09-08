@@ -126,6 +126,54 @@
               }
             }
           },
+          "425": {
+            "description": "The CLOB is restarting. New orders are unavailable until bootstrap completes; cancellations remain available.",
+            "headers": {
+              "Retry-After": {
+                "description": "Minimum delay in seconds before retrying order submission.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trading is temporarily unavailable because the durable projection pipeline is unhealthy or the CLOB is in post-only warmup after a restart. Cancellations remain available; retry after the delay in the Retry-After header.",
+            "headers": {
+              "Retry-After": {
+                "description": "Minimum delay in seconds before retrying order submission.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "postOnlyWarmup": {
+                    "summary": "Post-restart post-only warmup",
+                    "value": {
+                      "error": "post-only mode: only post-only orders and cancels are allowed",
+                      "code": "post_only_mode",
+                      "retry_after_seconds": 79
+                    }
+                  }
+                }
+              }
+            }
+          },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
@@ -324,6 +372,54 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "425": {
+            "description": "The CLOB is restarting. New orders are unavailable until bootstrap completes; cancellations remain available.",
+            "headers": {
+              "Retry-After": {
+                "description": "Minimum delay in seconds before retrying order submission.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Trading is temporarily unavailable because the durable projection pipeline is unhealthy or the CLOB is in post-only warmup after a restart. Cancellations remain available; retry after the delay in the Retry-After header.",
+            "headers": {
+              "Retry-After": {
+                "description": "Minimum delay in seconds before retrying order submission.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "postOnlyWarmup": {
+                    "summary": "Post-restart post-only warmup",
+                    "value": {
+                      "error": "post-only mode: only post-only orders and cancels are allowed",
+                      "code": "post_only_mode",
+                      "retry_after_seconds": 79
+                    }
+                  }
                 }
               }
             }
@@ -5473,6 +5569,18 @@
           "error": {
             "type": "string",
             "description": "Human-readable error message."
+          },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stable machine-readable error code when provided."
+          },
+          "retry_after_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true,
+            "description": "Number of seconds to wait before retrying, also returned in the Retry-After header when provided."
           }
         }
       },
@@ -5612,6 +5720,18 @@
             "type": "string",
             "nullable": true,
             "description": "Canonical EIP-712 order hash. `orderID` remains the internal engine order identifier."
+          },
+          "code": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stable machine-readable error code when the placement failed."
+          },
+          "retry_after_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true,
+            "description": "Number of seconds to wait before retrying this placement, when provided."
           }
         }
       },

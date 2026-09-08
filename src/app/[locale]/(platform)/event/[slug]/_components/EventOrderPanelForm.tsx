@@ -941,6 +941,7 @@ export default function EventOrderPanelForm({
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
   const [isArbitrageSubmitting, setIsArbitrageSubmitting] = useState(false)
   const [arbitrageSubmissionStep, setArbitrageSubmissionStep] = useState<0 | 1 | 2 | 3>(0)
+  const [postOnlyWarmupToast, setPostOnlyWarmupToast] = useState<{ id: string; until: number } | null>(null)
   const panelMode = useSyncExternalStore(
     subscribeOrderPanelMode,
     getOrderPanelModeSnapshot,
@@ -951,6 +952,38 @@ export default function EventOrderPanelForm({
   const hasMounted = useHasHydrated()
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
+
+  useEffect(() => {
+    if (!postOnlyWarmupToast) {
+      return
+    }
+
+    const { id, until } = postOnlyWarmupToast
+
+    function updateCountdown() {
+      const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000))
+      if (seconds === 0) {
+        toast.close(id)
+        setPostOnlyWarmupToast(null)
+        return
+      }
+
+      toast.update(id, t('Trade failed'), {
+        description: t(
+          'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
+          { seconds: seconds.toString() },
+        ),
+        duration: 120_000,
+      })
+    }
+
+    updateCountdown()
+    const intervalId = window.setInterval(updateCountdown, 1_000)
+    return () => {
+      window.clearInterval(intervalId)
+      toast.close(id)
+    }
+  }, [postOnlyWarmupToast, t])
 
   const { balance, isLoadingBalance, isBalanceError, refetchBalance } = useBalance()
   const yesOutcome = useMemo(() => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES), [activeMarket])
@@ -1564,8 +1597,42 @@ export default function EventOrderPanelForm({
           openTradeRequirements({ forceTradingAuth: true })
           return
         }
+
+        if (
+          result.code === 'post_only_mode' &&
+          typeof result.retryAfterSeconds === 'number' &&
+          Number.isSafeInteger(result.retryAfterSeconds) &&
+          result.retryAfterSeconds > 0
+        ) {
+          if (postOnlyWarmupToast) {
+            toast.close(postOnlyWarmupToast.id)
+          }
+          const retryAfterSeconds = result.retryAfterSeconds
+          let warmupToastId = ''
+          warmupToastId = toast.error(t('Trade failed'), {
+            description: t(
+              'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
+              { seconds: retryAfterSeconds.toString() },
+            ),
+            duration: 120_000,
+            onClose: () => {
+              setPostOnlyWarmupToast((current) => (current?.id === warmupToastId ? null : current))
+            },
+          })
+          setPostOnlyWarmupToast({
+            id: warmupToastId,
+            until: Date.now() + retryAfterSeconds * 1_000,
+          })
+          return
+        }
+
         handleOrderErrorFeedback(t('Trade failed'), result.error)
         return
+      }
+
+      if (postOnlyWarmupToast) {
+        toast.close(postOnlyWarmupToast.id)
+        setPostOnlyWarmupToast(null)
       }
 
       scheduleOrderBookRefresh(queryClient)

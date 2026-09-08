@@ -348,6 +348,8 @@
   "ndIfAf": "Les données du marché ne sont plus à jour. Actualisez et réessayez.",
   "oVOVWH": "Le mode post-only est disponible uniquement pour les ordres limite.",
   "8jK7Wm": "Les ordres post-only ne doivent pas s'exécuter immédiatement. Ajustez le prix et réessayez.",
+  "62Rwy_": "Le marché reprend après un redémarrage. Les nouveaux ordres seront disponibles dans environ {seconds} secondes. Vous pouvez toujours annuler les ordres ouverts.",
+  "vx7HfQ": "Le moteur de correspondance redémarre. Réessayez dans un instant. Vous pouvez toujours annuler les ordres ouverts.",
   "uepO-P": "La taille de l'ordre n'est pas valide pour ce marché.",
   "KHihei": "Les paramètres de trading ne sont plus à jour. Actualisez et réessayez.",
   "myb5SZ": "L'exécution de l'ordre a échoué. Réessayez dans un instant.",

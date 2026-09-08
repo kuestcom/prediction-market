@@ -348,6 +348,8 @@
   "ndIfAf": "Market data is out of date. Please refresh and try again.",
   "oVOVWH": "Post-only is only available for limit orders.",
   "8jK7Wm": "Post-only orders must not execute immediately. Adjust the price and try again.",
+  "62Rwy_": "The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.",
+  "vx7HfQ": "The matching engine is restarting. Please try again shortly. You can still cancel open orders.",
   "uepO-P": "Order size is invalid for this market.",
   "KHihei": "Trading settings are out of date. Refresh and try again.",
   "myb5SZ": "Order execution failed. Please try again shortly.",

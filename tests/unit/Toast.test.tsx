@@ -44,6 +44,20 @@ describe('Toast', () => {
     expect(document.querySelector('[data-slot="toast-viewport"]')).toHaveClass('z-[100]')
   })
 
+  it('calls onClose when a toast is dismissed', async () => {
+    const onClose = mock()
+    render(<Toaster />)
+
+    act(() => {
+      toast.error('Trade failed', { onClose })
+    })
+
+    await screen.findByText('Trade failed', { selector: '[data-slot="toast-title"]' })
+    fireEvent.click(document.querySelector('[data-slot="toast-close"]')!)
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('renders custom content and actions', async () => {
     const onAction = mock()
     render(<Toaster />)

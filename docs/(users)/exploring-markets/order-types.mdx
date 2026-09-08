@@ -45,3 +45,12 @@ or you cancel it.
   A market-style order is submitted with execution constraints designed to trade immediately. It still depends on
   available order-book liquidity.
 </Callout>
+
+## Temporary post-restart mode
+
+After a matching-engine restart, a market may briefly enter a warmup period while market makers
+rebuild liquidity. During this period, regular new orders are temporarily unavailable, but you can
+still cancel open orders. Limit orders marked **post-only** can be submitted as long as they would
+rest on the order book instead of executing immediately.
+
+The order form shows the approximate time remaining. Once the countdown ends, submit your order again.
