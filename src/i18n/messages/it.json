@@ -348,6 +348,8 @@
   "ndIfAf": "I dati di mercato non sono aggiornati. Aggiorna e riprova.",
   "oVOVWH": "Il solo post è disponibile solo per gli ordini limite.",
   "8jK7Wm": "Gli ordini post-only non devono essere eseguiti immediatamente. Modifica il prezzo e riprova.",
+  "62Rwy_": "Il mercato sta riprendendo dopo un riavvio. I nuovi ordini saranno disponibili tra circa {seconds} secondi. Puoi comunque annullare gli ordini aperti.",
+  "vx7HfQ": "Il motore di matching si sta riavviando. Riprova a breve. Puoi comunque annullare gli ordini aperti.",
   "uepO-P": "La dimensione dell'ordine non è valida per questo mercato.",
   "KHihei": "Le impostazioni di trading non sono aggiornate. Aggiorna e riprova.",
   "myb5SZ": "L'esecuzione dell'ordine non è riuscita. Per favore riprova a breve.",

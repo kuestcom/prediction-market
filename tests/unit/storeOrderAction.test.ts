@@ -741,4 +741,90 @@ describe('storeOrderAction', () => {
       error: 'Something went wrong while processing your order. Please try again.',
     })
   })
+
+  it('explains post-restart warmup errors with the CLOB countdown', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: {},
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+    mocks.getExtracted.mockResolvedValueOnce((message: string, values?: { seconds?: string }) =>
+      message.replace('{seconds}', values?.seconds ?? ''),
+    )
+
+    globalThis.fetch = mock().mockResolvedValueOnce({
+      status: 503,
+      statusText: 'Service Unavailable',
+      ok: false,
+      json: async () => ({
+        error: 'post-only mode: only post-only orders and cancels are allowed',
+        code: 'post_only_mode',
+        retry_after_seconds: 79,
+      }),
+    }) as any
+
+    const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrderAction(
+      basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        type: 'MARKET',
+        locale: 'pt',
+      }),
+    )
+
+    expect(result).toEqual({
+      error:
+        'The market is resuming after a restart. New orders will be available in approximately 79 seconds. You can still cancel open orders.',
+      code: 'post_only_mode',
+      retryAfterSeconds: 79,
+    })
+    expect(mocks.getExtracted).toHaveBeenCalledWith({ locale: 'pt' })
+  })
+
+  it('does not turn the restart retry hint into a one-second completion estimate', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: {},
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+
+    globalThis.fetch = mock().mockResolvedValueOnce({
+      status: 425,
+      statusText: 'Too Early',
+      ok: false,
+      json: async () => ({
+        error: 'Trading is temporarily unavailable while the CLOB is restarting.',
+        retry_after_seconds: 1,
+      }),
+    }) as any
+
+    const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrderAction(
+      basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        type: 'MARKET',
+      }),
+    )
+
+    expect(result).toEqual({
+      error: 'The matching engine is restarting. Please try again shortly. You can still cancel open orders.',
+      retryAfterSeconds: 1,
+    })
+  })
 })

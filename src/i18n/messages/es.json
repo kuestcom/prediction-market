@@ -348,6 +348,8 @@
   "ndIfAf": "Los datos del mercado están desactualizados. Actualiza e inténtalo de nuevo.",
   "oVOVWH": "Post-only solo está disponible para órdenes límite.",
   "8jK7Wm": "Las órdenes post-only no deben ejecutarse de inmediato. Ajusta el precio e inténtalo de nuevo.",
+  "62Rwy_": "El mercado se está reanudando tras un reinicio. Las nuevas órdenes estarán disponibles en aproximadamente {seconds} segundos. Aún puedes cancelar órdenes abiertas.",
+  "vx7HfQ": "El motor de emparejamiento se está reiniciando. Inténtalo de nuevo en breve. Aún puedes cancelar órdenes abiertas.",
   "uepO-P": "El tamaño de la orden no es válido para este mercado.",
   "KHihei": "La configuración de trading está desactualizada. Actualiza e inténtalo de nuevo.",
   "myb5SZ": "Falló la ejecución de la orden. Inténtalo de nuevo en breve.",

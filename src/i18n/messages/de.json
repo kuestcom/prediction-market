@@ -348,6 +348,8 @@
   "ndIfAf": "Die Marktdaten sind veraltet. Bitte aktualisiere und versuche es erneut.",
   "oVOVWH": "Post-only ist nur für Limit-Orders verfügbar.",
   "8jK7Wm": "Post-only-Orders dürfen nicht sofort ausgeführt werden. Passe den Preis an und versuche es erneut.",
+  "62Rwy_": "Der Markt wird nach einem Neustart wieder aktiviert. Neue Orders werden in ungefähr {seconds} Sekunden verfügbar sein. Offene Orders können weiterhin storniert werden.",
+  "vx7HfQ": "Die Matching-Engine wird neu gestartet. Bitte versuche es in Kürze erneut. Offene Orders können weiterhin storniert werden.",
   "uepO-P": "Die Ordergröße ist für diesen Markt ungültig.",
   "KHihei": "Die Trading-Einstellungen sind veraltet. Aktualisiere und versuche es erneut.",
   "myb5SZ": "Die Orderausführung ist fehlgeschlagen. Bitte versuche es in Kürze erneut.",

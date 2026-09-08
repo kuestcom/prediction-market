@@ -348,6 +348,8 @@
   "ndIfAf": "Os dados do mercado estão desatualizados. Atualize e tente novamente.",
   "oVOVWH": "Post-only está disponível apenas para ordens limite.",
   "8jK7Wm": "Ordens post-only não devem ser executadas imediatamente. Ajuste o preço e tente novamente.",
+  "62Rwy_": "O mercado está retomando após uma reinicialização. Novas ordens estarão disponíveis em aproximadamente {seconds} segundos. Você ainda pode cancelar ordens abertas.",
+  "vx7HfQ": "O mecanismo de matching está reiniciando. Tente novamente em instantes. Você ainda pode cancelar ordens abertas.",
   "uepO-P": "O tamanho da ordem é inválido para este mercado.",
   "KHihei": "As configurações de trading estão desatualizadas. Atualize e tente novamente.",
   "myb5SZ": "A execução da ordem falhou. Tente novamente em instantes.",

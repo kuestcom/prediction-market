@@ -40,6 +40,7 @@ interface ToastFunction {
   (title: ReactNode, options?: ToastOptions): string
   close(id?: number | string): void
   dismiss(id?: number | string): void
+  update(id: number | string, title: ReactNode, options?: ToastOptions): void
   error(title: ReactNode, options?: ToastOptions): string
   info(title: ReactNode, options?: ToastOptions): string
   loading(title: ReactNode, options?: ToastOptions): string
@@ -73,6 +74,13 @@ function showToast(type: ToastType, title: ReactNode, options: ToastOptions = {}
 const toast = Object.assign((title: ReactNode, options?: ToastOptions) => showToast('default', title, options), {
   close: (id?: number | string) => toastManager.close(id === undefined ? undefined : String(id)),
   dismiss: (id?: number | string) => toastManager.close(id === undefined ? undefined : String(id)),
+  update: (id: number | string, title: ReactNode, options: ToastOptions = {}) => {
+    toastManager.update(String(id), {
+      description: options.description,
+      title,
+      timeout: options.duration,
+    })
+  },
   error: (title: ReactNode, options?: ToastOptions) => showToast('error', title, options),
   info: (title: ReactNode, options?: ToastOptions) => showToast('info', title, options),
   loading: (title: ReactNode, options?: ToastOptions) => showToast('loading', title, options),
