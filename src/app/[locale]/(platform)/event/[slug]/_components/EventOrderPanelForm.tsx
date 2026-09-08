@@ -967,11 +967,10 @@ export default function EventOrderPanelForm({
         return
       }
 
-      toast.update(id, t('Trade failed'), {
-        description: t(
-          'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
-          { seconds: seconds.toString() },
-        ),
+      toast.update(id, t('Trading paused'), {
+        description: t('Restart in progress. Trading resumes in {seconds}s. Cancels still available.', {
+          seconds: seconds.toString(),
+        }),
       })
     }
 
@@ -1606,11 +1605,10 @@ export default function EventOrderPanelForm({
           }
           const retryAfterSeconds = result.retryAfterSeconds
           let warmupToastId = ''
-          warmupToastId = toast.error(t('Trade failed'), {
-            description: t(
-              'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
-              { seconds: retryAfterSeconds.toString() },
-            ),
+          warmupToastId = toast.error(t('Trading paused'), {
+            description: t('Restart in progress. Trading resumes in {seconds}s. Cancels still available.', {
+              seconds: retryAfterSeconds.toString(),
+            }),
             duration: retryAfterSeconds * 1_000,
             onClose: () => {
               setPostOnlyWarmupToast((current) => (current?.id === warmupToastId ? null : current))
