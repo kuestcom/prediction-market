@@ -28,10 +28,7 @@ interface ListHomeEventsPageOptions {
 
 interface LoadHomeEventCandidatesOptions extends Omit<ListHomeEventsPageOptions, 'currentTimestamp'> {}
 
-interface LoadHomeEventBatchesOptions extends Omit<
-  LoadHomeEventCandidatesOptions,
-  'offset' | 'hideCrypto' | 'hideEarnings' | 'hideSports'
-> {
+interface LoadHomeEventBatchesOptions extends Omit<LoadHomeEventCandidatesOptions, 'offset'> {
   initialEvents?: Event[]
   offset: number
 }
@@ -39,6 +36,9 @@ interface LoadHomeEventBatchesOptions extends Omit<
 async function loadHomeEventBatches({
   bookmarked,
   frequency = 'all',
+  hideCrypto = false,
+  hideEarnings = false,
+  hideSports = false,
   initialEvents = [],
   locale,
   mainTag,
@@ -69,6 +69,9 @@ async function loadHomeEventBatches({
       locale,
       sportsSportSlug,
       sportsSection,
+      hideSports,
+      hideCrypto,
+      hideEarnings,
       excludeSportsAuxiliary: true,
     })
 
@@ -247,6 +250,9 @@ async function loadHomeEventCandidates({
     return loadHomeEventBatches({
       bookmarked,
       frequency,
+      hideCrypto,
+      hideEarnings,
+      hideSports,
       initialEvents: candidates,
       locale,
       mainTag,
@@ -264,6 +270,9 @@ async function loadHomeEventCandidates({
   return loadHomeEventBatches({
     bookmarked,
     frequency,
+    hideCrypto,
+    hideEarnings,
+    hideSports,
     locale,
     mainTag,
     offset: 0,

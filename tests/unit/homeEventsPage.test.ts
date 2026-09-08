@@ -250,6 +250,51 @@ describe('listHomeEventsPage', () => {
     })
   })
 
+  it('forwards active home visibility filters to every candidate batch', async () => {
+    const firstBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `event-${index}` }))
+    const secondBatch = [{ id: 'event-last' }]
+
+    mocks.listEvents
+      .mockResolvedValueOnce({ data: firstBatch, error: null })
+      .mockResolvedValueOnce({ data: secondBatch, error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce([...firstBatch, ...secondBatch])
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    await listHomeEventsPage({
+      bookmarked: false,
+      hideCrypto: true,
+      hideEarnings: true,
+      hideSports: true,
+      locale: 'en',
+      mainTag: 'trending',
+      status: 'active',
+      tag: 'trending',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledTimes(2)
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        hideCrypto: true,
+        hideEarnings: true,
+        hideSports: true,
+        limit: queryBatchSize,
+        offset: 0,
+      }),
+    )
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        hideCrypto: true,
+        hideEarnings: true,
+        hideSports: true,
+        limit: queryBatchSize,
+        offset: queryBatchSize,
+      }),
+    )
+  })
+
   it('keeps scanning active pages when recurring series can replace earlier events', async () => {
     const firstPage = Array.from({ length: initialPageSize }, (_, index) => ({
       id: `page-1-${index}`,
