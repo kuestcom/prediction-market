@@ -352,7 +352,7 @@
   "KHihei": "La configuración de trading está desactualizada. Actualiza e inténtalo de nuevo.",
   "myb5SZ": "Falló la ejecución de la orden. Inténtalo de nuevo en breve.",
   "vx7HfQ": "El motor de emparejamiento se está reiniciando. Inténtalo de nuevo en breve. Aún puedes cancelar órdenes abiertas.",
-  "62Rwy_": "",
+  "62Rwy_": "El mercado se está reanudando tras un reinicio. Las nuevas órdenes estarán disponibles en aproximadamente {seconds} segundos. Aún puedes cancelar órdenes abiertas.",
   "N6haZ_": "Algo salió mal al procesar tu orden. Inténtalo de nuevo.",
   "a5msuh": "Sí",
   "oUWADl": "No",

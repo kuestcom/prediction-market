@@ -352,7 +352,7 @@
   "KHihei": "Les paramètres de trading ne sont plus à jour. Actualisez et réessayez.",
   "myb5SZ": "L'exécution de l'ordre a échoué. Réessayez dans un instant.",
   "vx7HfQ": "Le moteur de correspondance redémarre. Réessayez dans un instant. Vous pouvez toujours annuler les ordres ouverts.",
-  "62Rwy_": "",
+  "62Rwy_": "Le marché reprend après un redémarrage. Les nouveaux ordres seront disponibles dans environ {seconds} secondes. Vous pouvez toujours annuler les ordres ouverts.",
   "N6haZ_": "Une erreur est survenue lors du traitement de votre ordre. Réessayez.",
   "a5msuh": "Oui",
   "oUWADl": "Non",
