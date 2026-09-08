@@ -352,7 +352,7 @@
   "KHihei": "Die Trading-Einstellungen sind veraltet. Aktualisiere und versuche es erneut.",
   "myb5SZ": "Die Orderausführung ist fehlgeschlagen. Bitte versuche es in Kürze erneut.",
   "vx7HfQ": "Die Matching-Engine wird neu gestartet. Bitte versuche es in Kürze erneut. Offene Orders können weiterhin storniert werden.",
-  "62Rwy_": "Der Markt wird nach einem Neustart wieder aktiviert. Neue Orders werden in ungefähr {seconds} Sekunden verfügbar sein. Offene Orders können weiterhin storniert werden.",
+  "62Rwy_": "",
   "N6haZ_": "Beim Verarbeiten deiner Order ist etwas schiefgelaufen. Bitte versuche es erneut.",
   "a5msuh": "Ja",
   "oUWADl": "Nein",
