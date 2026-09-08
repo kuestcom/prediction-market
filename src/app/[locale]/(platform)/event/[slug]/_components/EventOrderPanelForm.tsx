@@ -942,6 +942,7 @@ export default function EventOrderPanelForm({
   const [isArbitrageSubmitting, setIsArbitrageSubmitting] = useState(false)
   const [arbitrageSubmissionStep, setArbitrageSubmissionStep] = useState<0 | 1 | 2 | 3>(0)
   const [postOnlyWarmupToast, setPostOnlyWarmupToast] = useState<{ id: string; until: number } | null>(null)
+  const postOnlyWarmupToastIdRef = useRef<string | null>(null)
   const panelMode = useSyncExternalStore(
     subscribeOrderPanelMode,
     getOrderPanelModeSnapshot,
@@ -953,6 +954,15 @@ export default function EventOrderPanelForm({
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
 
+  useEffect(function closeWarmupToastOnUnmount() {
+    return function cleanupWarmupToastOnUnmount() {
+      const toastId = postOnlyWarmupToastIdRef.current
+      if (toastId) {
+        toast.close(toastId)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!postOnlyWarmupToast) {
       return
@@ -963,6 +973,9 @@ export default function EventOrderPanelForm({
     function updateCountdown() {
       const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000))
       if (seconds === 0) {
+        if (postOnlyWarmupToastIdRef.current === id) {
+          postOnlyWarmupToastIdRef.current = null
+        }
         setPostOnlyWarmupToast(null)
         return
       }
@@ -978,7 +991,6 @@ export default function EventOrderPanelForm({
     const intervalId = window.setInterval(updateCountdown, 1_000)
     return () => {
       window.clearInterval(intervalId)
-      toast.close(id)
     }
   }, [postOnlyWarmupToast, t])
 
@@ -1612,9 +1624,13 @@ export default function EventOrderPanelForm({
             }),
             duration: retryAfterSeconds * 1_000,
             onClose: () => {
+              if (postOnlyWarmupToastIdRef.current === warmupToastId) {
+                postOnlyWarmupToastIdRef.current = null
+              }
               setPostOnlyWarmupToast((current) => (current?.id === warmupToastId ? null : current))
             },
           })
+          postOnlyWarmupToastIdRef.current = warmupToastId
           setPostOnlyWarmupToast({
             id: warmupToastId,
             until: Date.now() + retryAfterSeconds * 1_000,
@@ -1628,6 +1644,9 @@ export default function EventOrderPanelForm({
 
       if (postOnlyWarmupToast) {
         toast.close(postOnlyWarmupToast.id)
+        if (postOnlyWarmupToastIdRef.current === postOnlyWarmupToast.id) {
+          postOnlyWarmupToastIdRef.current = null
+        }
         setPostOnlyWarmupToast(null)
       }
 
