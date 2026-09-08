@@ -963,7 +963,6 @@ export default function EventOrderPanelForm({
     function updateCountdown() {
       const seconds = Math.max(0, Math.ceil((until - Date.now()) / 1000))
       if (seconds === 0) {
-        toast.close(id)
         setPostOnlyWarmupToast(null)
         return
       }
@@ -973,7 +972,6 @@ export default function EventOrderPanelForm({
           'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
           { seconds: seconds.toString() },
         ),
-        duration: 120_000,
       })
     }
 
@@ -981,7 +979,6 @@ export default function EventOrderPanelForm({
     const intervalId = window.setInterval(updateCountdown, 1_000)
     return () => {
       window.clearInterval(intervalId)
-      toast.close(id)
     }
   }, [postOnlyWarmupToast, t])
 
@@ -1614,7 +1611,7 @@ export default function EventOrderPanelForm({
               'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
               { seconds: retryAfterSeconds.toString() },
             ),
-            duration: 120_000,
+            duration: retryAfterSeconds * 1_000,
             onClose: () => {
               setPostOnlyWarmupToast((current) => (current?.id === warmupToastId ? null : current))
             },
