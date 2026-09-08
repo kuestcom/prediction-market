@@ -140,6 +140,87 @@ async function loadHomeEventCandidates({
     }
   }
 
+  if (status === 'active' && !hasHomeVisibilityFilters && targetOffset === 0) {
+    // Only recurring series can be replaced by later candidates during home filtering.
+    // A page without one is already final, so avoid scanning the rest of the category.
+    const { data: firstPage, error } = await EventRepository.listEvents({
+      tag,
+      mainTag,
+      search,
+      sortBy,
+      userId,
+      bookmarked,
+      frequency,
+      status,
+      offset: 0,
+      limit: HOME_EVENTS_PAGE_SIZE + 1,
+      locale,
+      sportsSportSlug,
+      sportsSection,
+      excludeSportsAuxiliary: true,
+    })
+
+    if (error) {
+      return { data: [], error }
+    }
+
+    const candidates = firstPage ?? []
+    const firstPageHasRecurringSeries = candidates
+      .slice(0, HOME_EVENTS_PAGE_SIZE)
+      .some((event) => Boolean(event.series_slug?.trim()))
+
+    if (candidates.length < HOME_EVENTS_PAGE_SIZE + 1 || !firstPageHasRecurringSeries) {
+      return {
+        data: candidates,
+        error: null,
+      }
+    }
+
+    let rawOffset = candidates.length
+    const accumulatedEvents = [...candidates]
+
+    while (true) {
+      const { data: rawEvents, error } = await EventRepository.listEvents({
+        tag,
+        mainTag,
+        search,
+        sortBy,
+        userId,
+        bookmarked,
+        frequency,
+        status,
+        offset: rawOffset,
+        limit: HOME_EVENTS_QUERY_BATCH_SIZE,
+        locale,
+        sportsSportSlug,
+        sportsSection,
+        excludeSportsAuxiliary: true,
+      })
+
+      if (error) {
+        return { data: [], error }
+      }
+
+      const batch = rawEvents ?? []
+      if (batch.length === 0) {
+        break
+      }
+
+      accumulatedEvents.push(...batch)
+
+      if (batch.length < HOME_EVENTS_QUERY_BATCH_SIZE) {
+        break
+      }
+
+      rawOffset += batch.length
+    }
+
+    return {
+      data: accumulatedEvents,
+      error: null,
+    }
+  }
+
   let rawOffset = 0
   const accumulatedEvents: Event[] = []
 
