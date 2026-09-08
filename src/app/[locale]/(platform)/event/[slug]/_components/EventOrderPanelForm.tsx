@@ -979,7 +979,10 @@ export default function EventOrderPanelForm({
 
     updateCountdown()
     const intervalId = window.setInterval(updateCountdown, 1_000)
-    return () => window.clearInterval(intervalId)
+    return () => {
+      window.clearInterval(intervalId)
+      toast.close(id)
+    }
   }, [postOnlyWarmupToast, t])
 
   const { balance, isLoadingBalance, isBalanceError, refetchBalance } = useBalance()
@@ -1605,15 +1608,19 @@ export default function EventOrderPanelForm({
             toast.close(postOnlyWarmupToast.id)
           }
           const retryAfterSeconds = result.retryAfterSeconds
-          const toastId = toast.error(t('Trade failed'), {
+          let warmupToastId = ''
+          warmupToastId = toast.error(t('Trade failed'), {
             description: t(
               'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
               { seconds: retryAfterSeconds.toString() },
             ),
             duration: 120_000,
+            onClose: () => {
+              setPostOnlyWarmupToast((current) => (current?.id === warmupToastId ? null : current))
+            },
           })
           setPostOnlyWarmupToast({
-            id: toastId,
+            id: warmupToastId,
             until: Date.now() + retryAfterSeconds * 1_000,
           })
           return
@@ -1621,6 +1628,11 @@ export default function EventOrderPanelForm({
 
         handleOrderErrorFeedback(t('Trade failed'), result.error)
         return
+      }
+
+      if (postOnlyWarmupToast) {
+        toast.close(postOnlyWarmupToast.id)
+        setPostOnlyWarmupToast(null)
       }
 
       scheduleOrderBookRefresh(queryClient)

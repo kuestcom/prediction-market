@@ -33,14 +33,20 @@ interface ToastOptions {
   icon?: ReactNode
   id?: number | string
   image?: ReactNode
+  onClose?: () => void
   onClick?: () => void
+}
+
+interface ToastUpdateOptions {
+  description?: ReactNode
+  duration?: number
 }
 
 interface ToastFunction {
   (title: ReactNode, options?: ToastOptions): string
   close(id?: number | string): void
   dismiss(id?: number | string): void
-  update(id: number | string, title: ReactNode, options?: ToastOptions): void
+  update(id: number | string, title: ReactNode, options?: ToastUpdateOptions): void
   error(title: ReactNode, options?: ToastOptions): string
   info(title: ReactNode, options?: ToastOptions): string
   loading(title: ReactNode, options?: ToastOptions): string
@@ -52,7 +58,7 @@ interface ToastFunction {
 const toastManager = ToastPrimitive.createToastManager<ToastData>()
 
 function showToast(type: ToastType, title: ReactNode, options: ToastOptions = {}) {
-  const { action, content, description, duration, icon, id, image, onClick } = options
+  const { action, content, description, duration, icon, id, image, onClick, onClose } = options
 
   return toastManager.add({
     actionProps: action
@@ -68,13 +74,14 @@ function showToast(type: ToastType, title: ReactNode, options: ToastOptions = {}
     timeout: duration,
     title,
     type,
+    onClose,
   })
 }
 
 const toast = Object.assign((title: ReactNode, options?: ToastOptions) => showToast('default', title, options), {
   close: (id?: number | string) => toastManager.close(id === undefined ? undefined : String(id)),
   dismiss: (id?: number | string) => toastManager.close(id === undefined ? undefined : String(id)),
-  update: (id: number | string, title: ReactNode, options: ToastOptions = {}) => {
+  update: (id: number | string, title: ReactNode, options: ToastUpdateOptions = {}) => {
     toastManager.update(String(id), {
       description: options.description,
       title,

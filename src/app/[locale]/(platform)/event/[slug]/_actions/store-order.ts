@@ -259,7 +259,6 @@ async function mapClobErrorMessage(
 ) {
   const messageKey = mapClobErrorMessageKey(rawError)
   const t = await getExtracted({ locale })
-  const seconds = Math.max(1, retryAfterSeconds ?? 1)
 
   switch (messageKey) {
     case 'conditionPaused':
@@ -321,9 +320,12 @@ async function mapClobErrorMessage(
     case 'orderExecutionFailed':
       return t('Order execution failed. Please try again shortly.')
     case 'postOnlyMode':
+      if (retryAfterSeconds == null || retryAfterSeconds < 1) {
+        return t('The matching engine is restarting. Please try again shortly. You can still cancel open orders.')
+      }
       return t(
         'The market is resuming after a restart. New orders will be available in approximately {seconds} seconds. You can still cancel open orders.',
-        { seconds: seconds.toString() },
+        { seconds: retryAfterSeconds.toString() },
       )
     case 'tradingRestarting':
       return t('The matching engine is restarting. Please try again shortly. You can still cancel open orders.')
@@ -619,6 +621,8 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
     const results: Array<{ error: string | null; orderId: string | null }> = []
     let processedBatchCount = 0
     let batchFailureError: string | null = null
+    let batchFailureCode: string | null = null
+    let batchFailureRetryAfterSeconds: number | null = null
 
     for (let batchOffset = 0; batchOffset < preparedOrders.length; batchOffset += MAX_CLOB_BATCH_ORDERS) {
       const preparedBatch = preparedOrders.slice(batchOffset, batchOffset + MAX_CLOB_BATCH_ORDERS)
@@ -694,7 +698,11 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
               }
             }),
           )
-          batchFailureError ??= batchResults[0]!.error
+          if (batchFailureError == null) {
+            batchFailureError = batchResults[0]!.error
+            batchFailureCode = responseCode
+            batchFailureRetryAfterSeconds = retryAfterSeconds
+          }
           results.push(...batchResults)
           continue
         }
@@ -787,6 +795,8 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
     if (processedBatchCount === 0) {
       return {
         error: batchFailureError ?? (await getLocalizedClobError(null)),
+        ...(batchFailureCode ? { code: batchFailureCode } : {}),
+        ...(batchFailureRetryAfterSeconds != null ? { retryAfterSeconds: batchFailureRetryAfterSeconds } : {}),
         results: null,
       }
     }
