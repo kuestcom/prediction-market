@@ -38,7 +38,6 @@ interface HomeClientProps {
   categoryFaqItems: EventFaqItem[]
   initialEvents: Event[]
   initialHasMore: boolean
-  initialNewEvents: Event[]
   initialFeaturedEvents: HomeFeaturedEventCard[]
   initialFeaturedHotTopics: HomeFeaturedHotTopic[]
   initialFeaturedSideCard: HomeFeaturedSideCardSettings
@@ -125,7 +124,6 @@ export default function HomeClient({
   categoryFaqItems,
   initialEvents,
   initialHasMore,
-  initialNewEvents,
   initialFeaturedEvents,
   initialFeaturedHotTopics,
   initialFeaturedSideCard,
@@ -158,7 +156,6 @@ export default function HomeClient({
       initialCurrentTimestamp={initialCurrentTimestamp}
       initialEvents={initialEvents}
       initialHasMore={initialHasMore}
-      initialNewEvents={initialNewEvents}
       initialFeaturedEvents={initialFeaturedEvents}
       initialFeaturedHotTopics={initialFeaturedHotTopics}
       initialFeaturedSideCard={initialFeaturedSideCard}
@@ -180,7 +177,6 @@ interface HomeClientContentProps {
   initialCurrentTimestamp: number | null
   initialEvents: Event[]
   initialHasMore: boolean
-  initialNewEvents: Event[]
   initialFeaturedEvents: HomeFeaturedEventCard[]
   initialFeaturedHotTopics: HomeFeaturedHotTopic[]
   initialFeaturedSideCard: HomeFeaturedSideCardSettings
@@ -449,7 +445,6 @@ function HomeClientContent({
   initialCurrentTimestamp,
   initialEvents,
   initialHasMore,
-  initialNewEvents,
   initialFeaturedEvents,
   initialFeaturedHotTopics,
   initialFeaturedSideCard,
@@ -554,7 +549,6 @@ function HomeClientContent({
 
       <PlatformFooter
         categoryPopularEvents={initialEvents}
-        categoryNewEvents={initialNewEvents}
         categorySlug={pathState.isMainTagPathPage ? targetMainTag : null}
       />
     </>

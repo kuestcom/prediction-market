@@ -41,7 +41,6 @@ export default async function HomeContent({
   let initialHasMore = false
 
   let initialEvents: Event[] = []
-  let initialNewEvents: Event[] = []
   let initialFeaturedEvents: HomeFeaturedEventCard[] = []
   let initialFeaturedHotTopics: HomeFeaturedHotTopic[] = []
   let initialFeaturedSideCard: HomeFeaturedSideCardSettings = DEFAULT_HOME_FEATURED_SETTINGS.sideCard
@@ -108,34 +107,13 @@ export default async function HomeContent({
         featuredSideCard: DEFAULT_HOME_FEATURED_SETTINGS.sideCard,
       })
 
-  const categoryNewEventsPromise =
-    initialMainTagSlug !== 'trending' && initialTagSlug !== 'new'
-      ? listHomeEventsPage({
-          tag: initialTagSlug,
-          mainTag: initialMainTagSlug,
-          search: '',
-          userId: '',
-          bookmarked: false,
-          locale: resolvedLocale,
-          currentTimestamp,
-          sortBy: 'created_at',
-        })
-          .then(({ data: events, error }) => (error ? [] : (events ?? [])))
-          .catch((error) => {
-            console.error('Failed to load new category events for the footer', error)
-            return []
-          })
-      : Promise.resolve([])
-
-  const [initialEventsResult, featuredEventsResult, categoryNewEvents, siteName] = await Promise.all([
+  const [initialEventsResult, featuredEventsResult, siteName] = await Promise.all([
     initialEventsPromise,
     featuredEventsPromise,
-    categoryNewEventsPromise,
     categoryFaqContext ? loadRuntimeThemeSiteName() : Promise.resolve(''),
   ])
 
   initialEvents = initialEventsResult.events
-  initialNewEvents = categoryNewEvents
   initialCurrentTimestamp = initialEventsResult.currentTimestamp
   initialHasMore = initialEventsResult.hasMore
   initialFeaturedEvents = featuredEventsResult.featuredEvents
@@ -162,7 +140,6 @@ export default async function HomeContent({
           initialFeaturedSideCard={initialFeaturedSideCard}
           initialEvents={initialEvents}
           initialHasMore={initialHasMore}
-          initialNewEvents={initialNewEvents}
           initialCurrentTimestamp={initialCurrentTimestamp}
           initialTag={initialTagSlug}
           initialMainTag={initialMainTagSlug}

@@ -22,6 +22,7 @@ export interface BuildEventsApiSearchParamsOptions {
   sportsSportSlug?: string | null
   sportsVertical?: SportsVertical | '' | null
   status?: EventListStatusFilter
+  signal?: AbortSignal
 }
 
 function buildEventsApiSearchParams({
@@ -121,7 +122,7 @@ export interface HomeEventsApiPage {
 export async function fetchHomeEventsPageApi(options: BuildEventsApiSearchParamsOptions): Promise<HomeEventsApiPage> {
   const params = buildEventsApiSearchParams({ ...options, homeFeed: true })
   params.set('includePageInfo', 'true')
-  const response = await fetch(`/api/events?${params.toString()}`)
+  const response = await fetch(`/api/events?${params.toString()}`, { signal: options.signal })
 
   if (!response.ok) {
     throw new Error('Failed to fetch home feed events')
