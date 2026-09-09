@@ -23,7 +23,7 @@ interface EventOrderBookRowProps {
   onSelect?: (level: OrderBookLevel) => void
   userOrder?: OrderBookUserOrder | null
   isCancelling?: boolean
-  onCancelUserOrder?: (orderId: string) => void
+  onCancelUserOrder?: (order: OrderBookUserOrder) => void
   rewardEligible?: boolean
   showRewardHighlight?: boolean
 }
@@ -72,7 +72,7 @@ export default function EventOrderBookRow({
                     onClick={(event) => {
                       event.stopPropagation()
                       if (!isCancelling) {
-                        onCancelUserOrder?.(userOrder.id)
+                        onCancelUserOrder?.(userOrder)
                       }
                     }}
                     disabled={isCancelling}

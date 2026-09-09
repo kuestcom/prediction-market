@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +14,7 @@ import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
 import { ZERO_BYTES32 } from '@/lib/contracts'
-import { formatAmountInputValue, toMicro } from '@/lib/formatters'
+import { formatAmountInputValue, formatSharesLabel, toMicro } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { refreshTradingPositionsAfterMutation } from '@/lib/trading-cache'
@@ -220,8 +221,10 @@ export default function EventSplitSharesDialog({
         })
       }
 
-      toast.success(t('Split shares'), {
-        description: marketTitle ?? t('Request submitted.'),
+      toast.success(t('Split {shares} shares', { shares: formatSharesLabel(numericAmount) }), {
+        content: (
+          <EventTradeToast title={marketTitle ?? t('Request submitted.')} marketImage={marketIconUrl ?? undefined} />
+        ),
       })
 
       refreshTradingPositionsAfterMutation(queryClient)

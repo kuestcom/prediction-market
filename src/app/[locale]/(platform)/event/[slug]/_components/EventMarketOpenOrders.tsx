@@ -10,6 +10,7 @@ import type { Event, UserOpenOrder } from '@/types'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelMarketOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-market-orders'
 import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'
+import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import {
   buildUserOpenOrdersQueryKey,
   useUserOpenOrdersQuery,
@@ -151,6 +152,8 @@ function useOpenOrdersCancellation({
   openOrdersQueryKey,
   eventOpenOrdersQueryKey,
   openTradeRequirements,
+  marketTitle,
+  marketImage,
 }: {
   marketConditionId: string
   sortedOrders: UserOpenOrder[]
@@ -158,8 +161,11 @@ function useOpenOrdersCancellation({
   openOrdersQueryKey: readonly unknown[]
   eventOpenOrdersQueryKey: readonly unknown[]
   openTradeRequirements: (options: { forceTradingAuth: boolean }) => void
+  marketTitle: string
+  marketImage?: string
 }) {
   const t = useExtracted()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
   const [isCancellingAll, setIsCancellingAll] = useState(false)
   const openOrdersCacheQueryKeys = useMemo(
@@ -189,7 +195,24 @@ function useOpenOrdersCancellation({
           throw new Error(response.error)
         }
 
-        toast.success(t('Order cancelled'))
+        const sideLabel = order.side === 'buy' ? t('Buy') : t('Sell')
+        const outcomeLabel = normalizeOutcomeLabel(
+          order.outcome.text || (order.outcome.index === OUTCOME_INDEX.NO ? t('No') : t('Yes')),
+        )
+        const orderDescription = t('{side} {shares} {outcome} shares @ {price}', {
+          side: sideLabel,
+          shares: formatSharesLabel(microToUnit(order.side === 'buy' ? order.taker_amount : order.maker_amount)),
+          outcome: outcomeLabel,
+          price: formatSharePriceLabel(order.price, { fallback: '—' }),
+        })
+
+        toast.success(t('Order cancelled'), {
+          content: (
+            <EventTradeToast title={marketTitle} marketImage={marketImage}>
+              {orderDescription}
+            </EventTradeToast>
+          ),
+        })
 
         removeOrdersFromCache([order.id])
         await invalidateAfterCancel()
@@ -208,7 +231,16 @@ function useOpenOrdersCancellation({
         })
       }
     },
-    [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t],
+    [
+      invalidateAfterCancel,
+      marketImage,
+      marketTitle,
+      normalizeOutcomeLabel,
+      openTradeRequirements,
+      pendingCancelIds,
+      removeOrdersFromCache,
+      t,
+    ],
   )
 
   const handleCancelAll = useCallback(
@@ -235,7 +267,9 @@ function useOpenOrdersCancellation({
         const failedCount = failedIds.length
 
         if (failedCount === 0) {
-          toast.success(t('All open orders for this market were cancelled.'))
+          toast.success(t('All open orders for this market were cancelled.'), {
+            content: <EventTradeToast title={marketTitle} marketImage={marketImage} />,
+          })
         } else {
           const tUnsafe = t as unknown as (message: string, values?: Record<string, any>) => string
           toast.error(
@@ -266,6 +300,8 @@ function useOpenOrdersCancellation({
     [
       isCancellingAll,
       invalidateAfterCancel,
+      marketImage,
+      marketTitle,
       marketConditionId,
       openTradeRequirements,
       removeOrdersFromCache,
@@ -538,6 +574,8 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     openOrdersQueryKey,
     eventOpenOrdersQueryKey,
     openTradeRequirements,
+    marketTitle: market.short_title || market.title,
+    marketImage: market.icon_url ?? undefined,
   })
 
   const handleSort = useCallback(function toggleSortDirection(column: SortColumn) {
