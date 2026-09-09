@@ -1620,8 +1620,7 @@ async function processMarketData(
       (existingMarket.polymarket_condition_id ?? null) !== (polymarketConditionId ?? null)) ||
     polymarketTokenIdsChanged ||
     existingAcceptingOrdersFlag !== acceptingOrdersFlag ||
-    existingArchivedFlag !== archivedFlag ||
-    (existingMarket != null && !existingMarket.icon_url && Boolean(metadata.icon))
+    existingArchivedFlag !== archivedFlag
 
   const eventIdsForHiddenSync = new Set<string>()
   if (existingMarket) {
@@ -1657,7 +1656,7 @@ async function processMarketData(
   }
 
   let iconUrl: string | null = null
-  if (metadata.icon) {
+  if (metadata.icon && (!existingMarket || Boolean(existingMarket.icon_url))) {
     const marketIconSlug = normalizeStorageSlug(metadata.slug, market.id)
     iconUrl = await downloadAndSaveImage(metadata.icon, `markets/icons/${marketIconSlug}`)
   }
