@@ -14,6 +14,7 @@ export interface UploadPublicAssetOptions {
   contentType: string
   cacheControl?: string
   upsert?: boolean
+  timeoutMs?: number
 }
 
 const globalForStorageUpload = globalThis as unknown as {
@@ -22,7 +23,7 @@ const globalForStorageUpload = globalThis as unknown as {
   s3ClientKey: string | undefined
 }
 
-function createSupabaseAdmin(): SupabaseClient {
+function createSupabaseAdmin(timeoutMs?: number): SupabaseClient {
   const config = resolveStorageRuntimeConfig()
   if (config.provider !== 'supabase' || !config.supabaseUrl || !config.supabaseServiceRoleKey) {
     throw new Error(
@@ -30,10 +31,26 @@ function createSupabaseAdmin(): SupabaseClient {
     )
   }
 
-  return createClient(config.supabaseUrl, config.supabaseServiceRoleKey)
+  if (!timeoutMs) {
+    return createClient(config.supabaseUrl, config.supabaseServiceRoleKey)
+  }
+
+  return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+    global: {
+      fetch: (input, init) => {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs)
+        const signal = init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal
+        return fetch(input, { ...init, signal })
+      },
+    },
+  })
 }
 
-function getSupabaseAdmin(): SupabaseClient {
+function getSupabaseAdmin(timeoutMs?: number): SupabaseClient {
+  if (timeoutMs) {
+    return createSupabaseAdmin(timeoutMs)
+  }
+
   if (!globalForStorageUpload.supabaseAdmin) {
     globalForStorageUpload.supabaseAdmin = createSupabaseAdmin()
   }
@@ -84,13 +101,16 @@ function normalizeS3Body(body: UploadBody) {
 export async function uploadPublicAsset(assetPath: string, body: UploadBody, options: UploadPublicAssetOptions) {
   const normalizedPath = normalizeAssetPath(assetPath)
   const config = resolveStorageRuntimeConfig()
+  const timeoutSignal = options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined
 
   if (config.provider === 'supabase') {
-    const { error } = await getSupabaseAdmin().storage.from(ASSETS_BUCKET).upload(normalizedPath, body, {
-      contentType: options.contentType,
-      cacheControl: options.cacheControl,
-      upsert: options.upsert,
-    })
+    const { error } = await getSupabaseAdmin(options.timeoutMs)
+      .storage.from(ASSETS_BUCKET)
+      .upload(normalizedPath, body, {
+        contentType: options.contentType,
+        cacheControl: options.cacheControl,
+        upsert: options.upsert,
+      })
 
     return { error: error?.message ?? null }
   }
@@ -108,6 +128,7 @@ export async function uploadPublicAsset(assetPath: string, body: UploadBody, opt
           CacheControl: options.cacheControl,
           IfNoneMatch: shouldUpsert ? undefined : '*',
         }),
+        { abortSignal: timeoutSignal },
       )
       return { error: null }
     } catch (error) {

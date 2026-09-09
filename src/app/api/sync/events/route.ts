@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 
 import type { SportsSourceCandidate } from '@/lib/sports-source'
@@ -48,6 +48,12 @@ const INITIAL_MARKET_LOOKBACK_DAYS = 14
 const INITIAL_MARKET_LOOKBACK_SECONDS = INITIAL_MARKET_LOOKBACK_DAYS * 24 * 60 * 60
 const INITIAL_MARKET_CURSOR_PREFIX = 'initial-market-sync:'
 const EXPIRED_MARKET_GRACE_MS = 24 * 60 * 60 * 1000
+const SYNC_HARD_DEADLINE_MS = 285_000
+const SYNC_FINALIZATION_RESERVE_MS = 10_000
+const MISSING_IMAGE_REPAIR_MAX_ITEMS = 6
+const MISSING_IMAGE_REPAIR_MARKET_MAX_ITEMS = 3
+const MISSING_IMAGE_REPAIR_SCAN_LIMIT = 30
+const MISSING_IMAGE_REPAIR_ITEM_TIMEOUT_MS = 2_500
 const MARKET_SYNC_STATE = {
   serviceName: 'market_sync',
   subgraphName: 'pnl',
@@ -386,6 +392,8 @@ async function refreshCreatorSourcesBeforeSync(force: boolean) {
  * - Stores everything in the database and configured object storage
  */
 export async function GET(request: Request) {
+  const requestStartedAt = Date.now()
+
   return handleCronRoute({
     request,
     jobName: 'market-sync',
@@ -434,6 +442,7 @@ export async function GET(request: Request) {
         { autoDeployNewEvents },
         lastCursor,
         initialCreationTimestamp,
+        requestStartedAt,
       )
 
       await updateSyncStatus({
@@ -485,6 +494,7 @@ async function syncMarkets(
   options: SyncOptions,
   initialCursor: SyncCursor | null,
   initialCreationTimestamp: number | null,
+  requestStartedAt: number,
 ): Promise<SyncStats> {
   const trackedCreators = Array.from(allowedCreators)
     .map((creator) => creator.trim().toLowerCase())
@@ -501,7 +511,6 @@ async function syncMarkets(
     }
   }
 
-  const syncStartedAt = Date.now()
   let cursor = initialCursor
 
   if (cursor) {
@@ -526,7 +535,7 @@ async function syncMarkets(
     eventTagSlugsByEventId: new Map(),
   }
 
-  while (Date.now() - syncStartedAt < SYNC_TIME_LIMIT_MS) {
+  while (Date.now() - requestStartedAt < SYNC_TIME_LIMIT_MS) {
     const page = await fetchPnLConditionsPage(trackedCreators, cursor, initialCreationTimestamp)
 
     if (page.conditions.length === 0) {
@@ -572,7 +581,7 @@ async function syncMarkets(
         continue
       }
 
-      if (Date.now() - syncStartedAt >= SYNC_TIME_LIMIT_MS) {
+      if (Date.now() - requestStartedAt >= SYNC_TIME_LIMIT_MS) {
         console.warn('⏹️ Time limit reached during market processing, aborting sync loop')
         timeLimitReached = true
         break
@@ -670,6 +679,14 @@ async function syncMarkets(
       shouldInvalidateSitemap = true
     }
     eventIdsNeedingStatusUpdate.clear()
+  }
+
+  const missingImageRepair = await repairMissingImageAssets(requestStartedAt + SYNC_HARD_DEADLINE_MS)
+  for (const eventId of missingImageRepair.eventIds) {
+    eventIdsNeedingCacheInvalidation.add(eventId)
+  }
+  if (missingImageRepair.repairedCount > 0) {
+    shouldInvalidateListCache = true
   }
 
   if (eventIdsNeedingCacheInvalidation.size > 0 || shouldInvalidateListCache || shouldInvalidateSitemap) {
@@ -1561,6 +1578,7 @@ async function processMarketData(
       metadata: marketsTable.metadata,
       updated_at: marketsTable.updated_at,
       slug: marketsTable.slug,
+      icon_url: marketsTable.icon_url,
     })
     .from(marketsTable)
     .where(eq(marketsTable.condition_id, market.id))
@@ -1602,7 +1620,8 @@ async function processMarketData(
       (existingMarket.polymarket_condition_id ?? null) !== (polymarketConditionId ?? null)) ||
     polymarketTokenIdsChanged ||
     existingAcceptingOrdersFlag !== acceptingOrdersFlag ||
-    existingArchivedFlag !== archivedFlag
+    existingArchivedFlag !== archivedFlag ||
+    (existingMarket != null && !existingMarket.icon_url && Boolean(metadata.icon))
 
   const eventIdsForHiddenSync = new Set<string>()
   if (existingMarket) {
@@ -1742,7 +1761,7 @@ async function processMarketData(
     title: String(metadata.name),
     slug: String(metadata.slug),
     short_title: normalizeStringField(metadata.short_title),
-    icon_url: iconUrl,
+    icon_url: iconUrl ?? (existingMarket?.icon_url || null),
     metadata: JSON.stringify(storedMetadata),
     question: question ?? null,
     market_rules: marketRules ?? null,
@@ -1953,6 +1972,183 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
   }
 
   return changedEventIds
+}
+
+async function repairMissingImageAssets(deadlineMs: number): Promise<{ repairedCount: number; eventIds: string[] }> {
+  const repairedEventIds = new Set<string>()
+  let repairedCount = 0
+  let attemptedCount = 0
+
+  function hasRepairTime() {
+    return Date.now() + SYNC_FINALIZATION_RESERVE_MS < deadlineMs
+  }
+
+  function getRepairTimeoutMs() {
+    return Math.min(MISSING_IMAGE_REPAIR_ITEM_TIMEOUT_MS, deadlineMs - Date.now() - SYNC_FINALIZATION_RESERVE_MS)
+  }
+
+  if (!hasRepairTime()) {
+    return { repairedCount: 0, eventIds: [] }
+  }
+
+  try {
+    const missingMarketRows = await db
+      .select({
+        condition_id: marketsTable.condition_id,
+        event_id: marketsTable.event_id,
+        slug: marketsTable.slug,
+        metadata: marketsTable.metadata,
+      })
+      .from(marketsTable)
+      .where(or(isNull(marketsTable.icon_url), eq(marketsTable.icon_url, '')))
+      .orderBy(sql`RANDOM()`)
+      .limit(MISSING_IMAGE_REPAIR_SCAN_LIMIT)
+
+    for (const row of missingMarketRows) {
+      if (!hasRepairTime() || attemptedCount >= MISSING_IMAGE_REPAIR_MARKET_MAX_ITEMS) {
+        break
+      }
+
+      const reference = normalizeStringField(parseStoredMarketMetadata(row.metadata)?.icon)
+      if (!reference) {
+        continue
+      }
+
+      const timeoutMs = getRepairTimeoutMs()
+      if (timeoutMs <= 0) {
+        break
+      }
+      attemptedCount += 1
+
+      try {
+        const storagePath = `markets/icons/${normalizeStorageSlug(row.slug, row.condition_id)}`
+        const storedPath = await downloadAndSaveImage(reference, storagePath, { timeoutMs })
+        if (!storedPath) {
+          continue
+        }
+
+        const updatedRows = await db
+          .update(marketsTable)
+          .set({ icon_url: storedPath })
+          .where(
+            and(
+              eq(marketsTable.condition_id, row.condition_id),
+              or(isNull(marketsTable.icon_url), eq(marketsTable.icon_url, '')),
+            ),
+          )
+          .returning({ condition_id: marketsTable.condition_id })
+        if (updatedRows.length > 0) {
+          repairedCount += 1
+          repairedEventIds.add(row.event_id)
+        }
+      } catch (error) {
+        console.error(`Failed to repair market icon ${row.condition_id}:`, error)
+      }
+    }
+
+    if (hasRepairTime() && attemptedCount < MISSING_IMAGE_REPAIR_MAX_ITEMS) {
+      const missingEventRows = await db
+        .select({
+          id: eventsTable.id,
+          slug: eventsTable.slug,
+          title: eventsTable.title,
+          creator: eventsTable.creator,
+        })
+        .from(eventsTable)
+        .where(or(isNull(eventsTable.icon_url), eq(eventsTable.icon_url, '')))
+        .orderBy(sql`RANDOM()`)
+        .limit(MISSING_IMAGE_REPAIR_SCAN_LIMIT)
+
+      const eventIds = missingEventRows.map((row) => row.id)
+      const eventMarketRows =
+        eventIds.length > 0
+          ? await db
+              .select({
+                event_id: marketsTable.event_id,
+                condition_id: marketsTable.condition_id,
+                metadata: marketsTable.metadata,
+                updated_at: marketsTable.updated_at,
+              })
+              .from(marketsTable)
+              .where(and(inArray(marketsTable.event_id, eventIds), isNotNull(marketsTable.metadata)))
+          : []
+      const latestEventIconById = new Map<string, { reference: string; updatedAtMs: number; conditionId: string }>()
+      for (const row of eventMarketRows) {
+        const reference = resolveStoredEventIconReference(row.metadata)
+        if (!reference) {
+          continue
+        }
+
+        const updatedAtMs = row.updated_at?.getTime() ?? Number.NEGATIVE_INFINITY
+        const current = latestEventIconById.get(row.event_id)
+        if (
+          !current ||
+          updatedAtMs > current.updatedAtMs ||
+          (updatedAtMs === current.updatedAtMs && row.condition_id > current.conditionId)
+        ) {
+          latestEventIconById.set(row.event_id, { reference, updatedAtMs, conditionId: row.condition_id })
+        }
+      }
+
+      for (const row of missingEventRows) {
+        if (!hasRepairTime() || attemptedCount >= MISSING_IMAGE_REPAIR_MAX_ITEMS) {
+          break
+        }
+
+        const reference = latestEventIconById.get(row.id)?.reference
+        if (!reference) {
+          continue
+        }
+
+        const timeoutMs = getRepairTimeoutMs()
+        if (timeoutMs <= 0) {
+          break
+        }
+        attemptedCount += 1
+
+        try {
+          const storagePath = `events/icons/${normalizeStorageSlug(row.slug, `${row.title}:${row.creator ?? ''}`)}`
+          const storedPath = await downloadAndSaveImage(reference, storagePath, { timeoutMs })
+          if (!storedPath) {
+            continue
+          }
+
+          const updatedRows = await db
+            .update(eventsTable)
+            .set({ icon_url: storedPath })
+            .where(and(eq(eventsTable.id, row.id), or(isNull(eventsTable.icon_url), eq(eventsTable.icon_url, ''))))
+            .returning({ id: eventsTable.id })
+          if (updatedRows.length > 0) {
+            repairedCount += 1
+            repairedEventIds.add(row.id)
+          }
+        } catch (error) {
+          console.error(`Failed to repair event icon ${row.id}:`, error)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load missing image assets for repair:', error)
+  }
+
+  if (attemptedCount > 0 || repairedCount > 0) {
+    console.log(
+      JSON.stringify({
+        message: 'repaired missing event and market icons',
+        attemptedCount,
+        repairedCount,
+        eventCount: repairedEventIds.size,
+      }),
+    )
+  }
+
+  return { repairedCount, eventIds: Array.from(repairedEventIds) }
+}
+
+function resolveStoredEventIconReference(value: unknown) {
+  const metadata = parseStoredMarketMetadata(value)
+  const eventMetadata = normalizeObjectField(metadata?.event)
+  return normalizeStringField(eventMetadata?.icon)
 }
 
 async function invalidateEventCaches(
@@ -2673,7 +2869,7 @@ function resolveImageStoragePath(storagePath: string, extension: string) {
   return `${storagePath}.${extension}`
 }
 
-async function downloadAndSaveImage(assetReference: string, storagePath: string) {
+async function downloadAndSaveImage(assetReference: string, storagePath: string, options: { timeoutMs?: number } = {}) {
   try {
     const normalizedReference = normalizeAssetReference(assetReference)
     if (!normalizedReference) {
@@ -2683,8 +2879,13 @@ async function downloadAndSaveImage(assetReference: string, storagePath: string)
     const imageUrl = /^https?:\/\//i.test(normalizedReference)
       ? normalizedReference
       : `${IRYS_GATEWAY}/${normalizedReference}`
+    const imageAttemptDeadlineMs = options.timeoutMs ? Date.now() + options.timeoutMs : null
+    function remainingTimeoutMs() {
+      return imageAttemptDeadlineMs == null ? undefined : Math.max(0, imageAttemptDeadlineMs - Date.now())
+    }
     const response = await fetch(imageUrl, {
       keepalive: true,
+      signal: imageAttemptDeadlineMs == null ? undefined : AbortSignal.timeout(Math.max(1, remainingTimeoutMs() ?? 0)),
     })
 
     if (!response.ok) {
@@ -2696,11 +2897,16 @@ async function downloadAndSaveImage(assetReference: string, storagePath: string)
     const imageBytes = new Uint8Array(imageBuffer)
     const resolvedMeta = resolveImageMeta(response.headers.get('content-type'), imageBytes)
     const resolvedPath = resolveImageStoragePath(storagePath, resolvedMeta.extension)
+    const uploadTimeoutMs = remainingTimeoutMs()
+    if (uploadTimeoutMs != null && uploadTimeoutMs <= 0) {
+      return null
+    }
 
     const { error } = await uploadPublicAsset(resolvedPath, imageBuffer, {
       contentType: resolvedMeta.contentType,
       cacheControl: '31536000',
       upsert: true,
+      timeoutMs: uploadTimeoutMs,
     })
 
     if (error) {
