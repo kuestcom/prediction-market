@@ -13,6 +13,7 @@ import type {
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'
+import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useOrderBookSummaries'
 import {
   buildUserOpenOrdersQueryKey,
@@ -38,6 +39,7 @@ import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvali
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePolymarketOrderBooks } from '@/hooks/usePolymarketOrderBooks'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
+import { formatSharePriceLabel, formatSharesLabel } from '@/lib/formatters'
 import { canProvideMarketLiquidity } from '@/lib/liquidity-ladder'
 import { formatOddsFromCents } from '@/lib/odds-format'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -206,11 +208,17 @@ function useOrderBookUserOrderCancellation({
   openOrdersQueryKey,
   eventOpenOrdersQueryKey,
   openTradeRequirements,
+  marketTitle,
+  marketImage,
+  outcomeLabel,
 }: {
   queryClient: ReturnType<typeof useQueryClient>
   openOrdersQueryKey: readonly unknown[]
   eventOpenOrdersQueryKey: readonly unknown[]
   openTradeRequirements: (options: { forceTradingAuth: boolean }) => void
+  marketTitle: string
+  marketImage?: string
+  outcomeLabel: string
 }) {
   const t = useExtracted()
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
@@ -224,7 +232,8 @@ function useOrderBookUserOrderCancellation({
   })
 
   const handleCancelUserOrder = useCallback(
-    async function handleCancelUserOrder(orderId: string) {
+    async function handleCancelUserOrder(order: OrderBookUserOrder) {
+      const orderId = order.id
       if (!orderId || pendingCancelIds.has(orderId)) {
         return
       }
@@ -245,7 +254,21 @@ function useOrderBookUserOrderCancellation({
           throw new Error(response.error)
         }
 
-        toast.success(t('Order cancelled'))
+        const sideLabel = order.side === 'ask' ? t('Sell') : t('Buy')
+        const orderDescription = t('{side} {shares} {outcome} shares @ {price}', {
+          side: sideLabel,
+          shares: formatSharesLabel(order.totalShares),
+          outcome: outcomeLabel,
+          price: formatSharePriceLabel(order.priceCents / 100, { fallback: '—' }),
+        })
+
+        toast.success(t('Order cancelled'), {
+          content: (
+            <EventTradeToast title={marketTitle} marketImage={marketImage}>
+              {orderDescription}
+            </EventTradeToast>
+          ),
+        })
         removeOrdersFromCache([orderId])
 
         await invalidateAfterCancel()
@@ -260,7 +283,16 @@ function useOrderBookUserOrderCancellation({
         })
       }
     },
-    [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t],
+    [
+      invalidateAfterCancel,
+      marketImage,
+      marketTitle,
+      openTradeRequirements,
+      outcomeLabel,
+      pendingCancelIds,
+      removeOrdersFromCache,
+      t,
+    ],
   )
 
   return { pendingCancelIds, handleCancelUserOrder }
@@ -323,19 +355,22 @@ export default function EventOrderBook({
     conditionId: market.condition_id,
   })
 
-  const { pendingCancelIds, handleCancelUserOrder } = useOrderBookUserOrderCancellation({
-    queryClient,
-    openOrdersQueryKey,
-    eventOpenOrdersQueryKey,
-    openTradeRequirements,
-  })
-
   const { asks, bids, lastPrice, spread, maxTotal, outcomeLabel } = useMemo(
     () => buildOrderBookSnapshot(summary, market, outcome),
     [summary, market, outcome],
   )
   const displayOutcomeLabel = normalizeOutcomeLabel(outcomeLabel) ?? outcomeLabel
   const displayTradeLabel = tradeLabel ?? `${t('Trade')} ${displayOutcomeLabel}`
+
+  const { pendingCancelIds, handleCancelUserOrder } = useOrderBookUserOrderCancellation({
+    queryClient,
+    openOrdersQueryKey,
+    eventOpenOrdersQueryKey,
+    openTradeRequirements,
+    marketTitle: market.short_title || market.title,
+    marketImage: market.icon_url ?? undefined,
+    outcomeLabel: displayOutcomeLabel,
+  })
   const formatDisplayedPrice = useCallback(
     (priceCents: number | null | undefined) => {
       if (oddsFormat === 'price') {

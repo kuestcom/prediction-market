@@ -83,7 +83,7 @@ describe('handleOrderSuccessFeedback', () => {
     })
 
     const [, options] = mocks.toastSuccess.mock.calls[0]
-    const children = (options as any).description.props.children
+    const children = (options as any).content.props.children
     expect(children).toBe('Total 10¢ @ 1¢')
   })
 })

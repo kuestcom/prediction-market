@@ -1854,7 +1854,14 @@ export default function EventOrderPanelForm({
       }
 
       toast.success(t('Claim submitted'), {
-        description: t('We sent your claim transaction.'),
+        content: (
+          <EventTradeToast
+            title={activeMarket?.short_title || activeMarket?.title || event.title}
+            marketImage={activeMarket?.icon_url ?? undefined}
+          >
+            {t('We sent your claim transaction.')}
+          </EventTradeToast>
+        ),
       })
       promptAutoRedeem()
       setClaimedConditionIdsByEvent((current) => {
@@ -2123,20 +2130,50 @@ export default function EventOrderPanelForm({
         console.error('Arbitrage submission completed with an unmatched leg.', { kuestError, polymarketError })
         const errorDescription = getArbitrageSubmissionErrorMessage(kuestError || polymarketError)
         if (kuestError && polymarketError) {
-          toast.error(t('Both orders failed. No trade was completed.'), { description: errorDescription })
+          toast.error(t('Both orders failed. No trade was completed.'), {
+            content: (
+              <EventTradeToast
+                title={event.title}
+                marketImage={activeMarket.icon_url ?? undefined}
+                marketTitle={activeMarket.short_title || activeMarket.title}
+              >
+                {errorDescription}
+              </EventTradeToast>
+            ),
+          })
         } else if (kuestError) {
           toast.error(
             t('The {siteName} order failed. Check Polymarket before trying again.', {
               siteName: site.name,
             }),
-            { description: errorDescription },
+            {
+              content: (
+                <EventTradeToast
+                  title={event.title}
+                  marketImage={activeMarket.icon_url ?? undefined}
+                  marketTitle={activeMarket.short_title || activeMarket.title}
+                >
+                  {errorDescription}
+                </EventTradeToast>
+              ),
+            },
           )
         } else {
           toast.error(
             t('The Polymarket order failed. Check {siteName} before trying again.', {
               siteName: site.name,
             }),
-            { description: errorDescription },
+            {
+              content: (
+                <EventTradeToast
+                  title={event.title}
+                  marketImage={activeMarket.icon_url ?? undefined}
+                  marketTitle={activeMarket.short_title || activeMarket.title}
+                >
+                  {errorDescription}
+                </EventTradeToast>
+              ),
+            },
           )
         }
         return
@@ -2147,7 +2184,7 @@ export default function EventOrderPanelForm({
         maximumFractionDigits: 2,
       })
       toast.success(t('Arbitrage matched! {shares} shares per side', { shares: sharesLabel }), {
-        description: (
+        content: (
           <EventTradeToast
             title={event.title}
             marketImage={activeMarket.icon_url}

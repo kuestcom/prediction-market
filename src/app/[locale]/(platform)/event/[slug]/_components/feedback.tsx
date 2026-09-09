@@ -237,7 +237,7 @@ export function handleOrderSuccessFeedback({
     const displayShares = sellSharesLabel && sellSharesLabel.trim().length > 0 ? sellSharesLabel.trim() : amountInput
     const amountPrefix = isLimitOrder ? translate('Total') : translate('Received')
     toast.success(translate('Sell {shares} shares on {outcome}', { shares: displayShares, outcome: outcomeText }), {
-      description: (
+      content: (
         <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
           {translate('{label} {amount} @ {price}', {
             label: amountPrefix,
@@ -258,7 +258,7 @@ export function handleOrderSuccessFeedback({
         ? translate('Buy {shares} shares on {outcome}', { shares: normalizedBuySharesLabel, outcome: outcomeText })
         : translate('Buy {amount} on {outcome}', { amount: buyAmountLabel, outcome: outcomeText }),
       {
-        description: (
+        content: (
           <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
             {translate('{label} {amount} @ {price}', {
               label: translate('Total'),

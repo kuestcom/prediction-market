@@ -13,6 +13,7 @@ import type { SubmitOrderArgs } from '@/lib/orders'
 import type { Market } from '@/types'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { buildUserOpenOrdersQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -413,12 +414,22 @@ export default function EventProvideLiquidityDialog({
             successful: successfulOrders.toString(),
             total: ladderOrders.length.toString(),
           }),
+          {
+            content: (
+              <EventTradeToast title={market.short_title || market.title} marketImage={market.icon_url ?? undefined} />
+            ),
+          },
         )
       } else {
         toast.success(
           t('Liquidity added with {count} orders.', {
             count: ladderOrders.length.toString(),
           }),
+          {
+            content: (
+              <EventTradeToast title={market.short_title || market.title} marketImage={market.icon_url ?? undefined} />
+            ),
+          },
         )
       }
 
