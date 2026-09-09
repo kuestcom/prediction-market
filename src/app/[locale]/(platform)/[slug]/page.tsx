@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
 
 import {
@@ -12,6 +13,7 @@ import {
   PublicProfilePageContent,
 } from '@/app/[locale]/(platform)/_lib/public-profile-page'
 import { getRootLocale } from '@/i18n/root-locale'
+import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
@@ -79,6 +81,9 @@ async function renderPlatformSlugPage({
 
 async function renderCachedPlatformCategoryPage({ slug }: { slug: string }) {
   'use cache'
+
+  const locale = await getRootLocale()
+  cacheTag(cacheTags.eventsList, cacheTags.mainTags(locale), cacheTags.settings)
 
   return renderPlatformSlugPage({
     deferHomeRuntimePrerender: false,

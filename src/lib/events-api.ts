@@ -105,7 +105,7 @@ function buildEventsApiSearchParams({
 
 export async function fetchEventsApi(options: BuildEventsApiSearchParamsOptions): Promise<Event[]> {
   const params = buildEventsApiSearchParams(options)
-  const response = await fetch(`/api/events?${params.toString()}`)
+  const response = await fetch(`/api/events?${params.toString()}`, { signal: options.signal })
 
   if (!response.ok) {
     throw new Error('Failed to fetch events')

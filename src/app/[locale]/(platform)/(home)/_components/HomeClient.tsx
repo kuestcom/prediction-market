@@ -549,6 +549,7 @@ function HomeClientContent({
 
       <PlatformFooter
         categoryPopularEvents={initialEvents}
+        categoryTag={pathState.isMainTagPathPage ? targetTag : null}
         categorySlug={pathState.isMainTagPathPage ? targetMainTag : null}
       />
     </>

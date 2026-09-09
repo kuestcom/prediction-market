@@ -119,6 +119,40 @@ describe('platformFooter', () => {
     expect(screen.queryByText('Markets by category and topics')).not.toBeInTheDocument()
   })
 
+  it('uses the selected subcategory when loading new markets', async () => {
+    const fetchMock = mock((input: RequestInfo | URL) => {
+      if (String(input).startsWith('/api/events?')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ events: [], hasMore: false }),
+        })
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ locales: ['en'] }),
+      })
+    })
+    stubGlobal('fetch', fetchMock)
+
+    render(
+      <PlatformFooter
+        categorySlug="weather"
+        categoryTag="temperature"
+        categoryPopularEvents={[{ id: 'popular', slug: 'popular-weather', title: 'Popular weather market' } as any]}
+      />,
+    )
+
+    const eventRequest = await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([input]) => String(input).startsWith('/api/events?'))
+      expect(call).toBeDefined()
+      return call
+    })
+    const requestUrl = new URL(String(eventRequest![0]), 'http://localhost')
+    expect(requestUrl.searchParams.get('tag')).toBe('temperature')
+    expect(requestUrl.searchParams.get('mainTag')).toBe('weather')
+  })
+
   it('expands the standard footer from 15 categories to all main categories', () => {
     mocks.tags = [
       { slug: 'trending', name: 'Trending', childs: [] },

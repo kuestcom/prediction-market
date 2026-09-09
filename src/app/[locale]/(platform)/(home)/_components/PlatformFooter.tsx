@@ -39,6 +39,7 @@ type CategorySectionKey = 'new' | 'popular' | 'related'
 
 interface PlatformFooterProps {
   categorySlug?: string | null
+  categoryTag?: string | null
   categoryPopularEvents?: Event[]
 }
 
@@ -443,7 +444,11 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
   )
 }
 
-export default function PlatformFooter({ categorySlug = null, categoryPopularEvents = [] }: PlatformFooterProps) {
+export default function PlatformFooter({
+  categorySlug = null,
+  categoryTag = null,
+  categoryPopularEvents = [],
+}: PlatformFooterProps) {
   const t = useExtracted()
   const locale = useLocale()
   const site = useSiteIdentity()
@@ -454,6 +459,7 @@ export default function PlatformFooter({ categorySlug = null, categoryPopularEve
     ? (mainCategories.find((category) => category.slug === categorySlug) ?? null)
     : null
   const activeCategorySlug = activeCategory?.slug ?? null
+  const selectedCategoryTag = categoryTag ?? activeCategorySlug
   const shouldShowCategoryFooter = activeCategory !== null && categoryPopularEvents.length > 0
   const [categoryNewEventsState, setCategoryNewEventsState] = useState<{
     categorySlug: string | null
@@ -464,17 +470,18 @@ export default function PlatformFooter({ categorySlug = null, categoryPopularEve
 
   useEffect(
     function loadCategoryNewEvents() {
-      if (!shouldShowCategoryFooter || !activeCategorySlug) {
+      if (!shouldShowCategoryFooter || !activeCategorySlug || !selectedCategoryTag) {
         return
       }
 
       const categorySlug = activeCategorySlug
+      const tag = selectedCategoryTag
       const abortController = new AbortController()
 
       async function fetchCategoryNewEvents() {
         try {
           const result = await fetchHomeEventsPageApi({
-            tag: categorySlug,
+            tag,
             mainTag: categorySlug,
             locale,
             status: 'active',
@@ -499,7 +506,7 @@ export default function PlatformFooter({ categorySlug = null, categoryPopularEve
         abortController.abort()
       }
     },
-    [activeCategorySlug, locale, shouldShowCategoryFooter],
+    [activeCategorySlug, locale, selectedCategoryTag, shouldShowCategoryFooter],
   )
 
   const supportLinks = useMemo(
