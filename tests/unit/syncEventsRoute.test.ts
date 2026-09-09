@@ -109,6 +109,21 @@ describe('sync events route', () => {
     )
   })
 
+  it('only downloads an existing market icon when its source reference changes', async () => {
+    const { shouldDownloadMarketIcon } = await import('@/app/api/sync/events/route')
+    const existingReference = 'existing-icon-hash'
+    const existingMarket = {
+      icon_url: '/storage/markets/icons/example.png',
+      metadata: JSON.stringify({ icon: existingReference }),
+    }
+
+    expect(shouldDownloadMarketIcon(undefined, existingReference)).toBe(true)
+    expect(shouldDownloadMarketIcon(existingMarket, existingReference)).toBe(false)
+    expect(shouldDownloadMarketIcon(existingMarket, 'new-icon-hash')).toBe(true)
+    expect(shouldDownloadMarketIcon({ ...existingMarket, icon_url: null }, 'new-icon-hash')).toBe(false)
+    expect(shouldDownloadMarketIcon(existingMarket, null)).toBe(false)
+  })
+
   it('reuses sports source payload when partial incoming identity resolves to the same source', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 

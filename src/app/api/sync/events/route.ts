@@ -1656,9 +1656,10 @@ async function processMarketData(
   }
 
   let iconUrl: string | null = null
-  if (metadata.icon && (!existingMarket || Boolean(existingMarket.icon_url))) {
+  const marketIconReference = normalizeAssetReference(metadata.icon)
+  if (marketIconReference && shouldDownloadMarketIcon(existingMarket, marketIconReference)) {
     const marketIconSlug = normalizeStorageSlug(metadata.slug, market.id)
-    iconUrl = await downloadAndSaveImage(metadata.icon, `markets/icons/${marketIconSlug}`)
+    iconUrl = await downloadAndSaveImage(marketIconReference, `markets/icons/${marketIconSlug}`)
   }
 
   console.log(`${marketAlreadyExists ? 'Updating' : 'Creating'} market ${market.id} with eventId: ${eventId}`)
@@ -2612,6 +2613,27 @@ export function hasPolymarketOutcomeTokenMappingChanged(
   const indexes = new Set([...incomingTokenIds.keys(), ...existingByIndex.keys()])
 
   return Array.from(indexes).some((index) => (incomingTokenIds[index] ?? null) !== (existingByIndex.get(index) ?? null))
+}
+
+export function shouldDownloadMarketIcon(
+  existingMarket: { icon_url: string | null; metadata: unknown } | undefined,
+  incomingIconReference: unknown,
+): boolean {
+  const normalizedIncomingReference = normalizeAssetReference(incomingIconReference)
+  if (!normalizedIncomingReference) {
+    return false
+  }
+
+  if (!existingMarket) {
+    return true
+  }
+
+  if (!normalizeStringField(existingMarket.icon_url)) {
+    return false
+  }
+
+  const storedIconReference = normalizeAssetReference(parseStoredMarketMetadata(existingMarket.metadata)?.icon)
+  return storedIconReference !== normalizedIncomingReference
 }
 
 function normalizeIncomingTags(tagNames: any[] | null | undefined) {
