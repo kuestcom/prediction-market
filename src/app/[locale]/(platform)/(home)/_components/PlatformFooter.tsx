@@ -25,6 +25,7 @@ import {
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { LOCALE_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { Link, usePathname } from '@/i18n/navigation'
+import { fetchHomeEventsPageApi } from '@/lib/events-api'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 import { parsePlatformPathname } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
@@ -38,8 +39,8 @@ type CategorySectionKey = 'new' | 'popular' | 'related'
 
 interface PlatformFooterProps {
   categorySlug?: string | null
+  categoryTag?: string | null
   categoryPopularEvents?: Event[]
-  categoryNewEvents?: Event[]
 }
 
 interface FooterExternalLink {
@@ -445,10 +446,11 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
 
 export default function PlatformFooter({
   categorySlug = null,
+  categoryTag = null,
   categoryPopularEvents = [],
-  categoryNewEvents = [],
 }: PlatformFooterProps) {
   const t = useExtracted()
+  const locale = useLocale()
   const site = useSiteIdentity()
   const { tags } = usePlatformNavigationData()
 
@@ -456,7 +458,56 @@ export default function PlatformFooter({
   const activeCategory = categorySlug
     ? (mainCategories.find((category) => category.slug === categorySlug) ?? null)
     : null
+  const activeCategorySlug = activeCategory?.slug ?? null
+  const selectedCategoryTag = categoryTag ?? activeCategorySlug
   const shouldShowCategoryFooter = activeCategory !== null && categoryPopularEvents.length > 0
+  const [categoryNewEventsState, setCategoryNewEventsState] = useState<{
+    categorySlug: string | null
+    events: Event[]
+  }>({ categorySlug: null, events: [] })
+  const categoryNewEvents =
+    categoryNewEventsState.categorySlug === activeCategorySlug ? categoryNewEventsState.events : []
+
+  useEffect(
+    function loadCategoryNewEvents() {
+      if (!shouldShowCategoryFooter || !activeCategorySlug || !selectedCategoryTag) {
+        return
+      }
+
+      const categorySlug = activeCategorySlug
+      const tag = selectedCategoryTag
+      const abortController = new AbortController()
+
+      async function fetchCategoryNewEvents() {
+        try {
+          const result = await fetchHomeEventsPageApi({
+            tag,
+            mainTag: categorySlug,
+            locale,
+            status: 'active',
+            sort: 'created_at',
+            currentTimestamp: Date.now(),
+            signal: abortController.signal,
+          })
+
+          if (!abortController.signal.aborted) {
+            setCategoryNewEventsState({ categorySlug, events: result.events })
+          }
+        } catch (error) {
+          if (!abortController.signal.aborted) {
+            console.error('Failed to load new category events for the footer', error)
+          }
+        }
+      }
+
+      void fetchCategoryNewEvents()
+
+      return function abortCategoryNewEventsFetch() {
+        abortController.abort()
+      }
+    },
+    [activeCategorySlug, locale, selectedCategoryTag, shouldShowCategoryFooter],
+  )
 
   const supportLinks = useMemo(
     () =>

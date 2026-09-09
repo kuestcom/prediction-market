@@ -38,7 +38,7 @@ describe('homeContent', () => {
     useRealTimers()
   })
 
-  it('uses the route main tag when fetching initial subcategory events', async () => {
+  it('uses the route main tag when fetching initial subcategory events without loading footer events', async () => {
     const currentTimestamp = Date.parse('2026-05-11T12:30:00.000Z')
     mocks.listHomeEventsPage.mockResolvedValue({ data: [], error: null })
 
@@ -49,19 +49,13 @@ describe('homeContent', () => {
       currentTimestamp,
     })
 
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledTimes(1)
     expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
       expect.objectContaining({
         tag: 'ai',
         mainTag: 'tech',
         locale: 'en',
         currentTimestamp,
-      }),
-    )
-    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tag: 'ai',
-        mainTag: 'tech',
-        sortBy: 'created_at',
       }),
     )
   })

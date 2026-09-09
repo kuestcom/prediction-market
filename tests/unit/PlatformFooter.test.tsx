@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 
 import PlatformFooter, { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
@@ -70,9 +70,21 @@ describe('platformFooter', () => {
     ]
     stubGlobal(
       'fetch',
-      mock().mockResolvedValue({
-        ok: true,
-        json: async () => ({ locales: ['en'] }),
+      mock((input: RequestInfo | URL) => {
+        if (String(input).startsWith('/api/events?')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              events: [{ id: 'new', slug: 'new-weather', title: 'New weather market' }],
+              hasMore: false,
+            }),
+          })
+        }
+
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ locales: ['en'] }),
+        })
       }),
     )
   })
@@ -82,7 +94,7 @@ describe('platformFooter', () => {
   })
 
   it('falls back to the default main-category footer when a category has no popular markets', () => {
-    render(<PlatformFooter categorySlug="weather" categoryPopularEvents={[]} categoryNewEvents={[]} />)
+    render(<PlatformFooter categorySlug="weather" categoryPopularEvents={[]} />)
 
     expect(screen.getByText('Markets by category and topics')).toBeInTheDocument()
     expect(screen.getByText('Weather')).toBeInTheDocument()
@@ -90,21 +102,55 @@ describe('platformFooter', () => {
     expect(screen.queryByText('Related topics')).not.toBeInTheDocument()
   })
 
-  it('shows category topics plus popular and new markets when category data is available', () => {
+  it('shows category topics plus popular and new markets when category data is available', async () => {
     render(
       <PlatformFooter
         categorySlug="weather"
         categoryPopularEvents={[{ id: 'popular', slug: 'popular-weather', title: 'Popular weather market' } as any]}
-        categoryNewEvents={[{ id: 'new', slug: 'new-weather', title: 'New weather market' } as any]}
       />,
     )
 
+    await waitFor(() => expect(screen.getByText('New weather market')).toBeInTheDocument())
     expect(screen.getByText('Related topics')).toBeInTheDocument()
     expect(screen.getByText('Popular Weather markets')).toBeInTheDocument()
     expect(screen.getByText('New Weather markets')).toBeInTheDocument()
     expect(screen.getByText('Popular weather market')).toBeInTheDocument()
     expect(screen.getByText('New weather market')).toBeInTheDocument()
     expect(screen.queryByText('Markets by category and topics')).not.toBeInTheDocument()
+  })
+
+  it('uses the selected subcategory when loading new markets', async () => {
+    const fetchMock = mock((input: RequestInfo | URL) => {
+      if (String(input).startsWith('/api/events?')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ events: [], hasMore: false }),
+        })
+      }
+
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ locales: ['en'] }),
+      })
+    })
+    stubGlobal('fetch', fetchMock)
+
+    render(
+      <PlatformFooter
+        categorySlug="weather"
+        categoryTag="temperature"
+        categoryPopularEvents={[{ id: 'popular', slug: 'popular-weather', title: 'Popular weather market' } as any]}
+      />,
+    )
+
+    const eventRequest = await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([input]) => String(input).startsWith('/api/events?'))
+      expect(call).toBeDefined()
+      return call
+    })
+    const requestUrl = new URL(String(eventRequest![0]), 'http://localhost')
+    expect(requestUrl.searchParams.get('tag')).toBe('temperature')
+    expect(requestUrl.searchParams.get('mainTag')).toBe('weather')
   })
 
   it('expands the standard footer from 15 categories to all main categories', () => {
@@ -117,7 +163,7 @@ describe('platformFooter', () => {
       })),
     ]
 
-    render(<PlatformFooter categorySlug={null} categoryPopularEvents={[]} categoryNewEvents={[]} />)
+    render(<PlatformFooter categorySlug={null} categoryPopularEvents={[]} />)
 
     expect(screen.queryByText('Category 16')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /View more/ }))
@@ -147,7 +193,7 @@ describe('platformFooter', () => {
       instagramLink: 'https://instagram.com/kuest',
     }
 
-    render(<PlatformFooter categorySlug={null} categoryPopularEvents={[]} categoryNewEvents={[]} />)
+    render(<PlatformFooter categorySlug={null} categoryPopularEvents={[]} />)
 
     expect(screen.getAllByRole('link', { name: 'X (Twitter)' })).toHaveLength(2)
     expect(screen.getAllByRole('link', { name: 'Instagram' })).toHaveLength(2)
