@@ -7,7 +7,6 @@ import type { ClobOrderType, UserOpenOrder } from '@/types'
 import { mapClobOpenOrder, normalizeClobId, normalizeClobOpenOrdersResponse } from '@/lib/clob-open-orders'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { markets } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
@@ -147,7 +146,7 @@ async function fetchMarketMetadata(conditionIds: string[]) {
 
   return runQuery(async () => {
     const rows = await db.query.markets.findMany({
-      where: inArray(markets.condition_id, conditionIds),
+      where: { RAW: (table) => inArray(table.condition_id, conditionIds) },
       columns: {
         condition_id: true,
         title: true,

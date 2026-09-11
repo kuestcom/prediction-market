@@ -37,11 +37,11 @@ function createSupabaseAdmin(timeoutMs?: number): SupabaseClient {
 
   return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
     global: {
-      fetch: (input, init) => {
+      fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
         const timeoutSignal = AbortSignal.timeout(timeoutMs)
         const signal = init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal
         return fetch(input, { ...init, signal })
-      },
+      }) as typeof fetch,
     },
   })
 }

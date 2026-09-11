@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { events, markets } from '@/lib/db/schema/events/tables'
+import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 
@@ -133,15 +133,18 @@ async function loadMarketStatusRows(conditionIds: string[]): Promise<MarketStatu
   return await db.transaction(async (transaction) => {
     await transaction.execute(sql`SET LOCAL statement_timeout = '5s'`)
     const eventRows = (await transaction.query.events.findMany({
-      where: exists(
-        transaction
-          .select({ conditionId: markets.condition_id })
-          .from(markets)
-          .where(and(eq(markets.event_id, events.id), inArray(markets.condition_id, uniqueConditionIds))),
-      ),
+      where: {
+        RAW: (table) =>
+          exists(
+            transaction
+              .select({ conditionId: markets.condition_id })
+              .from(markets)
+              .where(and(eq(markets.event_id, table.id), inArray(markets.condition_id, uniqueConditionIds))),
+          ),
+      },
       with: {
         markets: {
-          where: inArray(markets.condition_id, uniqueConditionIds),
+          where: { RAW: (table) => inArray(table.condition_id, uniqueConditionIds) },
           columns: {
             condition_id: true,
             slug: true,

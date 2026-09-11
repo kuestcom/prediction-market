@@ -1,4 +1,4 @@
-import { drizzleAdapter } from '@better-auth/drizzle-adapter'
+import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2'
 import { getChainIdFromMessage } from '@reown/appkit-siwe'
 import { betterAuth } from 'better-auth'
 import { createAuthMiddleware } from 'better-auth/api'
@@ -131,13 +131,13 @@ export const auth = betterAuth({
     provider: 'pg',
     schema,
   }),
-  experimental: { joins: true },
   appName: DEFAULT_THEME_SITE_NAME,
   secret: resolveBetterAuthSecret(),
   baseURL: SITE_URL,
   advanced: {
     database: {
       generateId: false,
+      joins: true,
     },
   },
   databaseHooks: {
@@ -330,7 +330,6 @@ export const auth = betterAuth({
       userId: 'user_id',
       accountId: 'account_id',
       providerId: 'provider_id',
-      issuer: 'issuer',
       accessToken: 'access_token',
       refreshToken: 'refresh_token',
       idToken: 'id_token',
