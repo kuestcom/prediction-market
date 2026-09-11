@@ -216,6 +216,7 @@ function FilterToolbarSearchInputField({
     search,
     onSearchChange,
   })
+  const [initialSearch] = useState(() => search)
 
   return (
     <div ref={shellRef} className="relative w-full md:w-44 lg:w-52 xl:w-56">
@@ -225,7 +226,7 @@ function FilterToolbarSearchInputField({
         type="text"
         data-testid="filter-search-input"
         placeholder={searchPlaceholder}
-        defaultValue={search}
+        defaultValue={initialSearch}
         autoFocus={autoFocus}
         onChange={handleInputChange}
         onKeyDown={(event) => {
