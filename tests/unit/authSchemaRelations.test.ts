@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'bun:test'
 import { getTableColumns } from 'drizzle-orm'
-import { createTableRelationsHelpers, extractTablesRelationalConfig } from 'drizzle-orm/relations'
 
+import { relations } from '@/lib/db/relations'
 import * as schema from '@/lib/db/schema'
 
 describe('auth schema relations', () => {
   it('exposes pluralized auth relation keys for Better Auth experimental joins', () => {
-    const { tables } = extractTablesRelationalConfig(schema, createTableRelationsHelpers)
-
-    expect(tables.sessions.relations.users?.referencedTableName).toBe('users')
-    expect(tables.accounts.relations.users?.referencedTableName).toBe('users')
-    expect(tables.wallets.relations.users?.referencedTableName).toBe('users')
-    expect(tables.two_factors.relations.users?.referencedTableName).toBe('users')
+    expect(relations.sessions.relations.users?.targetTableName).toBe('users')
+    expect(relations.accounts.relations.users?.targetTableName).toBe('users')
+    expect(relations.wallets.relations.users?.targetTableName).toBe('users')
+    expect(relations.two_factors.relations.users?.targetTableName).toBe('users')
   })
 
   it('exposes Better Auth two-factor lockout fields', () => {

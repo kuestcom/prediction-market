@@ -1,19 +1,19 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
+
+import { SQL } from 'bun'
 
 const MIGRATION_LOCK_NAMESPACE = 20817
 const MIGRATION_LOCK_KEY = 1
 
 type NodeFs = typeof import('node:fs')
 type NodePath = typeof import('node:path')
-type Postgres = typeof import('postgres')
 type ResolveSiteUrl = (env?: NodeJS.ProcessEnv) => string
-type Sql = ReturnType<Postgres>
+type Sql = SQL
 type ReservedSql = Awaited<ReturnType<Sql['reserve']>>
 const SITE_URL_MODULE_PATH = '../src/lib/site-url.ts'
 
 let fs: NodeFs
 let path: NodePath
-let postgres: Postgres
 let resolveSiteUrl: ResolveSiteUrl
 let scriptDirname: string
 
@@ -41,14 +41,12 @@ interface CronExtensionCapabilities {
 }
 
 async function loadScriptDependencies(): Promise<void> {
-  const [fsModule, pathModule, urlModule, postgresModule, siteUrlModule] = await Promise.all([
+  const [fsModule, pathModule, urlModule, siteUrlModule] = await Promise.all([
     import('node:fs'),
     import('node:path'),
     import('node:url'),
-    import('postgres'),
     import(SITE_URL_MODULE_PATH),
   ])
-  const postgresImport = postgresModule as unknown as { default?: Postgres } & Postgres
   const siteUrlImport = siteUrlModule as unknown as {
     default?: ResolveSiteUrl
     resolveSiteUrl?: ResolveSiteUrl
@@ -56,7 +54,6 @@ async function loadScriptDependencies(): Promise<void> {
 
   fs = fsModule
   path = pathModule
-  postgres = postgresImport.default ?? postgresImport
   scriptDirname = path.dirname(urlModule.fileURLToPath(import.meta.url))
   const importedResolveSiteUrl = siteUrlImport.default ?? siteUrlImport.resolveSiteUrl
 
@@ -482,10 +479,10 @@ async function run(): Promise<void> {
 
   await loadScriptDependencies()
 
-  const sql = postgres(connectionString, {
+  const sql = new SQL(connectionString, {
     max: 1,
-    connect_timeout: 30,
-    idle_timeout: 5,
+    connectionTimeout: 30,
+    idleTimeout: 5,
   })
   let reserved: ReservedSql | null = null
   let lockAcquired = false

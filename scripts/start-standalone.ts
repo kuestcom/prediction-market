@@ -14,7 +14,6 @@ function copyDirectory(source: string, destination: string): void {
 
 copyDirectory(resolve('public'), resolve(standaloneDirectory, 'public'))
 copyDirectory(resolve('.next/static'), resolve(standaloneDirectory, '.next/static'))
-copyDirectory(resolve('node_modules/postgres'), resolve(standaloneDirectory, 'node_modules/postgres'))
 
 const server = spawn(process.execPath, ['server.js'], {
   cwd: standaloneDirectory,

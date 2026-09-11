@@ -6,7 +6,6 @@ import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-s
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { getDataApiUrl } from '@/lib/data-api/client'
 import { mapDataApiActivityToActivityOrder, type DataApiActivity } from '@/lib/data-api/user'
-import { events, markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 
 interface ActivityMarketMetadata {
@@ -45,7 +44,7 @@ async function loadActivityMarketMetadata(conditionIds: string[]) {
   }
 
   const rows = await db.query.markets.findMany({
-    where: inArray(sql<string>`LOWER(${markets.condition_id})`, conditionIds),
+    where: { RAW: (table) => inArray(sql<string>`LOWER(${table.condition_id})`, conditionIds) },
     columns: {
       condition_id: true,
       event_id: true,
@@ -64,7 +63,7 @@ async function loadActivityMarketMetadata(conditionIds: string[]) {
     eventIds.length === 0
       ? []
       : ((await db.query.events.findMany({
-          where: inArray(events.id, eventIds),
+          where: { RAW: (table) => inArray(table.id, eventIds) },
           columns: {
             id: true,
           },

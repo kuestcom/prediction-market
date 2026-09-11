@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 import { buildEmbedMarket, withEmbedCors } from '@/app/api/embed/_utils'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
-import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 
 export async function OPTIONS() {
@@ -15,7 +14,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   try {
     const { slug } = await params
     const marketRecord = await db.query.markets.findFirst({
-      where: eq(markets.slug, slug),
+      where: { RAW: (table) => eq(table.slug, slug) },
       with: {
         event: {
           columns: {

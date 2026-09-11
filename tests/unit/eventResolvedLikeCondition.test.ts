@@ -21,7 +21,7 @@ describe('buildResolvedLikeCondition', () => {
     const query = new PgDialect().sqlToQuery(condition!)
 
     expect(query.sql).toContain(
-      '(("events"."status" = $1 or (has_any_markets and not has_unresolved_markets)) and has_bitcoin_tag)',
+      '(((("events"."status" = $1) or (((has_any_markets) and (not (has_unresolved_markets)))))) and (has_bitcoin_tag))',
     )
     expect(query.params).toEqual(['resolved'])
   })

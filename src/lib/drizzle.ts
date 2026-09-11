@@ -1,14 +1,14 @@
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
+import type { BunSQLDatabase } from 'drizzle-orm/bun-sql/postgres'
 
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
+import { SQL } from 'bun'
+import { drizzle } from 'drizzle-orm/bun-sql/postgres'
 
-import * as schema from './db/schema'
+import { relations } from './db/relations'
 
-type DrizzleDb = PostgresJsDatabase<typeof schema>
+type DrizzleDb = BunSQLDatabase<typeof relations>
 
 const globalForDb = globalThis as unknown as {
-  client: postgres.Sql | undefined
+  client: SQL | undefined
   db: DrizzleDb | undefined
 }
 
@@ -20,14 +20,14 @@ function createDb(): DrizzleDb {
 
   const client =
     globalForDb.client ??
-    postgres(url, {
+    new SQL(url, {
       prepare: false,
-      connect_timeout: 10,
-      idle_timeout: 20,
+      connectionTimeout: 10,
+      idleTimeout: 20,
     })
   globalForDb.client = client
 
-  const database = globalForDb.db ?? drizzle(client, { schema })
+  const database = globalForDb.db ?? drizzle({ client, relations })
   globalForDb.db = database
 
   return database

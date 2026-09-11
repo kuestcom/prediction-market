@@ -14,8 +14,6 @@ COPY . .
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=$COMMIT_SHA
 RUN bun run build
-RUN mkdir -p /tmp/runtime-node_modules \
-  && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres
 
 FROM oven/bun:1.4.2 AS runner
 WORKDIR /app
@@ -30,7 +28,6 @@ COPY --from=build --chown=bun:bun /app/package.json ./package.json
 COPY --from=build --chown=bun:bun /app/public ./public
 COPY --from=build --chown=bun:bun /app/.next/standalone ./
 COPY --from=build --chown=bun:bun /app/.next/static ./.next/static
-COPY --from=build --chown=bun:bun /tmp/runtime-node_modules/postgres ./node_modules/postgres
 COPY --from=build --chown=bun:bun /app/package.json ./package.json
 COPY --from=build --chown=bun:bun /app/scripts ./scripts
 COPY --from=build --chown=bun:bun /app/src/lib/site-url.ts ./src/lib/site-url.ts

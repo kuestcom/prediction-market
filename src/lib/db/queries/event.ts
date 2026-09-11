@@ -1,6 +1,23 @@
-import type { SQL } from 'drizzle-orm'
-
-import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 'drizzle-orm'
+import {
+  Column,
+  SQL,
+  aliasedTableColumn,
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  getColumnTable,
+  getOriginalColumnFromAlias,
+  getTableName,
+  ilike,
+  inArray,
+  is,
+  not,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { cacheLife, cacheTag } from 'next/cache'
 import { createHash } from 'node:crypto'
 
@@ -1346,6 +1363,64 @@ interface EventListQueryContext {
   sportsSlugResolver: SportsSlugResolver
 }
 
+interface RelationSelectQueryChunk {
+  config: {
+    where?: SQL
+    having?: SQL
+    joins?: Array<{ on?: SQL }>
+  }
+}
+
+function isRelationSelectQueryChunk(chunk: unknown): chunk is RelationSelectQueryChunk {
+  if (typeof chunk !== 'object' || chunk === null || !('config' in chunk)) {
+    return false
+  }
+
+  const config = (chunk as { config?: unknown }).config
+  return typeof config === 'object' && config !== null && ('where' in config || 'having' in config || 'joins' in config)
+}
+
+function mapEventColumnsToRelationAlias(query: SQL, table: typeof events): SQL {
+  const alias = getTableName(table)
+
+  return sql.join(
+    query.queryChunks.map((chunk) => {
+      if (isRelationSelectQueryChunk(chunk)) {
+        if (is(chunk.config.where, SQL)) {
+          chunk.config.where = mapEventColumnsToRelationAlias(chunk.config.where, table)
+        }
+
+        if (is(chunk.config.having, SQL)) {
+          chunk.config.having = mapEventColumnsToRelationAlias(chunk.config.having, table)
+        }
+
+        for (const join of chunk.config.joins ?? []) {
+          if (is(join.on, SQL)) {
+            join.on = mapEventColumnsToRelationAlias(join.on, table)
+          }
+        }
+
+        return chunk
+      }
+
+      if (is(chunk, Column)) {
+        const originalColumn = getOriginalColumnFromAlias(chunk)
+        return getColumnTable(originalColumn) === events ? aliasedTableColumn(originalColumn, alias) : chunk
+      }
+
+      if (is(chunk, SQL)) {
+        return mapEventColumnsToRelationAlias(chunk, table)
+      }
+
+      if (is(chunk, SQL.Aliased)) {
+        return new SQL.Aliased(mapEventColumnsToRelationAlias(chunk.sql, table), chunk.fieldAlias)
+      }
+
+      return chunk
+    }),
+  )
+}
+
 function normalizeEventListLimit(value: number | undefined) {
   const normalized = Number.isFinite(value) ? Math.floor(value as number) : DEFAULT_EVENT_LIST_LIMIT
   return Math.min(Math.max(normalized, 1), 128)
@@ -2136,7 +2211,9 @@ export const EventRepository = {
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
         const orderedSearchData = (await db.query.events.findMany({
-          where: and(baseWhere, inArray(events.id, orderedIds)),
+          where: {
+            RAW: (table) => mapEventColumnsToRelationAlias(and(baseWhere, inArray(table.id, orderedIds))!, table),
+          },
           with: {
             markets: {
               with: {
@@ -2154,7 +2231,7 @@ export const EventRepository = {
 
             ...(userId && {
               bookmarks: {
-                where: eq(bookmarks.user_id, userId),
+                where: { RAW: (table) => eq(table.user_id, userId) },
               },
             }),
           },
@@ -2190,7 +2267,9 @@ export const EventRepository = {
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
         const resolvedData = (await db.query.events.findMany({
-          where: and(baseWhere, inArray(events.id, orderedIds)),
+          where: {
+            RAW: (table) => mapEventColumnsToRelationAlias(and(baseWhere, inArray(table.id, orderedIds))!, table),
+          },
           with: {
             markets: {
               with: {
@@ -2208,7 +2287,7 @@ export const EventRepository = {
 
             ...(userId && {
               bookmarks: {
-                where: eq(bookmarks.user_id, userId),
+                where: { RAW: (table) => eq(table.user_id, userId) },
               },
             }),
           },
@@ -2238,7 +2317,9 @@ export const EventRepository = {
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
         const trendingData = (await db.query.events.findMany({
-          where: and(baseWhere, inArray(events.id, orderedIds)),
+          where: {
+            RAW: (table) => mapEventColumnsToRelationAlias(and(baseWhere, inArray(table.id, orderedIds))!, table),
+          },
           with: {
             markets: {
               with: {
@@ -2256,7 +2337,7 @@ export const EventRepository = {
 
             ...(userId && {
               bookmarks: {
-                where: eq(bookmarks.user_id, userId),
+                where: { RAW: (table) => eq(table.user_id, userId) },
               },
             }),
           },
@@ -2301,7 +2382,9 @@ export const EventRepository = {
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
         const sortedData = (await db.query.events.findMany({
-          where: and(baseWhere, inArray(events.id, orderedIds)),
+          where: {
+            RAW: (table) => mapEventColumnsToRelationAlias(and(baseWhere, inArray(table.id, orderedIds))!, table),
+          },
           with: {
             markets: {
               with: {
@@ -2319,7 +2402,7 @@ export const EventRepository = {
 
             ...(userId && {
               bookmarks: {
-                where: eq(bookmarks.user_id, userId),
+                where: { RAW: (table) => eq(table.user_id, userId) },
               },
             }),
           },
@@ -2385,7 +2468,9 @@ export const EventRepository = {
 
       const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
       const sportsFeedData = (await db.query.events.findMany({
-        where: and(baseWhere, inArray(events.id, orderedIds)),
+        where: {
+          RAW: (table) => mapEventColumnsToRelationAlias(and(baseWhere, inArray(table.id, orderedIds))!, table),
+        },
         with: {
           markets: {
             with: {
@@ -3931,7 +4016,7 @@ export const EventRepository = {
       }
 
       const eventResult = (await db.query.events.findFirst({
-        where: and(eq(events.slug, slug), eq(events.is_hidden, false)),
+        where: { RAW: (table) => and(eq(table.slug, slug), eq(table.is_hidden, false))! },
         columns: {
           id: true,
           enable_neg_risk: true,
@@ -3995,7 +4080,7 @@ export const EventRepository = {
   ): Promise<QueryResult<Event>> {
     return runQuery(async () => {
       const eventResult = (await db.query.events.findFirst({
-        where: and(eq(events.slug, slug), eq(events.is_hidden, false)),
+        where: { RAW: (table) => and(eq(table.slug, slug), eq(table.is_hidden, false))! },
         with: {
           markets: {
             with: {
@@ -4011,7 +4096,7 @@ export const EventRepository = {
           sports: true,
           ...(userId && {
             bookmarks: {
-              where: eq(bookmarks.user_id, userId),
+              where: { RAW: (table) => eq(table.user_id, userId) },
             },
           }),
         },
@@ -4042,7 +4127,9 @@ export const EventRepository = {
       }
 
       const eventResults = (await db.query.events.findMany({
-        where: and(inArray(events.slug, normalizedSlugs), eq(events.is_hidden, false)),
+        where: {
+          RAW: (table) => and(inArray(table.slug, normalizedSlugs), eq(table.is_hidden, false))!,
+        },
         with: {
           markets: {
             with: {
@@ -4058,7 +4145,7 @@ export const EventRepository = {
           sports: true,
           ...(userId && {
             bookmarks: {
-              where: eq(bookmarks.user_id, userId),
+              where: { RAW: (table) => eq(table.user_id, userId) },
             },
           }),
         },
@@ -4109,15 +4196,21 @@ export const EventRepository = {
       }
 
       const groupedEventsData = (await db.query.events.findMany({
-        where: and(
-          eq(events.is_hidden, false),
-          exists(
-            db
-              .select({ event_id: event_sports.event_id })
-              .from(event_sports)
-              .where(and(eq(event_sports.event_id, events.id), sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`)),
-          ),
-        ),
+        where: {
+          RAW: (table) =>
+            mapEventColumnsToRelationAlias(
+              and(
+                eq(table.is_hidden, false),
+                exists(
+                  db
+                    .select({ event_id: event_sports.event_id })
+                    .from(event_sports)
+                    .where(and(eq(event_sports.event_id, table.id), sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`)),
+                ),
+              )!,
+              table,
+            ),
+        },
         with: {
           markets: {
             with: {
@@ -4133,11 +4226,11 @@ export const EventRepository = {
           sports: true,
           ...(userId && {
             bookmarks: {
-              where: eq(bookmarks.user_id, userId),
+              where: { RAW: (table) => eq(table.user_id, userId) },
             },
           }),
         },
-        orderBy: [asc(events.created_at)],
+        orderBy: { created_at: 'asc' },
       })) as DrizzleEventResult[]
 
       if (groupedEventsData.length === 0) {
@@ -4381,7 +4474,7 @@ export const EventRepository = {
       const locale = options.locale ?? DEFAULT_LOCALE
 
       const currentEvent = (await db.query.events.findFirst({
-        where: and(eq(events.slug, slug), eq(events.is_hidden, false)),
+        where: { RAW: (table) => and(eq(table.slug, slug), eq(table.is_hidden, false))! },
         with: {
           eventTags: {
             with: { tag: true },

@@ -9,11 +9,3 @@ export * from './legal/tables'
 export * from './settings/tables'
 export * from './subgraph/tables'
 export * from './sumsub/tables'
-
-// relations
-export * from './affiliates/relations'
-export * from './auth/relations'
-export * from './bookmarks/relations'
-export * from './events/relations'
-export * from './notifications/relations'
-export * from './orders/relations'
