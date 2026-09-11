@@ -85,15 +85,32 @@ describe('filterToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open search' }))
     expect(screen.getByTestId('filter-search-input')).toBeVisible()
 
-    fireEvent.pointerDown(document.body)
-
-    expect(screen.getByTestId('filter-search-input')).toBeVisible()
-
     fireEvent.click(document.body)
 
     expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
     expect(screen.getByTestId('filter-search-trigger')).toBeVisible()
     expect(document.activeElement).toBe(screen.getByTestId('filter-search-trigger'))
+
+    fireEvent.click(screen.getByTestId('filter-search-trigger'))
+
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
+  })
+
+  it('keeps toolbar button clicks active while closing an empty search input', () => {
+    const onFiltersChange = mock()
+
+    render(<FilterToolbar collapsibleSearch filters={FILTERS} onFiltersChange={onFiltersChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open search' }))
+    const settingsTrigger = screen.getByRole('button', { name: 'Open filters' })
+
+    fireEvent.pointerDown(settingsTrigger)
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
+
+    fireEvent.click(settingsTrigger)
+
+    expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
+    expect(settingsTrigger).toHaveAttribute('aria-expanded', 'true')
   })
 
   it('clears a typed query before closing the search with Escape', () => {

@@ -43,11 +43,15 @@ export default function FilterToolbarSearchInput({
 
     function handleClick(event: MouseEvent) {
       const target = event.target
-      if (!(target instanceof Node) || searchShellRef.current?.contains(target)) {
+      const searchShell = searchShellRef.current
+      if (!(target instanceof Node) || !searchShell || searchShell.contains(target)) {
+        return
+      }
+      if (target instanceof Element && target.closest('[data-filter-search-trigger]')) {
         return
       }
 
-      const currentInputValue = searchShellRef.current?.querySelector<HTMLInputElement>(
+      const currentInputValue = searchShell.querySelector<HTMLInputElement>(
         '[data-testid="filter-search-input"]',
       )?.value
       const normalizedInputValue =
@@ -80,6 +84,7 @@ export default function FilterToolbarSearchInput({
         title={openSearchLabel}
         aria-label={openSearchLabel}
         aria-expanded={false}
+        data-filter-search-trigger="true"
         data-testid="filter-search-trigger"
         onClick={() => setIsOpen(true)}
       >
@@ -216,6 +221,7 @@ function FilterToolbarSearchInputField({
     search,
     onSearchChange,
   })
+  const [initialSearch] = useState(() => search)
 
   return (
     <div ref={shellRef} className="relative w-full md:w-44 lg:w-52 xl:w-56">
@@ -225,7 +231,7 @@ function FilterToolbarSearchInputField({
         type="text"
         data-testid="filter-search-input"
         placeholder={searchPlaceholder}
-        defaultValue={search}
+        defaultValue={initialSearch}
         autoFocus={autoFocus}
         onChange={handleInputChange}
         onKeyDown={(event) => {

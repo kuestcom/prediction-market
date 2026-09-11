@@ -3047,7 +3047,6 @@ async function upsertEventSportsMetadata(eventId: string, input: EventSportsMeta
   }
 
   payload.updated_at = new Date()
-
   await db
     .insert(eventSportsTable)
     .values(payload)
@@ -3133,7 +3132,6 @@ async function upsertMarketSportsMetadata(conditionId: string, input: MarketSpor
   }
 
   payload.updated_at = new Date()
-
   await db
     .insert(marketSportsTable)
     .values(payload)

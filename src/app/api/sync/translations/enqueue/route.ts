@@ -387,6 +387,7 @@ async function upsertJobs(rows: JobUpsertRow[]) {
       .values(
         rowsToUpsert.map((row) => ({
           ...row,
+          payload: row.payload,
           available_at: new Date(row.available_at),
         })),
       )
