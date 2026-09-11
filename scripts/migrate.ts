@@ -482,7 +482,7 @@ async function run(): Promise<void> {
   const sql = new SQL(connectionString, {
     max: 1,
     connectionTimeout: 30,
-    idleTimeout: 5,
+    idleTimeout: 0,
   })
   let reserved: ReservedSql | null = null
   let lockAcquired = false
