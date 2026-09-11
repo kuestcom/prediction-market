@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 
+import { isAdminWallet } from '@/lib/admin'
 import { auth } from '@/lib/auth'
 
 import { routing } from './i18n/routing'
@@ -60,7 +61,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith('/admin')) {
-    if (!session.user?.is_admin) {
+    if (!isAdminWallet(session.user?.name)) {
       return NextResponse.redirect(new URL(withLocale('/', locale), request.url))
     }
   }

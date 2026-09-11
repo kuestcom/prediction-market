@@ -22,10 +22,10 @@ describe('auth schema relations', () => {
     expect(columns.locked_until.notNull).toBe(false)
   })
 
-  it('exposes the Better Auth account issuer field', () => {
+  it('keeps the legacy Better Auth account issuer field nullable', () => {
     const columns = getTableColumns(schema.accounts)
 
     expect(columns.issuer.name).toBe('issuer')
-    expect(columns.issuer.notNull).toBe(true)
+    expect(columns.issuer.notNull).toBe(false)
   })
 })

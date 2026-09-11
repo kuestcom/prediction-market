@@ -18,7 +18,7 @@ export async function enableTwoFactorAction() {
     const h = await headers()
 
     return await auth.api.enableTwoFactor({
-      body: {},
+      body: { method: 'totp' },
       headers: h,
     })
   } catch (error) {
