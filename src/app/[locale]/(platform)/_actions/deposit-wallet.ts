@@ -9,7 +9,6 @@ import type { DepositWalletStatus } from '@/types'
 
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'
-import { jsonbParam } from '@/lib/db/jsonb'
 import { UserRepository } from '@/lib/db/queries/user'
 import { users } from '@/lib/db/schema/auth/tables'
 import { getDepositWalletAddress, isDepositWalletDeployed } from '@/lib/deposit-wallet'
@@ -186,10 +185,10 @@ async function updateOnboardingSettings(userId: string, patch: Record<string, un
   await db
     .update(users)
     .set({
-      settings: jsonbParam({
+      settings: {
         ...settings,
         onboarding,
-      }),
+      },
     })
     .where(eq(users.id, userId))
 

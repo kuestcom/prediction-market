@@ -8,7 +8,6 @@ import type {
 } from '@/lib/event-creation'
 import type { QueryResult } from '@/types'
 
-import { jsonbParam, withJsonbParams } from '@/lib/db/jsonb'
 import { event_creations, event_tags, events, jobs, tags } from '@/lib/db/schema'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -207,8 +206,8 @@ export const EventCreationRepository = {
           deploy_at: input.deployAt ?? null,
           end_date: input.endDate ?? null,
           source_event_id: input.sourceEventId ?? null,
-          draft_payload: input.draftPayload == null ? null : jsonbParam(input.draftPayload),
-          asset_payload: input.assetPayload == null ? null : jsonbParam(input.assetPayload),
+          draft_payload: input.draftPayload ?? null,
+          asset_payload: (input.assetPayload as Record<string, unknown> | null) ?? null,
           main_category_slug: input.mainCategorySlug?.trim().toLowerCase() || null,
           category_slugs: input.categorySlugs ?? [],
         })
@@ -464,7 +463,7 @@ export const EventCreationRepository = {
 
       const updatedRows = await db
         .update(event_creations)
-        .set(withJsonbParams(nextValues, ['draft_payload', 'asset_payload']))
+        .set(nextValues)
         .where(and(eq(event_creations.id, input.draftId), eq(event_creations.created_by_user_id, input.userId)))
         .returning()
 
@@ -518,7 +517,7 @@ export const EventCreationRepository = {
     return runQuery(async () => {
       const rows = await db
         .update(event_creations)
-        .set(withJsonbParams(buildExecutionStateUpdateValues(input), ['pending_confirmed_txs']))
+        .set(buildExecutionStateUpdateValues(input))
         .where(eq(event_creations.id, input.draftId))
         .returning({ id: event_creations.id })
 
@@ -540,9 +539,9 @@ export const EventCreationRepository = {
         .values({
           job_type: 'deploy_event_creation',
           dedupe_key: input.dedupeKey,
-          payload: jsonbParam({
+          payload: {
             draftId: input.draftId,
-          }),
+          },
           status: 'pending',
           attempts: 0,
           max_attempts: 6,

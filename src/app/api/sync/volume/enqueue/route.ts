@@ -11,7 +11,6 @@ import {
   VOLUME_SYNC_JOB_TYPE,
 } from '@/app/api/sync/volume/helpers'
 import { isCronAuthorized } from '@/lib/auth-cron'
-import { jsonbParam } from '@/lib/db/jsonb'
 import { jobs, markets } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 
@@ -118,7 +117,7 @@ async function upsertVolumeJobs(rows: VolumeJobUpsertRow[], refreshThreshold: Da
 
   const affectedRows = await db
     .insert(jobs)
-    .values(rows.map((row) => ({ ...row, payload: jsonbParam(row.payload) })))
+    .values(rows)
     .onConflictDoUpdate({
       target: [jobs.job_type, jobs.dedupe_key],
       set: {

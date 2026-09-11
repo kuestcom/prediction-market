@@ -8,7 +8,6 @@ import { z } from 'zod'
 import type { SportsVertical } from '@/lib/sports-vertical'
 
 import { cacheTags } from '@/lib/cache-tags'
-import { withJsonbParams } from '@/lib/db/jsonb'
 import { UserRepository } from '@/lib/db/queries/user'
 import { sports_menu_items } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
@@ -476,31 +475,26 @@ async function updateSidebarCategories(
               ? `/esports/${parentSlug}/${category.slug}`
               : `/esports/${category.slug}/games`
             : `/sports/${category.slug}/games`
-        await tx.insert(sports_menu_items).values(
-          withJsonbParams(
-            {
-              id: `sidebar-${vertical}-category-${category.slug}-${randomUUID()}`,
-              item_type: 'link',
-              label: category.name,
-              href,
-              icon_url: resolveNewCategoryIconUrl(category, parent ?? null, menuRows, vertical),
-              parent_id: category.parentId,
-              menu_slug: vertical === 'esports' && category.parentId ? null : category.slug,
-              h1_title: category.name,
-              mapped_tags: [category.name],
-              url_aliases: [],
-              games_enabled: true,
-              props_enabled: false,
-              sort_order: category.nestedPosition,
-              enabled: true,
-              sidebar_category: true,
-              sidebar_enabled: category.enabled,
-              sidebar_featured: category.featured,
-              sidebar_sort_order: category.position,
-            },
-            ['mapped_tags', 'url_aliases'],
-          ),
-        )
+        await tx.insert(sports_menu_items).values({
+          id: `sidebar-${vertical}-category-${category.slug}-${randomUUID()}`,
+          item_type: 'link',
+          label: category.name,
+          href,
+          icon_url: resolveNewCategoryIconUrl(category, parent ?? null, menuRows, vertical),
+          parent_id: category.parentId,
+          menu_slug: vertical === 'esports' && category.parentId ? null : category.slug,
+          h1_title: category.name,
+          mapped_tags: [category.name],
+          url_aliases: [],
+          games_enabled: true,
+          props_enabled: false,
+          sort_order: category.nestedPosition,
+          enabled: true,
+          sidebar_category: true,
+          sidebar_enabled: category.enabled,
+          sidebar_featured: category.featured,
+          sidebar_sort_order: category.position,
+        })
       }
     })
 

@@ -5,7 +5,6 @@ import { cookies } from 'next/headers'
 
 import type { L2AuthContextRecord } from '@/lib/l2-auth-context'
 
-import { jsonbParam } from '@/lib/db/jsonb'
 import { users } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
@@ -194,10 +193,7 @@ async function invalidateTradingAuthCredentials(userId: string, settings: Record
       tradingAuth: nextTradingAuth,
     }
 
-    await tx
-      .update(users)
-      .set({ settings: jsonbParam(nextSettings) })
-      .where(eq(users.id, userId))
+    await tx.update(users).set({ settings: nextSettings }).where(eq(users.id, userId))
 
     return { invalidated: true, settings: nextSettings }
   })
@@ -257,10 +253,7 @@ export async function getUserTradingAuthSecrets(
           tradingAuth: nextTradingAuth,
         }
 
-        await tx
-          .update(users)
-          .set({ settings: jsonbParam(nextSettings) })
-          .where(eq(users.id, userId))
+        await tx.update(users).set({ settings: nextSettings }).where(eq(users.id, userId))
       })
     }
 
@@ -310,10 +303,7 @@ export async function saveUserTradingAuthCredentials(userId: string, payload: Tr
 
     settings.tradingAuth = tradingAuth
 
-    await tx
-      .update(users)
-      .set({ settings: jsonbParam(settings) })
-      .where(eq(users.id, userId))
+    await tx.update(users).set({ settings }).where(eq(users.id, userId))
   })
 
   return l2AuthContextId
@@ -331,10 +321,7 @@ export async function markTokenApprovalsCompleted(userId: string) {
 
     settings.tradingAuth = tradingAuth
 
-    await tx
-      .update(users)
-      .set({ settings: jsonbParam(settings) })
-      .where(eq(users.id, userId))
+    await tx.update(users).set({ settings }).where(eq(users.id, userId))
   })
 
   return {
@@ -356,10 +343,7 @@ export async function markAutoRedeemApprovalCompleted(userId: string) {
 
     settings.tradingAuth = tradingAuth
 
-    await tx
-      .update(users)
-      .set({ settings: jsonbParam(settings) })
-      .where(eq(users.id, userId))
+    await tx.update(users).set({ settings }).where(eq(users.id, userId))
   })
 
   return {

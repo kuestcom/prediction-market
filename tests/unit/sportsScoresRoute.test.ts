@@ -219,9 +219,10 @@ describe('sync sports scores route', () => {
       }),
     )
 
-    const [payload] = mocks.set.mock.calls[0] as [{ sports_segment_scores: { queryChunks: unknown[] } }]
-    expect(payload.sports_segment_scores.queryChunks[1]).toBe(
-      JSON.stringify([{ segment: 1, homeScore: 13, awayScore: 9 }]),
+    expect(mocks.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sports_segment_scores: [{ segment: 1, homeScore: 13, awayScore: 9 }],
+      }),
     )
     await expect(response.json()).resolves.toEqual({
       checkedCount: 1,

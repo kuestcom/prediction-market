@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
-import { withJsonbParams } from '@/lib/db/jsonb'
 import { event_sports as eventSportsTable, events as eventsTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 import { areSportsSegmentScoresEqual, normalizeSportsSegmentScores } from '@/lib/sports-segment-score'
@@ -151,21 +150,16 @@ export async function POST(request: Request) {
 
         await db
           .update(eventSportsTable)
-          .set(
-            withJsonbParams(
-              {
-                sports_score: nextScore,
-                sports_segment_scores: nextSegmentScores,
-                sports_period: nextPeriod,
-                sports_elapsed: nextElapsed,
-                sports_live: nextLive,
-                sports_ended: nextEnded,
-                sports_source_payload: candidate.raw,
-                updated_at: new Date(),
-              },
-              ['sports_segment_scores', 'sports_source_payload'],
-            ),
-          )
+          .set({
+            sports_score: nextScore,
+            sports_segment_scores: nextSegmentScores,
+            sports_period: nextPeriod,
+            sports_elapsed: nextElapsed,
+            sports_live: nextLive,
+            sports_ended: nextEnded,
+            sports_source_payload: candidate.raw,
+            updated_at: new Date(),
+          })
           .where(eq(eventSportsTable.event_id, row.event_id))
 
         if (nextLivestreamUrl) {

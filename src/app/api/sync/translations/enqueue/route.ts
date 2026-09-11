@@ -14,7 +14,6 @@ import {
   loadRulesTranslationsEnabled,
 } from '@/i18n/locale-settings'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
-import { jsonbParam } from '@/lib/db/jsonb'
 import {
   events as eventsTable,
   event_translations as eventTranslationsTable,
@@ -388,7 +387,7 @@ async function upsertJobs(rows: JobUpsertRow[]) {
       .values(
         rowsToUpsert.map((row) => ({
           ...row,
-          payload: jsonbParam(row.payload),
+          payload: row.payload,
           available_at: new Date(row.available_at),
         })),
       )
