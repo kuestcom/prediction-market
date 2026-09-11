@@ -461,7 +461,8 @@ function resolveMigrationConnectionString(): string | null {
     return null
   }
 
-  return migrationUrl.replace('require', 'disable')
+  // Preserve SSL options: Supabase can require TLS for migration connections too.
+  return migrationUrl
 }
 
 async function acquireMigrationLock(sql: ReservedSql): Promise<void> {
