@@ -14,6 +14,19 @@ CREATE TABLE IF NOT EXISTS arbitrage_order_rate_limits (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'arbitrage_order_rate_limits'::regclass
+      AND tgname = 'set_arbitrage_order_rate_limits_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_arbitrage_order_rate_limits_updated_at ON arbitrage_order_rate_limits;
+  END IF;
+END $$;
+
 CREATE TRIGGER set_arbitrage_order_rate_limits_updated_at
   BEFORE UPDATE
   ON arbitrage_order_rate_limits

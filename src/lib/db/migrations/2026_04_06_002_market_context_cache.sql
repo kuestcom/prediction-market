@@ -18,6 +18,19 @@ CREATE INDEX IF NOT EXISTS idx_market_context_cache_expires_at
 ALTER TABLE market_context_cache
   ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'market_context_cache'
+      AND policyname = 'service_role_all_market_context_cache'
+  ) THEN
+    DROP POLICY "service_role_all_market_context_cache" ON "market_context_cache";
+  END IF;
+END $$;
+
 CREATE POLICY "service_role_all_market_context_cache"
   ON "market_context_cache"
   AS PERMISSIVE
@@ -25,6 +38,19 @@ CREATE POLICY "service_role_all_market_context_cache"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'market_context_cache'::regclass
+      AND tgname = 'set_market_context_cache_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_market_context_cache_updated_at ON market_context_cache;
+  END IF;
+END $$;
 
 CREATE TRIGGER set_market_context_cache_updated_at
   BEFORE UPDATE

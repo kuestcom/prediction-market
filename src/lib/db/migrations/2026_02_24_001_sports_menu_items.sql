@@ -224,6 +224,19 @@ ON CONFLICT (id) DO UPDATE SET
 ALTER TABLE sports_menu_items
   ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'sports_menu_items'
+      AND policyname = 'service_role_all_sports_menu_items'
+  ) THEN
+    DROP POLICY "service_role_all_sports_menu_items" ON "sports_menu_items";
+  END IF;
+END $$;
+
 CREATE POLICY "service_role_all_sports_menu_items"
   ON "sports_menu_items"
   AS PERMISSIVE

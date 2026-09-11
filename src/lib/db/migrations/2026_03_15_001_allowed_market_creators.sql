@@ -26,6 +26,19 @@ CREATE INDEX IF NOT EXISTS idx_allowed_market_creators_source_url
 ALTER TABLE allowed_market_creators
   ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'allowed_market_creators'
+      AND policyname = 'service_role_all_allowed_market_creators'
+  ) THEN
+    DROP POLICY "service_role_all_allowed_market_creators" ON "allowed_market_creators";
+  END IF;
+END $$;
+
 CREATE POLICY "service_role_all_allowed_market_creators"
   ON "allowed_market_creators"
   AS PERMISSIVE
@@ -33,6 +46,19 @@ CREATE POLICY "service_role_all_allowed_market_creators"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'allowed_market_creators'::regclass
+      AND tgname = 'set_allowed_market_creators_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_allowed_market_creators_updated_at ON allowed_market_creators;
+  END IF;
+END $$;
 
 CREATE TRIGGER set_allowed_market_creators_updated_at
   BEFORE UPDATE

@@ -29,6 +29,19 @@ CREATE INDEX IF NOT EXISTS idx_series_social_trackers_series_slug_active
 ALTER TABLE series_social_trackers
   ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'series_social_trackers'
+      AND policyname = 'service_role_all_series_social_trackers'
+  ) THEN
+    DROP POLICY "service_role_all_series_social_trackers" ON "series_social_trackers";
+  END IF;
+END $$;
+
 CREATE POLICY "service_role_all_series_social_trackers"
   ON "series_social_trackers"
   AS PERMISSIVE
@@ -36,6 +49,19 @@ CREATE POLICY "service_role_all_series_social_trackers"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'series_social_trackers'::regclass
+      AND tgname = 'set_series_social_trackers_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_series_social_trackers_updated_at ON series_social_trackers;
+  END IF;
+END $$;
 
 CREATE TRIGGER set_series_social_trackers_updated_at
   BEFORE UPDATE

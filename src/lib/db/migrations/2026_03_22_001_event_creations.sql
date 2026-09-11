@@ -64,6 +64,19 @@ CREATE INDEX IF NOT EXISTS idx_event_creations_source_event_id
 ALTER TABLE event_creations
   ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'event_creations'
+      AND policyname = 'service_role_all_event_creations'
+  ) THEN
+    DROP POLICY "service_role_all_event_creations" ON "event_creations";
+  END IF;
+END $$;
+
 CREATE POLICY "service_role_all_event_creations"
   ON "event_creations"
   AS PERMISSIVE
@@ -71,6 +84,19 @@ CREATE POLICY "service_role_all_event_creations"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'event_creations'::regclass
+      AND tgname = 'set_event_creations_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_event_creations_updated_at ON event_creations;
+  END IF;
+END $$;
 
 CREATE TRIGGER set_event_creations_updated_at
   BEFORE UPDATE

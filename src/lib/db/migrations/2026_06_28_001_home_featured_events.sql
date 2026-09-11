@@ -45,6 +45,19 @@ ALTER TABLE home_featured_events
 
 DO $$
 BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'home_featured_events'
+      AND policyname = 'service_role_all_home_featured_events'
+  ) THEN
+    DROP POLICY "service_role_all_home_featured_events" ON "home_featured_events";
+  END IF;
+END $$;
+
+DO $$
+BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
     CREATE POLICY "service_role_all_home_featured_events"
       ON "home_featured_events"
@@ -53,6 +66,19 @@ BEGIN
       TO "service_role"
       USING (TRUE)
       WITH CHECK (TRUE);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'home_featured_events'::regclass
+      AND tgname = 'set_home_featured_events_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_home_featured_events_updated_at ON home_featured_events;
   END IF;
 END $$;
 
@@ -97,6 +123,19 @@ ALTER TABLE home_featured_event_context_items
 
 DO $$
 BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'home_featured_event_context_items'
+      AND policyname = 'service_role_all_home_featured_event_context_items'
+  ) THEN
+    DROP POLICY "service_role_all_home_featured_event_context_items" ON "home_featured_event_context_items";
+  END IF;
+END $$;
+
+DO $$
+BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
     CREATE POLICY "service_role_all_home_featured_event_context_items"
       ON "home_featured_event_context_items"
@@ -105,6 +144,19 @@ BEGIN
       TO "service_role"
       USING (TRUE)
       WITH CHECK (TRUE);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_trigger
+    WHERE tgrelid = 'home_featured_event_context_items'::regclass
+      AND tgname = 'set_home_featured_event_context_items_updated_at'
+      AND NOT tgisinternal
+  ) THEN
+    DROP TRIGGER set_home_featured_event_context_items_updated_at ON home_featured_event_context_items;
   END IF;
 END $$;
 

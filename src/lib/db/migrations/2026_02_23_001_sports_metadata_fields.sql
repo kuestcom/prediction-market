@@ -114,6 +114,19 @@ ALTER TABLE event_sports
 ALTER TABLE market_sports
   ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'event_sports'
+      AND policyname = 'service_role_all_event_sports'
+  ) THEN
+    DROP POLICY "service_role_all_event_sports" ON "event_sports";
+  END IF;
+END $$;
+
 CREATE POLICY "service_role_all_event_sports"
   ON "event_sports"
   AS PERMISSIVE
@@ -121,6 +134,19 @@ CREATE POLICY "service_role_all_event_sports"
   TO "service_role"
   USING (TRUE)
   WITH CHECK (TRUE);
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = current_schema()
+      AND tablename = 'market_sports'
+      AND policyname = 'service_role_all_market_sports'
+  ) THEN
+    DROP POLICY "service_role_all_market_sports" ON "market_sports";
+  END IF;
+END $$;
 
 CREATE POLICY "service_role_all_market_sports"
   ON "market_sports"
