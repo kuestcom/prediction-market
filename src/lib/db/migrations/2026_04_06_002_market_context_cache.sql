@@ -18,7 +18,6 @@ CREATE INDEX IF NOT EXISTS idx_market_context_cache_expires_at
 ALTER TABLE market_context_cache
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_market_context_cache" ON "market_context_cache";
 CREATE POLICY "service_role_all_market_context_cache"
   ON "market_context_cache"
   AS PERMISSIVE
@@ -27,7 +26,6 @@ CREATE POLICY "service_role_all_market_context_cache"
   USING (TRUE)
   WITH CHECK (TRUE);
 
-DROP TRIGGER IF EXISTS set_market_context_cache_updated_at ON market_context_cache;
 CREATE TRIGGER set_market_context_cache_updated_at
   BEFORE UPDATE
   ON market_context_cache

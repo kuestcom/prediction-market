@@ -26,7 +26,6 @@ CREATE INDEX IF NOT EXISTS idx_allowed_market_creators_source_url
 ALTER TABLE allowed_market_creators
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_allowed_market_creators" ON "allowed_market_creators";
 CREATE POLICY "service_role_all_allowed_market_creators"
   ON "allowed_market_creators"
   AS PERMISSIVE
@@ -35,7 +34,6 @@ CREATE POLICY "service_role_all_allowed_market_creators"
   USING (TRUE)
   WITH CHECK (TRUE);
 
-DROP TRIGGER IF EXISTS set_allowed_market_creators_updated_at ON allowed_market_creators;
 CREATE TRIGGER set_allowed_market_creators_updated_at
   BEFORE UPDATE
   ON allowed_market_creators

@@ -43,7 +43,6 @@ CREATE INDEX IF NOT EXISTS idx_home_featured_events_ends_at
 ALTER TABLE home_featured_events
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_home_featured_events" ON "home_featured_events";
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
@@ -57,7 +56,6 @@ BEGIN
   END IF;
 END $$;
 
-DROP TRIGGER IF EXISTS set_home_featured_events_updated_at ON home_featured_events;
 CREATE TRIGGER set_home_featured_events_updated_at
   BEFORE UPDATE
   ON home_featured_events
@@ -97,7 +95,6 @@ CREATE INDEX IF NOT EXISTS idx_home_featured_context_expires_at
 ALTER TABLE home_featured_event_context_items
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_home_featured_event_context_items" ON "home_featured_event_context_items";
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
@@ -111,7 +108,6 @@ BEGIN
   END IF;
 END $$;
 
-DROP TRIGGER IF EXISTS set_home_featured_event_context_items_updated_at ON home_featured_event_context_items;
 CREATE TRIGGER set_home_featured_event_context_items_updated_at
   BEFORE UPDATE
   ON home_featured_event_context_items

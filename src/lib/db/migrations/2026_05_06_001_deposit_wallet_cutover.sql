@@ -72,11 +72,28 @@ BEGIN
   END IF;
 END $$;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_deposit_wallet_address
-  ON users (LOWER(deposit_wallet_address));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_indexes
+    WHERE schemaname = current_schema()
+      AND indexname = 'idx_users_deposit_wallet_address'
+  ) THEN
+    CREATE UNIQUE INDEX idx_users_deposit_wallet_address
+      ON users (LOWER(deposit_wallet_address));
+  END IF;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username
-  ON users (LOWER(username));
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_indexes
+    WHERE schemaname = current_schema()
+      AND indexname = 'idx_users_username'
+  ) THEN
+    CREATE UNIQUE INDEX idx_users_username
+      ON users (LOWER(username));
+  END IF;
+END $$;
 
 ALTER TABLE users
   ALTER COLUMN deposit_wallet_status DROP NOT NULL,

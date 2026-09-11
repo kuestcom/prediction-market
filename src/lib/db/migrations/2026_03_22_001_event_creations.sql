@@ -64,7 +64,6 @@ CREATE INDEX IF NOT EXISTS idx_event_creations_source_event_id
 ALTER TABLE event_creations
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_event_creations" ON "event_creations";
 CREATE POLICY "service_role_all_event_creations"
   ON "event_creations"
   AS PERMISSIVE
@@ -73,7 +72,6 @@ CREATE POLICY "service_role_all_event_creations"
   USING (TRUE)
   WITH CHECK (TRUE);
 
-DROP TRIGGER IF EXISTS set_event_creations_updated_at ON event_creations;
 CREATE TRIGGER set_event_creations_updated_at
   BEFORE UPDATE
   ON event_creations

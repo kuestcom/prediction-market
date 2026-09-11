@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS arbitrage_order_rate_limits (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS set_arbitrage_order_rate_limits_updated_at ON arbitrage_order_rate_limits;
 CREATE TRIGGER set_arbitrage_order_rate_limits_updated_at
   BEFORE UPDATE
   ON arbitrage_order_rate_limits

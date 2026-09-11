@@ -461,7 +461,6 @@ function resolveMigrationConnectionString(): string | null {
     return null
   }
 
-  // Preserve SSL options: Supabase can require TLS for migration connections too.
   return migrationUrl
 }
 

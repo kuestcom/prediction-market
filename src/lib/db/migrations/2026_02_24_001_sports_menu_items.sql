@@ -224,7 +224,6 @@ ON CONFLICT (id) DO UPDATE SET
 ALTER TABLE sports_menu_items
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_sports_menu_items" ON "sports_menu_items";
 CREATE POLICY "service_role_all_sports_menu_items"
   ON "sports_menu_items"
   AS PERMISSIVE

@@ -114,7 +114,6 @@ ALTER TABLE event_sports
 ALTER TABLE market_sports
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_event_sports" ON "event_sports";
 CREATE POLICY "service_role_all_event_sports"
   ON "event_sports"
   AS PERMISSIVE
@@ -123,7 +122,6 @@ CREATE POLICY "service_role_all_event_sports"
   USING (TRUE)
   WITH CHECK (TRUE);
 
-DROP POLICY IF EXISTS "service_role_all_market_sports" ON "market_sports";
 CREATE POLICY "service_role_all_market_sports"
   ON "market_sports"
   AS PERMISSIVE

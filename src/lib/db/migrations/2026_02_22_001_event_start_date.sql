@@ -29,7 +29,6 @@ CREATE INDEX IF NOT EXISTS idx_series_social_trackers_series_slug_active
 ALTER TABLE series_social_trackers
   ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "service_role_all_series_social_trackers" ON "series_social_trackers";
 CREATE POLICY "service_role_all_series_social_trackers"
   ON "series_social_trackers"
   AS PERMISSIVE
@@ -38,7 +37,6 @@ CREATE POLICY "service_role_all_series_social_trackers"
   USING (TRUE)
   WITH CHECK (TRUE);
 
-DROP TRIGGER IF EXISTS set_series_social_trackers_updated_at ON series_social_trackers;
 CREATE TRIGGER set_series_social_trackers_updated_at
   BEFORE UPDATE
   ON series_social_trackers
