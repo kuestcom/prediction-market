@@ -90,6 +90,10 @@ describe('filterToolbar', () => {
     expect(screen.queryByTestId('filter-search-input')).not.toBeInTheDocument()
     expect(screen.getByTestId('filter-search-trigger')).toBeVisible()
     expect(document.activeElement).toBe(screen.getByTestId('filter-search-trigger'))
+
+    fireEvent.click(screen.getByTestId('filter-search-trigger'))
+
+    expect(screen.getByTestId('filter-search-input')).toBeVisible()
   })
 
   it('keeps toolbar button clicks active while closing an empty search input', () => {
