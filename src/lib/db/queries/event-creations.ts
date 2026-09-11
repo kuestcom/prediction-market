@@ -8,6 +8,7 @@ import type {
 } from '@/lib/event-creation'
 import type { QueryResult } from '@/types'
 
+import { jsonbParam } from '@/lib/db/jsonb'
 import { event_creations, event_tags, events, jobs, tags } from '@/lib/db/schema'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -539,9 +540,9 @@ export const EventCreationRepository = {
         .values({
           job_type: 'deploy_event_creation',
           dedupe_key: input.dedupeKey,
-          payload: {
+          payload: jsonbParam({
             draftId: input.draftId,
-          },
+          }),
           status: 'pending',
           attempts: 0,
           max_attempts: 6,

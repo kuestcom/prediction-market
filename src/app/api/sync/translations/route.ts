@@ -16,6 +16,7 @@ import {
 import { LOCALE_LABELS } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
+import { jsonbParam } from '@/lib/db/jsonb'
 import {
   events as eventsTable,
   event_translations as eventTranslationsTable,
@@ -487,7 +488,7 @@ async function completeJob(
       available_at: new Date(),
       reserved_at: null,
       last_error: null,
-      payload,
+      payload: jsonbParam(payload),
     })
     .where(and(eq(jobsTable.id, job.id), eq(jobsTable.job_type, job.job_type)))
 }
