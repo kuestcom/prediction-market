@@ -10,6 +10,7 @@ import {
   refreshAllowedMarketCreatorSiteSources,
 } from '@/lib/allowed-market-creators-server'
 import { cacheTags } from '@/lib/cache-tags'
+import { withJsonbParams } from '@/lib/db/jsonb'
 import {
   conditions as conditionsTable,
   event_sports as eventSportsTable,
@@ -3047,13 +3048,20 @@ async function upsertEventSportsMetadata(eventId: string, input: EventSportsMeta
   }
 
   payload.updated_at = new Date()
+  const serializedPayload = withJsonbParams(payload, [
+    'sports_segment_scores',
+    'sports_tags',
+    'sports_teams',
+    'sports_team_logo_urls',
+    'sports_source_payload',
+  ])
 
   await db
     .insert(eventSportsTable)
-    .values(payload)
+    .values(serializedPayload)
     .onConflictDoUpdate({
       target: [eventSportsTable.event_id],
-      set: payload,
+      set: serializedPayload,
     })
 }
 
@@ -3133,13 +3141,14 @@ async function upsertMarketSportsMetadata(conditionId: string, input: MarketSpor
   }
 
   payload.updated_at = new Date()
+  const serializedPayload = withJsonbParams(payload, ['sports_teams', 'sports_team_logo_urls', 'sports_source_payload'])
 
   await db
     .insert(marketSportsTable)
-    .values(payload)
+    .values(serializedPayload)
     .onConflictDoUpdate({
       target: [marketSportsTable.condition_id],
-      set: payload,
+      set: serializedPayload,
     })
 }
 

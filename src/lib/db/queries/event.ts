@@ -47,6 +47,7 @@ import {
   resolveCryptoCadenceRouteSlug,
   resolveCryptoEventAsset,
 } from '@/lib/crypto-cadence-event'
+import { withJsonbParams } from '@/lib/db/jsonb'
 import {
   buildMissingSportsSourceCondition,
   buildPastDueUnresolvedEventCondition,
@@ -3698,15 +3699,20 @@ export const EventRepository = {
             .where(eq(events.id, eventId))
         }
 
+        const serializedSportsPayload = withJsonbParams(sportsPayload, [
+          'sports_segment_scores',
+          'sports_source_payload',
+        ])
+
         await tx
           .insert(event_sports)
           .values({
             event_id: eventId,
-            ...sportsPayload,
+            ...serializedSportsPayload,
           })
           .onConflictDoUpdate({
             target: event_sports.event_id,
-            set: sportsPayload,
+            set: serializedSportsPayload,
           })
 
         const sportsRows = await tx

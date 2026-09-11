@@ -8,3 +8,16 @@ export function jsonbParam(value: unknown): SQL {
 
   return sql`${serialized}::jsonb`
 }
+
+export function withJsonbParams<T extends object>(value: T, fields: readonly (keyof T & string)[]): T {
+  const result = { ...value } as Record<string, unknown>
+
+  for (const field of fields) {
+    const fieldValue = result[field]
+    if (fieldValue !== null && fieldValue !== undefined) {
+      result[field] = jsonbParam(fieldValue)
+    }
+  }
+
+  return result as T
+}
