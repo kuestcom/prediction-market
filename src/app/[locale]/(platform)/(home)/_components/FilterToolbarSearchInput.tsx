@@ -41,7 +41,7 @@ export default function FilterToolbarSearchInput({
       return undefined
     }
 
-    function handlePointerDown(event: PointerEvent) {
+    function handleClick(event: MouseEvent) {
       const target = event.target
       if (!(target instanceof Node) || searchShellRef.current?.contains(target)) {
         return
@@ -64,8 +64,8 @@ export default function FilterToolbarSearchInput({
       closeSearch()
     }
 
-    window.addEventListener('pointerdown', handlePointerDown)
-    return () => window.removeEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('click', handleClick)
+    return () => window.removeEventListener('click', handleClick)
   }, [closeSearch, collapsible, isOpen, onSearchChange, search])
 
   if (collapsible && !isOpen) {

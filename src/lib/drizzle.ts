@@ -11,6 +11,10 @@ const MISSING_DATABASE_URL = 'postgres://127.0.0.1:1/kuest-no-database'
 const MISSING_DATABASE_ERROR = 'POSTGRES_URL is not set. Configure the database env vars to enable DB features.'
 
 function serializeJsonbParam(value: unknown) {
+  if (value === null) {
+    return null
+  }
+
   const serialized = JSON.stringify(value)
   if (serialized === undefined) {
     throw new TypeError('Cannot serialize undefined as JSONB.')
