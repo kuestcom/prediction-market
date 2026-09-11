@@ -98,10 +98,13 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
   })
 
   const hasLeaderboardError = leaderboardQuery.isError
-  const baseEntries = leaderboardQuery.data ?? []
-  const entries = hasLeaderboardError ? [] : baseEntries.slice(0, PAGE_SIZE)
+  const baseEntries = leaderboardQuery.data
+  const entries = useMemo(
+    () => (hasLeaderboardError ? [] : (baseEntries ?? []).slice(0, PAGE_SIZE)),
+    [baseEntries, hasLeaderboardError],
+  )
   const isLoading = !hasLeaderboardError && (leaderboardQuery.isPending || leaderboardQuery.isPlaceholderData)
-  const hasNextPage = !isLoading && !hasLeaderboardError && baseEntries.length > PAGE_SIZE
+  const hasNextPage = !isLoading && !hasLeaderboardError && (baseEntries?.length ?? 0) > PAGE_SIZE
   const hasPaginationItems = !isLoading && (entries.length > 0 || (hasLeaderboardError && page > 1))
 
   const userEntryQuery = useQuery({
