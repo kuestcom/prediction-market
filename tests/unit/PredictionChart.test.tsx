@@ -291,7 +291,7 @@ describe('predictionChart', () => {
     })
   })
 
-  it('continues an append transition while the cursor is active', async () => {
+  it('draws replace snapshots directly without an unsafe data transition', async () => {
     const animationFrames: FrameRequestCallback[] = []
     const onCursorDataChange = mock()
     spyOn(window.performance, 'now').mockReturnValue(1_000)
@@ -355,15 +355,59 @@ describe('predictionChart', () => {
       />,
     )
 
-    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
-    act(() => animationFrames.at(-1)?.(1_100))
+    expect(animationFrames).toHaveLength(0)
     await waitFor(() => {
       const latestValue = onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price
-      expect(latestValue).toBeGreaterThan(55)
+      expect(latestValue).toBeGreaterThan(75)
       expect(latestValue).toBeLessThan(80)
     })
     const latestValue = onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price
     expect(container.textContent).toContain(`Price${latestValue?.toFixed(0)}%`)
+  })
+
+  it('animates append updates when the data timeline remains compatible', async () => {
+    const animationFrames: FrameRequestCallback[] = []
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    })
+
+    const { rerender } = render(
+      <PredictionChart
+        data={data}
+        dataSyncMode="append"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    animationFrames.length = 0
+
+    rerender(
+      <PredictionChart
+        data={[
+          { date: data[0].date, price: 45 },
+          { date: data[1].date, price: 65 },
+        ]}
+        dataSyncMode="append"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
   })
 
   it('uses the latest pending pointer position when starting the return animation', async () => {

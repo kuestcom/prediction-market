@@ -170,6 +170,27 @@ function interpolateDataPoints(fromData: DataPoint[], toData: DataPoint[], serie
   })
 }
 
+function canAnimateDataTransition(fromData: DataPoint[], toData: DataPoint[], seriesKeys: string[]) {
+  if (fromData.length < 2 || fromData.length !== toData.length) {
+    return false
+  }
+
+  return fromData.every((fromPoint, index) => {
+    const toPoint = toData[index]
+    if (!toPoint || fromPoint.date.getTime() !== toPoint.date.getTime()) {
+      return false
+    }
+
+    return seriesKeys.every((seriesKey) => {
+      const fromValue = fromPoint[seriesKey]
+      const toValue = toPoint[seriesKey]
+      const fromHasValue = typeof fromValue === 'number' && Number.isFinite(fromValue)
+      const toHasValue = typeof toValue === 'number' && Number.isFinite(toValue)
+      return fromHasValue === toHasValue
+    })
+  })
+}
+
 function positionTooltipEntries(
   entries: TooltipEntry[],
   marginTop: number,
@@ -771,11 +792,15 @@ export default function PredictionChart({
       const dataUpdateType = lastDataUpdateTypeRef.current
       const previousData = previousDataRef.current
       const shouldAnimateData =
+        dataSyncMode === 'append' &&
         dataUpdateType === 'append' &&
         previousData != null &&
         previousData !== data &&
-        previousData.length > 1 &&
-        data.length > 1
+        canAnimateDataTransition(
+          previousData,
+          data,
+          series.map((seriesItem) => seriesItem.key),
+        )
 
       if (shouldAnimateData && dataTransitionRef.current?.toData !== data) {
         dataTransitionRef.current = { fromData: previousData, toData: data, startedAt: null }
@@ -896,6 +921,7 @@ export default function PredictionChart({
       createCanvasFrame,
       cursorRangeEnd,
       data,
+      dataSyncMode,
       isClient,
       lastDataUpdateTypeRef,
       previousDataRef,
