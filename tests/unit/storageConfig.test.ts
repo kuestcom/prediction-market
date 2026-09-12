@@ -1,4 +1,3 @@
-import { S3Client } from '@aws-sdk/client-s3'
 import { afterEach, beforeEach, describe, expect, it, spyOn, jest } from 'bun:test'
 
 const STORAGE_ENV_KEYS = [
@@ -106,16 +105,47 @@ describe('storage compatibility', () => {
     process.env.S3_ACCESS_KEY_ID = 's3-key'
     process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
 
-    const sendMock = spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }))
     const { uploadPublicAsset } = await loadStorageUploadModule()
     const { error } = await uploadPublicAsset('users/avatar.jpg', 'binary-body', {
       contentType: 'image/jpeg',
+      cacheControl: '31536000',
       upsert: false,
     })
 
     expect(error).toBeNull()
-    expect(sendMock).toHaveBeenCalledTimes(1)
-    const command = sendMock.mock.calls[0]?.[0] as { input?: { IfNoneMatch?: string } }
-    expect(command.input?.IfNoneMatch).toBe('*')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain('/kuest-assets/users/avatar.jpg')
+    expect(request.method).toBe('PUT')
+    expect(request.headers).toEqual({
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': '31536000',
+      'If-None-Match': '*',
+    })
+    expect(request.body).toBe('binary-body')
+  })
+
+  it('uses a virtual-hosted S3 endpoint when path-style addressing is disabled', async () => {
+    process.env.S3_BUCKET = 'kuest-assets'
+    process.env.S3_ENDPOINT = 'https://s3.example.com'
+    process.env.S3_FORCE_PATH_STYLE = 'false'
+    process.env.S3_ACCESS_KEY_ID = 's3-key'
+    process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
+
+    const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 200 }))
+    const { uploadPublicAsset } = await loadStorageUploadModule()
+    const { error } = await uploadPublicAsset('users/avatar.jpg', 'binary-body', {
+      contentType: 'image/jpeg',
+      upsert: true,
+      timeoutMs: 1000,
+    })
+
+    expect(error).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toContain('https://kuest-assets.s3.example.com/users/avatar.jpg')
+    expect(request.headers).toEqual({ 'Content-Type': 'image/jpeg' })
+    expect(request.signal).toBeInstanceOf(AbortSignal)
   })
 })

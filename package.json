@@ -21,7 +21,6 @@
     "db:push": "bun scripts/migrate.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1115.0",
     "@base-ui/react": "1.7.0",
     "@better-auth/drizzle-adapter": "1.7.4",
     "@bprogress/next": "3.2.12",
