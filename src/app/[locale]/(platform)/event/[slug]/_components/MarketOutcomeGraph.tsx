@@ -27,6 +27,7 @@ import {
   storeChartSettings,
   subscribeToChartSettings,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
+import { formatEventExpiryCountdown } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventExpiryCountdown'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -254,7 +255,7 @@ export default function MarketOutcomeGraph({
     normalizeOutcomeLabel(market.outcomes.find((item) => item.outcome_index === OUTCOME_INDEX.NO)?.outcome_text) ??
     t('No')
 
-  const { normalizedHistory, latestRawPrices } = useEventPriceHistory({
+  const { normalizedHistory, latestRawPrices, isPlaceholderData } = useEventPriceHistory({
     eventId: market.event_id,
     range: activeTimeRange,
     targets: marketTargets,
@@ -352,6 +353,7 @@ export default function MarketOutcomeGraph({
     normalizeOutcomeLabel,
   })
   const { cursorSnapshot, handleCursorDataChange } = useChartCursor(chartSignature)
+  const isChartRangeLoading = isPlaceholderData
   const hasChartData = chartData.length > 0
   const watermark = useMemo(
     () => ({
@@ -404,7 +406,9 @@ export default function MarketOutcomeGraph({
           ) : null
         }
         chart={
-          hasChartData ? (
+          isChartRangeLoading ? (
+            <Skeleton className="h-79.5 w-full" />
+          ) : hasChartData ? (
             <PredictionChart
               data={chartData}
               series={series}
@@ -561,16 +565,21 @@ function MarketOutcomeMetaInformation({
 
   const shouldShowNew = isMarketNew(market.created_at, undefined, currentTimestamp)
   const volumeLabel = `${formatCurrency(resolvedVolume || 0)} Vol.`
-  const expiryTooltip = t.rich('This is estimated end date.<br></br>See rules below for specific resolution details.', {
-    br: () => ' ',
+  const expiryTooltip = t({
+    id: 'seeResolutionDetails',
+    message: 'See rules below for specific resolution details',
   })
   const parsedEndTimestamp = market.end_time ? Date.parse(market.end_time) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
-  const remainingDays =
-    expiryTimestamp !== null && currentTimestamp !== null
-      ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
+  const remainingTime = expiryTimestamp !== null ? formatEventExpiryCountdown(expiryTimestamp, currentTimestamp) : null
+  const remainingLabel =
+    remainingTime !== null
+      ? t({
+          id: 'estimatedTimeRemaining',
+          message: 'Estimated time remaining: {time}',
+          values: { time: remainingTime },
+        })
       : null
-  const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -593,10 +602,10 @@ function MarketOutcomeMetaInformation({
               <span>{formatDate(expiryTimestamp, locale)}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-64 text-left">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold">{remainingLabel}</span>
-              <span className="text-xs text-foreground">{expiryTooltip}</span>
+          <TooltipContent side="bottom" className="w-max max-w-[calc(100vw-2rem)] text-left text-xs leading-4">
+            <div className="flex max-w-full min-w-0 flex-col gap-0.5">
+              {remainingLabel !== null && <span className="font-semibold whitespace-nowrap">{remainingLabel}</span>}
+              <span className="font-normal wrap-break-word text-foreground">{expiryTooltip}</span>
             </div>
           </TooltipContent>
         </Tooltip>

@@ -33,7 +33,7 @@ import {
 } from '@/lib/prediction-chart'
 import { normalizeTicks, toDomainTimestamp } from '@/lib/prediction-chart-helpers'
 
-const defaultMargin = { top: 30, right: 60, bottom: 40, left: 0 }
+const defaultMargin = { top: 10, right: 40, bottom: 30, left: 0 }
 const FUTURE_LINE_COLOR_DARK = '#2C3F4F'
 const FUTURE_LINE_COLOR_LIGHT = '#99A6B5'
 const FUTURE_LINE_OPACITY_DARK = 0.55
@@ -49,6 +49,8 @@ const MARKER_PULSE_DURATION = 2600
 const INITIAL_REVEAL_DURATION = 1400
 const INTERACTION_REVEAL_DURATION = 1100
 const SURGE_DURATION = 760
+const DATA_TRANSITION_DURATION = 420
+const EMPTY_ANNOTATION_MARKERS: NonNullable<PredictionChartProps['annotationMarkers']> = []
 
 interface CursorState {
   progress: number
@@ -66,6 +68,14 @@ interface EntryAnimationState {
   surgeAfterReveal: boolean
   startedAt: number | null
 }
+
+interface DataTransitionState {
+  fromData: DataPoint[]
+  toData: DataPoint[]
+  startedAt: number | null
+}
+
+type DataTransitionSnapshot = Pick<DataTransitionState, 'fromData' | 'toData'>
 
 interface TooltipEntry {
   key: string
@@ -128,6 +138,57 @@ function interpolateCursorPoint(data: DataPoint[], seriesKeys: string[], targetD
   })
 
   return point
+}
+
+function easeOutExpo(progress: number) {
+  return progress >= 1 ? 1 : 1 - 2 ** (-10 * progress)
+}
+
+function interpolateDataPoints(fromData: DataPoint[], toData: DataPoint[], seriesKeys: string[], progress: number) {
+  if (progress >= 1 || fromData.length === 0) {
+    return toData
+  }
+
+  return toData.map((toPoint) => {
+    const fromPoint = interpolateCursorPoint(fromData, seriesKeys, toPoint.date)
+    if (!fromPoint) {
+      return toPoint
+    }
+
+    const point: DataPoint = { date: toPoint.date }
+    seriesKeys.forEach((seriesKey) => {
+      const fromValue = fromPoint[seriesKey]
+      const toValue = toPoint[seriesKey]
+
+      if (typeof fromValue === 'number' && typeof toValue === 'number') {
+        point[seriesKey] = fromValue + (toValue - fromValue) * progress
+      } else if (typeof toValue === 'number') {
+        point[seriesKey] = toValue
+      }
+    })
+    return point
+  })
+}
+
+function canAnimateDataTransition(fromData: DataPoint[], toData: DataPoint[], seriesKeys: string[]) {
+  if (fromData.length < 2 || fromData.length !== toData.length) {
+    return false
+  }
+
+  return fromData.every((fromPoint, index) => {
+    const toPoint = toData[index]
+    if (!toPoint || fromPoint.date.getTime() !== toPoint.date.getTime()) {
+      return false
+    }
+
+    return seriesKeys.every((seriesKey) => {
+      const fromValue = fromPoint[seriesKey]
+      const toValue = toPoint[seriesKey]
+      const fromHasValue = typeof fromValue === 'number' && Number.isFinite(fromValue)
+      const toHasValue = typeof toValue === 'number' && Number.isFinite(toValue)
+      return fromHasValue === toHasValue
+    })
+  })
 }
 
 function positionTooltipEntries(
@@ -211,7 +272,7 @@ export default function PredictionChart({
   gridLineStyle = 'dashed',
   gridLineOpacity: gridLineOpacityOverride,
   showAnnotations = true,
-  annotationMarkers = [],
+  annotationMarkers = EMPTY_ANNOTATION_MARKERS,
   leadingGapStart = null,
   legendContent,
   showLegend = true,
@@ -223,8 +284,8 @@ export default function PredictionChart({
   markerPulseStyle = 'filled',
   markerOffsetX = -12,
   lineEndOffsetX = -12,
-  lineStrokeWidth = 1.6,
-  lineCurve = 'catmullRom',
+  lineStrokeWidth = 1.75,
+  lineCurve = 'monotoneX',
   plotClipPadding: _plotClipPadding,
   showAreaFill = false,
   areaFillTopOpacity = 0.16,
@@ -251,6 +312,12 @@ export default function PredictionChart({
   const isDarkMode = useDarkMode()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const entryAnimationRef = useRef<EntryAnimationState | null>(null)
+  const dataTransitionRef = useRef<DataTransitionState | null>(null)
+  const cursorFrameRef = useRef<number | null>(null)
+  const pendingCursorProgressRef = useRef<number | null>(null)
+  const dataTransitionProgressRef = useRef<number | null>(null)
+  const [dataTransitionSnapshot, setDataTransitionSnapshot] = useState<DataTransitionSnapshot | null>(null)
+  const [dataTransitionProgress, setDataTransitionProgress] = useState<number | null>(null)
   const [cursor, setCursor] = useState<CursorState | null>(null)
   const annotationScopeKey = `${normalizedSignature}:${showAnnotations ? '1' : '0'}`
   const [annotationHoverState, setAnnotationHoverState] = useState<{
@@ -318,18 +385,12 @@ export default function PredictionChart({
     return { start, end: Math.max(start + 1, resolvedEnd) }
   }, [data, leadingGapStart, xDomain?.end, xDomain?.start])
 
-  const dataBounds = useMemo(() => {
-    if (!data.length) {
-      return null
-    }
-    return { start: data[0].date.getTime(), end: data.at(-1)!.date.getTime() }
-  }, [data])
   const resolvedLineEndOffsetX = Number.isFinite(lineEndOffsetX) ? Math.min(0, lineEndOffsetX) : 0
   const cursorRangeEnd = Math.max(1, innerWidth + resolvedLineEndOffsetX)
 
   const resolveCursorAtProgress = useCallback(
-    (progress: number): ResolvedCursor | null => {
-      if (!data.length || !series.length) {
+    (progress: number, cursorData = data): ResolvedCursor | null => {
+      if (!cursorData.length || !series.length) {
         return null
       }
 
@@ -341,13 +402,17 @@ export default function PredictionChart({
         targetTimestamp = snapTimestampToInterval(rawTimestamp, cursorStepMs, domainBounds.start)
       }
       targetTimestamp = Math.max(domainBounds.start, Math.min(domainBounds.end, targetTimestamp))
-      if (clampCursorToDataExtent && dataBounds) {
-        targetTimestamp = Math.max(dataBounds.start, Math.min(dataBounds.end, targetTimestamp))
+      if (clampCursorToDataExtent) {
+        const cursorDataBounds = {
+          start: cursorData[0].date.getTime(),
+          end: cursorData.at(-1)!.date.getTime(),
+        }
+        targetTimestamp = Math.max(cursorDataBounds.start, Math.min(cursorDataBounds.end, targetTimestamp))
       }
 
       const targetDate = new Date(targetTimestamp)
       const basePoint = interpolateCursorPoint(
-        data,
+        cursorData,
         series.map((seriesItem) => seriesItem.key),
         targetDate,
       )
@@ -363,7 +428,7 @@ export default function PredictionChart({
           width,
           height,
           margin: resolvedMargin,
-          data,
+          data: cursorData,
           series,
           domainStart: domainBounds.start,
           domainEnd: domainBounds.end,
@@ -385,7 +450,6 @@ export default function PredictionChart({
       cursorRangeEnd,
       cursorStepMs,
       data,
-      dataBounds,
       domainBounds.end,
       domainBounds.start,
       height,
@@ -401,6 +465,70 @@ export default function PredictionChart({
   const resolvedCursor = useMemo(
     () => (cursor ? resolveCursorAtProgress(cursor.progress) : null),
     [cursor, resolveCursorAtProgress],
+  )
+  const transitionCursor = useMemo(() => {
+    const dataTransition = dataTransitionSnapshot
+    if (!resolvedCursor || !dataTransition || dataTransition.toData !== data) {
+      return null
+    }
+
+    const renderData = interpolateDataPoints(
+      dataTransition.fromData,
+      dataTransition.toData,
+      series.map((seriesItem) => seriesItem.key),
+      easeOutExpo(dataTransitionProgress ?? 0),
+    )
+    return resolveCursorAtProgress(resolvedCursor.left / cursorRangeEnd, renderData)
+  }, [
+    cursorRangeEnd,
+    data,
+    dataTransitionProgress,
+    dataTransitionSnapshot,
+    resolveCursorAtProgress,
+    resolvedCursor,
+    series,
+  ])
+  const activeCursor = transitionCursor ?? resolvedCursor
+
+  const cancelScheduledCursorUpdate = useCallback(() => {
+    if (cursorFrameRef.current != null) {
+      window.cancelAnimationFrame(cursorFrameRef.current)
+      cursorFrameRef.current = null
+    }
+    pendingCursorProgressRef.current = null
+  }, [])
+
+  const scheduleCursorUpdate = useCallback(
+    (progress: number) => {
+      pendingCursorProgressRef.current = progress
+      if (cursorFrameRef.current != null) {
+        return
+      }
+
+      cursorFrameRef.current = window.requestAnimationFrame(() => {
+        cursorFrameRef.current = null
+        const nextProgress = pendingCursorProgressRef.current
+        pendingCursorProgressRef.current = null
+        if (nextProgress == null) {
+          return
+        }
+
+        setCursor((current) => {
+          if (current && Math.abs(current.progress - nextProgress) < 0.0001) {
+            return current
+          }
+          return { progress: nextProgress }
+        })
+      })
+    },
+    [setCursor],
+  )
+
+  useLayoutEffect(
+    function cleanupScheduledCursorUpdate() {
+      return cancelScheduledCursorUpdate
+    },
+    [cancelScheduledCursorUpdate],
   )
 
   const resolvedXAxisTicks = useMemo(() => {
@@ -473,9 +601,9 @@ export default function PredictionChart({
       }
     : null
 
-  const tooltipEntries = resolvedCursor
+  const tooltipEntries = activeCursor
     ? series.reduce<TooltipEntry[]>((entries, seriesItem) => {
-        const value = resolvedCursor.point[seriesItem.key]
+        const value = activeCursor.point[seriesItem.key]
         if (typeof value === 'number' && Number.isFinite(value)) {
           entries.push({
             key: seriesItem.key,
@@ -520,11 +648,13 @@ export default function PredictionChart({
       revealProgress = 1,
       surgeProgress: number | null = null,
       muteUnrevealedSeries = false,
+      renderData = data,
+      renderCursor: ResolvedCursor | null = resolvedCursor,
     ): PredictionChartCanvasFrame => ({
       width,
       height,
       margin: resolvedMargin,
-      data,
+      data: renderData,
       series,
       domainStart: domainBounds.start,
       domainEnd: domainBounds.end,
@@ -576,11 +706,11 @@ export default function PredictionChart({
               color: isDarkMode ? 'rgba(255, 255, 255, 0.82)' : 'rgba(15, 23, 42, 0.55)',
               progress: surgeProgress,
             },
-      cursor: resolvedCursor
+      cursor: renderCursor
         ? {
-            x: resolvedCursor.left,
+            x: renderCursor.left,
             values: series.reduce<Record<string, number>>((values, seriesItem) => {
-              const value = resolvedCursor.point[seriesItem.key]
+              const value = renderCursor.point[seriesItem.key]
               if (typeof value === 'number' && Number.isFinite(value)) {
                 values[seriesItem.key] = value
               }
@@ -659,7 +789,32 @@ export default function PredictionChart({
         return
       }
 
-      if (lastDataUpdateTypeRef.current === 'reset') {
+      const dataUpdateType = lastDataUpdateTypeRef.current
+      const previousData = previousDataRef.current
+      const shouldAnimateData =
+        dataSyncMode === 'append' &&
+        dataUpdateType === 'append' &&
+        previousData != null &&
+        previousData !== data &&
+        canAnimateDataTransition(
+          previousData,
+          data,
+          series.map((seriesItem) => seriesItem.key),
+        )
+
+      if (shouldAnimateData && dataTransitionRef.current?.toData !== data) {
+        dataTransitionRef.current = { fromData: previousData, toData: data, startedAt: null }
+        dataTransitionProgressRef.current = null
+        setDataTransitionSnapshot({ fromData: previousData, toData: data })
+        setDataTransitionProgress(null)
+      } else if (dataTransitionRef.current?.toData !== data) {
+        dataTransitionRef.current = null
+        dataTransitionProgressRef.current = null
+        setDataTransitionSnapshot(null)
+        setDataTransitionProgress(null)
+      }
+
+      if (dataUpdateType === 'reset') {
         entryAnimationRef.current =
           _disableResetAnimation || data.length < 2 || series.length === 0
             ? null
@@ -677,9 +832,42 @@ export default function PredictionChart({
       let frameId: number | null = null
       function draw(timestamp: number) {
         const entryAnimation = entryAnimationRef.current
+        const dataTransition = dataTransitionRef.current
+        let renderData = data
+        let renderCursor = resolvedCursor
         let revealProgress = 1
         let surgeProgress: number | null = null
         let muteUnrevealedSeries = false
+
+        if (dataTransition) {
+          dataTransition.startedAt ??= timestamp
+          const elapsed = Math.max(0, timestamp - dataTransition.startedAt)
+          const transitionProgress = Math.min(1, elapsed / DATA_TRANSITION_DURATION)
+          const easedProgress = easeOutExpo(transitionProgress)
+          renderData = interpolateDataPoints(
+            dataTransition.fromData,
+            dataTransition.toData,
+            series.map((seriesItem) => seriesItem.key),
+            easedProgress,
+          )
+
+          dataTransitionProgressRef.current = transitionProgress
+          if (resolvedCursor) {
+            if (frameId !== null) {
+              setDataTransitionProgress(transitionProgress)
+            }
+            renderCursor = resolveCursorAtProgress(resolvedCursor.left / cursorRangeEnd, renderData)
+          }
+
+          if (transitionProgress >= 1) {
+            dataTransitionRef.current = null
+            dataTransitionProgressRef.current = null
+            setDataTransitionSnapshot(null)
+            setDataTransitionProgress(null)
+            renderData = dataTransition.toData
+            renderCursor = resolvedCursor
+          }
+        }
 
         if (entryAnimation) {
           entryAnimation.startedAt ??= timestamp
@@ -705,9 +893,18 @@ export default function PredictionChart({
         const pulseProgress = (timestamp % MARKER_PULSE_DURATION) / MARKER_PULSE_DURATION
         const didDraw = drawPredictionChartCanvas(
           canvas!,
-          createCanvasFrame(pulseProgress, revealProgress, surgeProgress, muteUnrevealedSeries),
+          createCanvasFrame(
+            pulseProgress,
+            revealProgress,
+            surgeProgress,
+            muteUnrevealedSeries,
+            renderData,
+            renderCursor,
+          ),
         )
-        if (didDraw && data.length > 0 && series.length > 0 && !resolvedCursor) {
+        const shouldContinueAnimation =
+          dataTransitionRef.current !== null || entryAnimationRef.current !== null || resolvedCursor === null
+        if (didDraw && data.length > 0 && series.length > 0 && shouldContinueAnimation) {
           frameId = window.requestAnimationFrame(draw)
         }
       }
@@ -722,12 +919,16 @@ export default function PredictionChart({
     [
       _disableResetAnimation,
       createCanvasFrame,
+      cursorRangeEnd,
       data,
+      dataSyncMode,
       isClient,
       lastDataUpdateTypeRef,
       previousDataRef,
+      resolveCursorAtProgress,
       resolvedCursor,
       series.length,
+      series,
     ],
   )
 
@@ -755,11 +956,11 @@ export default function PredictionChart({
 
   useLayoutEffect(
     function syncCursorWithLatestSeries() {
-      if (resolvedCursor) {
-        emitCursorChange(resolvedCursor.point)
+      if (activeCursor) {
+        emitCursorChange(activeCursor.point)
       }
     },
-    [emitCursorChange, resolvedCursor],
+    [activeCursor, emitCursorChange],
   )
 
   const handlePointerMove = useCallback(
@@ -769,6 +970,9 @@ export default function PredictionChart({
       }
 
       entryAnimationRef.current = null
+      if (dataTransitionProgressRef.current !== null) {
+        setDataTransitionProgress(dataTransitionProgressRef.current)
+      }
 
       const rect = event.currentTarget.getBoundingClientRect()
       const renderedX = rect.width > 0 ? ((event.clientX - rect.left) / rect.width) * width : 0
@@ -776,11 +980,7 @@ export default function PredictionChart({
       const localX = Math.max(0, Math.min(cursorRangeEnd, renderedX - resolvedMargin.left))
       const localY = renderedY - resolvedMargin.top
       const progress = localX / cursorRangeEnd
-      if (!resolveCursorAtProgress(progress)) {
-        return
-      }
-
-      setCursor({ progress })
+      scheduleCursorUpdate(progress)
 
       const nearestAnnotation = resolvedAnnotationClusters.find((cluster) => {
         const distance = Math.hypot(cluster.x - localX, cluster.y - localY)
@@ -792,10 +992,10 @@ export default function PredictionChart({
       data,
       cursorRangeEnd,
       height,
-      resolveCursorAtProgress,
       resolvedAnnotationClusters,
       resolvedMargin.left,
       resolvedMargin.top,
+      scheduleCursorUpdate,
       series,
       setHoveredAnnotationClusterId,
       width,
@@ -803,9 +1003,14 @@ export default function PredictionChart({
   )
 
   const handlePointerEnd = useCallback(() => {
-    const fromProgress = resolvedCursor
-      ? Math.max(0, Math.min(1, resolvedCursor.left / cursorRangeEnd))
-      : cursor?.progress
+    const pendingProgress = pendingCursorProgressRef.current
+    cancelScheduledCursorUpdate()
+    const fromProgress =
+      typeof pendingProgress === 'number'
+        ? Math.max(0, Math.min(1, pendingProgress))
+        : resolvedCursor
+          ? Math.max(0, Math.min(1, resolvedCursor.left / cursorRangeEnd))
+          : cursor?.progress
     if (typeof fromProgress === 'number' && fromProgress < 0.999) {
       entryAnimationRef.current = {
         duration: Math.max(400, (1 - fromProgress) * INTERACTION_REVEAL_DURATION),
@@ -816,9 +1021,19 @@ export default function PredictionChart({
       }
     }
     setCursor(null)
+    setDataTransitionProgress(null)
     setHoveredAnnotationClusterId(null)
     emitCursorChange(null)
-  }, [cursor?.progress, cursorRangeEnd, emitCursorChange, resolvedCursor, setHoveredAnnotationClusterId])
+  }, [
+    cancelScheduledCursorUpdate,
+    cursor?.progress,
+    cursorRangeEnd,
+    emitCursorChange,
+    resolvedCursor,
+    setCursor,
+    setDataTransitionProgress,
+    setHoveredAnnotationClusterId,
+  ])
 
   const shouldRenderLegend = showLegend && Boolean(legendContent)
   const shouldRenderWatermark = Boolean(watermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label))
@@ -848,12 +1063,12 @@ export default function PredictionChart({
         />
 
         <PredictionChartTooltipOverlay
-          tooltipActive={Boolean(resolvedCursor)}
-          tooltipData={resolvedCursor?.point ?? null}
+          tooltipActive={Boolean(activeCursor)}
+          tooltipData={activeCursor?.point ?? null}
           positionedTooltipEntries={positionedTooltipEntries}
           margin={resolvedMargin}
           innerWidth={innerWidth}
-          clampedTooltipX={resolvedCursor?.left ?? innerWidth}
+          clampedTooltipX={activeCursor?.left ?? innerWidth}
           locale={locale}
           valueFormatter={tooltipValueFormatter}
           dateFormatter={tooltipDateFormatter}

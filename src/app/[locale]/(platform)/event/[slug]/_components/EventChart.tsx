@@ -176,6 +176,9 @@ function EventChartComponent({
   })
 
   const chartHistory = isSingleMarket && activeOutcomeIndex === OUTCOME_INDEX.NO ? noPriceHistory : yesPriceHistory
+  const isChartRangeLoading = showBothOutcomes
+    ? yesPriceHistory.isPlaceholderData || noPriceHistory.isPlaceholderData
+    : chartHistory.isPlaceholderData
   const marketSnapshot = showBothOutcomes ? yesPriceHistory.latestSnapshot : chartHistory.latestSnapshot
 
   const allMarketIds = useMemo(
@@ -639,6 +642,7 @@ function EventChartComponent({
         chart={
           <EventChartCanvas
             chartData={chartData}
+            isLoading={isChartRangeLoading}
             locale={locale}
             legendSeries={legendSeries}
             chartWidth={chartWidth}
@@ -714,7 +718,7 @@ function areChartPropsEqual(prev: EventChartProps, next: EventChartProps) {
   if ((prev.chartWidth ?? null) !== (next.chartWidth ?? null)) {
     return false
   }
-  if ((prev.chartHeight ?? 332) !== (next.chartHeight ?? 332)) {
+  if ((prev.chartHeight ?? 272) !== (next.chartHeight ?? 272)) {
     return false
   }
   if ((prev.isSingleMarketOverride ?? null) !== (next.isSingleMarketOverride ?? null)) {

@@ -316,9 +316,17 @@ export function useEventPriceHistory({
   const priceHistoryByMarket = priceHistoryQuery.data
 
   const normalizedHistory = useMemo(() => {
+    if (priceHistoryQuery.isPlaceholderData) {
+      return {
+        points: [],
+        latestSnapshot: {},
+        latestRawPrices: {},
+      }
+    }
+
     const normalized = buildNormalizedHistory(priceHistoryByMarket ?? {})
     return clipNormalizedHistoryToResolvedAt(normalized, eventResolvedAt)
-  }, [priceHistoryByMarket, eventResolvedAt])
+  }, [eventResolvedAt, priceHistoryByMarket, priceHistoryQuery.isPlaceholderData])
 
   return {
     normalizedHistory: normalizedHistory.points,
@@ -326,6 +334,7 @@ export function useEventPriceHistory({
     latestRawPrices: normalizedHistory.latestRawPrices,
     isPending: priceHistoryQuery.isPending,
     isFetching: priceHistoryQuery.isFetching,
+    isPlaceholderData: priceHistoryQuery.isPlaceholderData,
     isError: priceHistoryQuery.isError,
     refetch: priceHistoryQuery.refetch,
   }

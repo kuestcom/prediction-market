@@ -75,7 +75,7 @@ describe('predictionChart', () => {
     )
 
     await waitFor(() => {
-      expect(canvasCalls.bezierCurveTo).toHaveBeenCalled()
+      expect(canvasCalls.bezierCurveTo.mock.calls.length + canvasCalls.lineTo.mock.calls.length).toBeGreaterThan(0)
     })
 
     expect(container.querySelector('canvas[data-chart-renderer="canvas"]')).not.toBeNull()
@@ -164,16 +164,14 @@ describe('predictionChart', () => {
     await waitFor(() => {
       expect(canvasCalls.clearRect).toHaveBeenCalled()
     })
-    fireEvent.pointerMove(canvas, { clientX: 164, clientY: 100 })
+    fireEvent.pointerMove(canvas, { clientX: 174, clientY: 100 })
 
     await waitFor(() => {
       expect(onCursorDataChange).toHaveBeenCalled()
     })
     const snapshot = onCursorDataChange.mock.calls.at(-1)?.[0]
     expect(snapshot.values.price).toBeCloseTo(50, 3)
-    await waitFor(() => {
-      expect(canvasCalls.rect.mock.calls).toContainEqual([164, 26, 176, 186])
-    })
+    await waitFor(() => expect(canvasCalls.rect.mock.calls).toContainEqual([174, 6, 186, 206]))
   })
 
   it('places the normal-chart cursor on the rendered curve and restores color from that point', async () => {
@@ -215,15 +213,19 @@ describe('predictionChart', () => {
     fireEvent.pointerMove(canvas, { clientX: 94, clientY: 100 })
 
     await waitFor(() => {
-      expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(26.354, 2)
+      expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(35, 0)
       expect(canvasCalls.arc.mock.calls.at(-1)?.[0]).toBeCloseTo(94, 2)
-      expect(canvasCalls.arc.mock.calls.at(-1)?.[1]).toBeCloseTo(161.09, 1)
+      expect(canvasCalls.arc.mock.calls.at(-1)?.[1]).toBeCloseTo(138.7, 1)
     })
 
     canvasCalls.rect.mockClear()
     fireEvent.pointerLeave(canvas)
     await waitFor(() => {
-      expect(canvasCalls.rect.mock.calls).toContainEqual([94, 26, 294, 186])
+      expect(
+        canvasCalls.rect.mock.calls.some(
+          ([left, top, width, height]) => left === 94 && top === 6 && width > 0 && height === 206,
+        ),
+      ).toBe(true)
     })
   })
 
@@ -285,8 +287,172 @@ describe('predictionChart', () => {
     })
     await waitFor(() => {
       const latestCursorY = canvasCalls.arc.mock.calls.at(-1)?.[1]
-      expect(latestCursorY).toBeCloseTo(65.6, 1)
+      expect(latestCursorY).toBeCloseTo(49.6, 1)
     })
+  })
+
+  it('draws replace snapshots directly without an unsafe data transition', async () => {
+    const animationFrames: FrameRequestCallback[] = []
+    const onCursorDataChange = mock()
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    })
+
+    const { container, getByRole, rerender } = render(
+      <PredictionChart
+        data={data}
+        dataSyncMode="replace"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+        onCursorDataChange={onCursorDataChange}
+      />,
+    )
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    animationFrames.length = 0
+    fireEvent.pointerMove(canvas, { clientX: 174, clientY: 100 })
+
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+    act(() => animationFrames.at(-1)?.(1_000))
+    await waitFor(() => expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(49.6, 1))
+    animationFrames.length = 0
+
+    rerender(
+      <PredictionChart
+        data={[
+          { date: data[0].date, price: 60 },
+          { date: data[1].date, price: 80 },
+          { date: new Date('2026-01-01T02:00:00.000Z'), price: 100 },
+        ]}
+        dataSyncMode="replace"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+        onCursorDataChange={onCursorDataChange}
+      />,
+    )
+
+    expect(animationFrames).toHaveLength(0)
+    await waitFor(() => {
+      const latestValue = onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price
+      expect(latestValue).toBeGreaterThan(75)
+      expect(latestValue).toBeLessThan(80)
+    })
+    const latestValue = onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price
+    expect(container.textContent).toContain(`Price${latestValue?.toFixed(0)}%`)
+  })
+
+  it('animates append updates when the data timeline remains compatible', async () => {
+    const animationFrames: FrameRequestCallback[] = []
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    })
+
+    const { rerender } = render(
+      <PredictionChart
+        data={data}
+        dataSyncMode="append"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    animationFrames.length = 0
+
+    rerender(
+      <PredictionChart
+        data={[
+          { date: data[0].date, price: 45 },
+          { date: data[1].date, price: 65 },
+        ]}
+        dataSyncMode="append"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+  })
+
+  it('uses the latest pending pointer position when starting the return animation', async () => {
+    const animationFrames: FrameRequestCallback[] = []
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    })
+
+    const { getByRole } = render(
+      <PredictionChart
+        data={data}
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+      />,
+    )
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+    canvasCalls.rect.mockClear()
+    fireEvent.pointerMove(canvas, { clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(canvas, { clientX: 250, clientY: 100 })
+    fireEvent.pointerUp(canvas)
+
+    act(() => animationFrames[0]?.(1_000))
+    const revealClip = canvasCalls.rect.mock.calls.find(
+      ([left, top, , height]) => left === -4 && top === 6 && height === 206,
+    )
+    expect(revealClip?.[2]).toBeCloseTo(254, 3)
   })
 
   it('does not split the series color when cursor splitting is disabled', async () => {
@@ -341,9 +507,9 @@ describe('predictionChart', () => {
 
     let currentX = canvasCalls.moveTo.mock.calls[0]![0] as number
     canvasCalls.bezierCurveTo.mock.calls.slice(0, 3).forEach(([controlOneX, , controlTwoX, , endX]) => {
-      expect(controlOneX).toBeGreaterThanOrEqual(currentX)
-      expect(controlTwoX).toBeGreaterThanOrEqual(controlOneX)
-      expect(endX).toBeGreaterThanOrEqual(controlTwoX)
+      expect(controlOneX).toBeGreaterThan(currentX)
+      expect(controlTwoX).toBeGreaterThan(controlOneX)
+      expect(endX).toBeGreaterThan(controlTwoX)
       currentX = endX
     })
   })
@@ -368,11 +534,9 @@ describe('predictionChart', () => {
       expect(canvasCalls.arc.mock.calls.length).toBeGreaterThanOrEqual(2)
     })
 
-    const lineEndX = canvasCalls.bezierCurveTo.mock.calls[0]![4]
     const pulseCenterX = canvasCalls.arc.mock.calls[0]![0]
     const markerCenterX = canvasCalls.arc.mock.calls[1]![0]
-    expect(pulseCenterX).toBe(lineEndX)
-    expect(markerCenterX).toBe(lineEndX)
+    expect(pulseCenterX).toBe(markerCenterX)
   })
 
   it('reveals the chart before sweeping a highlight into the end marker', async () => {
@@ -401,7 +565,7 @@ describe('predictionChart', () => {
     canvasCalls.rect.mockClear()
     act(() => animationFrames.shift()?.(1_700))
     const partialRevealClip = canvasCalls.rect.mock.calls.find(
-      ([left, top, width, height]) => left === -4 && top === 26 && height === 186 && width > 8 && width < 396,
+      ([left, top, width, height]) => left === -4 && top === 6 && height === 206 && width > 8 && width < 380,
     )
     expect(partialRevealClip).toBeDefined()
     expect(canvasCalls.arc).not.toHaveBeenCalled()

@@ -1,3 +1,5 @@
+import { curveBasis, curveCatmullRom, curveMonotoneX } from '@visx/curve'
+
 import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 
 interface CanvasChartPoint {
@@ -170,42 +172,65 @@ function buildSeriesSegments(frame: PredictionChartCanvasGeometry, seriesKey: st
     .filter((segment) => segment.length > 0)
 }
 
-function traceLinearPath(context: CanvasRenderingContext2D, points: CanvasChartPoint[]) {
-  context.moveTo(points[0].x, points[0].y)
-  for (let index = 1; index < points.length; index += 1) {
-    context.lineTo(points[index].x, points[index].y)
+type CurvePathCommand =
+  | { type: 'line'; start: CanvasChartPoint; end: CanvasChartPoint }
+  | {
+      type: 'bezier'
+      start: CanvasChartPoint
+      controlOne: CanvasChartPoint
+      controlTwo: CanvasChartPoint
+      end: CanvasChartPoint
+    }
+
+type CurveContext = Pick<CanvasRenderingContext2D, 'bezierCurveTo' | 'lineTo' | 'moveTo'>
+
+function resolveCurveFactory(curve: PredictionChartCanvasFrame['lineCurve']) {
+  if (curve === 'catmullRom') {
+    return curveCatmullRom
   }
+
+  if (curve === 'basis') {
+    return curveBasis
+  }
+
+  return curveMonotoneX
 }
 
-function resolveCurveControls(
-  points: CanvasChartPoint[],
-  index: number,
-  curve: PredictionChartCanvasFrame['lineCurve'],
-) {
-  const previous = points[Math.max(0, index - 1)]
-  const current = points[index]
-  const next = points[index + 1]
-  const following = points[Math.min(points.length - 1, index + 2)]
-
-  if (curve === 'monotoneX') {
-    const middleX = (current.x + next.x) / 2
-    return {
-      controlOne: { x: middleX, y: current.y },
-      controlTwo: { x: middleX, y: next.y },
-    }
+function recordCurvePath(points: CanvasChartPoint[], curve: PredictionChartCanvasFrame['lineCurve']) {
+  if (points.length < 2) {
+    return []
   }
 
-  const segmentWidth = next.x - current.x
-  return {
-    controlOne: {
-      x: current.x + segmentWidth / 3,
-      y: current.y + (next.y - previous.y) / 6,
+  const commands: CurvePathCommand[] = []
+  let currentPoint: CanvasChartPoint | null = null
+  const context: CurveContext = {
+    bezierCurveTo(controlOneX, controlOneY, controlTwoX, controlTwoY, endX, endY) {
+      if (currentPoint) {
+        commands.push({
+          type: 'bezier',
+          start: currentPoint,
+          controlOne: { x: controlOneX, y: controlOneY },
+          controlTwo: { x: controlTwoX, y: controlTwoY },
+          end: { x: endX, y: endY },
+        })
+      }
+      currentPoint = { x: endX, y: endY }
     },
-    controlTwo: {
-      x: next.x - segmentWidth / 3,
-      y: next.y - (following.y - current.y) / 6,
+    lineTo(x, y) {
+      if (currentPoint) {
+        commands.push({ type: 'line', start: currentPoint, end: { x, y } })
+      }
+      currentPoint = { x, y }
+    },
+    moveTo(x, y) {
+      currentPoint = { x, y }
     },
   }
+  const curveContext = resolveCurveFactory(curve)(context as unknown as CanvasRenderingContext2D)
+  curveContext.lineStart()
+  points.forEach((point) => curveContext.point(point.x, point.y))
+  curveContext.lineEnd()
+  return commands
 }
 
 function traceCurvedPath(
@@ -213,13 +238,10 @@ function traceCurvedPath(
   points: CanvasChartPoint[],
   curve: PredictionChartCanvasFrame['lineCurve'],
 ) {
-  context.moveTo(points[0].x, points[0].y)
-
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const next = points[index + 1]
-    const { controlOne, controlTwo } = resolveCurveControls(points, index, curve)
-    context.bezierCurveTo(controlOne.x, controlOne.y, controlTwo.x, controlTwo.y, next.x, next.y)
-  }
+  const curveContext = resolveCurveFactory(curve)(context)
+  curveContext.lineStart()
+  points.forEach((point) => curveContext.point(point.x, point.y))
+  curveContext.lineEnd()
 }
 
 function traceSeriesPath(
@@ -231,17 +253,7 @@ function traceSeriesPath(
     return
   }
 
-  if (curve === 'monotoneX') {
-    traceCurvedPath(context, points, curve)
-    return
-  }
-
-  if (curve === 'catmullRom' || curve === 'basis') {
-    traceCurvedPath(context, points, curve)
-    return
-  }
-
-  traceLinearPath(context, points)
+  traceCurvedPath(context, points, curve)
 }
 
 function interpolateCoordinate(start: number, controlOne: number, controlTwo: number, end: number, progress: number) {
@@ -254,25 +266,24 @@ function interpolateCoordinate(start: number, controlOne: number, controlTwo: nu
   )
 }
 
-function resolveSegmentYAtX(
-  points: CanvasChartPoint[],
-  index: number,
-  curve: PredictionChartCanvasFrame['lineCurve'],
-  targetX: number,
-) {
-  const current = points[index]
-  const next = points[index + 1]
-  if (curve !== 'monotoneX' && curve !== 'catmullRom' && curve !== 'basis') {
-    const progress = next.x === current.x ? 0 : (targetX - current.x) / (next.x - current.x)
-    return current.y + (next.y - current.y) * progress
+function resolveSegmentYAtX(command: CurvePathCommand, targetX: number) {
+  if (command.type === 'line') {
+    const progress =
+      command.end.x === command.start.x ? 0 : (targetX - command.start.x) / (command.end.x - command.start.x)
+    return command.start.y + (command.end.y - command.start.y) * progress
   }
 
-  const { controlOne, controlTwo } = resolveCurveControls(points, index, curve)
   let lower = 0
   let upper = 1
   for (let step = 0; step < 24; step += 1) {
     const progress = (lower + upper) / 2
-    const x = interpolateCoordinate(current.x, controlOne.x, controlTwo.x, next.x, progress)
+    const x = interpolateCoordinate(
+      command.start.x,
+      command.controlOne.x,
+      command.controlTwo.x,
+      command.end.x,
+      progress,
+    )
     if (x < targetX) {
       lower = progress
     } else {
@@ -281,7 +292,7 @@ function resolveSegmentYAtX(
   }
 
   const progress = (lower + upper) / 2
-  return interpolateCoordinate(current.y, controlOne.y, controlTwo.y, next.y, progress)
+  return interpolateCoordinate(command.start.y, command.controlOne.y, command.controlTwo.y, command.end.y, progress)
 }
 
 function resolvePathYAtX(
@@ -293,6 +304,7 @@ function resolvePathYAtX(
   let nearestDistance = Number.POSITIVE_INFINITY
 
   for (const points of segments) {
+    const commands = recordCurvePath(points, curve)
     for (const point of [points[0], points.at(-1)!]) {
       const distance = Math.abs(point.x - targetX)
       if (distance < nearestDistance) {
@@ -301,11 +313,9 @@ function resolvePathYAtX(
       }
     }
 
-    for (let index = 0; index < points.length - 1; index += 1) {
-      const current = points[index]
-      const next = points[index + 1]
-      if (targetX >= Math.min(current.x, next.x) && targetX <= Math.max(current.x, next.x)) {
-        return resolveSegmentYAtX(points, index, curve, targetX)
+    for (const command of commands) {
+      if (targetX >= Math.min(command.start.x, command.end.x) && targetX <= Math.max(command.start.x, command.end.x)) {
+        return resolveSegmentYAtX(command, targetX)
       }
     }
   }
@@ -607,7 +617,7 @@ function drawMarkers(context: CanvasRenderingContext2D, frame: PredictionChartCa
       return
     }
 
-    const x = scaleX(frame, lastPoint.date.getTime()) + frame.markerOffsetX
+    const x = Math.round(scaleX(frame, lastPoint.date.getTime()) + frame.markerOffsetX)
     const y = scaleY(frame, value)
     const color = resolveCssColor(context.canvas, seriesItem.color, '#1452f0')
     const keyframeProgress =
