@@ -291,6 +291,112 @@ describe('predictionChart', () => {
     })
   })
 
+  it('continues an append transition while the cursor is active', async () => {
+    const animationFrames: FrameRequestCallback[] = []
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    })
+
+    const { getByRole, rerender } = render(
+      <PredictionChart
+        data={data}
+        dataSyncMode="replace"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(canvasCalls.clearRect).toHaveBeenCalled())
+    animationFrames.length = 0
+    fireEvent.pointerMove(canvas, { clientX: 174, clientY: 100 })
+
+    await waitFor(() => expect(canvasCalls.arc.mock.calls.length).toBeGreaterThan(0))
+    animationFrames.length = 0
+
+    rerender(
+      <PredictionChart
+        data={[
+          { date: data[0].date, price: 60 },
+          { date: data[1].date, price: 80 },
+          { date: new Date('2026-01-01T02:00:00.000Z'), price: 100 },
+        ]}
+        dataSyncMode="replace"
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+  })
+
+  it('uses the latest pending pointer position when starting the return animation', async () => {
+    const animationFrames: FrameRequestCallback[] = []
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
+    spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationFrames.push(callback)
+      return animationFrames.length
+    })
+
+    const { getByRole } = render(
+      <PredictionChart
+        data={data}
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+      />,
+    )
+    const canvas = getByRole('img', { name: 'Interactive prediction chart' })
+    spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+      bottom: 220,
+      height: 220,
+      left: 0,
+      right: 400,
+      top: 0,
+      width: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    })
+
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+    canvasCalls.rect.mockClear()
+    fireEvent.pointerMove(canvas, { clientX: 100, clientY: 100 })
+    fireEvent.pointerMove(canvas, { clientX: 250, clientY: 100 })
+    fireEvent.pointerUp(canvas)
+
+    act(() => animationFrames[0]?.(1_000))
+    const revealClip = canvasCalls.rect.mock.calls.find(
+      ([left, top, , height]) => left === -4 && top === 6 && height === 206,
+    )
+    expect(revealClip?.[2]).toBeCloseTo(254, 3)
+  })
+
   it('does not split the series color when cursor splitting is disabled', async () => {
     const { getByRole } = render(
       <PredictionChart data={data} series={series} width={400} height={220} showXAxis={false} disableCursorSplit />,
@@ -343,9 +449,9 @@ describe('predictionChart', () => {
 
     let currentX = canvasCalls.moveTo.mock.calls[0]![0] as number
     canvasCalls.bezierCurveTo.mock.calls.slice(0, 3).forEach(([controlOneX, , controlTwoX, , endX]) => {
-      expect(controlOneX).toBeGreaterThanOrEqual(currentX)
-      expect(controlTwoX).toBeGreaterThanOrEqual(controlOneX)
-      expect(endX).toBeGreaterThanOrEqual(controlTwoX)
+      expect(controlOneX).toBeGreaterThan(currentX)
+      expect(controlTwoX).toBeGreaterThan(controlOneX)
+      expect(endX).toBeGreaterThan(controlTwoX)
       currentX = endX
     })
   })

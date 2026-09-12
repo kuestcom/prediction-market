@@ -36,14 +36,15 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
 
   const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
+  const remainingTime = expiryTimestamp !== null ? formatEventExpiryCountdown(expiryTimestamp, currentTimestamp) : null
   const remainingLabel =
-    expiryTimestamp !== null
+    remainingTime !== null
       ? t({
           id: 'estimatedTimeRemaining',
           message: 'Estimated time remaining: {time}',
-          values: { time: formatEventExpiryCountdown(expiryTimestamp, currentTimestamp) ?? '' },
+          values: { time: remainingTime },
         })
-      : ''
+      : null
   const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || expiryTimestamp !== null)
 
   return (
@@ -125,9 +126,9 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
             collisionPadding={16}
             className="w-max max-w-[calc(100vw-2rem)] text-left text-xs leading-4"
           >
-            <div className="flex flex-col gap-0.5 whitespace-nowrap">
-              <span className="font-semibold">{remainingLabel}</span>
-              <span className="font-normal text-foreground">{expiryTooltip}</span>
+            <div className="flex max-w-full min-w-0 flex-col gap-0.5">
+              {remainingLabel !== null && <span className="font-semibold whitespace-nowrap">{remainingLabel}</span>}
+              <span className="font-normal wrap-break-word text-foreground">{expiryTooltip}</span>
             </div>
           </TooltipContent>
         </Tooltip>

@@ -132,7 +132,7 @@ function withOpacity(color: string, opacity: number) {
 function scaleX(frame: PredictionChartCanvasGeometry, timestamp: number) {
   const innerWidth = Math.max(1, frame.width - frame.margin.left - frame.margin.right)
   const ratio = (timestamp - frame.domainStart) / Math.max(1, frame.domainEnd - frame.domainStart)
-  const baseX = Math.round(Math.max(0, Math.min(innerWidth, ratio * innerWidth)))
+  const baseX = Math.max(0, Math.min(innerWidth, ratio * innerWidth))
   return frame.margin.left + baseX
 }
 
@@ -617,7 +617,7 @@ function drawMarkers(context: CanvasRenderingContext2D, frame: PredictionChartCa
       return
     }
 
-    const x = scaleX(frame, lastPoint.date.getTime()) + frame.markerOffsetX
+    const x = Math.round(scaleX(frame, lastPoint.date.getTime()) + frame.markerOffsetX)
     const y = scaleY(frame, value)
     const color = resolveCssColor(context.canvas, seriesItem.color, '#1452f0')
     const keyframeProgress =

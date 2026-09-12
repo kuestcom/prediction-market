@@ -568,14 +568,15 @@ function MarketOutcomeMetaInformation({
   })
   const parsedEndTimestamp = market.end_time ? Date.parse(market.end_time) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
+  const remainingTime = expiryTimestamp !== null ? formatEventExpiryCountdown(expiryTimestamp, currentTimestamp) : null
   const remainingLabel =
-    expiryTimestamp !== null
+    remainingTime !== null
       ? t({
           id: 'estimatedTimeRemaining',
           message: 'Estimated time remaining: {time}',
-          values: { time: formatEventExpiryCountdown(expiryTimestamp, currentTimestamp) ?? '' },
+          values: { time: remainingTime },
         })
-      : ''
+      : null
 
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -599,9 +600,9 @@ function MarketOutcomeMetaInformation({
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="w-max max-w-[calc(100vw-2rem)] text-left text-xs leading-4">
-            <div className="flex flex-col gap-0.5 whitespace-nowrap">
-              <span className="font-semibold">{remainingLabel}</span>
-              <span className="font-normal text-foreground">{expiryTooltip}</span>
+            <div className="flex max-w-full min-w-0 flex-col gap-0.5">
+              {remainingLabel !== null && <span className="font-semibold whitespace-nowrap">{remainingLabel}</span>}
+              <span className="font-normal wrap-break-word text-foreground">{expiryTooltip}</span>
             </div>
           </TooltipContent>
         </Tooltip>
