@@ -255,7 +255,7 @@ export default function MarketOutcomeGraph({
     normalizeOutcomeLabel(market.outcomes.find((item) => item.outcome_index === OUTCOME_INDEX.NO)?.outcome_text) ??
     t('No')
 
-  const { normalizedHistory, latestRawPrices, isPlaceholderData } = useEventPriceHistory({
+  const { normalizedHistory, latestRawPrices, isFetching, isPlaceholderData } = useEventPriceHistory({
     eventId: market.event_id,
     range: activeTimeRange,
     targets: marketTargets,
@@ -353,7 +353,8 @@ export default function MarketOutcomeGraph({
     normalizeOutcomeLabel,
   })
   const { cursorSnapshot, handleCursorDataChange } = useChartCursor(chartSignature)
-  const hasChartData = !isPlaceholderData && chartData.length > 0
+  const isChartRangeLoading = isPlaceholderData && isFetching
+  const hasChartData = chartData.length > 0
   const watermark = useMemo(
     () => ({
       iconSvg: site.logoSvg,
@@ -405,7 +406,7 @@ export default function MarketOutcomeGraph({
           ) : null
         }
         chart={
-          isPlaceholderData ? (
+          isChartRangeLoading ? (
             <Skeleton className="h-79.5 w-full" />
           ) : hasChartData ? (
             <PredictionChart
