@@ -29,6 +29,7 @@ interface EventChartCanvasProps {
   legendSeries: SeriesConfig[]
   chartWidth: number
   chartHeight?: number
+  isLoading: boolean
   chartScopeKey: string
   onCursorDataChange: (snapshot: PredictionChartCursorSnapshot | null) => void
   isMobile: boolean
@@ -56,6 +57,7 @@ export default function EventChartCanvas({
   legendSeries,
   chartWidth,
   chartHeight = 272,
+  isLoading,
   chartScopeKey,
   onCursorDataChange,
   isMobile,
@@ -77,43 +79,49 @@ export default function EventChartCanvas({
 
   return (
     <div className="relative">
-      <PredictionChart
-        data={chartData}
-        series={legendSeries}
-        locale={locale}
-        width={chartWidth}
-        height={chartHeight}
-        margin={CHART_MARGIN}
-        dataSignature={chartScopeKey}
-        dataSyncMode="replace"
-        onCursorDataChange={handleCursorDataChange}
-        xAxisTickCount={isMobile ? 2 : 4}
-        autoscale={chartSettings.autoscale}
-        showXAxis={chartSettings.xAxis}
-        showYAxis={chartSettings.yAxis}
-        showHorizontalGrid={chartSettings.horizontalGrid}
-        showVerticalGrid={chartSettings.verticalGrid}
-        showAnnotations={chartSettings.annotations && chartAnnotationMarkers.length > 0}
-        annotationMarkers={chartAnnotationMarkers}
-        leadingGapStart={leadingGapStart}
-        disableResetAnimation={disableResetAnimation}
-        legendContent={legendContent}
-        showLegend={!isSingleMarket}
-        watermark={isSingleMarket ? undefined : watermark}
-        lineCurve="monotoneX"
-        plotClipPadding={{ right: EVENT_PLOT_CLIP_RIGHT_PADDING }}
-        tooltipLabelVariant="panel"
-        tooltipDateFormatter={(date) =>
-          date.toLocaleString(locale, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          })
-        }
-      />
-      <EventChartTradeFlow items={tradeFlowItems} />
+      {isLoading ? (
+        <div aria-hidden="true" style={{ height: chartHeight }} />
+      ) : (
+        <>
+          <PredictionChart
+            data={chartData}
+            series={legendSeries}
+            locale={locale}
+            width={chartWidth}
+            height={chartHeight}
+            margin={CHART_MARGIN}
+            dataSignature={chartScopeKey}
+            dataSyncMode="replace"
+            onCursorDataChange={handleCursorDataChange}
+            xAxisTickCount={isMobile ? 2 : 4}
+            autoscale={chartSettings.autoscale}
+            showXAxis={chartSettings.xAxis}
+            showYAxis={chartSettings.yAxis}
+            showHorizontalGrid={chartSettings.horizontalGrid}
+            showVerticalGrid={chartSettings.verticalGrid}
+            showAnnotations={chartSettings.annotations && chartAnnotationMarkers.length > 0}
+            annotationMarkers={chartAnnotationMarkers}
+            leadingGapStart={leadingGapStart}
+            disableResetAnimation={disableResetAnimation}
+            legendContent={legendContent}
+            showLegend={!isSingleMarket}
+            watermark={isSingleMarket ? undefined : watermark}
+            lineCurve="monotoneX"
+            plotClipPadding={{ right: EVENT_PLOT_CLIP_RIGHT_PADDING }}
+            tooltipLabelVariant="panel"
+            tooltipDateFormatter={(date) =>
+              date.toLocaleString(locale, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })
+            }
+          />
+          <EventChartTradeFlow items={tradeFlowItems} />
+        </>
+      )}
     </div>
   )
 }
