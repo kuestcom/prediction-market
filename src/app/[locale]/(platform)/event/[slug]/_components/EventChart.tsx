@@ -177,9 +177,8 @@ function EventChartComponent({
 
   const chartHistory = isSingleMarket && activeOutcomeIndex === OUTCOME_INDEX.NO ? noPriceHistory : yesPriceHistory
   const isChartRangeLoading = showBothOutcomes
-    ? (yesPriceHistory.isPlaceholderData && yesPriceHistory.isFetching) ||
-      (noPriceHistory.isPlaceholderData && noPriceHistory.isFetching)
-    : chartHistory.isPlaceholderData && chartHistory.isFetching
+    ? yesPriceHistory.isPlaceholderData || noPriceHistory.isPlaceholderData
+    : chartHistory.isPlaceholderData
   const marketSnapshot = showBothOutcomes ? yesPriceHistory.latestSnapshot : chartHistory.latestSnapshot
 
   const allMarketIds = useMemo(
