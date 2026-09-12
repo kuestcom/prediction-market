@@ -293,12 +293,14 @@ describe('predictionChart', () => {
 
   it('continues an append transition while the cursor is active', async () => {
     const animationFrames: FrameRequestCallback[] = []
+    const onCursorDataChange = mock()
+    spyOn(window.performance, 'now').mockReturnValue(1_000)
     spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       animationFrames.push(callback)
       return animationFrames.length
     })
 
-    const { getByRole, rerender } = render(
+    const { container, getByRole, rerender } = render(
       <PredictionChart
         data={data}
         dataSyncMode="replace"
@@ -309,6 +311,7 @@ describe('predictionChart', () => {
         showYAxis={false}
         showHorizontalGrid={false}
         disableResetAnimation
+        onCursorDataChange={onCursorDataChange}
       />,
     )
     const canvas = getByRole('img', { name: 'Interactive prediction chart' })
@@ -328,7 +331,9 @@ describe('predictionChart', () => {
     animationFrames.length = 0
     fireEvent.pointerMove(canvas, { clientX: 174, clientY: 100 })
 
-    await waitFor(() => expect(canvasCalls.arc.mock.calls.length).toBeGreaterThan(0))
+    await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+    act(() => animationFrames.at(-1)?.(1_000))
+    await waitFor(() => expect(onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price).toBeCloseTo(49.6, 1))
     animationFrames.length = 0
 
     rerender(
@@ -346,10 +351,19 @@ describe('predictionChart', () => {
         showYAxis={false}
         showHorizontalGrid={false}
         disableResetAnimation
+        onCursorDataChange={onCursorDataChange}
       />,
     )
 
     await waitFor(() => expect(animationFrames.length).toBeGreaterThan(0))
+    act(() => animationFrames.at(-1)?.(1_100))
+    await waitFor(() => {
+      const latestValue = onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price
+      expect(latestValue).toBeGreaterThan(55)
+      expect(latestValue).toBeLessThan(80)
+    })
+    const latestValue = onCursorDataChange.mock.calls.at(-1)?.[0]?.values.price
+    expect(container.textContent).toContain(`Price${latestValue?.toFixed(0)}%`)
   })
 
   it('uses the latest pending pointer position when starting the return animation', async () => {
