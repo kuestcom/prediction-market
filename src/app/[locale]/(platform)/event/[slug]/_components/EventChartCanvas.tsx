@@ -20,7 +20,7 @@ import EventChartTradeFlow from './EventChartTradeFlow'
 
 const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components/PredictionChart'), {
   ssr: false,
-  loading: () => <div className="h-83 w-full" />,
+  loading: () => <div className="h-[272px] w-full" />,
 })
 
 interface EventChartCanvasProps {
@@ -49,13 +49,13 @@ interface EventChartCanvasProps {
   tradeFlowItems: TradeFlowLabelItem[]
 }
 
-const CHART_MARGIN = { top: 30, right: 40, bottom: 52, left: 0 }
+const CHART_MARGIN = { top: 10, right: 40, bottom: 30, left: 0 }
 export default function EventChartCanvas({
   chartData,
   locale = 'en',
   legendSeries,
   chartWidth,
-  chartHeight = 332,
+  chartHeight = 272,
   chartScopeKey,
   onCursorDataChange,
   isMobile,

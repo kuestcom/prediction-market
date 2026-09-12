@@ -714,7 +714,7 @@ function areChartPropsEqual(prev: EventChartProps, next: EventChartProps) {
   if ((prev.chartWidth ?? null) !== (next.chartWidth ?? null)) {
     return false
   }
-  if ((prev.chartHeight ?? 332) !== (next.chartHeight ?? 332)) {
+  if ((prev.chartHeight ?? 272) !== (next.chartHeight ?? 272)) {
     return false
   }
   if ((prev.isSingleMarketOverride ?? null) !== (next.isSingleMarketOverride ?? null)) {

@@ -6,6 +6,7 @@ import { useExtracted, useLocale } from 'next-intl'
 import type { Event } from '@/types'
 
 import { useEventVolumes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventVolumes'
+import { formatEventExpiryCountdown } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventExpiryCountdown'
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatCurrency, formatDate } from '@/lib/formatters'
@@ -27,18 +28,22 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
   const shouldShowNew = event.markets.some((market) => isMarketNew(market.created_at, undefined, currentTimestamp))
   const shouldShowVolume = isNegRiskEnabled || !shouldShowNew
   const shouldShowMetaBlock = isNegRiskEnabled || shouldShowVolume
-  const expiryTooltip = t.rich('This is estimated end date.<br></br>See rules below for specific resolution details.', {
-    br: () => ' ',
+  const expiryTooltip = t({
+    id: 'seeResolutionDetails',
+    message: 'See rules below for specific resolution details',
   })
   const volumeLabel = t('{amount} Vol.', { amount: formatCurrency(resolvedVolume || 0) })
 
   const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
-  const remainingDays =
-    expiryTimestamp !== null && currentTimestamp !== null
-      ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
-      : null
-  const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
+  const remainingLabel =
+    expiryTimestamp !== null
+      ? t({
+          id: 'estimatedTimeRemaining',
+          message: 'Estimated time remaining: {time}',
+          values: { time: formatEventExpiryCountdown(expiryTimestamp, currentTimestamp) ?? '' },
+        })
+      : ''
   const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || expiryTimestamp !== null)
 
   return (
@@ -115,10 +120,14 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
               <span>{formatDate(expiryTimestamp, locale)}</span>
             </span>
           </TooltipTrigger>
-          <TooltipContent side="bottom" collisionPadding={16} className="max-w-64 text-left">
-            <div className="flex flex-col gap-1">
-              <span className="text-sm font-semibold">{remainingLabel}</span>
-              <span className="text-xs text-foreground">{expiryTooltip}</span>
+          <TooltipContent
+            side="bottom"
+            collisionPadding={16}
+            className="w-max max-w-[calc(100vw-2rem)] text-left text-xs leading-4"
+          >
+            <div className="flex flex-col gap-0.5 whitespace-nowrap">
+              <span className="font-semibold">{remainingLabel}</span>
+              <span className="font-normal text-foreground">{expiryTooltip}</span>
             </div>
           </TooltipContent>
         </Tooltip>
