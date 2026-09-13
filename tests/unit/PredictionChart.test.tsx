@@ -94,6 +94,42 @@ describe('predictionChart', () => {
     expect(positionedEntries.every((entry) => entry.top >= 30 && entry.top + 24 <= 80)).toBe(true)
   })
 
+  it('packs labels forward when multiple values are clamped at the top', () => {
+    const positionedEntries = positionTooltipEntries(
+      Array.from({ length: 3 }, (_, index) => ({
+        key: `market-${index}`,
+        name: `Market ${index}`,
+        color: '#00ff00',
+        value: index,
+        initialTop: 0,
+      })),
+      10,
+      190,
+      24,
+      4,
+    )
+
+    expect(positionedEntries.map((entry) => entry.top)).toEqual([10, 38, 66])
+  })
+
+  it('rebalances the packed labels when the final position overflows the footer', () => {
+    const positionedEntries = positionTooltipEntries(
+      Array.from({ length: 5 }, (_, index) => ({
+        key: `market-${index}`,
+        name: `Market ${index}`,
+        color: '#00ff00',
+        value: index,
+        initialTop: index < 4 ? 30 + index * 2 : 136,
+      })),
+      10,
+      150,
+      24,
+      4,
+    )
+
+    expect(positionedEntries.map((entry) => entry.top)).toEqual([24, 52, 80, 108, 136])
+  })
+
   it('draws a quote-only market on canvas without SVG chart layers', async () => {
     const start = new Date('2026-07-30T12:00:00.000Z')
     const end = new Date('2026-07-30T13:00:00.000Z')

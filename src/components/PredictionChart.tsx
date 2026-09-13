@@ -213,13 +213,26 @@ export function positionTooltipEntries(
   const step =
     entries.length > 1 ? Math.min(requestedStep, availableTopRange / Math.max(1, entries.length - 1)) : requestedStep
   const sortedEntries = entries.slice().sort((left, right) => left.initialTop - right.initialTop)
-  return sortedEntries.reduceRight<PositionedTooltipEntry[]>((result, entry) => {
+  const positionedEntries = sortedEntries.reduce<PositionedTooltipEntry[]>((result, entry) => {
     const desiredTop = Math.max(minTop, Math.min(entry.initialTop, maxTop))
-    const nextTop = result[0]?.top
-    const top = nextTop == null ? desiredTop : Math.max(minTop, Math.min(desiredTop, nextTop - step))
-    result.unshift({ ...entry, top })
+    const previousTop = result.at(-1)?.top
+    const top = previousTop == null ? desiredTop : Math.max(desiredTop, previousTop + step)
+    result.push({ ...entry, top })
     return result
   }, [])
+
+  if (positionedEntries.at(-1)!.top <= maxTop) {
+    return positionedEntries
+  }
+
+  const rebalancedEntries = positionedEntries.slice()
+  rebalancedEntries[rebalancedEntries.length - 1].top = maxTop
+  for (let index = rebalancedEntries.length - 2; index >= 0; index -= 1) {
+    const nextTop = rebalancedEntries[index + 1].top
+    rebalancedEntries[index].top = Math.max(minTop, Math.min(rebalancedEntries[index].top, nextTop - step))
+  }
+
+  return rebalancedEntries
 }
 
 export default function PredictionChart({
