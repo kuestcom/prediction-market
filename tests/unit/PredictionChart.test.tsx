@@ -2,7 +2,7 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, mock, spyOn, jest } from 'bun:test'
 
 import { buildHistoryWithLatestPointOverride } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
-import PredictionChart from '@/components/PredictionChart'
+import PredictionChart, { positionTooltipEntries } from '@/components/PredictionChart'
 
 const data = [
   { date: new Date('2026-01-01T00:00:00.000Z'), price: 45 },
@@ -57,6 +57,26 @@ afterEach(() => {
 })
 
 describe('predictionChart', () => {
+  it('keeps stacked tooltip labels inside the plot footer when space is tight', () => {
+    const positionedEntries = positionTooltipEntries(
+      Array.from({ length: 5 }, (_, index) => ({
+        key: `market-${index}`,
+        name: `Market ${index}`,
+        color: '#00ff00',
+        value: index,
+        initialTop: 80,
+      })),
+      10,
+      70,
+      24,
+      4,
+    )
+
+    expect(positionedEntries).toHaveLength(5)
+    expect(positionedEntries.every((entry) => entry.top >= 10 && entry.top + 24 <= 80)).toBe(true)
+    expect(positionedEntries.at(-1)?.top).toBe(56)
+  })
+
   it('draws a quote-only market on canvas without SVG chart layers', async () => {
     const start = new Date('2026-07-30T12:00:00.000Z')
     const end = new Date('2026-07-30T13:00:00.000Z')

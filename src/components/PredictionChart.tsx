@@ -191,7 +191,7 @@ function canAnimateDataTransition(fromData: DataPoint[], toData: DataPoint[], se
   })
 }
 
-function positionTooltipEntries(
+export function positionTooltipEntries(
   entries: TooltipEntry[],
   marginTop: number,
   innerHeight: number,
@@ -204,35 +204,18 @@ function positionTooltipEntries(
 
   const minTop = marginTop
   const maxTop = Math.max(minTop, marginTop + innerHeight - labelHeight)
-  const step = labelHeight + labelGap
-  const positioned = entries
-    .slice()
-    .sort((left, right) => left.initialTop - right.initialTop)
-    .reduce<PositionedTooltipEntry[]>((result, entry) => {
-      const desiredTop = Math.max(minTop, Math.min(entry.initialTop, maxTop))
-      const previousTop = result.at(-1)?.top
-      result.push({
-        ...entry,
-        top: previousTop == null ? desiredTop : Math.max(desiredTop, previousTop + step),
-      })
-      return result
-    }, [])
-
-  const overflow = positioned.at(-1)!.top - maxTop
-  if (overflow > 0) {
-    positioned.forEach((entry) => {
-      entry.top -= overflow
-    })
-  }
-
-  const underflow = minTop - positioned[0].top
-  if (underflow > 0) {
-    positioned.forEach((entry) => {
-      entry.top += underflow
-    })
-  }
-
-  return positioned
+  const requestedStep = labelHeight + labelGap
+  const availableTopRange = Math.max(0, maxTop - minTop)
+  const step =
+    entries.length > 1 ? Math.min(requestedStep, availableTopRange / Math.max(1, entries.length - 1)) : requestedStep
+  const sortedEntries = entries.slice().sort((left, right) => left.initialTop - right.initialTop)
+  return sortedEntries.reduceRight<PositionedTooltipEntry[]>((result, entry) => {
+    const desiredTop = Math.max(minTop, Math.min(entry.initialTop, maxTop))
+    const nextTop = result[0]?.top
+    const top = nextTop == null ? desiredTop : Math.max(minTop, Math.min(desiredTop, nextTop - step))
+    result.unshift({ ...entry, top })
+    return result
+  }, [])
 }
 
 export default function PredictionChart({
