@@ -26,6 +26,9 @@ import {
   DEFAULT_X_AXIS_TICKS,
   DEFAULT_Y_AXIS_MAX,
   snapTimestampToInterval,
+  resolveTooltipDateLabelTop,
+  TOOLTIP_DATE_LABEL_GAP,
+  TOOLTIP_DATE_LABEL_HEIGHT,
   TOOLTIP_LABEL_GAP,
   TOOLTIP_LABEL_HEIGHT,
   TOOLTIP_PANEL_LABEL_GAP,
@@ -197,25 +200,36 @@ export function positionTooltipEntries(
   innerHeight: number,
   labelHeight: number,
   labelGap: number,
+  minimumTop = marginTop,
 ) {
   if (!entries.length) {
     return []
   }
 
-  const minTop = marginTop
-  const maxTop = Math.max(minTop, marginTop + innerHeight - labelHeight)
+  const maxTop = Math.max(marginTop, marginTop + innerHeight - labelHeight)
+  const minTop = Math.min(Math.max(marginTop, minimumTop), maxTop)
   const requestedStep = labelHeight + labelGap
   const availableTopRange = Math.max(0, maxTop - minTop)
   const step =
     entries.length > 1 ? Math.min(requestedStep, availableTopRange / Math.max(1, entries.length - 1)) : requestedStep
   const sortedEntries = entries.slice().sort((left, right) => left.initialTop - right.initialTop)
-  return sortedEntries.reduceRight<PositionedTooltipEntry[]>((result, entry) => {
+  const positionedEntries = sortedEntries.reduce<PositionedTooltipEntry[]>((result, entry) => {
     const desiredTop = Math.max(minTop, Math.min(entry.initialTop, maxTop))
-    const nextTop = result[0]?.top
-    const top = nextTop == null ? desiredTop : Math.max(minTop, Math.min(desiredTop, nextTop - step))
-    result.unshift({ ...entry, top })
+    const previousTop = result.at(-1)?.top
+    const top = previousTop == null ? desiredTop : Math.max(desiredTop, previousTop + step)
+    result.push({ ...entry, top })
     return result
   }, [])
+
+  if (positionedEntries.at(-1)!.top <= maxTop) {
+    return positionedEntries
+  }
+
+  const rebalanceStart = Math.max(minTop, maxTop - (positionedEntries.length - 1) * step)
+  return positionedEntries.map((entry, index) => ({
+    ...entry,
+    top: rebalanceStart + index * step,
+  }))
 }
 
 export default function PredictionChart({
@@ -608,6 +622,12 @@ export default function PredictionChart({
     innerHeight,
     tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_HEIGHT : TOOLTIP_LABEL_HEIGHT,
     tooltipLabelVariant === 'panel' ? TOOLTIP_PANEL_LABEL_GAP : TOOLTIP_LABEL_GAP,
+    Math.max(
+      resolvedMargin.top,
+      resolveTooltipDateLabelTop(resolvedMargin.top, Boolean(tooltipHeader && tooltipEntries.length)) +
+        TOOLTIP_DATE_LABEL_HEIGHT +
+        TOOLTIP_DATE_LABEL_GAP,
+    ),
   )
 
   const gridLineColor = neutralAxisColors

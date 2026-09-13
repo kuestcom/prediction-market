@@ -1,6 +1,12 @@
 import type { DataPoint, PredictionChartTooltipLabelVariant } from '@/types/PredictionChartTypes'
 
-import { TOOLTIP_LABEL_MAX_WIDTH, TOOLTIP_PANEL_LABEL_MAX_WIDTH } from '@/lib/prediction-chart'
+import {
+  resolveTooltipDateLabelTop,
+  TOOLTIP_DATE_LABEL_HEIGHT,
+  TOOLTIP_HEADER_LABEL_HEIGHT,
+  TOOLTIP_LABEL_MAX_WIDTH,
+  TOOLTIP_PANEL_LABEL_MAX_WIDTH,
+} from '@/lib/prediction-chart'
 import { cn } from '@/lib/utils'
 
 interface TooltipEntry {
@@ -127,7 +133,8 @@ export default function PredictionChartTooltipOverlay({
   const headerEntry = positionedTooltipEntries[0] ?? null
   const headerColor = header?.color ?? headerEntry?.color ?? 'currentColor'
   const showHeader = Boolean(header && headerEntry)
-  const topLabelTop = Math.max(0, margin.top - (showHeader ? 54 : 36))
+  const dateLabelTop = resolveTooltipDateLabelTop(margin.top, showHeader)
+  const topLabelTop = dateLabelTop - (showHeader ? TOOLTIP_HEADER_LABEL_HEIGHT : 0)
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -167,12 +174,13 @@ export default function PredictionChartTooltipOverlay({
       <div
         className="absolute text-xs font-medium text-muted-foreground"
         style={{
-          top: topLabelTop + (showHeader ? 20 : 0),
+          top: dateLabelTop,
           left: dateLabelStyle.left,
           maxWidth: '180px',
           whiteSpace: 'nowrap',
           transform: dateLabelStyle.transform,
           fontSize: dateFontSize,
+          lineHeight: `${TOOLTIP_DATE_LABEL_HEIGHT}px`,
         }}
       >
         {dateLabel}

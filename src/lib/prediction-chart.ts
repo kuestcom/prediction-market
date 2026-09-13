@@ -8,7 +8,21 @@ export const TOOLTIP_LABEL_MAX_WIDTH = 160
 export const TOOLTIP_PANEL_LABEL_HEIGHT = 24
 export const TOOLTIP_PANEL_LABEL_GAP = 4
 export const TOOLTIP_PANEL_LABEL_MAX_WIDTH = 176
+export const TOOLTIP_DATE_LABEL_HEIGHT = 16
+export const TOOLTIP_DATE_LABEL_GAP = 4
+export const TOOLTIP_HEADER_LABEL_HEIGHT = 20
 const DATA_POINT_EPSILON = 0.0001
+
+const TOOLTIP_TOP_LABEL_OFFSET = 36
+const TOOLTIP_TOP_LABEL_WITH_HEADER_OFFSET = 54
+
+export function resolveTooltipDateLabelTop(marginTop: number, showHeader: boolean) {
+  const topLabelTop = Math.max(
+    0,
+    marginTop - (showHeader ? TOOLTIP_TOP_LABEL_WITH_HEADER_OFFSET : TOOLTIP_TOP_LABEL_OFFSET),
+  )
+  return topLabelTop + (showHeader ? TOOLTIP_HEADER_LABEL_HEIGHT : 0)
+}
 
 export function snapTimestampToInterval(valueMs: number, stepMs?: number, offsetMs = 0) {
   if (!stepMs || !Number.isFinite(stepMs) || stepMs <= 0) {
