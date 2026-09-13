@@ -172,7 +172,7 @@ export async function POST(request: Request) {
             .where(eq(eventsTable.id, row.event_id))
         }
 
-        revalidateTag(cacheTags.event(row.slug), 'max')
+        revalidateTag(cacheTags.event(row.slug), { expire: 0 })
         updatedCount += 1
       } catch (error) {
         errors.push({
@@ -184,8 +184,8 @@ export async function POST(request: Request) {
   }
 
   if (updatedCount > 0) {
-    revalidateTag(cacheTags.eventsList, 'max')
-    revalidateTag(cacheTags.sportsMenu, 'max')
+    revalidateTag(cacheTags.eventsList, { expire: 0 })
+    revalidateTag(cacheTags.sportsMenu, { expire: 0 })
   }
 
   return NextResponse.json({

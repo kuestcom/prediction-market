@@ -123,6 +123,8 @@ describe('sync sports scores route', () => {
         sports_ended: true,
       }),
     )
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('events:list', { expire: 0 })
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('sports:menu', { expire: 0 })
     await expect(response.json()).resolves.toEqual({
       checkedCount: 3,
       updatedCount: 3,
@@ -171,8 +173,8 @@ describe('sync sports scores route', () => {
 
     expect(mocks.resolveSportsEvent).toHaveBeenCalledTimes(1)
     expect(mocks.set).toHaveBeenCalledTimes(3)
-    expect(mocks.revalidateTag).toHaveBeenCalledWith('event:exact-score', 'max')
-    expect(mocks.revalidateTag).toHaveBeenCalledWith('event:player-props', 'max')
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('event:exact-score', { expire: 0 })
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('event:player-props', { expire: 0 })
     await expect(response.json()).resolves.toEqual({
       checkedCount: 3,
       updatedCount: 2,

@@ -2160,14 +2160,14 @@ async function invalidateEventCaches(
   const sitemapTagInvalidated = options.includeSitemap === true
   const homeFeaturedTagInvalidated = listTagInvalidated
   if (listTagInvalidated) {
-    revalidateTag(cacheTags.eventsList, 'max')
-    revalidateTag(cacheTags.homeFeaturedEvents, 'max')
+    revalidateTag(cacheTags.eventsList, { expire: 0 })
+    revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
     for (const locale of SUPPORTED_LOCALES) {
-      revalidateTag(cacheTags.mainTags(locale), 'max')
+      revalidateTag(cacheTags.mainTags(locale), { expire: 0 })
     }
   }
   if (sitemapTagInvalidated) {
-    revalidateTag(cacheTags.sitemap, 'max')
+    revalidateTag(cacheTags.sitemap, { expire: 0 })
   }
 
   if (uniqueEventIds.length === 0) {
@@ -2191,7 +2191,7 @@ async function invalidateEventCaches(
   let eventTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
-      revalidateTag(cacheTags.event(row.slug), 'max')
+      revalidateTag(cacheTags.event(row.slug), { expire: 0 })
       eventTagInvalidations += 1
     }
   }

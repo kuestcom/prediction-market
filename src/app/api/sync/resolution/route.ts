@@ -814,8 +814,8 @@ async function invalidateEventCaches(eventIds: string[], options: { includeList?
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   const listTagInvalidated = options.includeList === true
   if (listTagInvalidated) {
-    revalidateTag(cacheTags.eventsList, 'max')
-    revalidateTag(cacheTags.homeFeaturedEvents, 'max')
+    revalidateTag(cacheTags.eventsList, { expire: 0 })
+    revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
   }
 
   if (uniqueEventIds.length === 0) {
@@ -836,7 +836,7 @@ async function invalidateEventCaches(eventIds: string[], options: { includeList?
   let eventTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
-      revalidateTag(cacheTags.event(row.slug), 'max')
+      revalidateTag(cacheTags.event(row.slug), { expire: 0 })
       eventTagInvalidations += 1
     }
   }
