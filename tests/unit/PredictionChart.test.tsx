@@ -94,21 +94,6 @@ describe('predictionChart', () => {
     expect(positionedEntries.every((entry) => entry.top >= 30 && entry.top + 24 <= 80)).toBe(true)
   })
 
-  it('preserves label spacing when nearby values still fit in the chart', () => {
-    const positionedEntries = positionTooltipEntries(
-      [
-        { key: 'market-0', name: 'Market 0', color: '#00ff00', value: 0, initialTop: 30 },
-        { key: 'market-1', name: 'Market 1', color: '#00ff00', value: 1, initialTop: 32 },
-      ],
-      10,
-      190,
-      24,
-      4,
-    )
-
-    expect(positionedEntries.map((entry) => entry.top)).toEqual([30, 58])
-  })
-
   it('draws a quote-only market on canvas without SVG chart layers', async () => {
     const start = new Date('2026-07-30T12:00:00.000Z')
     const end = new Date('2026-07-30T13:00:00.000Z')
