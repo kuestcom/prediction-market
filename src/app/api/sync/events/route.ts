@@ -24,6 +24,7 @@ import {
 import { db } from '@/lib/drizzle'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 import { setEventHiddenFromNew } from '@/lib/event-visibility'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { syncMissingOnChainResolvedPayouts } from '@/lib/resolution-payout-sync'
 import { slugifyText } from '@/lib/slug'
 import { findSportsEvents } from '@/lib/sports-source'
@@ -40,7 +41,6 @@ import {
 
 export const maxDuration = 300
 
-const PNL_SUBGRAPH_URL = 'https://subgraphs.kuest.com/pnl-subgraph'
 const IRYS_GATEWAY = process.env.IRYS_GATEWAY || 'https://gateway.irys.xyz'
 const SYNC_TIME_LIMIT_MS = 250_000
 const PNL_PAGE_SIZE = 200
@@ -79,6 +79,10 @@ const MAIN_CATEGORY_TAGS = [
 const MAIN_CATEGORY_TAG_BY_SLUG = new Map<string, (typeof MAIN_CATEGORY_TAGS)[number]>(
   MAIN_CATEGORY_TAGS.map((tag) => [tag.slug, tag]),
 )
+
+function getPnlSubgraphUrl() {
+  return new URL('/pnl-subgraph', resolvePublicRuntimeEnv(process.env).subgraphsUrl).toString()
+}
 
 interface SyncCursor {
   conditionId: string
@@ -834,7 +838,7 @@ async function fetchPnLConditionsPage(
     }
   }
 
-  const response = await fetch(PNL_SUBGRAPH_URL, {
+  const response = await fetch(getPnlSubgraphUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     keepalive: true,

@@ -2,8 +2,6 @@ import { parseGwei } from 'viem'
 
 import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
 
-import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
-
 export const TOTAL_STEPS = 5
 export const MIN_SUB_CATEGORIES = 4
 export const USDC_DECIMALS = 6
@@ -26,7 +24,6 @@ export const APPROVE_GAS_UNITS_ESTIMATE = 70_000n
 export const INITIALIZE_GAS_UNITS_ESTIMATE = 700_000n
 export const GAS_ESTIMATE_BUFFER_NUMERATOR = 13n
 export const GAS_ESTIMATE_BUFFER_DENOMINATOR = 10n
-export const DEFAULT_CREATE_EVENT_CHAIN_ID = IS_TEST_MODE ? AMOY_CHAIN_ID : POLYGON_MAINNET_CHAIN_ID
 export const CUSTOM_SPORTS_SLUG_SELECT_VALUE = '__custom__'
 export const EOA_BALANCE_ABI = [
   {

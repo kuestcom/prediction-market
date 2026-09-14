@@ -384,7 +384,7 @@ describe('sync events route', () => {
 
     expect(mocks.fetch).toHaveBeenCalledTimes(1)
     expect(mocks.fetch).toHaveBeenCalledWith(
-      'https://subgraphs.kuest.com/pnl-subgraph',
+      'https://subgraphs-staging.kuest.com/pnl-subgraph',
       expect.objectContaining({
         method: 'POST',
         keepalive: true,

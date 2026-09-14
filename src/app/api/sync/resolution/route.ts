@@ -10,6 +10,7 @@ import {
   subgraph_syncs,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import {
   syncMissingOnChainResolvedPayouts,
   updateOutcomePayoutsFromResolutionPrice,
@@ -24,7 +25,6 @@ import {
 
 export const maxDuration = 300
 
-const RESOLUTION_SUBGRAPH_URL = 'https://subgraphs.kuest.com/resolution-subgraph'
 const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
 const SAFETY_PERIOD_V4_SECONDS = 60 * 60
@@ -37,6 +37,10 @@ const RESOLUTION_SYNC_STATE = {
   serviceName: 'resolution_sync',
   subgraphName: 'resolution',
 } as const
+
+function getResolutionSubgraphUrl() {
+  return new URL('/resolution-subgraph', resolvePublicRuntimeEnv(process.env).subgraphsUrl).toString()
+}
 
 interface ResolutionCursor {
   lastUpdateTimestamp: number
@@ -460,7 +464,7 @@ async function fetchResolutionPage(
         pageSize: RESOLUTION_PAGE_SIZE,
       }
 
-  const response = await fetch(RESOLUTION_SUBGRAPH_URL!, {
+  const response = await fetch(getResolutionSubgraphUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     keepalive: true,

@@ -102,7 +102,7 @@ describe('sync resolution route', () => {
 
     expect(mocks.fetch).toHaveBeenCalledTimes(1)
     expect(mocks.fetch).toHaveBeenCalledWith(
-      'https://subgraphs.kuest.com/resolution-subgraph',
+      'https://subgraphs-staging.kuest.com/resolution-subgraph',
       expect.objectContaining({
         method: 'POST',
         keepalive: true,
