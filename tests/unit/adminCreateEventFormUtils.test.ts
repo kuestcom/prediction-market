@@ -21,6 +21,7 @@ import {
   createInitialForm,
   isBigIntSerializationError,
   mapSignatureFlowErrorForUser,
+  resolveMarketConfigUsdcToken,
   resolveCustomSportsSlugMode,
 } from '@/app/[locale]/admin/events/calendar/_components/admin-create-event-form-utils'
 import { buildStepErrors } from '@/app/[locale]/admin/events/calendar/_components/admin-create-event-form-validation'
@@ -84,6 +85,33 @@ function buildValidationArgs(
 }
 
 describe('admin create event form utils', () => {
+  describe('resolveMarketConfigUsdcToken', () => {
+    it('uses the USDC address from the matching chain configuration', () => {
+      expect(
+        resolveMarketConfigUsdcToken(
+          {
+            chains: [
+              { chainId: 80002, usdcToken: '0x1111111111111111111111111111111111111111' },
+              { chainId: 137, usdcToken: '0x2222222222222222222222222222222222222222' },
+            ],
+          },
+          137,
+        ),
+      ).toBe('0x2222222222222222222222222222222222222222')
+    })
+
+    it('fails closed when the matching chain configuration is absent', () => {
+      expect(
+        resolveMarketConfigUsdcToken(
+          {
+            chains: [{ chainId: 80002, usdcToken: '0x1111111111111111111111111111111111111111' }],
+          },
+          137,
+        ),
+      ).toBeNull()
+    })
+  })
+
   describe('resolveCustomSportsSlugMode', () => {
     it('restores custom mode for a saved slug missing from the catalog', () => {
       expect(

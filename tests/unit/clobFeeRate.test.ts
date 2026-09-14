@@ -1,12 +1,31 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
 
-import { fetchKuestFeeRate } from '@/lib/clob'
+import { fetchKuestFeeRate, resolveClobUrl } from '@/lib/clob'
 
-import { stubGlobal, unstubAllGlobals } from '../bun-test-helpers'
+import { stubEnv, stubGlobal, unstubAllEnvs, unstubAllGlobals } from '../bun-test-helpers'
 
 describe('fetchKuestFeeRate', () => {
   afterEach(() => {
+    if (typeof window !== 'undefined') {
+      delete (window as Window & { __PUBLIC_RUNTIME_CONFIG__?: unknown }).__PUBLIC_RUNTIME_CONFIG__
+    }
+    unstubAllEnvs()
     unstubAllGlobals()
+  })
+
+  it('uses the injected browser runtime URL for the default client endpoint', () => {
+    stubEnv('CHAIN_ID', '80002')
+    stubEnv('CLOB_URL', '')
+    ;(
+      window as Window & {
+        __PUBLIC_RUNTIME_CONFIG__?: { chainId?: number; clobUrl?: string }
+      }
+    ).__PUBLIC_RUNTIME_CONFIG__ = {
+      chainId: 137,
+      clobUrl: 'https://clob.example',
+    }
+
+    expect(resolveClobUrl()).toBe('https://clob.example')
   })
 
   it('loads the dynamic Kuest fee schedule for the selected token', async () => {

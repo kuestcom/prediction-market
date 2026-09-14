@@ -142,6 +142,7 @@ import {
   readResponseBody,
   readResponseErrorMessage,
   resolveCustomSportsSlugMode,
+  resolveMarketConfigUsdcToken,
   resolveStoredAssetFile,
   shortenAddress,
   shouldRetryFinalizeRequest,
@@ -2456,16 +2457,10 @@ export function useAdminCreateEventForm({
       setRequiredRewardUsdc(normalizedRequired)
       setTargetChainId(chainId)
 
-      const chainConfig = payload.chains?.find((entry) => entry.chainId === chainId)
-      const usdcToken =
-        typeof chainConfig?.usdcToken === 'string' && isAddress(chainConfig.usdcToken)
-          ? getAddress(chainConfig.usdcToken)
-          : typeof payload.usdcToken === 'string' && isAddress(payload.usdcToken)
-            ? getAddress(payload.usdcToken)
-            : null
+      const usdcToken = resolveMarketConfigUsdcToken(payload, chainId)
 
       if (!usdcToken) {
-        throw new Error('Invalid USDC token in market-config')
+        throw new Error('Missing valid chain-specific USDC token in market-config')
       }
 
       if (!eoaAddress) {

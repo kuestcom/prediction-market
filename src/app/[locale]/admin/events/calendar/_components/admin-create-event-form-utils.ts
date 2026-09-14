@@ -1,6 +1,6 @@
 import type { Hex } from 'viem'
 
-import { toHex } from 'viem'
+import { getAddress, isAddress, toHex } from 'viem'
 
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetRef, EventCreationRecurrenceUnit } from '@/lib/event-creation'
@@ -18,6 +18,7 @@ import type {
   CategorySuggestion,
   FinalizeResponse,
   FormState,
+  MarketConfigResponse,
   OpenRouterStatusResponse,
   OptionItem,
   PendingRequestItem,
@@ -52,6 +53,18 @@ export function readApiError(payload: unknown): string | null {
   }
 
   return null
+}
+
+export function resolveMarketConfigUsdcToken(
+  payload: Pick<MarketConfigResponse, 'chains'>,
+  chainId: number,
+): `0x${string}` | null {
+  const chainConfig = payload.chains?.find((entry) => entry.chainId === chainId)
+  if (!chainConfig || typeof chainConfig.usdcToken !== 'string' || !isAddress(chainConfig.usdcToken)) {
+    return null
+  }
+
+  return getAddress(chainConfig.usdcToken)
 }
 
 export function resolveCustomSportsSlugMode({

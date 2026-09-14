@@ -20,11 +20,16 @@ interface OrderBookSummaryResponse {
   asks?: OrderbookLevelSummary[]
 }
 
-export function resolveClobUrl(value?: string) {
-  const defaultClobUrl =
-    typeof process === 'undefined' ? defaultPublicRuntimeConfig.clobUrl : resolvePublicRuntimeEnv(process.env).clobUrl
+function resolveDefaultClobUrl() {
+  if (typeof window !== 'undefined') {
+    return normalizePublicRuntimeEnvValue(window.__PUBLIC_RUNTIME_CONFIG__?.clobUrl, defaultPublicRuntimeConfig.clobUrl)
+  }
 
-  return normalizePublicRuntimeEnvValue(value, defaultClobUrl)
+  return resolvePublicRuntimeEnv(process.env).clobUrl
+}
+
+export function resolveClobUrl(value?: string) {
+  return normalizePublicRuntimeEnvValue(value, resolveDefaultClobUrl())
 }
 
 export async function fetchClobJson<T>(path: string, body: unknown, clobUrl = resolveClobUrl()): Promise<T> {
