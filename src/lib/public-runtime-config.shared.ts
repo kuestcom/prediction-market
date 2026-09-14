@@ -121,7 +121,7 @@ export function resolvePublicRuntimeEnv(
     reownAppKitProjectId: normalizePublicRuntimeEnvValue(env.REOWN_APPKIT_PROJECT_ID),
     sdkDownloadUrl: normalizePublicRuntimeEnvValue(env.SDK_DOWNLOAD_URL, defaultPublicRuntimeConfig.sdkDownloadUrl),
     sentryDsn: normalizePublicRuntimeEnvValue(env.SENTRY_DSN),
-    subgraphsUrl: normalizePublicRuntimeEnvValue(env.SUBGRAPHS_URL, networkServiceUrls.subgraphsUrl),
+    subgraphsUrl: networkServiceUrls.subgraphsUrl,
     userPnlUrl: normalizePublicRuntimeEnvValue(env.USER_PNL_URL, networkServiceUrls.userPnlUrl),
     wsClobUrl: normalizePublicRuntimeEnvValue(env.WS_CLOB_URL, networkServiceUrls.wsClobUrl),
     wsLiveDataUrl: normalizePublicRuntimeEnvValue(env.WS_LIVE_DATA_URL, networkServiceUrls.wsLiveDataUrl),

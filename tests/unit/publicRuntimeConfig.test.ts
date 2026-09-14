@@ -21,15 +21,17 @@ const RUNTIME_ENV_KEYS_BY_CONFIG_KEY = {
   reownAppKitProjectId: 'REOWN_APPKIT_PROJECT_ID',
   sdkDownloadUrl: 'SDK_DOWNLOAD_URL',
   sentryDsn: 'SENTRY_DSN',
-  subgraphsUrl: 'SUBGRAPHS_URL',
   userPnlUrl: 'USER_PNL_URL',
   wsClobUrl: 'WS_CLOB_URL',
   wsLiveDataUrl: 'WS_LIVE_DATA_URL',
-} as const satisfies Record<keyof Omit<typeof defaultPublicRuntimeConfig, 'commitSha' | 'isVercel' | 'siteUrl'>, string>
+} as const
 
-const KUEST_DEFAULT_CONFIG_KEYS = Object.entries(defaultPublicRuntimeConfig)
-  .filter(([, value]) => typeof value === 'string' && value.includes('.kuest.com'))
-  .map(([key]) => key as keyof typeof RUNTIME_ENV_KEYS_BY_CONFIG_KEY)
+const KUEST_DEFAULT_CONFIG_KEYS = (
+  Object.keys(RUNTIME_ENV_KEYS_BY_CONFIG_KEY) as Array<keyof typeof RUNTIME_ENV_KEYS_BY_CONFIG_KEY>
+).filter((key) => {
+  const value = defaultPublicRuntimeConfig[key]
+  return typeof value === 'string' && value.includes('.kuest.com')
+})
 
 describe('public runtime config resolution', () => {
   it('uses Kuest defaults for blank Kuest service URLs', () => {
