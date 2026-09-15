@@ -46,6 +46,7 @@ import {
   resolutionDecisionForHash,
   resolutionDecisionCodeForHash,
 } from '@/lib/market-maker-escrow'
+import { POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError } from '@/lib/wallet'
 
@@ -127,6 +128,7 @@ export interface MarketMakingCampaignsCopy {
   transactionConfirmed: string
   transactionRejected: string
   refundReadyToWithdraw: string
+  amoyReadOnlyNotice: string
   close: string
   seriesBadge: string
   seriesTooltip: string
@@ -422,6 +424,7 @@ function CampaignDetail({
   onWithdraw,
   pendingWithdrawalAtomic,
   isMutating,
+  escrowReadOnly,
 }: {
   campaign: MarketMakingCampaignRecord
   locale: string
@@ -434,6 +437,7 @@ function CampaignDetail({
   onWithdraw: () => void
   pendingWithdrawalAtomic: string | null
   isMutating: boolean
+  escrowReadOnly: boolean
 }) {
   const isMobile = useIsMobile()
   const effectiveStatus = getEffectiveCampaignStatus(campaign.status, campaign.serviceEnd, now)
@@ -671,7 +675,7 @@ function CampaignDetail({
 
       {(campaign.status === ESCROW_CAMPAIGN_STATUS.open ||
         canDispute ||
-        (campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && hasPendingWithdrawal)) && (
+        (campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && (hasPendingWithdrawal || escrowReadOnly))) && (
         <div className="flex shrink-0 gap-2 border-t bg-background p-4">
           {campaign.status === ESCROW_CAMPAIGN_STATUS.open && isExpired && (
             <Button type="button" variant="outline" className="w-full" disabled={isMutating} onClick={onCancel}>
@@ -701,7 +705,7 @@ function CampaignDetail({
               {copy.openDispute}
             </Button>
           )}
-          {campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && hasPendingWithdrawal && (
+          {campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && (hasPendingWithdrawal || escrowReadOnly) && (
             <Button type="button" className="w-full" disabled={isMutating} onClick={onWithdraw}>
               {isMutating && <LoaderCircleIcon className="size-4 animate-spin" />}
               {copy.withdrawRefund}
@@ -753,6 +757,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
   const { open: openAppKit } = useAppKit()
   const { address, isConnected } = useAppKitAccount()
   const { chainId } = usePublicRuntimeConfig()
+  const escrowReadOnly = chainId !== POLYGON_MAINNET_CHAIN_ID
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient({ chainId })
   const [filter, setFilter] = useState<EscrowCampaignStatusFilter>('all')
@@ -818,7 +823,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
   }, [campaignLookupQuery.data?.data, campaignsQuery.data?.data, lookupCampaignId])
   const pendingWithdrawalsQuery = useQuery({
     queryKey: ['market-making-pending-withdrawals', address?.toLowerCase()],
-    enabled: Boolean(address && publicClient),
+    enabled: !escrowReadOnly && Boolean(address && publicClient),
     staleTime: 5_000,
     queryFn: async () => {
       if (!address || !publicClient) {
@@ -898,6 +903,10 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
   }
 
   async function writeCampaign(functionName: 'cancelCampaign' | 'openDispute', campaign: MarketMakingCampaignRecord) {
+    if (escrowReadOnly) {
+      toast.error(copy.amoyReadOnlyNotice)
+      return false
+    }
     if (!isConnected || !address || !walletClient) {
       await openAppKit()
       return false
@@ -949,6 +958,10 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
   }
 
   async function withdrawRefund() {
+    if (escrowReadOnly) {
+      toast.error(copy.amoyReadOnlyNotice)
+      return
+    }
     if (!isConnected || !address || !walletClient) {
       await openAppKit()
       return
@@ -1026,7 +1039,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
               type="button"
               size="sm"
               className="gap-1"
-              disabled={!hasPendingWithdrawal || isMutating}
+              disabled={(!hasPendingWithdrawal && !escrowReadOnly) || isMutating}
               onClick={withdrawRefund}
             >
               {isMutating && <LoaderCircleIcon className="size-4 animate-spin" />}
@@ -1143,6 +1156,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
           onWithdraw={withdrawRefund}
           pendingWithdrawalAtomic={pendingWithdrawalsQuery.data ?? null}
           isMutating={isMutating}
+          escrowReadOnly={escrowReadOnly}
         />
       )}
 

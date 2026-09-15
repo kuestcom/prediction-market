@@ -37,6 +37,7 @@ import type {
 import { resolveCampaignsInstanceKey } from '@/app/[locale]/admin/market-making/_components/market-making-campaign-lookup'
 import MarketMakingCampaigns from '@/app/[locale]/admin/market-making/_components/MarketMakingCampaigns'
 import MarketMakingHowItWorks from '@/app/[locale]/admin/market-making/_components/MarketMakingHowItWorks'
+import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -81,6 +82,7 @@ import {
   requiredSponsorBalanceAtomic,
   sponsorshipDurationSubtitle,
 } from '@/lib/market-making-series'
+import { POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
 import { hasUsableUserEmail } from '@/lib/user-email'
 import { cn } from '@/lib/utils'
 import { resolveViemNetworkByChainId } from '@/lib/viem-network'
@@ -193,6 +195,8 @@ interface MarketMakingCopy {
   operatorVerificationPending: string
   accountEmailRequired: string
   accountSettings: string
+  amoyReadOnlyNotice: string
+  mainnetOnly: string
   seriesBadge: string
   seriesTooltip: string
   sponsorSeries: string
@@ -1081,6 +1085,7 @@ function CampaignDialog({
   const { walletProvider, walletProviderType } = useAppKitProvider<RpcWalletProvider>('eip155')
   const { chainId: appKitChainId, switchNetwork } = useAppKitNetwork()
   const { chainId, escrowUrl, notificationsUrl } = usePublicRuntimeConfig()
+  const escrowReadOnly = chainId !== POLYGON_MAINNET_CHAIN_ID
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient({ chainId })
   const queryClient = useQueryClient()
@@ -1335,7 +1340,7 @@ function CampaignDialog({
   const displayedTotalAtomic = costs ? displayedCostAtomic({ ...costs, initialDeploymentFeePaid }) : null
   const sponsorBalanceQuery = useQuery({
     queryKey: ['market-making-sponsor-usdc-balance', chainId, address?.toLowerCase()],
-    enabled: open && Boolean(address && publicClient),
+    enabled: !escrowReadOnly && open && Boolean(address && publicClient),
     staleTime: 5_000,
     refetchInterval: 10_000,
     retry: false,
@@ -1377,7 +1382,7 @@ function CampaignDialog({
 
   const importQuery = useQuery({
     queryKey: ['market-making-import', escrowBaseUrl, importId],
-    enabled: Boolean(importId),
+    enabled: !escrowReadOnly && Boolean(importId),
     retry: false,
     refetchInterval: (query) => {
       const state = (query.state.data as EscrowImportResponse | undefined)?.state
@@ -1395,7 +1400,9 @@ function CampaignDialog({
 
   const deploymentCampaignQuery = useQuery({
     queryKey: ['market-making-deployment-campaign', chainId, importId],
-    enabled: Boolean(open && item.needsDeployment && importId && publicClient && importValue?.reusable !== true),
+    enabled: Boolean(
+      !escrowReadOnly && open && item.needsDeployment && importId && publicClient && importValue?.reusable !== true,
+    ),
     retry: false,
     refetchInterval: (query) => (query.state.data && query.state.data > 0n ? false : 4_000),
     queryFn: async () => {
@@ -1413,7 +1420,9 @@ function CampaignDialog({
 
   const deploymentReservationSponsorQuery = useQuery({
     queryKey: ['market-making-deployment-reservation-sponsor', chainId, importId],
-    enabled: Boolean(open && item.needsDeployment && importId && publicClient && importValue?.reusable !== true),
+    enabled: Boolean(
+      !escrowReadOnly && open && item.needsDeployment && importId && publicClient && importValue?.reusable !== true,
+    ),
     retry: false,
     refetchInterval: () => (importValue?.state === 'failed_refundable' ? 4_000 : false),
     queryFn: async () => {
@@ -1432,7 +1441,13 @@ function CampaignDialog({
   const pendingImportWithdrawalQuery = useQuery({
     queryKey: ['market-making-import-pending-withdrawal', chainId, address?.toLowerCase(), importId],
     enabled: Boolean(
-      open && item.needsDeployment && importId && address && publicClient && importValue?.state === 'failed_refundable',
+      !escrowReadOnly &&
+      open &&
+      item.needsDeployment &&
+      importId &&
+      address &&
+      publicClient &&
+      importValue?.state === 'failed_refundable',
     ),
     retry: false,
     refetchInterval: 4_000,
@@ -1536,7 +1551,19 @@ function CampaignDialog({
     onOpenChange(nextOpen)
   }
 
+  function notifyMainnetOnly() {
+    if (!escrowReadOnly) {
+      return false
+    }
+    setIssueError(copy.amoyReadOnlyNotice)
+    toast.error(copy.amoyReadOnlyNotice)
+    return true
+  }
+
   async function handleRetryImport() {
+    if (notifyMainnetOnly()) {
+      return
+    }
     if (!importValue?.canRetry) {
       return
     }
@@ -1556,6 +1583,9 @@ function CampaignDialog({
   }
 
   async function handleCancelImport() {
+    if (notifyMainnetOnly()) {
+      return
+    }
     if (
       !address ||
       !publicClient ||
@@ -1648,6 +1678,9 @@ function CampaignDialog({
   }
 
   async function handleWithdrawImport() {
+    if (notifyMainnetOnly()) {
+      return
+    }
     if (!address || !publicClient) {
       setIssueError(copy.walletNotReady)
       return
@@ -1772,6 +1805,9 @@ function CampaignDialog({
   }
 
   async function handleFundCampaign() {
+    if (notifyMainnetOnly()) {
+      return
+    }
     if (!sponsorPremiumValid) {
       return
     }
@@ -2795,6 +2831,8 @@ export default function MarketMakingDiscovery({
   campaignsCopy,
   howItWorksCopy,
 }: MarketMakingDiscoveryProps) {
+  const { chainId } = usePublicRuntimeConfig()
+  const escrowReadOnly = chainId !== POLYGON_MAINNET_CHAIN_ID
   const [query, setQuery] = useState('')
   const [source, setSource] = useState<MarketMakingSourceFilter>('all')
   const [activeTab, setActiveTab] = useState<'sponsor' | 'campaigns'>(() =>
@@ -2831,6 +2869,14 @@ export default function MarketMakingDiscovery({
 
   return (
     <section className="min-h-[calc(100dvh-6rem)] min-w-0">
+      {escrowReadOnly && (
+        <AlertBanner
+          title={copy.mainnetOnly}
+          description={copy.amoyReadOnlyNotice}
+          className="mb-4"
+          variant="default"
+        />
+      )}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'sponsor' | 'campaigns')}>
         <div className="flex items-center justify-between gap-3">
           <TabsList className="h-10">
