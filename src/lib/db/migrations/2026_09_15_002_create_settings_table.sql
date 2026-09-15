@@ -102,5 +102,5 @@ VALUES
   ('ai', 'openrouter_api_key', ''),
   ('ai', 'openrouter_model', ''),
   ('ai', 'openrouter_enabled', 'false'),
-  ('i18n', 'enabled_locales', '["en","de","es","pt","fr","zh","ja","ar","ru","it","pl"]')
+  ('i18n', 'enabled_locales', '["en","de","es","pt","fr","zh","ja","ar","ru","it","pl","ko"]')
 ON CONFLICT ("group", key) DO NOTHING;

@@ -140,6 +140,21 @@ BEGIN
 END
 $migration$;
 
+-- constraint: two_factors two_factors_pkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'two_factors_pkey'
+      AND conrelid = 'public.two_factors'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.two_factors
+        ADD CONSTRAINT two_factors_pkey PRIMARY KEY (id);
+  END IF;
+END
+$migration$;
+
 -- constraint: users users_pkey
 DO $migration$
 BEGIN
@@ -260,8 +275,11 @@ BEGIN
 END
 $migration$;
 
--- index: idx_accounts_issuer_account_id
-CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_issuer_account_id ON public.accounts USING btree (issuer, account_id);
+-- index: idx_accounts_provider_id_account_id
+-- Better Auth resolves accounts by provider_id + account_id.  issuer is
+-- intentionally nullable, so it cannot safely participate in this key.
+DROP INDEX IF EXISTS public.idx_accounts_issuer_account_id;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_provider_id_account_id ON public.accounts USING btree (provider_id, account_id);
 
 -- index: idx_accounts_user_id
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON public.accounts USING btree (user_id);

@@ -14,10 +14,10 @@ CREATE TABLE IF NOT EXISTS public.orders (
     signer text NOT NULL,
     taker text NOT NULL,
     token_id text NOT NULL,
-    maker_amount bigint NOT NULL,
-    taker_amount bigint NOT NULL,
+    maker_amount bigint,
+    taker_amount bigint,
     expiration bigint NOT NULL,
-    nonce bigint NOT NULL,
+    nonce bigint,
     fee_rate_bps smallint NOT NULL,
     side smallint NOT NULL,
     signature_type smallint NOT NULL,
@@ -74,6 +74,51 @@ BEGIN
   ) THEN
     ALTER TABLE ONLY public.arbitrage_order_rate_limits
         ADD CONSTRAINT arbitrage_order_rate_limits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+  END IF;
+END
+$migration$;
+
+-- fk constraint: orders orders_user_id_fkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'orders_user_id_fkey'
+      AND conrelid = 'public.orders'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.orders
+        ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+  END IF;
+END
+$migration$;
+
+-- fk constraint: orders orders_condition_id_fkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'orders_condition_id_fkey'
+      AND conrelid = 'public.orders'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.orders
+        ADD CONSTRAINT orders_condition_id_fkey FOREIGN KEY (condition_id) REFERENCES public.conditions(id);
+  END IF;
+END
+$migration$;
+
+-- fk constraint: orders orders_affiliate_user_id_fkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'orders_affiliate_user_id_fkey'
+      AND conrelid = 'public.orders'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.orders
+        ADD CONSTRAINT orders_affiliate_user_id_fkey FOREIGN KEY (affiliate_user_id) REFERENCES public.users(id);
   END IF;
 END
 $migration$;

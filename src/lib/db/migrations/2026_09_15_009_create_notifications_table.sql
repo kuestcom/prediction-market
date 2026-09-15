@@ -55,9 +55,6 @@ CREATE INDEX IF NOT EXISTS idx_notifications_category ON public.notifications US
 -- index: idx_notifications_user_created_at
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at ON public.notifications USING btree (user_id, created_at DESC);
 
--- index: idx_notifications_user_id
-CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications USING btree (user_id);
-
 -- row security: notifications
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 

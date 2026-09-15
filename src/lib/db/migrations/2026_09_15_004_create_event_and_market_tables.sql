@@ -203,6 +203,10 @@ BEGIN
       AND column_name = 'id'
       AND is_identity = 'NO'
   ) THEN
+    -- Existing installations may have a serial-style default on this column.
+    -- Remove it before attaching the identity, then align the new sequence with
+    -- the rows already present so the next implicit id cannot collide.
+    ALTER TABLE public.tags ALTER COLUMN id DROP DEFAULT;
     ALTER TABLE public.tags ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
         SEQUENCE NAME public.tags_id_seq
         START WITH 1
@@ -210,6 +214,11 @@ BEGIN
         NO MINVALUE
         NO MAXVALUE
         CACHE 1
+    );
+    PERFORM setval(
+        'public.tags_id_seq'::regclass,
+        COALESCE((SELECT MAX(id)::bigint FROM public.tags), 0) + 1,
+        false
     );
   END IF;
 END
@@ -669,10 +678,6 @@ BEGIN
     SELECT key, value AS old_value, new_row -> key AS new_value
     FROM jsonb_each(old_row)
     WHERE value IS DISTINCT FROM new_row -> key
-      AND NOT (
-        value = 'null'::jsonb
-        AND new_row -> key IS DISTINCT FROM 'null'::jsonb
-      )
   ) changes;
 
   IF diff_new IS NULL THEN
@@ -728,20 +733,39 @@ CREATE OR REPLACE FUNCTION public.update_tag_markets_count() RETURNS trigger
     SET search_path TO 'public'
     AS $$
 DECLARE
-  affected_event_id CHAR(26);
+  affected_event_ids CHAR(26)[] := ARRAY[]::CHAR(26)[];
+  affected_tag_ids SMALLINT[] := ARRAY[]::SMALLINT[];
 BEGIN
-  affected_event_id := COALESCE(NEW.event_id, OLD.event_id);
+  IF TG_OP IN ('INSERT', 'UPDATE') THEN
+    affected_event_ids := array_append(affected_event_ids, NEW.event_id);
+  END IF;
 
-  UPDATE tags
+  IF TG_OP IN ('DELETE', 'UPDATE') THEN
+    affected_event_ids := array_append(affected_event_ids, OLD.event_id);
+  END IF;
+
+  IF TG_TABLE_NAME = 'event_tags' AND TG_OP IN ('INSERT', 'UPDATE') THEN
+    affected_tag_ids := array_append(affected_tag_ids, NEW.tag_id);
+  END IF;
+
+  IF TG_TABLE_NAME = 'event_tags' AND TG_OP IN ('DELETE', 'UPDATE') THEN
+    affected_tag_ids := array_append(affected_tag_ids, OLD.tag_id);
+  END IF;
+
+  UPDATE public.tags AS tags
   SET active_markets_count = (SELECT COUNT(DISTINCT m.condition_id)
                               FROM markets m
                                      JOIN event_tags et ON m.event_id = et.event_id
                               WHERE et.tag_id = tags.id
                                 AND m.is_active = TRUE
                                 AND m.is_resolved = FALSE)
-  WHERE id IN (SELECT DISTINCT et.tag_id
-               FROM event_tags et
-               WHERE et.event_id = affected_event_id);
+  WHERE tags.id IN (
+    SELECT DISTINCT et.tag_id
+    FROM public.event_tags et
+    WHERE et.event_id = ANY (affected_event_ids)
+    UNION
+    SELECT unnest(affected_tag_ids)
+  );
 
   RETURN COALESCE(NEW, OLD);
 END;

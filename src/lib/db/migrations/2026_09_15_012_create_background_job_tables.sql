@@ -22,10 +22,10 @@ CREATE TABLE IF NOT EXISTS public.subgraph_syncs (
     id integer NOT NULL,
     service_name text NOT NULL,
     subgraph_name text NOT NULL,
-    status text DEFAULT 'idle'::text,
+    status text DEFAULT 'idle'::text NOT NULL,
     cursor_updated_at bigint,
     cursor_id text,
-    total_processed integer DEFAULT 0,
+    total_processed integer DEFAULT 0 NOT NULL,
     error_message text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -52,6 +52,54 @@ BEGIN
         NO MAXVALUE
         CACHE 1
     );
+  END IF;
+END
+$migration$;
+
+-- bring pre-existing sync state rows in line with the non-null Drizzle schema
+DO $migration$
+BEGIN
+  UPDATE public.subgraph_syncs
+  SET status = 'idle'
+  WHERE status IS NULL;
+
+  UPDATE public.subgraph_syncs
+  SET total_processed = 0
+  WHERE total_processed IS NULL;
+
+  ALTER TABLE public.subgraph_syncs
+    ALTER COLUMN status SET NOT NULL,
+    ALTER COLUMN total_processed SET NOT NULL;
+END
+$migration$;
+
+-- identity sequences attached to populated tables need to start after the
+-- largest existing id, while remaining safe to run more than once
+DO $migration$
+DECLARE
+  max_id bigint;
+  sequence_last_value bigint;
+  sequence_is_called boolean;
+  next_id bigint;
+BEGIN
+  IF to_regclass('public.subgraph_syncs_id_seq') IS NOT NULL THEN
+    SELECT COALESCE(MAX(id), 0) + 1
+    INTO max_id
+    FROM public.subgraph_syncs;
+
+    SELECT last_value, is_called
+    INTO sequence_last_value, sequence_is_called
+    FROM public.subgraph_syncs_id_seq;
+
+    next_id := GREATEST(
+      max_id,
+      CASE
+        WHEN sequence_is_called THEN sequence_last_value + 1
+        ELSE sequence_last_value
+      END
+    );
+
+    PERFORM setval('public.subgraph_syncs_id_seq', next_id, false);
   END IF;
 END
 $migration$;

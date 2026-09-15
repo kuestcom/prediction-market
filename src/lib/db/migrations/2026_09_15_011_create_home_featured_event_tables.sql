@@ -35,11 +35,31 @@ CREATE TABLE IF NOT EXISTS public.home_featured_events (
     auto_rollover_enabled boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT home_featured_events_check CHECK ((((target_type = 'event'::text) AND (event_id IS NOT NULL) AND (series_slug IS NULL)) OR ((target_type = 'series'::text) AND (event_id IS NULL) AND (TRIM(BOTH FROM COALESCE(series_slug, ''::text)) <> ''::text)))),
+    CONSTRAINT home_featured_events_target_reference_check CHECK ((((target_type = 'event'::text) AND (event_id IS NOT NULL) AND (series_slug IS NULL)) OR ((target_type = 'series'::text) AND (event_id IS NULL) AND (TRIM(BOTH FROM COALESCE(series_slug, ''::text)) <> ''::text)))),
     CONSTRAINT home_featured_events_context_mode_check CHECK ((context_mode = ANY (ARRAY['auto'::text, 'news'::text, 'comments'::text, 'hidden'::text]))),
     CONSTRAINT home_featured_events_source_check CHECK ((source = ANY (ARRAY['manual'::text, 'ai'::text]))),
     CONSTRAINT home_featured_events_target_type_check CHECK ((target_type = ANY (ARRAY['event'::text, 'series'::text])))
 );
+
+-- align the constraint name on databases created from the pre-rebaseline schema
+DO $migration$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'home_featured_events_check'
+      AND conrelid = 'public.home_featured_events'::regclass
+  ) AND NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'home_featured_events_target_reference_check'
+      AND conrelid = 'public.home_featured_events'::regclass
+  ) THEN
+    ALTER TABLE public.home_featured_events
+      RENAME CONSTRAINT home_featured_events_check TO home_featured_events_target_reference_check;
+  END IF;
+END
+$migration$;
 
 -- constraint: home_featured_event_context_items home_featured_event_context_items_pkey
 DO $migration$
