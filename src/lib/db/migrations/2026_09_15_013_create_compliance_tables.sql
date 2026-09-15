@@ -1,28 +1,245 @@
-CREATE TABLE terms_of_service_translations
-(
-  locale     TEXT        PRIMARY KEY,
-  content    TEXT        NOT NULL CHECK (char_length(content) BETWEEN 1 AND 250000),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CHECK (locale IN ('en', 'de', 'es', 'pt', 'fr', 'zh', 'ja', 'ar', 'ru', 'it', 'pl', 'ko'))
+-- table: sumsub_access_token_rate_limits
+CREATE TABLE IF NOT EXISTS public.sumsub_access_token_rate_limits (
+    user_id text NOT NULL,
+    scope text NOT NULL,
+    window_started_at timestamp with time zone DEFAULT now() NOT NULL,
+    request_count integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-ALTER TABLE terms_of_service_translations
-  ENABLE ROW LEVEL SECURITY;
+-- table: sumsub_applicants
+CREATE TABLE IF NOT EXISTS public.sumsub_applicants (
+    user_id text NOT NULL,
+    external_user_id text NOT NULL,
+    applicant_id text,
+    level_name text NOT NULL,
+    status text DEFAULT 'not_started'::text NOT NULL,
+    review_status text,
+    review_answer text,
+    last_event_created_at timestamp with time zone,
+    last_synced_at timestamp with time zone,
+    approved_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT sumsub_applicants_status_check CHECK ((status = ANY (ARRAY['not_started'::text, 'pending'::text, 'on_hold'::text, 'approved'::text, 'rejected'::text, 'error'::text])))
+);
 
-CREATE POLICY "service_role_all_terms_of_service_translations"
-  ON "terms_of_service_translations"
-  AS PERMISSIVE
-  FOR ALL
-  TO "service_role"
-  USING (TRUE)
-  WITH CHECK (TRUE);
+-- table: sumsub_webhook_events
+CREATE TABLE IF NOT EXISTS public.sumsub_webhook_events (
+    fingerprint text NOT NULL,
+    applicant_id text,
+    event_type text NOT NULL,
+    event_created_at timestamp with time zone,
+    processed_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
-CREATE TRIGGER set_terms_of_service_translations_updated_at
-  BEFORE UPDATE
-  ON terms_of_service_translations
-  FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
+-- table: terms_of_service_translations
+CREATE TABLE IF NOT EXISTS public.terms_of_service_translations (
+    locale text NOT NULL,
+    content text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT terms_of_service_translations_content_check CHECK (((char_length(content) >= 1) AND (char_length(content) <= 250000))),
+    CONSTRAINT terms_of_service_translations_locale_check CHECK ((locale = ANY (ARRAY['en'::text, 'de'::text, 'es'::text, 'pt'::text, 'fr'::text, 'zh'::text, 'ja'::text, 'ar'::text, 'ru'::text, 'it'::text, 'pl'::text, 'ko'::text])))
+);
+
+-- constraint: sumsub_access_token_rate_limits sumsub_access_token_rate_limits_pkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_access_token_rate_limits_pkey'
+      AND conrelid = 'public.sumsub_access_token_rate_limits'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_access_token_rate_limits
+        ADD CONSTRAINT sumsub_access_token_rate_limits_pkey PRIMARY KEY (user_id, scope);
+  END IF;
+END
+$migration$;
+
+-- constraint: sumsub_applicants sumsub_applicants_applicant_id_key
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_applicants_applicant_id_key'
+      AND conrelid = 'public.sumsub_applicants'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_applicants
+        ADD CONSTRAINT sumsub_applicants_applicant_id_key UNIQUE (applicant_id);
+  END IF;
+END
+$migration$;
+
+-- constraint: sumsub_applicants sumsub_applicants_external_user_id_key
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_applicants_external_user_id_key'
+      AND conrelid = 'public.sumsub_applicants'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_applicants
+        ADD CONSTRAINT sumsub_applicants_external_user_id_key UNIQUE (external_user_id);
+  END IF;
+END
+$migration$;
+
+-- constraint: sumsub_applicants sumsub_applicants_pkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_applicants_pkey'
+      AND conrelid = 'public.sumsub_applicants'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_applicants
+        ADD CONSTRAINT sumsub_applicants_pkey PRIMARY KEY (user_id);
+  END IF;
+END
+$migration$;
+
+-- constraint: sumsub_webhook_events sumsub_webhook_events_pkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_webhook_events_pkey'
+      AND conrelid = 'public.sumsub_webhook_events'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_webhook_events
+        ADD CONSTRAINT sumsub_webhook_events_pkey PRIMARY KEY (fingerprint);
+  END IF;
+END
+$migration$;
+
+-- constraint: terms_of_service_translations terms_of_service_translations_pkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'terms_of_service_translations_pkey'
+      AND conrelid = 'public.terms_of_service_translations'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.terms_of_service_translations
+        ADD CONSTRAINT terms_of_service_translations_pkey PRIMARY KEY (locale);
+  END IF;
+END
+$migration$;
+
+-- fk constraint: sumsub_access_token_rate_limits sumsub_access_token_rate_limits_user_id_fkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_access_token_rate_limits_user_id_fkey'
+      AND conrelid = 'public.sumsub_access_token_rate_limits'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_access_token_rate_limits
+        ADD CONSTRAINT sumsub_access_token_rate_limits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+  END IF;
+END
+$migration$;
+
+-- fk constraint: sumsub_applicants sumsub_applicants_user_id_fkey
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'sumsub_applicants_user_id_fkey'
+      AND conrelid = 'public.sumsub_applicants'::regclass
+  ) THEN
+    ALTER TABLE ONLY public.sumsub_applicants
+        ADD CONSTRAINT sumsub_applicants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+  END IF;
+END
+$migration$;
+
+-- index: idx_sumsub_applicants_level_status
+CREATE INDEX IF NOT EXISTS idx_sumsub_applicants_level_status ON public.sumsub_applicants USING btree (level_name, status);
+
+-- trigger: terms_of_service_translations set_terms_of_service_translations_updated_at
+CREATE OR REPLACE TRIGGER set_terms_of_service_translations_updated_at BEFORE UPDATE ON public.terms_of_service_translations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- row security: sumsub_access_token_rate_limits
+ALTER TABLE public.sumsub_access_token_rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- row security: sumsub_applicants
+ALTER TABLE public.sumsub_applicants ENABLE ROW LEVEL SECURITY;
+
+-- row security: sumsub_webhook_events
+ALTER TABLE public.sumsub_webhook_events ENABLE ROW LEVEL SECURITY;
+
+-- row security: terms_of_service_translations
+ALTER TABLE public.terms_of_service_translations ENABLE ROW LEVEL SECURITY;
+
+-- policy: sumsub_applicants service_role_all_sumsub_applicants
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'sumsub_applicants'
+      AND policyname = 'service_role_all_sumsub_applicants'
+  ) THEN
+    CREATE POLICY service_role_all_sumsub_applicants ON public.sumsub_applicants TO service_role USING (true) WITH CHECK (true);
+  END IF;
+END
+$migration$;
+
+-- policy: sumsub_access_token_rate_limits service_role_all_sumsub_rate_limits
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'sumsub_access_token_rate_limits'
+      AND policyname = 'service_role_all_sumsub_rate_limits'
+  ) THEN
+    CREATE POLICY service_role_all_sumsub_rate_limits ON public.sumsub_access_token_rate_limits TO service_role USING (true) WITH CHECK (true);
+  END IF;
+END
+$migration$;
+
+-- policy: sumsub_webhook_events service_role_all_sumsub_webhook_events
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'sumsub_webhook_events'
+      AND policyname = 'service_role_all_sumsub_webhook_events'
+  ) THEN
+    CREATE POLICY service_role_all_sumsub_webhook_events ON public.sumsub_webhook_events TO service_role USING (true) WITH CHECK (true);
+  END IF;
+END
+$migration$;
+
+-- policy: terms_of_service_translations service_role_all_terms_of_service_translations
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'terms_of_service_translations'
+      AND policyname = 'service_role_all_terms_of_service_translations'
+  ) THEN
+    CREATE POLICY service_role_all_terms_of_service_translations ON public.terms_of_service_translations TO service_role USING (true) WITH CHECK (true);
+  END IF;
+END
+$migration$;
 
 INSERT INTO terms_of_service_translations (locale, content)
 VALUES
@@ -1454,30 +1671,14 @@ $tos_pl$),
 - **구제 수단.** 당사의 권리와 구제 수단은 누적적이며 법률 또는 형평법상 이용 가능한 모든 권리와 구제 수단에 추가됩니다.
 - **연락처.** 인터페이스 또는 기능에 관한 질문, 불만 또는 청구는 인터페이스 내에 제공된 연락 방법을 통해 전달해야 합니다.
 $tos_ko$)
-ON CONFLICT (locale) DO UPDATE SET
-  content = EXCLUDED.content,
-  updated_at = NOW();
+ON CONFLICT (locale) DO NOTHING;
 
-DELETE FROM settings
-WHERE "group" = 'general'
-  AND key = 'tos_pdf_path';
-
-DO
-$$
-  BEGIN
-    IF EXISTS (
-      SELECT 1
-      FROM information_schema.tables
-      WHERE table_schema = 'storage'
-        AND table_name = 'buckets'
-    ) THEN
-      UPDATE storage.buckets
-      SET allowed_mime_types = ARRAY(
-        SELECT allowed_mime
-        FROM unnest(COALESCE(allowed_mime_types, ARRAY[]::text[])) AS allowed(allowed_mime)
-        WHERE allowed_mime <> 'application/pdf'
-      )
-      WHERE id = 'kuest-assets';
-    END IF;
-  END
-$$;
+INSERT INTO public.settings ("group", key, value)
+VALUES
+  ('integrations', 'sumsub_enabled', 'false'),
+  ('integrations', 'sumsub_app_token', ''),
+  ('integrations', 'sumsub_secret_key', ''),
+  ('integrations', 'sumsub_webhook_secret', ''),
+  ('integrations', 'sumsub_level_name', ''),
+  ('integrations', 'sumsub_enforcement', 'disabled')
+ON CONFLICT ("group", key) DO NOTHING;

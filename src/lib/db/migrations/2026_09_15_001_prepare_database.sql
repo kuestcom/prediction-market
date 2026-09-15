@@ -1,23 +1,25 @@
--- pgulid is based on OK Log's Go implementation of the ULID spec
---
--- https://github.com/oklog/ulid
--- https://github.com/ulid/spec
---
--- Copyright 2016 The Oklog Authors
--- Licensed under the Apache License, Version 2.0 (the "License");
--- you may not use this file except in compliance with the License.
--- You may obtain a copy of the License at
---
--- http://www.apache.org/licenses/LICENSE-2.0
---
--- Unless required by applicable law or agreed to in writing, software
--- distributed under the License is distributed on an "AS IS" BASIS,
--- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
--- See the License for the specific language governing permissions and
--- limitations under the License.
+CREATE SCHEMA IF NOT EXISTS extensions;
 
-CREATE OR REPLACE FUNCTION generate_ulid() RETURNS TEXT AS
-$$
+DO $migration$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_net') THEN
+    CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
+    CREATE EXTENSION IF NOT EXISTS pg_cron;
+  END IF;
+END
+$migration$;
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
+
+-- function: generate_ulid()
+CREATE OR REPLACE FUNCTION public.generate_ulid() RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'extensions'
+    AS $$
 DECLARE
   -- Crockford's Base32
   encoding  BYTEA = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -70,16 +72,53 @@ BEGIN
 
   RETURN output;
 END
-$$ LANGUAGE plpgsql VOLATILE
-                    SET search_path = public, extensions;
+$$;
 
-CREATE OR REPLACE FUNCTION public.set_updated_at()
-  RETURNS TRIGGER
-  LANGUAGE plpgsql
-  SET search_path = public
-AS $$
+-- function: set_updated_at()
+CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END;
 $$;
+
+DO $migration$
+BEGIN
+  IF to_regclass('storage.buckets') IS NOT NULL
+    AND to_regclass('storage.objects') IS NOT NULL THEN
+    INSERT INTO storage.buckets (
+      id,
+      name,
+      public,
+      file_size_limit,
+      allowed_mime_types
+    )
+    VALUES (
+      'kuest-assets',
+      'kuest-assets',
+      TRUE,
+      2097152,
+      ARRAY['image/jpeg', 'image/png', 'image/webp']
+    )
+    ON CONFLICT (id) DO NOTHING;
+
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_policies
+      WHERE schemaname = 'storage'
+        AND tablename = 'objects'
+        AND policyname = 'Service role full asset access'
+    ) THEN
+      CREATE POLICY "Service role full asset access"
+        ON storage.objects
+        FOR ALL
+        TO service_role
+        USING (bucket_id = 'kuest-assets')
+        WITH CHECK (bucket_id = 'kuest-assets');
+    END IF;
+  END IF;
+END
+$migration$;
