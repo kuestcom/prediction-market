@@ -94,7 +94,7 @@ describe('sumsub settings', () => {
   })
 
   it('seeds inactive defaults without overwriting existing settings', async () => {
-    const migration = await readFile('src/lib/db/migrations/2026_07_19_001_sumsub.sql', 'utf8')
+    const migration = await readFile('src/lib/db/migrations/2026_09_15_013_create_compliance_tables.sql', 'utf8')
     expect(migration).toContain("('integrations', 'sumsub_enabled', 'false')")
     expect(migration).toContain("('integrations', 'sumsub_enforcement', 'disabled')")
     expect(migration).toContain('ON CONFLICT ("group", key) DO NOTHING')
