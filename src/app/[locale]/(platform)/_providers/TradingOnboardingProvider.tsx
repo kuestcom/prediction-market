@@ -1860,7 +1860,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     const params = new URLSearchParams({
       destinationCurrencyCodeLocked: 'USDC_POLYGON',
       walletAddressLocked: user.deposit_wallet_address,
-      publicKey: 'WXETMuFUQmqqybHuRkSgxv%3A25B8LJHSfpG6LVjR2ytU5Cwh7Z4Sch2ocoU',
+      publicKey: 'WXETMuFUQmqqybHuRkSgxv:25B8LJHSfpG6LVjR2ytU5Cwh7Z4Sch2ocoU',
     })
     return `https://meldcrypto.com/?${params.toString()}`
   }, [status.hasDeployedDepositWallet, user])
