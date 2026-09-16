@@ -50,10 +50,7 @@ variable "secret_env" {
       ]) && (
       (
         contains(keys(var.secret_env), "SUPABASE_URL")
-        && length([
-          for key in keys(var.secret_env) : key
-          if startswith(key, "SUPABASE_") && key != "SUPABASE_URL"
-        ]) > 0
+        && contains(keys(var.secret_env), "SUPABASE_SECRET_KEY")
         && !contains(keys(var.secret_env), "S3_BUCKET")
         && !contains(keys(var.secret_env), "S3_ACCESS_KEY_ID")
         && !contains(keys(var.secret_env), "S3_SECRET_ACCESS_KEY")
