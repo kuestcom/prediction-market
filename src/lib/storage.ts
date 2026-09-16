@@ -18,7 +18,7 @@ export interface S3StorageConfig {
 export interface StorageRuntimeConfig {
   provider: StorageProvider
   supabaseUrl: string | null
-  supabaseServiceRoleKey: string | null
+  supabaseSecretKey: string | null
   s3: S3StorageConfig | null
 }
 
@@ -91,20 +91,24 @@ function resolveS3Config() {
   return { hasAny, missing, config }
 }
 
+function resolveSupabaseSecretKey() {
+  return normalizeEnv(process.env.SUPABASE_SECRET_KEY) ?? normalizeEnv(process.env.SUPABASE_SERVICE_ROLE_KEY)
+}
+
 export function resolveStorageRuntimeConfig(): StorageRuntimeConfig {
   const supabaseUrl = normalizeEnv(process.env.SUPABASE_URL)
-  const supabaseServiceRoleKey = normalizeEnv(process.env.SUPABASE_SERVICE_ROLE_KEY)
-  const hasAnySupabase = Boolean(supabaseUrl || supabaseServiceRoleKey)
+  const supabaseSecretKey = resolveSupabaseSecretKey()
+  const hasAnySupabase = Boolean(supabaseUrl || supabaseSecretKey)
 
   if (hasAnySupabase) {
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together.')
+    if (!supabaseUrl || !supabaseSecretKey) {
+      throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY must be set together.')
     }
 
     return {
       provider: 'supabase',
       supabaseUrl,
-      supabaseServiceRoleKey,
+      supabaseSecretKey,
       s3: null,
     }
   }
@@ -118,7 +122,7 @@ export function resolveStorageRuntimeConfig(): StorageRuntimeConfig {
     return {
       provider: 's3',
       supabaseUrl: null,
-      supabaseServiceRoleKey: null,
+      supabaseSecretKey: null,
       s3: s3.config,
     }
   }
@@ -126,7 +130,7 @@ export function resolveStorageRuntimeConfig(): StorageRuntimeConfig {
   return {
     provider: 'none',
     supabaseUrl: null,
-    supabaseServiceRoleKey: null,
+    supabaseSecretKey: null,
     s3: null,
   }
 }

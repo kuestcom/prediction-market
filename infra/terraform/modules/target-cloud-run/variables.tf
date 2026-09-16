@@ -57,22 +57,28 @@ variable "secret_env" {
       contains(keys(var.secret_env), "KUEST_API_KEY"),
       contains(keys(var.secret_env), "KUEST_API_SECRET"),
       contains(keys(var.secret_env), "KUEST_PASSPHRASE"),
-    ]) && (
+      ]) && (
       (
         contains(keys(var.secret_env), "SUPABASE_URL")
-        && contains(keys(var.secret_env), "SUPABASE_SERVICE_ROLE_KEY")
+        && length([
+          for key in keys(var.secret_env) : key
+          if startswith(key, "SUPABASE_") && key != "SUPABASE_URL"
+        ]) > 0
         && !contains(keys(var.secret_env), "S3_BUCKET")
         && !contains(keys(var.secret_env), "S3_ACCESS_KEY_ID")
         && !contains(keys(var.secret_env), "S3_SECRET_ACCESS_KEY")
-      ) || (
+        ) || (
         !contains(keys(var.secret_env), "SUPABASE_URL")
-        && !contains(keys(var.secret_env), "SUPABASE_SERVICE_ROLE_KEY")
+        && length([
+          for key in keys(var.secret_env) : key
+          if startswith(key, "SUPABASE_")
+        ]) == 0
         && contains(keys(var.secret_env), "S3_BUCKET")
         && contains(keys(var.secret_env), "S3_ACCESS_KEY_ID")
         && contains(keys(var.secret_env), "S3_SECRET_ACCESS_KEY")
       )
     )
-    error_message = "secret_env must include core secrets plus one storage profile: SUPABASE_URL+SUPABASE_SERVICE_ROLE_KEY or S3_BUCKET+S3_ACCESS_KEY_ID+S3_SECRET_ACCESS_KEY."
+    error_message = "secret_env must include core secrets plus one storage profile: SUPABASE_URL+SUPABASE_SECRET_KEY or S3_BUCKET+S3_ACCESS_KEY_ID+S3_SECRET_ACCESS_KEY."
   }
 }
 

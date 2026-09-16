@@ -125,15 +125,15 @@ function buildSyncCronSql({
 
 function resolveSupabaseMode(env: NodeJS.ProcessEnv = process.env): boolean {
   const supabaseUrl = env.SUPABASE_URL?.trim()
-  const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  const supabaseSecretKey = env.SUPABASE_SECRET_KEY?.trim() || env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
-  const hasAnySupabaseConfig = Boolean(supabaseUrl || supabaseServiceRoleKey)
+  const hasAnySupabaseConfig = Boolean(supabaseUrl || supabaseSecretKey)
   if (!hasAnySupabaseConfig) {
     return false
   }
 
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together when configuring Supabase mode.')
+  if (!supabaseUrl || !supabaseSecretKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY must be set together when configuring Supabase mode.')
   }
 
   return true

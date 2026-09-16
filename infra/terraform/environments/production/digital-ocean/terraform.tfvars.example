@@ -25,7 +25,7 @@ secret_env = {
   # Choose one storage profile:
   # Supabase mode
   SUPABASE_URL                        = "replace-me"
-  SUPABASE_SERVICE_ROLE_KEY           = "replace-me"
+  SUPABASE_SECRET_KEY                 = "replace-me"
 
   # S3 mode (use this trio when SUPABASE_* is not set)
   # S3_BUCKET                         = "replace-me"

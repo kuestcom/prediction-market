@@ -69,16 +69,16 @@ spec:
                   key: latest
 
             # Choose one storage option:
-            # 1) Supabase mode (set both):
+            # 1) Supabase mode (set SUPABASE_URL plus the current secret key):
             # - name: SUPABASE_URL
             #   valueFrom:
             #     secretKeyRef:
             #       name: SUPABASE_URL
             #       key: latest
-            # - name: SUPABASE_SERVICE_ROLE_KEY
+            # - name: SUPABASE_SECRET_KEY
             #   valueFrom:
             #     secretKeyRef:
-            #       name: SUPABASE_SERVICE_ROLE_KEY
+            #       name: SUPABASE_SECRET_KEY
             #       key: latest
 
             # 2) S3 mode (set required trio):

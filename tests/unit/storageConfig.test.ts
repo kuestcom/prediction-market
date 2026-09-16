@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, spyOn, jest } from 'bun:te
 
 const STORAGE_ENV_KEYS = [
   'SUPABASE_URL',
+  'SUPABASE_SECRET_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
   'S3_BUCKET',
   'S3_ENDPOINT',
@@ -54,13 +55,31 @@ describe('storage compatibility', () => {
 
   it('uses Supabase public URL when Supabase env vars are configured', async () => {
     process.env.SUPABASE_URL = 'https://demo.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
+    process.env.SUPABASE_SECRET_KEY = 'secret-key'
 
-    const { getPublicAssetUrl } = await loadStorageModule()
+    const { getPublicAssetUrl, resolveStorageRuntimeConfig } = await loadStorageModule()
     expect(getPublicAssetUrl('theme/logo.png')).toBe(
       'https://demo.supabase.co/storage/v1/object/public/kuest-assets/theme/logo.png',
     )
     expect(getPublicAssetUrl('https://cdn.example.com/direct.png')).toBe('https://cdn.example.com/direct.png')
+    expect(resolveStorageRuntimeConfig().supabaseSecretKey).toBe('secret-key')
+  })
+
+  it('falls back to the legacy service role key', async () => {
+    process.env.SUPABASE_URL = 'https://demo.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'legacy-service-role-key'
+
+    const { resolveStorageRuntimeConfig } = await loadStorageModule()
+    expect(resolveStorageRuntimeConfig().supabaseSecretKey).toBe('legacy-service-role-key')
+  })
+
+  it('prefers the secret key when both Supabase keys are configured', async () => {
+    process.env.SUPABASE_URL = 'https://demo.supabase.co'
+    process.env.SUPABASE_SECRET_KEY = 'secret-key'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'legacy-service-role-key'
+
+    const { resolveStorageRuntimeConfig } = await loadStorageModule()
+    expect(resolveStorageRuntimeConfig().supabaseSecretKey).toBe('secret-key')
   })
 
   it('uses S3 public URL when Supabase is not configured', async () => {
@@ -89,7 +108,7 @@ describe('storage compatibility', () => {
 
     const { getPublicAssetUrl } = await loadStorageModule()
     expect(() => getPublicAssetUrl('users/avatar.jpg')).toThrow(
-      'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set together.',
+      'SUPABASE_URL and SUPABASE_SECRET_KEY must be set together.',
     )
   })
 

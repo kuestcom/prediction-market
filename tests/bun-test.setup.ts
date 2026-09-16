@@ -45,8 +45,8 @@ if (!process.env.SUPABASE_URL) {
   process.env.SUPABASE_URL = 'https://supabase.test'
 }
 
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+if (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  process.env.SUPABASE_SECRET_KEY = 'test-secret-key'
 }
 
 if (typeof globalThis.ResizeObserver === 'undefined') {

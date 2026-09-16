@@ -82,7 +82,7 @@ steps:
           supabase)
             secret_bindings+=(
               "SUPABASE_URL=SUPABASE_URL:${_SECRET_VERSION}"
-              "SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:${_SECRET_VERSION}"
+              "SUPABASE_SECRET_KEY=${_SUPABASE_SECRET_NAME}:${_SECRET_VERSION}"
             )
             ;;
           s3)
@@ -133,6 +133,7 @@ substitutions:
   _AR_REGION: us-central1
   _AR_REPOSITORY: kuest
   _IMAGE_NAME: prediction-market
+  _SUPABASE_SECRET_NAME: SUPABASE_SECRET_KEY
   _SECRET_VERSION: latest
   _SITE_URL: https://markets.example.com
   _STORAGE_MODE: supabase

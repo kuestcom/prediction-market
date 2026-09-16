@@ -25,17 +25,17 @@ const globalForStorageUpload = globalThis as unknown as {
 
 function createSupabaseAdmin(timeoutMs?: number): SupabaseClient {
   const config = resolveStorageRuntimeConfig()
-  if (config.provider !== 'supabase' || !config.supabaseUrl || !config.supabaseServiceRoleKey) {
+  if (config.provider !== 'supabase' || !config.supabaseUrl || !config.supabaseSecretKey) {
     throw new Error(
-      'Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or use S3-compatible storage variables.',
+      'Supabase is not configured. Set SUPABASE_URL and SUPABASE_SECRET_KEY or use S3-compatible storage variables.',
     )
   }
 
   if (!timeoutMs) {
-    return createClient(config.supabaseUrl, config.supabaseServiceRoleKey)
+    return createClient(config.supabaseUrl, config.supabaseSecretKey)
   }
 
-  return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+  return createClient(config.supabaseUrl, config.supabaseSecretKey, {
     global: {
       fetch: ((input: RequestInfo | URL, init?: RequestInit) => {
         const timeoutSignal = AbortSignal.timeout(timeoutMs)
@@ -156,7 +156,6 @@ export async function uploadPublicAsset(assetPath: string, body: UploadBody, opt
   }
 
   return {
-    error:
-      'Storage provider is not configured. Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or S3_BUCKET + S3 credentials.',
+    error: 'Storage provider is not configured. Set SUPABASE_URL + SUPABASE_SECRET_KEY or S3_BUCKET + S3 credentials.',
   }
 }
