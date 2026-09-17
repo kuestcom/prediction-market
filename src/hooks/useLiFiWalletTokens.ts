@@ -102,88 +102,85 @@ export function useLiFiWalletTokens(walletAddress?: string | null, options: UseL
         return []
       }
 
-      try {
-        const [tokensResult, balancesResult, chainsResult] = await Promise.all([
-          fetch('/api/lifi/tokens', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({}),
-          }),
-          fetch('/api/lifi/balances', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ walletAddress }),
-          }),
-          fetch('/api/lifi/chains'),
-        ])
+      const [tokensResult, balancesResult, chainsResult] = await Promise.all([
+        fetch('/api/lifi/tokens', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({}),
+        }),
+        fetch('/api/lifi/balances', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ walletAddress }),
+        }),
+        fetch('/api/lifi/chains'),
+      ])
 
-        if (!tokensResult.ok || !balancesResult.ok || !chainsResult.ok) {
-          return []
+      if (!tokensResult.ok || !balancesResult.ok || !chainsResult.ok) {
+        throw new Error('Failed to load LI.FI wallet data.')
+      }
+
+      const tokensJson = await tokensResult.json()
+      const balancesJson = await balancesResult.json()
+      const chainsJson = await chainsResult.json()
+      const tokensResponse = tokensJson.tokens as TokensExtendedResponse
+      const balancesByChain = balancesJson.balances as Record<number, WalletTokenExtended[]>
+      const chains = chainsJson.chains as ExtendedChain[]
+
+      const acceptedByChain = buildAcceptedTokenMap(tokensResponse)
+      const chainMap = buildChainMap(chains)
+      const items: LiFiWalletTokenItem[] = []
+
+      for (const [chainIdKey, walletTokens] of Object.entries(balancesByChain)) {
+        const chainId = Number(chainIdKey) as ChainId
+        const acceptedTokens = acceptedByChain.get(chainId)
+
+        if (!acceptedTokens) {
+          continue
         }
 
-        const tokensJson = await tokensResult.json()
-        const balancesJson = await balancesResult.json()
-        const chainsJson = await chainsResult.json()
-        const tokensResponse = tokensJson.tokens as TokensExtendedResponse
-        const balancesByChain = balancesJson.balances as Record<number, WalletTokenExtended[]>
-        const chains = chainsJson.chains as ExtendedChain[]
+        const chain = chainMap.get(chainId)
+        const networkName = chain?.name ?? `Chain ${chainId}`
+        const networkIcon = chain?.logoURI
 
-        const acceptedByChain = buildAcceptedTokenMap(tokensResponse)
-        const chainMap = buildChainMap(chains)
-        const items: LiFiWalletTokenItem[] = []
-
-        for (const [chainIdKey, walletTokens] of Object.entries(balancesByChain)) {
-          const chainId = Number(chainIdKey) as ChainId
-          const acceptedTokens = acceptedByChain.get(chainId)
-
-          if (!acceptedTokens) {
+        for (const token of walletTokens) {
+          if (!acceptedTokens.has(token.address.toLowerCase())) {
             continue
           }
 
-          const chain = chainMap.get(chainId)
-          const networkName = chain?.name ?? `Chain ${chainId}`
-          const networkIcon = chain?.logoURI
-
-          for (const token of walletTokens) {
-            if (!acceptedTokens.has(token.address.toLowerCase())) {
-              continue
-            }
-
-            const usdValue = toUsdValue(token)
-            if (!Number.isFinite(usdValue) || usdValue <= 0) {
-              continue
-            }
-
-            items.push({
-              id: `${chainId}:${token.address}`,
-              chainId,
-              address: token.address,
-              decimals: Number(token.decimals),
-              symbol: token.symbol,
-              network: networkName,
-              icon: token.logoURI ?? '/images/deposit/transfer/usdc_dark.png',
-              chainIcon: networkIcon,
-              balance: formatTokenAmount(token),
-              balanceRaw: normalizeAmount(token),
-              usd: formatNumber(usdValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-              usdValue,
-              disabled: usdValue < MIN_USD_BALANCE,
-            })
+          const usdValue = toUsdValue(token)
+          if (!Number.isFinite(usdValue) || usdValue <= 0) {
+            continue
           }
+
+          items.push({
+            id: `${chainId}:${token.address}`,
+            chainId,
+            address: token.address,
+            decimals: Number(token.decimals),
+            symbol: token.symbol,
+            network: networkName,
+            icon: token.logoURI ?? '/images/deposit/transfer/usdc_dark.png',
+            chainIcon: networkIcon,
+            balance: formatTokenAmount(token),
+            balanceRaw: normalizeAmount(token),
+            usd: formatNumber(usdValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            usdValue,
+            disabled: usdValue < MIN_USD_BALANCE,
+          })
         }
-
-        items.sort((a, b) => b.usdValue - a.usdValue)
-
-        return items
-      } catch {
-        return []
       }
+
+      items.sort((a, b) => b.usdValue - a.usdValue)
+
+      return items
     },
   })
 
   return {
     items: query.data ?? [],
     isLoadingTokens: query.isLoading || (query.isFetching && query.data === undefined),
+    isError: query.isError,
     refetchTokens: query.refetch,
   }
 }

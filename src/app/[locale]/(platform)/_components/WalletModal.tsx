@@ -94,7 +94,11 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
       },
     ]
   }, [directWalletBalance.raw, directWalletBalance.symbol, isDirectTestModeDeposit, walletEoaAddress])
-  const { items: lifiWalletTokenItems, isLoadingTokens: isLoadingLiFiTokens } = useLiFiWalletTokens(walletEoaAddress, {
+  const {
+    items: lifiWalletTokenItems,
+    isLoadingTokens: isLoadingLiFiTokens,
+    isError: isLiFiTokensError,
+  } = useLiFiWalletTokens(walletEoaAddress, {
     enabled: tokensQueryEnabled && !isDirectTestModeDeposit,
   })
   const walletTokenItems = isDirectTestModeDeposit ? directWalletTokenItems : lifiWalletTokenItems
@@ -167,9 +171,11 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
         onContinue={() => onViewChange('amount')}
         items={walletTokenItems}
         isLoadingTokens={isLoadingTokens}
+        hasError={!isDirectTestModeDeposit && isLiFiTokensError}
         selectedId={selectedTokenId}
         onSelect={setPreferredSelectedTokenId}
         emptyMessage={isDirectTestModeDeposit ? t('No Amoy USDC balance found.') : undefined}
+        errorMessage={isDirectTestModeDeposit ? undefined : t('Could not load wallet balances. Please try again.')}
       />
     ) : view === 'amount' ? (
       <WalletAmountStep

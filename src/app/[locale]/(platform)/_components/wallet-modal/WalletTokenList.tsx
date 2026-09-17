@@ -12,9 +12,11 @@ function WalletTokenList({
   onContinue,
   items,
   isLoadingTokens,
+  hasError = false,
   selectedId,
   onSelect,
   emptyMessage,
+  errorMessage,
 }: {
   onContinue: () => void
   items: Array<{
@@ -28,13 +30,19 @@ function WalletTokenList({
     disabled: boolean
   }>
   isLoadingTokens: boolean
+  hasError?: boolean
   selectedId: string
   onSelect: (id: string) => void
   emptyMessage?: string
+  errorMessage?: string
 }) {
   const t = useExtracted()
-  const showEmptyState = !isLoadingTokens && items.length === 0
-  const resolvedEmptyMessage = emptyMessage ?? t('No LI.FI-supported tokens with balance found.')
+  const showErrorState = !isLoadingTokens && hasError
+  const showEmptyState = !isLoadingTokens && !hasError && items.length === 0
+  const resolvedEmptyMessage =
+    emptyMessage ??
+    t('No supported tokens were found in your connected wallet. Add funds on a supported network and try again.')
+  const resolvedErrorMessage = errorMessage ?? t('Could not load wallet balances. Please try again.')
   const selectedItem = items.find((item) => item.id === selectedId)
   const hasValidSelection = Boolean(selectedItem && !selectedItem.disabled)
 
@@ -69,6 +77,11 @@ function WalletTokenList({
           {showEmptyState && (
             <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
               {resolvedEmptyMessage}
+            </div>
+          )}
+          {showErrorState && (
+            <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
+              {resolvedErrorMessage}
             </div>
           )}
           {items.map((item) => {
@@ -168,7 +181,7 @@ function WalletTokenList({
         type="button"
         className="h-12 w-full"
         onClick={onContinue}
-        disabled={!hasValidSelection || isLoadingTokens || showEmptyState}
+        disabled={!hasValidSelection || isLoadingTokens || showEmptyState || showErrorState}
       >
         {t('Continue')}
       </Button>
