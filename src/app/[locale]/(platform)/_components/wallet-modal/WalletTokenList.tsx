@@ -37,7 +37,7 @@ function WalletTokenList({
   errorMessage?: string
 }) {
   const t = useExtracted()
-  const showErrorState = !isLoadingTokens && hasError
+  const showErrorState = !isLoadingTokens && hasError && items.length === 0
   const showEmptyState = !isLoadingTokens && !hasError && items.length === 0
   const resolvedEmptyMessage =
     emptyMessage ??
