@@ -1382,7 +1382,7 @@ function CampaignDialog({
 
   const importQuery = useQuery({
     queryKey: ['market-making-import', escrowBaseUrl, importId],
-    enabled: !escrowReadOnly && Boolean(importId),
+    enabled: Boolean(importId),
     retry: false,
     refetchInterval: (query) => {
       const state = (query.state.data as EscrowImportResponse | undefined)?.state

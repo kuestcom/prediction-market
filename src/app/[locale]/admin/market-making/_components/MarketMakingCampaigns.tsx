@@ -675,10 +675,16 @@ function CampaignDetail({
 
       {(campaign.status === ESCROW_CAMPAIGN_STATUS.open ||
         canDispute ||
-        (campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && (hasPendingWithdrawal || escrowReadOnly))) && (
+        (campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && hasPendingWithdrawal)) && (
         <div className="flex shrink-0 gap-2 border-t bg-background p-4">
           {campaign.status === ESCROW_CAMPAIGN_STATUS.open && isExpired && (
-            <Button type="button" variant="outline" className="w-full" disabled={isMutating} onClick={onCancel}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isMutating || escrowReadOnly}
+              onClick={onCancel}
+            >
               {copy.cancelAndRefund}
             </Button>
           )}
@@ -701,12 +707,18 @@ function CampaignDetail({
             </>
           )}
           {canDispute && (
-            <Button type="button" variant="destructive" className="w-full" disabled={isMutating} onClick={onDispute}>
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full"
+              disabled={isMutating || escrowReadOnly}
+              onClick={onDispute}
+            >
               {copy.openDispute}
             </Button>
           )}
-          {campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && (hasPendingWithdrawal || escrowReadOnly) && (
-            <Button type="button" className="w-full" disabled={isMutating} onClick={onWithdraw}>
+          {campaign.status === ESCROW_CAMPAIGN_STATUS.cancelled && hasPendingWithdrawal && (
+            <Button type="button" className="w-full" disabled={escrowReadOnly || isMutating} onClick={onWithdraw}>
               {isMutating && <LoaderCircleIcon className="size-4 animate-spin" />}
               {copy.withdrawRefund}
             </Button>
@@ -823,7 +835,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
   }, [campaignLookupQuery.data?.data, campaignsQuery.data?.data, lookupCampaignId])
   const pendingWithdrawalsQuery = useQuery({
     queryKey: ['market-making-pending-withdrawals', address?.toLowerCase()],
-    enabled: !escrowReadOnly && Boolean(address && publicClient),
+    enabled: Boolean(address && publicClient),
     staleTime: 5_000,
     queryFn: async () => {
       if (!address || !publicClient) {
@@ -1039,7 +1051,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
               type="button"
               size="sm"
               className="gap-1"
-              disabled={(!hasPendingWithdrawal && !escrowReadOnly) || isMutating}
+              disabled={escrowReadOnly || !hasPendingWithdrawal || isMutating}
               onClick={withdrawRefund}
             >
               {isMutating && <LoaderCircleIcon className="size-4 animate-spin" />}
@@ -1173,7 +1185,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
             <Button
               type="button"
               variant="destructive"
-              disabled={isMutating}
+              disabled={escrowReadOnly || isMutating}
               onClick={async () => {
                 if (cancelCampaign && (await writeCampaign('cancelCampaign', cancelCampaign))) {
                   setCancelCampaign(null)
@@ -1205,6 +1217,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
                     'rounded-lg border px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted',
                     disputeReason === reason.id && 'border-primary bg-primary/5 ring-1 ring-primary',
                   )}
+                  disabled={escrowReadOnly || isMutating}
                   onClick={() => setDisputeReason(reason.id)}
                 >
                   {reason.label}
@@ -1223,7 +1236,7 @@ export default function MarketMakingCampaigns({ linkedCampaignId, locale, copy }
             <Button
               type="button"
               variant="destructive"
-              disabled={!disputeReason || isMutating}
+              disabled={escrowReadOnly || !disputeReason || isMutating}
               onClick={async () => {
                 if (disputeCampaign && disputeReason && (await writeCampaign('openDispute', disputeCampaign))) {
                   setDisputeCampaign(null)

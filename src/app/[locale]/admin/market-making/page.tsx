@@ -123,7 +123,7 @@ export default async function AdminMarketMakingPage({ searchParams }: AdminMarke
         accountEmailRequired: t('An account email is required.'),
         accountSettings: t('Profile Settings'),
         amoyReadOnlyNotice: t(
-          'This site is running on Polygon Amoy. The market maker is in demonstration mode. Searches and views are available, but campaigns, payments, cancellations, disputes, and withdrawals are available only on Mainnet.',
+          'This site is running on a test network. The market maker is in demonstration mode. Searches and views are available, but campaigns, payments, cancellations, disputes, and withdrawals are available only on Mainnet.',
         ),
         mainnetOnly: t('Available only on Mainnet'),
         seriesBadge: t('30-day series'),
@@ -215,7 +215,7 @@ export default async function AdminMarketMakingPage({ searchParams }: AdminMarke
         transactionRejected: t('You rejected the transaction.'),
         refundReadyToWithdraw: t('Refund ready to withdraw.'),
         amoyReadOnlyNotice: t(
-          'This site is running on Polygon Amoy. The market maker is in demonstration mode. Searches and views are available, but campaigns, payments, cancellations, disputes, and withdrawals are available only on Mainnet.',
+          'This site is running on a test network. The market maker is in demonstration mode. Searches and views are available, but campaigns, payments, cancellations, disputes, and withdrawals are available only on Mainnet.',
         ),
         close: t('Close'),
         seriesBadge: t('30-day series'),
