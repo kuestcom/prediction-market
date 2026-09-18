@@ -136,6 +136,21 @@ describe('sync events route', () => {
     expect(shouldDownloadMarketIcon(existingMarket, null)).toBe(false)
   })
 
+  it('uses one canonical storage path for the same immutable asset reference', async () => {
+    const { buildCanonicalIconStoragePath } = await import('@/app/api/sync/events/route')
+
+    expect(buildCanonicalIconStoragePath('irys://shared-icon', 'events/icons/event')).toBe(
+      'icons/source/shared-icon.png',
+    )
+    expect(buildCanonicalIconStoragePath('shared-icon', 'events/icons/event')).toBe('icons/source/shared-icon.png')
+    expect(buildCanonicalIconStoragePath('https://gateway.irys.xyz/shared-icon', 'events/icons/event')).toBe(
+      'icons/source/shared-icon.png',
+    )
+    expect(buildCanonicalIconStoragePath('https://example.com/icon.png', 'events/icons/event')).toBe(
+      'events/icons/event',
+    )
+  })
+
   it('reuses sports source payload when partial incoming identity resolves to the same source', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 

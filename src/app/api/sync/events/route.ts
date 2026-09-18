@@ -30,6 +30,7 @@ import { slugifyText } from '@/lib/slug'
 import { findSportsEvents } from '@/lib/sports-source'
 import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
+import { getPublicAssetUrl } from '@/lib/storage'
 import { uploadPublicAsset } from '@/lib/storage-upload'
 import {
   buildCronErrorResponse,
@@ -1220,6 +1221,7 @@ async function processEvent(
       start_date: eventsTable.start_date,
       end_date: eventsTable.end_date,
       created_at: eventsTable.created_at,
+      icon_url: eventsTable.icon_url,
       additional_context: eventsTable.additional_context,
       additional_context_updated_at: eventsTable.additional_context_updated_at,
       enable_neg_risk: eventsTable.enable_neg_risk,
@@ -1327,6 +1329,28 @@ async function processEvent(
     const updatePayload: Record<string, any> = {}
     let eventChanged = false
     let listAffectingChange = false
+
+    const incomingEventIconReference = normalizeAssetReference(eventData.icon)
+    const incomingEventStableIconReference = resolveStableAssetReference(eventData.icon)
+    const incomingEventIconPath = incomingEventIconReference
+      ? buildCanonicalIconStoragePath(
+          incomingEventIconReference,
+          `events/icons/${normalizeStorageSlug(eventSlug, `${normalizedEventTitle}:${creatorAddress}`)}`,
+        )
+      : null
+    if (
+      incomingEventIconReference &&
+      incomingEventStableIconReference &&
+      incomingEventIconPath &&
+      existingEvent.icon_url !== incomingEventIconPath
+    ) {
+      const storedIconPath = await downloadAndSaveImage(incomingEventIconReference, incomingEventIconPath)
+      if (storedIconPath && storedIconPath !== existingEvent.icon_url) {
+        updatePayload.icon_url = storedIconPath
+        eventChanged = true
+        listAffectingChange = true
+      }
+    }
     const previousSeriesSlug = existingEvent.series_slug
     const seriesSlugChanged = (existingEvent.series_slug ?? null) !== (eventSeriesSlug ?? null)
 
@@ -1484,7 +1508,10 @@ async function processEvent(
   let iconUrl: string | null = null
   if (eventData.icon) {
     const eventIconSlug = normalizeStorageSlug(eventSlug, `${eventData.title ?? 'event'}:${creatorAddress}`)
-    iconUrl = await downloadAndSaveImage(eventData.icon, `events/icons/${eventIconSlug}`)
+    iconUrl = await downloadAndSaveImage(
+      eventData.icon,
+      buildCanonicalIconStoragePath(eventData.icon, `events/icons/${eventIconSlug}`),
+    )
   }
 
   console.log(`Creating new event: ${eventSlug} by creator: ${creatorAddress}`)
@@ -1681,9 +1708,24 @@ async function processMarketData(
 
   let iconUrl: string | null = null
   const marketIconReference = normalizeAssetReference(metadata.icon)
-  if (marketIconReference && shouldDownloadMarketIcon(existingMarket, marketIconReference)) {
-    const marketIconSlug = normalizeStorageSlug(metadata.slug, market.id)
-    iconUrl = await downloadAndSaveImage(marketIconReference, `markets/icons/${marketIconSlug}`)
+  const marketIconPath = marketIconReference
+    ? buildCanonicalIconStoragePath(
+        marketIconReference,
+        `markets/icons/${normalizeStorageSlug(metadata.slug, market.id)}`,
+      )
+    : null
+  const shouldUseCanonicalMarketIcon = Boolean(
+    marketIconReference &&
+    marketIconPath &&
+    resolveStableAssetReference(marketIconReference) &&
+    existingMarket?.icon_url !== marketIconPath,
+  )
+  if (
+    marketIconReference &&
+    marketIconPath &&
+    (shouldDownloadMarketIcon(existingMarket, marketIconReference) || shouldUseCanonicalMarketIcon)
+  ) {
+    iconUrl = await downloadAndSaveImage(marketIconReference, marketIconPath)
   }
 
   console.log(`${marketAlreadyExists ? 'Updating' : 'Creating'} market ${market.id} with eventId: ${eventId}`)
@@ -2936,6 +2978,19 @@ async function downloadAndSaveImage(assetReference: string, storagePath: string,
       return null
     }
 
+    if (storagePath.endsWith('.png')) {
+      const publicUrl = getPublicAssetUrl(storagePath)
+      if (publicUrl) {
+        const cachedResponse = await fetch(publicUrl, {
+          method: 'HEAD',
+          keepalive: true,
+        }).catch(() => null)
+        if (cachedResponse?.ok) {
+          return storagePath
+        }
+      }
+    }
+
     const imageUrl = /^https?:\/\//i.test(normalizedReference)
       ? normalizedReference
       : `${IRYS_GATEWAY}/${normalizedReference}`
@@ -3366,10 +3421,46 @@ function normalizeAssetReference(value: unknown): string | null {
 }
 
 function buildSportsLogoStoragePath(reference: string): string {
-  if (/^https?:\/\//i.test(reference)) {
-    return `${SPORTS_LOGO_STORAGE_PREFIX}/logo-${hashStringToHex(reference)}`
+  return buildCanonicalIconStoragePath(reference, `${SPORTS_LOGO_STORAGE_PREFIX}/logo-${hashStringToHex(reference)}`)
+}
+
+function isStableAssetReference(reference: string): boolean {
+  return /^[A-Za-z0-9_-]+$/.test(reference)
+}
+
+function resolveStableAssetReference(assetReference: unknown): string | null {
+  const normalizedReference = normalizeAssetReference(assetReference)
+  if (!normalizedReference) {
+    return null
   }
-  return `${SPORTS_LOGO_STORAGE_PREFIX}/${normalizeStorageSlug(reference, reference)}`
+  if (isStableAssetReference(normalizedReference)) {
+    return normalizedReference
+  }
+  if (!/^https?:\/\//i.test(normalizedReference)) {
+    return null
+  }
+
+  try {
+    const referenceUrl = new URL(normalizedReference)
+    const gatewayUrl = new URL(IRYS_GATEWAY)
+    if (referenceUrl.hostname !== gatewayUrl.hostname) {
+      return null
+    }
+
+    const candidate = referenceUrl.pathname.split('/').filter(Boolean).at(-1) ?? ''
+    return isStableAssetReference(candidate) ? candidate : null
+  } catch {
+    return null
+  }
+}
+
+export function buildCanonicalIconStoragePath(assetReference: unknown, fallbackStoragePath: string): string {
+  const stableReference = resolveStableAssetReference(assetReference)
+  if (!stableReference) {
+    return fallbackStoragePath
+  }
+
+  return `icons/source/${encodeURIComponent(stableReference)}.png`
 }
 
 async function persistSportsLogo(reference: string): Promise<string | null> {
