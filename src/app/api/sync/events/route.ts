@@ -2181,6 +2181,7 @@ async function invalidateEventCaches(
       homeFeaturedTagInvalidated,
       mainTagsInvalidations: listTagInvalidated ? SUPPORTED_LOCALES.length : 0,
       eventTagInvalidations: 0,
+      seriesEventsTagInvalidations: 0,
       uniqueEventIdsCount: 0,
     }
   }
@@ -2188,15 +2189,21 @@ async function invalidateEventCaches(
   const rows = await db
     .select({
       slug: eventsTable.slug,
+      series_slug: eventsTable.series_slug,
     })
     .from(eventsTable)
     .where(inArray(eventsTable.id, uniqueEventIds))
 
   let eventTagInvalidations = 0
+  let seriesEventsTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
       revalidateTag(cacheTags.event(row.slug), { expire: 0 })
       eventTagInvalidations += 1
+    }
+    if (row.series_slug) {
+      revalidateTag(cacheTags.seriesEvents(row.series_slug), { expire: 0 })
+      seriesEventsTagInvalidations += 1
     }
   }
 
@@ -2206,6 +2213,7 @@ async function invalidateEventCaches(
     homeFeaturedTagInvalidated,
     mainTagsInvalidations: listTagInvalidated ? SUPPORTED_LOCALES.length : 0,
     eventTagInvalidations,
+    seriesEventsTagInvalidations,
     uniqueEventIdsCount: uniqueEventIds.length,
   }
 }

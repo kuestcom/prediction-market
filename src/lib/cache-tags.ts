@@ -21,6 +21,8 @@ export const cacheTags = {
   homeFeaturedEvents: 'home:featured-events',
   /** Per-event content surfaces (page data, title, route resolution). */
   event: (key: string) => `event:${key}`,
+  /** Series event navigation and live-series pill data. */
+  seriesEvents: (key: string) => `series-events:${key}`,
   /** Admin categories table. */
   adminCategories: 'admin:categories',
   /** Per-locale main navigation tags. */
