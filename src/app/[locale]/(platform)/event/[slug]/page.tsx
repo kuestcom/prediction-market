@@ -66,8 +66,9 @@ async function CachedEventPageContent({ slug }: { slug: string }) {
   if (!eventPageData) {
     notFound()
   }
-  if (eventPageData.event.series_slug) {
-    cacheTag(cacheTags.seriesEvents(eventPageData.event.series_slug))
+  const seriesSlug = eventPageData.event.series_slug?.trim() ?? ''
+  if (seriesSlug) {
+    cacheTag(cacheTags.seriesEvents(seriesSlug))
   }
 
   const faqItems = await buildTranslatedEventFaqItems({

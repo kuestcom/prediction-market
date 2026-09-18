@@ -98,7 +98,7 @@ export async function loadEventPagePublicContentData(
     }
   }
 
-  if (event.series_slug && !seriesEvents.some((seriesEvent) => seriesEvent.slug === event.slug)) {
+  if (seriesSlug && !seriesEvents.some((seriesEvent) => seriesEvent.slug === event.slug)) {
     seriesEvents = [
       {
         id: event.id,

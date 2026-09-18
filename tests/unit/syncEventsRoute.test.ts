@@ -92,6 +92,18 @@ describe('sync events route', () => {
     ).toBe('2026-08-25T12:00:00.000Z')
   })
 
+  it('invalidates both normalized series tags when an event moves between series', async () => {
+    const { getSeriesSlugsForCacheInvalidation, normalizeSeriesSlugsForCacheInvalidation } =
+      await import('@/app/api/sync/events/route')
+
+    expect(getSeriesSlugsForCacheInvalidation(' old-series ', 'new-series')).toEqual(['old-series', 'new-series'])
+    expect(getSeriesSlugsForCacheInvalidation(' old-series ', 'old-series')).toEqual(['old-series'])
+    expect(getSeriesSlugsForCacheInvalidation('old-series', null)).toEqual(['old-series'])
+    expect(
+      normalizeSeriesSlugsForCacheInvalidation([' old-series ', 'new-series', 'old-series', 'new-series ']),
+    ).toEqual(['old-series', 'new-series'])
+  })
+
   it('normalizes mirror token IDs and detects an explicit mapping removal', async () => {
     const { hasPolymarketOutcomeTokenMappingChanged, normalizePolymarketOutcomeTokenIds } =
       await import('@/app/api/sync/events/route')

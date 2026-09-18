@@ -26,6 +26,7 @@ describe('event page cache tags', () => {
 
     expect(cachedFunction).toContain("'use cache'")
     expect(cachedFunction).toContain('cacheTag(cacheTags.event(slug))')
+    expect(cachedFunction).toContain("eventPageData.event.series_slug?.trim() ?? ''")
     expect(cachedFunction).toContain('cacheTag(cacheTags.seriesEvents(')
   })
 })

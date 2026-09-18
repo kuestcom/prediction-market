@@ -196,6 +196,7 @@ interface NormalizedEventTag {
 interface ProcessMarketResult {
   eventIdForStatusUpdate: string | null
   eventIdsForCacheInvalidation: string[]
+  seriesSlugsForCacheInvalidation: string[]
   changed: boolean
   listAffectingChange: boolean
   urlSetChanged: boolean
@@ -205,6 +206,7 @@ interface ProcessMarketResult {
 interface ProcessEventResult {
   eventId: string
   eventChanged: boolean
+  seriesSlugsForCacheInvalidation: string[]
   listAffectingChange: boolean
   urlSetChanged: boolean
   sportsSourceCandidate: SportsSourceCandidate | null
@@ -533,6 +535,7 @@ async function syncMarkets(
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
   const eventIdsNeedingCacheInvalidation = new Set<string>()
+  const seriesSlugsNeedingCacheInvalidation = new Set<string>()
   let shouldInvalidateListCache = false
   let shouldInvalidateSitemap = false
   const runtimeState: SyncRuntimeState = {
@@ -605,6 +608,9 @@ async function syncMarkets(
         if (processResult.changed) {
           for (const eventId of processResult.eventIdsForCacheInvalidation) {
             eventIdsNeedingCacheInvalidation.add(eventId)
+          }
+          for (const seriesSlug of processResult.seriesSlugsForCacheInvalidation) {
+            seriesSlugsNeedingCacheInvalidation.add(seriesSlug)
           }
         }
         if (processResult.listAffectingChange) {
@@ -693,10 +699,16 @@ async function syncMarkets(
     shouldInvalidateListCache = true
   }
 
-  if (eventIdsNeedingCacheInvalidation.size > 0 || shouldInvalidateListCache || shouldInvalidateSitemap) {
+  if (
+    eventIdsNeedingCacheInvalidation.size > 0 ||
+    seriesSlugsNeedingCacheInvalidation.size > 0 ||
+    shouldInvalidateListCache ||
+    shouldInvalidateSitemap
+  ) {
     const invalidationSummary = await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
       includeList: shouldInvalidateListCache,
       includeSitemap: shouldInvalidateSitemap,
+      seriesSlugs: Array.from(seriesSlugsNeedingCacheInvalidation),
     })
     console.log('🧹 Event cache invalidation summary:', invalidationSummary)
   }
@@ -879,6 +891,7 @@ async function processMarket(
     return {
       eventIdForStatusUpdate: null,
       eventIdsForCacheInvalidation: [],
+      seriesSlugsForCacheInvalidation: [],
       changed: false,
       listAffectingChange: false,
       urlSetChanged: false,
@@ -925,6 +938,7 @@ async function processMarket(
   return {
     eventIdForStatusUpdate: changed ? marketResult.eventIdForStatusUpdate : null,
     eventIdsForCacheInvalidation: changed ? Array.from(eventIdsForCacheInvalidation) : [],
+    seriesSlugsForCacheInvalidation: changed ? eventResult.seriesSlugsForCacheInvalidation : [],
     changed,
     listAffectingChange: eventResult.listAffectingChange || hiddenChanged,
     urlSetChanged: eventResult.urlSetChanged || marketResult.urlSetChanged,
@@ -1313,6 +1327,8 @@ async function processEvent(
     const updatePayload: Record<string, any> = {}
     let eventChanged = false
     let listAffectingChange = false
+    const previousSeriesSlug = existingEvent.series_slug
+    const seriesSlugChanged = (existingEvent.series_slug ?? null) !== (eventSeriesSlug ?? null)
 
     if (existingEvent.enable_neg_risk !== enableNegRiskFlag) {
       updatePayload.enable_neg_risk = enableNegRiskFlag
@@ -1330,7 +1346,7 @@ async function processEvent(
       updatePayload.neg_risk_market_id = eventNegRiskMarketId ?? null
       eventChanged = true
     }
-    if ((existingEvent.series_slug ?? null) !== (eventSeriesSlug ?? null)) {
+    if (seriesSlugChanged) {
       updatePayload.series_slug = eventSeriesSlug ?? null
       eventChanged = true
     }
@@ -1456,6 +1472,9 @@ async function processEvent(
     return {
       eventId: existingEvent.id,
       eventChanged,
+      seriesSlugsForCacheInvalidation: seriesSlugChanged
+        ? getSeriesSlugsForCacheInvalidation(previousSeriesSlug, eventSeriesSlug)
+        : [],
       listAffectingChange,
       urlSetChanged: false,
       sportsSourceCandidate,
@@ -1549,6 +1568,7 @@ async function processEvent(
   return {
     eventId: newEvent.id,
     eventChanged: true,
+    seriesSlugsForCacheInvalidation: getSeriesSlugsForCacheInvalidation(null, eventSeriesSlug),
     listAffectingChange: true,
     urlSetChanged: true,
     sportsSourceCandidate,
@@ -2157,12 +2177,13 @@ function resolveStoredEventIconReference(value: unknown) {
 
 async function invalidateEventCaches(
   eventIds: string[],
-  options: { includeList?: boolean; includeSitemap?: boolean } = {},
+  options: { includeList?: boolean; includeSitemap?: boolean; seriesSlugs?: string[] } = {},
 ) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   const listTagInvalidated = options.includeList === true
   const sitemapTagInvalidated = options.includeSitemap === true
   const homeFeaturedTagInvalidated = listTagInvalidated
+  const seriesSlugsToInvalidate = new Set(normalizeSeriesSlugsForCacheInvalidation(options.seriesSlugs ?? []))
   if (listTagInvalidated) {
     revalidateTag(cacheTags.eventsList, { expire: 0 })
     revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
@@ -2175,13 +2196,17 @@ async function invalidateEventCaches(
   }
 
   if (uniqueEventIds.length === 0) {
+    for (const seriesSlug of seriesSlugsToInvalidate) {
+      revalidateTag(cacheTags.seriesEvents(seriesSlug), { expire: 0 })
+    }
+
     return {
       listTagInvalidated,
       sitemapTagInvalidated,
       homeFeaturedTagInvalidated,
       mainTagsInvalidations: listTagInvalidated ? SUPPORTED_LOCALES.length : 0,
       eventTagInvalidations: 0,
-      seriesEventsTagInvalidations: 0,
+      seriesEventsTagInvalidations: seriesSlugsToInvalidate.size,
       uniqueEventIdsCount: 0,
     }
   }
@@ -2195,16 +2220,18 @@ async function invalidateEventCaches(
     .where(inArray(eventsTable.id, uniqueEventIds))
 
   let eventTagInvalidations = 0
-  let seriesEventsTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
       revalidateTag(cacheTags.event(row.slug), { expire: 0 })
       eventTagInvalidations += 1
     }
-    if (row.series_slug) {
-      revalidateTag(cacheTags.seriesEvents(row.series_slug), { expire: 0 })
-      seriesEventsTagInvalidations += 1
+    const seriesSlug = normalizeStringField(row.series_slug)
+    if (seriesSlug) {
+      seriesSlugsToInvalidate.add(seriesSlug)
     }
+  }
+  for (const seriesSlug of seriesSlugsToInvalidate) {
+    revalidateTag(cacheTags.seriesEvents(seriesSlug), { expire: 0 })
   }
 
   return {
@@ -2213,7 +2240,7 @@ async function invalidateEventCaches(
     homeFeaturedTagInvalidated,
     mainTagsInvalidations: listTagInvalidated ? SUPPORTED_LOCALES.length : 0,
     eventTagInvalidations,
-    seriesEventsTagInvalidations,
+    seriesEventsTagInvalidations: seriesSlugsToInvalidate.size,
     uniqueEventIdsCount: uniqueEventIds.length,
   }
 }
@@ -3159,6 +3186,20 @@ function normalizeStringField(value: unknown): string | null {
   }
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+export function getSeriesSlugsForCacheInvalidation(previousSeriesSlug: unknown, currentSeriesSlug: unknown) {
+  return normalizeSeriesSlugsForCacheInvalidation([previousSeriesSlug, currentSeriesSlug])
+}
+
+export function normalizeSeriesSlugsForCacheInvalidation(seriesSlugs: unknown[]) {
+  return Array.from(
+    new Set(
+      seriesSlugs
+        .map((seriesSlug) => normalizeStringField(seriesSlug))
+        .filter((seriesSlug): seriesSlug is string => Boolean(seriesSlug)),
+    ),
+  )
 }
 
 function normalizeStringIdField(value: unknown): string | null {
