@@ -1661,6 +1661,24 @@ async function processMarketData(
   const eventIdForStatusUpdate = existingMarket?.event_id ?? eventId
   const incomingUpdatedAtMs = Date.parse(timestamps.updatedAtIso)
   const existingUpdatedAtMs = existingMarket?.updated_at ? new Date(existingMarket.updated_at).getTime() : Number.NaN
+  const marketIconReference = normalizeAssetReference(metadata.icon)
+  const marketIconPath = marketIconReference
+    ? buildCanonicalIconStoragePath(
+        marketIconReference,
+        `markets/icons/${normalizeStorageSlug(metadata.slug, market.id)}`,
+      )
+    : null
+  const shouldUseCanonicalMarketIcon = Boolean(
+    marketIconReference &&
+    marketIconPath &&
+    resolveStableAssetReference(marketIconReference) &&
+    existingMarket?.icon_url !== marketIconPath,
+  )
+  const shouldSyncMarketIcon = Boolean(
+    marketIconReference &&
+    marketIconPath &&
+    (shouldDownloadMarketIcon(existingMarket, marketIconReference) || shouldUseCanonicalMarketIcon),
+  )
   const marketNeedsUpdate =
     !existingMarket ||
     !Number.isFinite(existingUpdatedAtMs) ||
@@ -1671,7 +1689,8 @@ async function processMarketData(
       (existingMarket.polymarket_condition_id ?? null) !== (polymarketConditionId ?? null)) ||
     polymarketTokenIdsChanged ||
     existingAcceptingOrdersFlag !== acceptingOrdersFlag ||
-    existingArchivedFlag !== archivedFlag
+    existingArchivedFlag !== archivedFlag ||
+    shouldSyncMarketIcon
 
   const eventIdsForHiddenSync = new Set<string>()
   if (existingMarket) {
@@ -1707,24 +1726,7 @@ async function processMarketData(
   }
 
   let iconUrl: string | null = null
-  const marketIconReference = normalizeAssetReference(metadata.icon)
-  const marketIconPath = marketIconReference
-    ? buildCanonicalIconStoragePath(
-        marketIconReference,
-        `markets/icons/${normalizeStorageSlug(metadata.slug, market.id)}`,
-      )
-    : null
-  const shouldUseCanonicalMarketIcon = Boolean(
-    marketIconReference &&
-    marketIconPath &&
-    resolveStableAssetReference(marketIconReference) &&
-    existingMarket?.icon_url !== marketIconPath,
-  )
-  if (
-    marketIconReference &&
-    marketIconPath &&
-    (shouldDownloadMarketIcon(existingMarket, marketIconReference) || shouldUseCanonicalMarketIcon)
-  ) {
+  if (shouldSyncMarketIcon && marketIconReference && marketIconPath) {
     iconUrl = await downloadAndSaveImage(marketIconReference, marketIconPath)
   }
 
@@ -2978,12 +2980,22 @@ async function downloadAndSaveImage(assetReference: string, storagePath: string,
       return null
     }
 
+    const imageAttemptDeadlineMs = options.timeoutMs ? Date.now() + options.timeoutMs : null
+    function remainingTimeoutMs() {
+      return imageAttemptDeadlineMs == null ? undefined : Math.max(0, imageAttemptDeadlineMs - Date.now())
+    }
+
     if (storagePath.endsWith('.png')) {
       const publicUrl = getPublicAssetUrl(storagePath)
       if (publicUrl) {
+        const remainingTimeout = remainingTimeoutMs()
+        if (remainingTimeout !== undefined && remainingTimeout <= 0) {
+          return null
+        }
         const cachedResponse = await fetch(publicUrl, {
           method: 'HEAD',
           keepalive: true,
+          signal: remainingTimeout === undefined ? undefined : AbortSignal.timeout(Math.max(1, remainingTimeout)),
         }).catch(() => null)
         if (cachedResponse?.ok) {
           return storagePath
@@ -2994,13 +3006,13 @@ async function downloadAndSaveImage(assetReference: string, storagePath: string,
     const imageUrl = /^https?:\/\//i.test(normalizedReference)
       ? normalizedReference
       : `${IRYS_GATEWAY}/${normalizedReference}`
-    const imageAttemptDeadlineMs = options.timeoutMs ? Date.now() + options.timeoutMs : null
-    function remainingTimeoutMs() {
-      return imageAttemptDeadlineMs == null ? undefined : Math.max(0, imageAttemptDeadlineMs - Date.now())
+    const remainingTimeout = remainingTimeoutMs()
+    if (remainingTimeout !== undefined && remainingTimeout <= 0) {
+      return null
     }
     const response = await fetch(imageUrl, {
       keepalive: true,
-      signal: imageAttemptDeadlineMs == null ? undefined : AbortSignal.timeout(Math.max(1, remainingTimeoutMs() ?? 0)),
+      signal: remainingTimeout === undefined ? undefined : AbortSignal.timeout(Math.max(1, remainingTimeout)),
     })
 
     if (!response.ok) {
