@@ -7,26 +7,29 @@ import type { Config } from 'wagmi'
 
 import { ChainController, SIWXUtil } from '@reown/appkit-controllers'
 import { createSIWEConfig, formatMessage, getAddressFromMessage, getDidAddress } from '@reown/appkit-siwe'
-import { createAppKit, useAppKitAccount, useAppKitTheme } from '@reown/appkit/react'
+import { createAppKit, useAppKitAccount, useAppKitNetwork, useAppKitState, useAppKitTheme } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { getAddress, isAddress } from 'viem'
-import { cookieToInitialState, WagmiProvider } from 'wagmi'
+import { cookieToInitialState, useConfig, WagmiProvider } from 'wagmi'
+import { getConnections, switchChain } from 'wagmi/actions'
 
 import type { User } from '@/types'
 
 import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { toast } from '@/components/ui/toast'
-import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
+import { AppKitContext, defaultAppKitValue, useAppKit } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { usePolymarketWalletConnection } from '@/hooks/usePolymarketWalletConnection'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { detachTradeAlertsBeforeLogout } from '@/hooks/useTradeAlerts'
 import { createAppKitWagmiAdapter, defaultNetwork, networks } from '@/lib/appkit'
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
 import { WAGMI_STATE_COOKIE_NAME } from '@/lib/wagmi-storage'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'
@@ -131,6 +134,16 @@ function waitForAutomaticSiwe(delayMs: number) {
   })
 }
 
+function normalizeAppKitChainId(chainId: number | string | undefined) {
+  const normalized = typeof chainId === 'number' ? chainId : Number(chainId)
+  return Number.isInteger(normalized) && normalized > 0 ? normalized : null
+}
+
+function isUnsupportedAppKitChain(chainId: number | string | undefined) {
+  const normalizedChainId = normalizeAppKitChainId(chainId)
+  return normalizedChainId !== null && !networks.some((network) => Number(network.id) === normalizedChainId)
+}
+
 function getSiweAccountLockKey() {
   return ChainController.getActiveCaipAddress()?.toLowerCase() ?? null
 }
@@ -193,11 +206,13 @@ function installSiweSignInLock(siweClient: AppKitSIWEClient) {
 function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }) {
   const t = useExtracted()
   const { address, embeddedWalletInfo, isConnected } = useAppKitAccount({ namespace: 'eip155' })
+  const { chainId } = useAppKitNetwork()
   const attemptedAddressRef = useRef<string | null>(null)
+  const isWrongSiweChain = normalizeAppKitChainId(chainId) !== DEFAULT_CHAIN_ID
 
   useEffect(() => {
     const normalizedAddress = address?.toLowerCase()
-    if (!isConnected || !normalizedAddress) {
+    if (!isConnected || !normalizedAddress || isWrongSiweChain) {
       attemptedAddressRef.current = null
       return
     }
@@ -277,7 +292,88 @@ function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }
         resetAttemptedAddress()
       }
     }
-  }, [address, embeddedWalletInfo, isConnected, siweClient, t])
+  }, [address, embeddedWalletInfo, isConnected, isWrongSiweChain, siweClient, t])
+
+  return null
+}
+
+function UnsupportedNetworkSwitchPrompt() {
+  const t = useExtracted()
+  const { close: closeAppKit } = useAppKit()
+  const { address, isConnected } = useAppKitAccount({ namespace: 'eip155' })
+  const { chainId } = useAppKitNetwork()
+  const wagmiConfig = useConfig()
+  const appKitState = useAppKitState()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const attemptedSwitchRef = useRef<string | null>(null)
+  const switchInFlightRef = useRef(false)
+  const normalizedChainId = normalizeAppKitChainId(chainId)
+  const isUnsupportedChain = isUnsupportedAppKitChain(chainId)
+
+  useEffect(() => {
+    if (
+      !appKitState.open ||
+      appKitState.loading ||
+      !isConnected ||
+      !address ||
+      normalizedChainId === null ||
+      !isUnsupportedChain ||
+      switchInFlightRef.current
+    ) {
+      return
+    }
+
+    const attemptKey = `${address.toLowerCase()}:${normalizedChainId}:${DEFAULT_CHAIN_ID}`
+    if (attemptedSwitchRef.current === attemptKey) {
+      return
+    }
+
+    attemptedSwitchRef.current = attemptKey
+    switchInFlightRef.current = true
+
+    void (async () => {
+      try {
+        await closeAppKit()
+        const connection = getConnections(wagmiConfig).find(({ accounts }) =>
+          accounts.some((account) => account.toLowerCase() === address.toLowerCase()),
+        )
+        if (!connection) {
+          throw new Error('The connected wallet is not available for network switching.')
+        }
+
+        await runWithSignaturePrompt(
+          () =>
+            switchChain(wagmiConfig, {
+              chainId: DEFAULT_CHAIN_ID,
+              connector: connection.connector,
+            }),
+          {
+            title: t('Confirm network switch'),
+            description: t('Confirm the network switch in your wallet.'),
+          },
+        )
+      } catch (error) {
+        console.warn('[Wallet] Automatic network switch failed', error)
+      } finally {
+        switchInFlightRef.current = false
+        if (normalizeAppKitChainId(chainId) !== DEFAULT_CHAIN_ID) {
+          attemptedSwitchRef.current = null
+        }
+      }
+    })()
+  }, [
+    address,
+    appKitState.loading,
+    appKitState.open,
+    chainId,
+    closeAppKit,
+    isConnected,
+    isUnsupportedChain,
+    normalizedChainId,
+    runWithSignaturePrompt,
+    t,
+    wagmiConfig,
+  ])
 
   return null
 }
@@ -512,6 +608,7 @@ function initializeAppKitSingleton(
       adapters: [wagmiAdapter],
       themeMode,
       defaultAccountTypes: { eip155: 'eoa' },
+      allowUnsupportedChain: true,
       metadata: {
         name: site.name,
         description: site.description,
@@ -749,6 +846,7 @@ export default function AppKitProvider({ children, wagmiCookie }: { children: Re
     <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <AppKitContext value={appKitValue}>
         <PolymarketWalletConnectionRestorer />
+        {instance && <UnsupportedNetworkSwitchPrompt />}
         {instance && siweClient && <AutoSiweAuthentication siweClient={siweClient} />}
         {children}
         {hasHydrated && <SignaturePromptHost />}

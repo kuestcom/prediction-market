@@ -22,6 +22,8 @@ const mocks = hoisted(() => ({
   siweClientSignIn: mock(),
   siwxRequestSignMessage: mock(),
   useAppKitAccount: mock(),
+  useAppKitNetwork: mock(() => ({ chainId: 80002 })),
+  useAppKitState: mock(() => ({ open: false, loading: false })),
   useSignMessage: mock(),
   WagmiProvider: mock(({ children }: any) => children),
 }))
@@ -36,6 +38,8 @@ void mock.module('@reown/appkit/react', () => ({
   __esModule: true,
   createAppKit: mocks.createAppKit,
   useAppKitAccount: mocks.useAppKitAccount,
+  useAppKitNetwork: mocks.useAppKitNetwork,
+  useAppKitState: mocks.useAppKitState,
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
 
@@ -63,8 +67,8 @@ void mock.module('@reown/appkit-siwe', () => {
 void mock.module('@/lib/appkit', () => ({
   __esModule: true,
   createAppKitWagmiAdapter: mock(() => ({ wagmiConfig: {} })),
-  defaultNetwork: { id: 1 },
-  networks: [{ id: 1 }],
+  defaultNetwork: { id: 80002 },
+  networks: [{ id: 80002 }],
 }))
 
 void mock.module('@/hooks/usePublicRuntimeConfig', () => ({
@@ -78,7 +82,13 @@ void mock.module('wagmi', () => ({
   cookieToInitialState: mocks.cookieToInitialState,
   WagmiProvider: mocks.WagmiProvider,
   useConnections: () => [],
+  useConfig: () => ({}),
   useSignMessage: mocks.useSignMessage,
+}))
+
+void mock.module('wagmi/actions', () => ({
+  getConnections: mock(() => []),
+  switchChain: mock(),
 }))
 
 void mock.module('next-themes', () => ({
@@ -173,8 +183,9 @@ describe('appKitProvider SSR guard', () => {
       expect(mocks.createAppKit).toHaveBeenCalledTimes(1)
       expect(mocks.createAppKit).toHaveBeenCalledWith(
         expect.objectContaining({
-          defaultNetwork: { id: 1 },
-          networks: [{ id: 1 }],
+          defaultNetwork: { id: 80002 },
+          networks: [{ id: 80002 }],
+          allowUnsupportedChain: true,
         }),
       )
       expect(mocks.createSIWEConfig).toHaveBeenCalledWith(
