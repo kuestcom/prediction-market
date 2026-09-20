@@ -18,6 +18,7 @@ void mock.module('@/lib/ai/market-context-config', () => ({
 
 void mock.module('@/lib/ai/openrouter', () => ({
   requestOpenRouterCompletion: mock(),
+  requestOpenRouterDecisions: mock(),
 }))
 
 describe('sports source providers', () => {

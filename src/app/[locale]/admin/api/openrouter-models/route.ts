@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-import { fetchAllOpenRouterModels, fetchOpenRouterModels } from '@/lib/ai/openrouter'
+import { fetchAllOpenRouterModels, fetchOpenRouterDecisionModels, fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -23,9 +23,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid request.' }, { status: 400 })
     }
 
-    const [models, allModels] = await Promise.all([
+    const [models, allModels, decisionModels] = await Promise.all([
       fetchOpenRouterModels(parsed.data.apiKey),
       fetchAllOpenRouterModels(parsed.data.apiKey),
+      fetchOpenRouterDecisionModels(parsed.data.apiKey),
     ])
 
     return NextResponse.json({
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
         contextWindow: model.contextLength,
       })),
       allModels: allModels.map((model) => ({
+        id: model.id,
+        label: model.name,
+        contextWindow: model.contextLength,
+      })),
+      decisionModels: decisionModels.map((model) => ({
         id: model.id,
         label: model.name,
         contextWindow: model.contextLength,

@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { Event, HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { rankCandidatesWithDecisionModel } from '@/lib/ai/decision-model'
 import { parseOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion, sanitizeForPrompt } from '@/lib/ai/openrouter'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -683,6 +684,27 @@ export async function regenerateHomeFeaturedEvents(
         return true
       })
       .slice(0, 24)
+
+    if (openRouterSettings.apiKey && openRouterSettings.decisionModel && filteredCandidates.length > 1) {
+      try {
+        filteredCandidates = await rankCandidatesWithDecisionModel({
+          apiKey: openRouterSettings.apiKey,
+          model: openRouterSettings.decisionModel,
+          candidates: filteredCandidates,
+          state: {
+            task: 'Select strong candidates for a prediction-market home carousel.',
+            locale,
+            slotsToFill,
+          },
+          serializeCandidate: (event) => eventToPromptCandidate(event),
+          buildInstructions: (_event, index) =>
+            `Score candidate ${index} for featured-carousel suitability. Prefer clear, timely, publicly interesting events with enough context for a broad audience.`,
+          timeoutMs: 8_000,
+        })
+      } catch (error) {
+        console.error('Home featured decision model ranking failed:', error)
+      }
+    }
 
     selectedMarkets = fallbackSelection(filteredCandidates, slotsToFill)
 

@@ -34,6 +34,7 @@ void mock.module('@/lib/db/queries/settings', () => ({
 
 void mock.module('@/lib/ai/openrouter', () => ({
   fetchAllOpenRouterModels: mock(),
+  fetchOpenRouterDecisionModels: mock(),
   fetchOpenRouterModels: mock(),
 }))
 

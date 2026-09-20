@@ -33,6 +33,7 @@ const props = {
     isApiKeyConfigured: false,
     modelOptions: [],
     translationModelOptions: [],
+    decisionModelOptions: [],
   },
   sportsSourceSettings: {
     isPandaScoreTokenConfigured: false,

@@ -2,6 +2,7 @@ import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import type { SportsSourceSearchTeam } from '@/lib/sports-source/search-query'
 import type { SportsSegmentScore } from '@/types'
 
+import { rankCandidatesWithDecisionModel } from '@/lib/ai/decision-model'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { slugifyText } from '@/lib/slug'
@@ -89,6 +90,7 @@ export interface SportsSourceSuggestParams {
   provider?: string | null
   limit?: number | null
   auth?: SportsSourceAuth | null
+  useDecisionModel?: boolean
 }
 
 interface SportsSourceAuth {
@@ -1435,7 +1437,7 @@ export async function findSportsEvents(params: SportsSourceSuggestParams) {
     auth: params.auth,
   })
 
-  return candidates
+  const scoredCandidates = candidates
     .map((candidate) => {
       const scored = scoreSportsCandidate(params, candidate, hints)
       return {
@@ -1445,5 +1447,46 @@ export async function findSportsEvents(params: SportsSourceSuggestParams) {
       }
     })
     .sort((left, right) => right.confidence - left.confidence)
-    .slice(0, limit)
+
+  if (params.useDecisionModel && scoredCandidates.length > 1) {
+    try {
+      const openRouterSettings = await loadOpenRouterProviderSettings()
+      if (openRouterSettings.apiKey && openRouterSettings.decisionModel) {
+        return (
+          await rankCandidatesWithDecisionModel({
+            apiKey: openRouterSettings.apiKey,
+            model: openRouterSettings.decisionModel,
+            candidates: scoredCandidates,
+            state: {
+              title: params.title,
+              question: params.question,
+              outcomes: params.outcomes,
+              sport: hints.sport,
+              league: hints.league,
+              date: hints.date,
+              category: params.category,
+            },
+            serializeCandidate: (candidate) => ({
+              provider: candidate.provider,
+              eventName: candidate.eventName,
+              sport: candidate.sportSlug,
+              league: candidate.leagueSlug,
+              date: candidate.eventDate ?? candidate.startTime,
+              homeTeam: candidate.homeTeam?.name,
+              awayTeam: candidate.awayTeam?.name,
+              live: candidate.live,
+              score: candidate.score,
+            }),
+            buildInstructions: (_candidate, index) =>
+              `Score candidate ${index} for how well it matches the requested sports or esports event. Match the teams, sport, league, date, and event type; do not reward generic team-name overlap alone.`,
+            timeoutMs: 6_000,
+          })
+        ).slice(0, limit)
+      }
+    } catch (error) {
+      console.error('Sports decision model ranking failed:', error)
+    }
+  }
+
+  return scoredCandidates.slice(0, limit)
 }

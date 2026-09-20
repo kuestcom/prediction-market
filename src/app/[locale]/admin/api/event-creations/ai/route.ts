@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import type { OpenRouterMessage } from '@/lib/ai/openrouter'
 
+import { reviewEventCreationWithDecisionModel } from '@/lib/ai/event-creation-decision'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -952,6 +953,7 @@ export async function POST(request: Request) {
     const { mode, data } = parsed.data
     const apiKey = openRouterSettings.apiKey
     const model = openRouterSettings.model
+    const decisionModel = openRouterSettings.decisionModel
     const sportsContext = normalizeSportsContext(data)
 
     if (mode === 'generate_rules') {
@@ -1135,12 +1137,27 @@ export async function POST(request: Request) {
       },
     ]
 
-    const rawResult = await requestOpenRouterCompletion(checkMessages, {
-      apiKey,
-      model,
-      temperature: 0,
-      maxTokens: 500,
-    })
+    const [completionResult, decisionResult] = await Promise.allSettled([
+      requestOpenRouterCompletion(checkMessages, {
+        apiKey,
+        model,
+        temperature: 0,
+        maxTokens: 500,
+      }),
+      decisionModel
+        ? reviewEventCreationWithDecisionModel({ apiKey, model: decisionModel, input: aiInput })
+        : Promise.resolve([]),
+    ])
+
+    if (completionResult.status === 'rejected') {
+      throw completionResult.reason
+    }
+
+    const rawResult = completionResult.value
+    const decisionWarnings =
+      decisionResult.status === 'fulfilled'
+        ? decisionResult.value
+        : (console.error('Event creation decision model review failed:', decisionResult.reason), [])
 
     const aiResult = parseJsonObject(rawResult, aiContentCheckSchema)
     const endDateHasTimezone = hasExplicitTimezone(data.endDateIso)
@@ -1177,7 +1194,7 @@ export async function POST(request: Request) {
     )
 
     const errors = sanitizeAiErrors([...localErrors, ...aiErrors])
-    const warnings = sanitizeAiErrors([...localWarnings, ...aiWarnings])
+    const warnings = sanitizeAiErrors([...localWarnings, ...aiWarnings, ...decisionWarnings])
 
     return NextResponse.json({
       ok: errors.length === 0,

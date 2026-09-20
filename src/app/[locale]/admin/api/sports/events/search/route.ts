@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       limit: parsed.data.limit,
       provider: providerResolution.provider,
       auth: settings,
+      useDecisionModel: true,
     })
     return NextResponse.json(
       { candidates },

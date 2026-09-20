@@ -56,11 +56,13 @@ describe('market context settings parser', () => {
         openrouter_api_key: setting('enc.v1.openrouter-key'),
         openrouter_model: setting('openai/gpt-4o-mini'),
         openrouter_translation_model: setting('openai/gpt-4o-mini'),
+        openrouter_decision_model: setting('typesafe/jev-1.13'),
       },
     })
 
     expect(parsed.model).toBe('openai/gpt-4o-mini')
     expect(parsed.translationModel).toBe('openai/gpt-4o-mini')
+    expect(parsed.decisionModel).toBe('typesafe/jev-1.13')
     expect(parsed.apiKey).toBe('openrouter-key')
   })
 

@@ -51,11 +51,14 @@ export interface AdminIntegrationsFormProps {
   openRouterSettings: {
     defaultModel?: string
     translationModel?: string
+    decisionModel?: string
     isApiKeyConfigured: boolean
     modelOptions: ModelOption[]
     translationModelOptions: ModelOption[]
+    decisionModelOptions: ModelOption[]
     modelsError?: string
     translationModelsError?: string
+    decisionModelsError?: string
   }
   sportsSourceSettings: {
     isPandaScoreTokenConfigured: boolean
@@ -137,13 +140,20 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
   const [openRouterTranslationModel, setOpenRouterTranslationModel] = useState(
     props.openRouterSettings.translationModel ?? '',
   )
+  const [openRouterDecisionModel, setOpenRouterDecisionModel] = useState(props.openRouterSettings.decisionModel ?? '')
   const [openRouterModelOptions, setOpenRouterModelOptions] = useState(props.openRouterSettings.modelOptions)
   const [openRouterTranslationModelOptions, setOpenRouterTranslationModelOptions] = useState(
     props.openRouterSettings.translationModelOptions,
   )
+  const [openRouterDecisionModelOptions, setOpenRouterDecisionModelOptions] = useState(
+    props.openRouterSettings.decisionModelOptions,
+  )
   const [openRouterModelsError, setOpenRouterModelsError] = useState(props.openRouterSettings.modelsError)
   const [openRouterTranslationModelsError, setOpenRouterTranslationModelsError] = useState(
     props.openRouterSettings.translationModelsError,
+  )
+  const [openRouterDecisionModelsError, setOpenRouterDecisionModelsError] = useState(
+    props.openRouterSettings.decisionModelsError,
   )
   const [isRefreshingOpenRouterModels, setIsRefreshingOpenRouterModels] = useState(false)
   const [theSportsDbApiKey, setTheSportsDbApiKey] = useState('')
@@ -222,8 +232,13 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
     setIsRefreshingOpenRouterModels(true)
     setOpenRouterModelsError(undefined)
     setOpenRouterTranslationModelsError(undefined)
+    setOpenRouterDecisionModelsError(undefined)
     try {
-      async function loadModelOptions(): Promise<{ models: ModelOption[]; allModels: ModelOption[] }> {
+      async function loadModelOptions(): Promise<{
+        models: ModelOption[]
+        allModels: ModelOption[]
+        decisionModels: ModelOption[]
+      }> {
         const response = await fetch(`/${props.locale}/admin/api/openrouter-models`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -232,28 +247,36 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
         const payload = (await response.json()) as {
           models?: ModelOption[]
           allModels?: ModelOption[]
+          decisionModels?: ModelOption[]
           error?: string
         }
-        if (!response.ok || !payload.models || !payload.allModels) {
+        if (!response.ok || !payload.models || !payload.allModels || !payload.decisionModels) {
           throw new Error(payload.error ?? t('Unable to load models. Please verify the API key.'))
         }
-        return { models: payload.models, allModels: payload.allModels }
+        return { models: payload.models, allModels: payload.allModels, decisionModels: payload.decisionModels }
       }
 
-      const { models, allModels: translationModels } = await loadModelOptions()
+      const { models, allModels: translationModels, decisionModels } = await loadModelOptions()
       setOpenRouterModelOptions(models)
       setOpenRouterTranslationModelOptions(translationModels)
+      setOpenRouterDecisionModelOptions(decisionModels)
       if (!models.some((model) => model.id === openRouterModel)) {
         setOpenRouterModel('')
       }
       if (!translationModels.some((model) => model.id === openRouterTranslationModel)) {
         setOpenRouterTranslationModel('')
       }
+      if (!decisionModels.some((model) => model.id === openRouterDecisionModel)) {
+        setOpenRouterDecisionModel('')
+      }
     } catch (error) {
       setOpenRouterModelsError(
         error instanceof Error ? error.message : t('Unable to load models. Please verify the API key.'),
       )
       setOpenRouterTranslationModelsError(
+        error instanceof Error ? error.message : t('Unable to load models. Please verify the API key.'),
+      )
+      setOpenRouterDecisionModelsError(
         error instanceof Error ? error.message : t('Unable to load models. Please verify the API key.'),
       )
     } finally {
@@ -302,6 +325,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
     <form action={formAction} className="grid max-w-full min-w-0 gap-6">
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
       <input type="hidden" name="openrouter_translation_model" value={openRouterTranslationModel} />
+      <input type="hidden" name="openrouter_decision_model" value={openRouterDecisionModel} />
       <input type="hidden" name="arbitrage_enabled" value={String(arbitrageEnabled)} />
       <input type="hidden" name="arbitrage_multi_wallet_enabled" value={String(arbitrageMultiWalletEnabled)} />
       <input type="hidden" name="kuest_support_enabled" value={String(kuestSupportEnabled)} />
@@ -371,10 +395,48 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                 }
               />
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <OfficialLink href="https://openrouter.ai/settings/keys">
+                {t('Create an API key on the official OpenRouter site')}
+              </OfficialLink>
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon"
+                className="size-8 shrink-0"
+                disabled={!openRouterApiKey.trim() || isPending || isRefreshingOpenRouterModels}
+                onClick={refreshOpenRouterModels}
+                aria-label={t('Refresh models')}
+              >
+                <RefreshCwIcon className={cn('size-4', isRefreshingOpenRouterModels && 'animate-spin')} />
+              </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="grid gap-2">
                 <div className="flex h-8 items-center">
-                  <Label htmlFor="integration-openrouter-model">{t('Preferred OpenRouter model')}</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="integration-openrouter-model">{t('Default model')}</Label>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="inline-flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            aria-label={t(
+                              'Used for market context on event pages, event creation, featured markets, and other general-purpose AI tasks.',
+                            )}
+                          >
+                            <InfoIcon className="size-3.5" aria-hidden />
+                          </button>
+                        }
+                      />
+                      <TooltipContent className="max-w-72 text-left">
+                        {t(
+                          'Used for market context on event pages, event creation, featured markets, and other general-purpose AI tasks.',
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
                 <Select
                   items={[
@@ -404,7 +466,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
               <div className="grid gap-2">
                 <div className="flex h-8 items-center justify-between gap-2">
                   <div className="flex items-center gap-1">
-                    <Label htmlFor="integration-openrouter-translation-model">{t('Preferred translation model')}</Label>
+                    <Label htmlFor="integration-openrouter-translation-model">{t('Translation model')}</Label>
                     <Tooltip>
                       <TooltipTrigger
                         render={
@@ -422,17 +484,6 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    className="size-8 shrink-0"
-                    disabled={!openRouterApiKey.trim() || isPending || isRefreshingOpenRouterModels}
-                    onClick={refreshOpenRouterModels}
-                    aria-label={t('Refresh models')}
-                  >
-                    <RefreshCwIcon className={cn('size-4', isRefreshingOpenRouterModels && 'animate-spin')} />
-                  </Button>
                 </div>
                 <Select
                   items={[
@@ -461,10 +512,60 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                   <p className="text-xs text-destructive">{openRouterTranslationModelsError}</p>
                 )}
               </div>
+              <div className="grid gap-2">
+                <div className="flex h-8 items-center">
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="integration-openrouter-decision-model">{t('Decision model')}</Label>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="inline-flex size-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            aria-label={t(
+                              'Used to review event creation and rank search, featured markets, and sports results. It does not resolve or settle markets.',
+                            )}
+                          >
+                            <InfoIcon className="size-3.5" aria-hidden />
+                          </button>
+                        }
+                      />
+                      <TooltipContent className="max-w-72 text-left">
+                        {t(
+                          'Used to review event creation and rank search, featured markets, and sports results. It does not resolve or settle markets.',
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+                <Select
+                  items={[
+                    { label: t('Disabled'), value: AUTOMATIC_MODEL_VALUE },
+                    ...openRouterDecisionModelOptions.map((model) => ({ label: model.label, value: model.id })),
+                  ]}
+                  value={openRouterDecisionModel || AUTOMATIC_MODEL_VALUE}
+                  onValueChange={(value) =>
+                    value !== null && setOpenRouterDecisionModel(value === AUTOMATIC_MODEL_VALUE ? '' : value)
+                  }
+                  disabled={isPending || (!props.openRouterSettings.isApiKeyConfigured && !openRouterApiKey.trim())}
+                >
+                  <SelectTrigger id="integration-openrouter-decision-model" className="h-12! w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={AUTOMATIC_MODEL_VALUE}>{t('Disabled')}</SelectItem>
+                    {openRouterDecisionModelOptions.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openRouterDecisionModelsError && (
+                  <p className="text-xs text-destructive">{openRouterDecisionModelsError}</p>
+                )}
+              </div>
             </div>
-            <OfficialLink href="https://openrouter.ai/settings/keys">
-              {t('Create an API key on the official OpenRouter site')}
-            </OfficialLink>
           </div>
         </SettingsAccordionSection>
 

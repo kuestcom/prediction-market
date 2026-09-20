@@ -20,6 +20,7 @@ void mock.module('@/lib/ai/market-context-config', () => ({
 
 void mock.module('@/lib/ai/openrouter', () => ({
   requestOpenRouterCompletion: (...args: unknown[]) => mocks.requestOpenRouterCompletion(...args),
+  requestOpenRouterDecisions: mock(),
 }))
 
 describe('event creation AI route', () => {

@@ -62,6 +62,7 @@ export async function POST(request: Request) {
       ...parsed.data,
       provider: providerResolution.provider,
       auth: settings,
+      useDecisionModel: true,
     })
     return NextResponse.json(
       { candidates },

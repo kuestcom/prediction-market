@@ -13,6 +13,7 @@ interface SettingsMap {
 export interface OpenRouterProviderSettings {
   model?: string
   translationModel?: string
+  decisionModel?: string
   apiKey?: string
   configured: boolean
   allSettings?: SettingsMap
@@ -80,6 +81,7 @@ function parseOpenRouterProviderSettingsFromMap(allSettings?: SettingsMap): Open
   const aiSettings = allSettings?.ai
   const model = aiSettings?.openrouter_model?.value?.trim() || undefined
   const translationModel = aiSettings?.openrouter_translation_model?.value?.trim() || undefined
+  const decisionModel = aiSettings?.openrouter_decision_model?.value?.trim() || undefined
   const encryptedApiKey = aiSettings?.openrouter_api_key?.value
   const decryptedApiKey = encryptedApiKey ? decryptSecret(encryptedApiKey) : ''
   const apiKey = decryptedApiKey.trim() || undefined
@@ -88,6 +90,7 @@ function parseOpenRouterProviderSettingsFromMap(allSettings?: SettingsMap): Open
   return {
     model,
     translationModel,
+    decisionModel,
     apiKey,
     configured,
     allSettings,

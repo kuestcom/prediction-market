@@ -86,6 +86,40 @@ describe('openrouter helpers', () => {
     ).rejects.toThrow('truncated')
   })
 
+  it('sends structured decisions to the OpenRouter Decisions endpoint', async () => {
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
+    mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ answers: { match: { type: 'score', score: 3 } } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const { requestOpenRouterDecisions } = await import('@/lib/ai/openrouter')
+    await expect(
+      requestOpenRouterDecisions(
+        {
+          model: 'typesafe/jev-1.13',
+          state: { query: 'Arsenal Chelsea' },
+          questions: {
+            match: {
+              type: 'score',
+              instructions: 'Score the candidate.',
+              criteria: ['0 — unrelated', '3 — direct match'],
+            },
+          },
+        },
+        { apiKey: 'openrouter-key' },
+      ),
+    ).resolves.toMatchObject({ answers: { match: { score: 3 } } })
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('https://openrouter.ai/api/alpha/decisions')
+    expect(JSON.parse(String(init.body))).toMatchObject({ model: 'typesafe/jev-1.13' })
+  })
+
   it('loads only web-search-capable models and sends runtime site name in models headers', async () => {
     const fetchMock = mock()
     stubGlobal('fetch', fetchMock)
@@ -177,6 +211,32 @@ describe('openrouter helpers', () => {
         id: 'openai/gpt-4o-mini',
         name: 'GPT-4o mini',
       },
+    ])
+  })
+
+  it('lists all decision models for the decision-model selector', async () => {
+    const fetchMock = mock()
+    stubGlobal('fetch', fetchMock)
+    mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'openai/gpt-4o-mini', name: 'GPT-4o mini' },
+            { id: 'typesafe/jev-1.13', name: 'Jev 1.13' },
+            { id: '~typesafe/jev-latest', name: 'Jev Latest' },
+            { id: 'custom/decision-model', name: 'Decision model', category: 'decisions' },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    const { fetchOpenRouterDecisionModels } = await import('@/lib/ai/openrouter')
+    await expect(fetchOpenRouterDecisionModels('openrouter-key')).resolves.toEqual([
+      { id: 'custom/decision-model', name: 'Decision model' },
+      { id: 'typesafe/jev-1.13', name: 'Jev 1.13' },
+      { id: '~typesafe/jev-latest', name: 'Jev Latest' },
     ])
   })
 
