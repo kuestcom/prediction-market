@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { rankCandidatesWithDecisionModel } from '@/lib/ai/decision-model'
-import { consumeDecisionModelSearchQuota, hasTradingActivity } from '@/lib/ai/decision-model-access'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -10,7 +9,6 @@ import { isEventListSortBy, isEventListStatusFilter } from '@/lib/event-list-fil
 import { listPredictionResultsPage } from '@/lib/prediction-results-events'
 
 function buildPredictionSearchDecisionCacheKey({
-  userId,
   model,
   locale,
   normalizedSearch,
@@ -20,7 +18,6 @@ function buildPredictionSearchDecisionCacheKey({
   sortBy,
   candidates,
 }: {
-  userId: string
   model: string
   locale: string
   normalizedSearch: string
@@ -32,7 +29,6 @@ function buildPredictionSearchDecisionCacheKey({
 }) {
   return JSON.stringify([
     'prediction-search',
-    userId,
     model,
     locale,
     normalizedSearch.toLowerCase(),
@@ -67,11 +63,9 @@ export async function GET(request: Request) {
   }
 
   const normalizedSearch = search.trim()
-  const shouldResolveCurrentUserForDecisionRanking = clampedOffset === 0 && normalizedSearch.length >= 3
-  const shouldResolveCurrentUser = bookmarked || includeBookmarkState || shouldResolveCurrentUserForDecisionRanking
+  const shouldResolveCurrentUser = bookmarked || includeBookmarkState
   const user = shouldResolveCurrentUser ? await UserRepository.getCurrentUser({ minimal: true }) : null
   const userId = bookmarked || includeBookmarkState ? user?.id : undefined
-  const decisionRankingUserId = user?.id
 
   try {
     if (bookmarked && !userId) {
@@ -96,17 +90,12 @@ export async function GET(request: Request) {
 
     let rankedEvents = events
     const shouldRankFirstPage = clampedOffset === 0 && rankedEvents.length > 1
-    if (shouldRankFirstPage && normalizedSearch.length >= 3 && decisionRankingUserId) {
+    if (shouldRankFirstPage && normalizedSearch.length >= 3) {
       try {
         const openRouterSettings = await loadOpenRouterProviderSettings()
-        if (
-          openRouterSettings.apiKey &&
-          openRouterSettings.decisionModel &&
-          (await hasTradingActivity(decisionRankingUserId))
-        ) {
+        if (openRouterSettings.apiKey && openRouterSettings.decisionModel) {
           const candidatesToRank = rankedEvents.slice(0, 16)
           const cacheKey = buildPredictionSearchDecisionCacheKey({
-            userId: decisionRankingUserId,
             model: openRouterSettings.decisionModel,
             locale,
             normalizedSearch,
@@ -143,10 +132,6 @@ export async function GET(request: Request) {
               `Score candidate ${index} for how well it matches the user's search query. Use the event title, rules, tags, and market questions; do not reward generic word overlap when the topic is different.`,
             timeoutMs: 5_000,
             cacheKey,
-            beforeRequest: async () => {
-              const quota = await consumeDecisionModelSearchQuota(decisionRankingUserId)
-              return quota.allowed
-            },
           })
           rankedEvents = [...rankedCandidates, ...rankedEvents.slice(candidatesToRank.length)]
         }

@@ -5,8 +5,6 @@ import { hoisted } from '../bun-test-helpers'
 const mocks = hoisted(() => ({
   getCurrentUser: mock(),
   listPredictionResultsPage: mock(),
-  hasTradingActivity: mock(),
-  consumeDecisionModelSearchQuota: mock(),
   rankCandidatesWithDecisionModel: mock(),
   loadOpenRouterProviderSettings: mock(),
 }))
@@ -25,11 +23,6 @@ void mock.module('@/lib/ai/decision-model', () => ({
   rankCandidatesWithDecisionModel: (...args: any[]) => mocks.rankCandidatesWithDecisionModel(...args),
 }))
 
-void mock.module('@/lib/ai/decision-model-access', () => ({
-  consumeDecisionModelSearchQuota: (...args: any[]) => mocks.consumeDecisionModelSearchQuota(...args),
-  hasTradingActivity: (...args: any[]) => mocks.hasTradingActivity(...args),
-}))
-
 void mock.module('@/lib/ai/market-context-config', () => ({
   loadOpenRouterProviderSettings: (...args: any[]) => mocks.loadOpenRouterProviderSettings(...args),
 }))
@@ -40,8 +33,6 @@ describe('prediction results events route', () => {
   beforeEach(() => {
     mocks.getCurrentUser.mockReset()
     mocks.listPredictionResultsPage.mockReset()
-    mocks.hasTradingActivity.mockReset().mockResolvedValue(false)
-    mocks.consumeDecisionModelSearchQuota.mockReset().mockResolvedValue({ allowed: true, retryAfterSeconds: 3600 })
     mocks.rankCandidatesWithDecisionModel.mockReset()
     mocks.loadOpenRouterProviderSettings.mockReset().mockResolvedValue({ apiKey: '', decisionModel: '' })
   })
@@ -81,7 +72,7 @@ describe('prediction results events route', () => {
     )
   })
 
-  it('keeps the default search ordering for authenticated users without trading activity', async () => {
+  it('keeps the default search ordering when Decision ranking fails', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     mocks.listPredictionResultsPage.mockResolvedValueOnce({
       data: [
@@ -94,6 +85,7 @@ describe('prediction results events route', () => {
       apiKey: 'openrouter-key',
       decisionModel: 'typesafe/jev-1.13',
     })
+    mocks.rankCandidatesWithDecisionModel.mockRejectedValueOnce(new Error('Decision unavailable'))
 
     const response = await GET(new Request('https://example.com/api/predictions/events?search=bitcoin&locale=en'))
 
@@ -102,12 +94,11 @@ describe('prediction results events route', () => {
       { id: 'event-1', slug: 'event-1' },
       { id: 'event-2', slug: 'event-2' },
     ])
-    expect(mocks.hasTradingActivity).toHaveBeenCalledWith('user-1')
     expect(mocks.loadOpenRouterProviderSettings).toHaveBeenCalled()
-    expect(mocks.rankCandidatesWithDecisionModel).not.toHaveBeenCalled()
+    expect(mocks.rankCandidatesWithDecisionModel).toHaveBeenCalledTimes(1)
   })
 
-  it('does not query trading activity when the Decision model is not configured', async () => {
+  it('does not invoke ranking when the Decision model is not configured', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     mocks.listPredictionResultsPage.mockResolvedValueOnce({
       data: [
@@ -121,35 +112,18 @@ describe('prediction results events route', () => {
 
     expect(response.status).toBe(200)
     expect(mocks.loadOpenRouterProviderSettings).toHaveBeenCalled()
-    expect(mocks.hasTradingActivity).not.toHaveBeenCalled()
     expect(mocks.rankCandidatesWithDecisionModel).not.toHaveBeenCalled()
   })
 
-  it('reranks only the first page for users with trading activity', async () => {
+  it('reranks only the first page when the Decision model is configured', async () => {
     mocks.getCurrentUser.mockResolvedValue({ id: 'user-1' })
-    mocks.hasTradingActivity.mockResolvedValue(true)
     mocks.loadOpenRouterProviderSettings.mockResolvedValue({
       apiKey: 'openrouter-key',
       decisionModel: 'typesafe/jev-1.13',
     })
-    const cacheKeys: string[] = []
-    mocks.rankCandidatesWithDecisionModel.mockImplementation(
-      async ({
-        candidates,
-        beforeRequest,
-        cacheKey,
-      }: {
-        candidates: unknown[]
-        beforeRequest?: () => Promise<boolean>
-        cacheKey?: string
-      }) => {
-        await beforeRequest?.()
-        if (cacheKey) {
-          cacheKeys.push(cacheKey)
-        }
-        return [candidates[1], candidates[0]]
-      },
-    )
+    mocks.rankCandidatesWithDecisionModel.mockImplementation(async ({ candidates }: { candidates: unknown[] }) => {
+      return [candidates[1], candidates[0]]
+    })
 
     const events = [
       { id: 'event-1', slug: 'event-1' },
@@ -162,12 +136,9 @@ describe('prediction results events route', () => {
     )
 
     expect(firstPageResponse.status).toBe(200)
-    expect(mocks.hasTradingActivity).toHaveBeenCalledWith('user-1')
     expect(mocks.loadOpenRouterProviderSettings).toHaveBeenCalled()
     await expect(firstPageResponse.json()).resolves.toEqual([events[1], events[0]])
-    expect(mocks.consumeDecisionModelSearchQuota).toHaveBeenCalledWith('user-1')
     expect(mocks.rankCandidatesWithDecisionModel).toHaveBeenCalledTimes(1)
-    expect(cacheKeys[0]).toContain('user-1')
 
     mocks.listPredictionResultsPage.mockResolvedValueOnce({ data: events, error: null })
 
@@ -177,7 +148,6 @@ describe('prediction results events route', () => {
 
     expect(nextPageResponse.status).toBe(200)
     await expect(nextPageResponse.json()).resolves.toEqual(events)
-    expect(mocks.hasTradingActivity).toHaveBeenCalledTimes(1)
     expect(mocks.rankCandidatesWithDecisionModel).toHaveBeenCalledTimes(1)
   })
 })

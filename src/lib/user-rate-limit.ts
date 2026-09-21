@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 
 import { db } from '@/lib/drizzle'
 
-type UserRateLimitTable = 'arbitrage_order_rate_limits' | 'decision_model_search_rate_limits'
+type UserRateLimitTable = 'arbitrage_order_rate_limits'
 
 export interface UserRateLimitResult {
   allowed: boolean
