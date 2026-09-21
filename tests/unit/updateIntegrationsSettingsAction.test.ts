@@ -174,4 +174,24 @@ describe('updateIntegrationsSettingsAction', () => {
     expect(rows.find((row) => row.key === 'kuest_support_enabled')?.value).toBe('false')
     expect(rows.find((row) => row.key === 'kuest_support_position')?.value).toBe('left')
   })
+
+  it('preserves the configured Decision model when an older form omits the field', async () => {
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        ai: {
+          openrouter_decision_model: { value: 'typesafe/jev-1.13' },
+        },
+      },
+      error: null,
+    })
+    const data = formData()
+    data.delete('openrouter_decision_model')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+
+    await expect(updateIntegrationsSettingsAction({ error: null }, data)).resolves.toEqual({ error: null })
+
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ key: string; value: string }>
+    expect(rows.some((row) => row.key === 'openrouter_decision_model')).toBe(false)
+  })
 })

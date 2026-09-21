@@ -10,6 +10,7 @@ export async function reviewEventCreationWithDecisionModel(options: {
   apiKey: string
   model: string
   input: Record<string, unknown>
+  timeoutMs?: number
 }): Promise<EventCreationDecisionWarning[]> {
   const response = await requestOpenRouterDecisions(
     {
@@ -36,7 +37,7 @@ export async function reviewEventCreationWithDecisionModel(options: {
         },
       },
     },
-    { apiKey: options.apiKey, timeoutMs: 8_000 },
+    { apiKey: options.apiKey, timeoutMs: options.timeoutMs ?? 8_000 },
   )
 
   const warnings: EventCreationDecisionWarning[] = []

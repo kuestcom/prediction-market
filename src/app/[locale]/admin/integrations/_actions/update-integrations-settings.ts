@@ -169,7 +169,9 @@ export async function updateIntegrationsSettingsAction(
       { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
       { group: 'ai', key: 'openrouter_model', value: openRouterModel },
       { group: 'ai', key: 'openrouter_translation_model', value: openRouterTranslationModel },
-      { group: 'ai', key: 'openrouter_decision_model', value: openRouterDecisionModel },
+      ...(formData.has('openrouter_decision_model')
+        ? [{ group: 'ai' as const, key: 'openrouter_decision_model', value: openRouterDecisionModel }]
+        : []),
       { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
       { group: 'ai', key: 'sports_thesportsdb_api_key', value: encryptedTheSportsDbApiKey },
       { group: 'ai', key: 'sports_pandascore_token', value: encryptedPandaScoreToken },

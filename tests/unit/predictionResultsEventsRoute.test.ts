@@ -103,7 +103,25 @@ describe('prediction results events route', () => {
       { id: 'event-2', slug: 'event-2' },
     ])
     expect(mocks.hasTradingActivity).toHaveBeenCalledWith('user-1')
-    expect(mocks.loadOpenRouterProviderSettings).not.toHaveBeenCalled()
+    expect(mocks.loadOpenRouterProviderSettings).toHaveBeenCalled()
+    expect(mocks.rankCandidatesWithDecisionModel).not.toHaveBeenCalled()
+  })
+
+  it('does not query trading activity when the Decision model is not configured', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
+    mocks.listPredictionResultsPage.mockResolvedValueOnce({
+      data: [
+        { id: 'event-1', slug: 'event-1' },
+        { id: 'event-2', slug: 'event-2' },
+      ],
+      error: null,
+    })
+
+    const response = await GET(new Request('https://example.com/api/predictions/events?search=bitcoin&locale=en'))
+
+    expect(response.status).toBe(200)
+    expect(mocks.loadOpenRouterProviderSettings).toHaveBeenCalled()
+    expect(mocks.hasTradingActivity).not.toHaveBeenCalled()
     expect(mocks.rankCandidatesWithDecisionModel).not.toHaveBeenCalled()
   })
 
@@ -114,9 +132,21 @@ describe('prediction results events route', () => {
       apiKey: 'openrouter-key',
       decisionModel: 'typesafe/jev-1.13',
     })
+    const cacheKeys: string[] = []
     mocks.rankCandidatesWithDecisionModel.mockImplementation(
-      async ({ candidates, beforeRequest }: { candidates: unknown[]; beforeRequest?: () => Promise<boolean> }) => {
+      async ({
+        candidates,
+        beforeRequest,
+        cacheKey,
+      }: {
+        candidates: unknown[]
+        beforeRequest?: () => Promise<boolean>
+        cacheKey?: string
+      }) => {
         await beforeRequest?.()
+        if (cacheKey) {
+          cacheKeys.push(cacheKey)
+        }
         return [candidates[1], candidates[0]]
       },
     )
@@ -137,6 +167,7 @@ describe('prediction results events route', () => {
     await expect(firstPageResponse.json()).resolves.toEqual([events[1], events[0]])
     expect(mocks.consumeDecisionModelSearchQuota).toHaveBeenCalledWith('user-1')
     expect(mocks.rankCandidatesWithDecisionModel).toHaveBeenCalledTimes(1)
+    expect(cacheKeys[0]).toContain('user-1')
 
     mocks.listPredictionResultsPage.mockResolvedValueOnce({ data: events, error: null })
 

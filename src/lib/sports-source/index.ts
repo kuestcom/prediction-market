@@ -108,6 +108,7 @@ interface SportsMatchHints {
 
 const DEFAULT_LIMIT = 10
 const MAX_LIMIT = 25
+const DECISION_MODEL_CANDIDATE_LIMIT = MAX_LIMIT
 const REQUEST_TIMEOUT_MS = 12_000
 const YOUTUBE_OR_TWITCH_HOST_PATTERN = /(?:^|\.)(?:youtube\.com|youtu\.be|twitch\.tv)$/i
 const THE_SPORTS_DB_FALLBACK_LIMIT = 100
@@ -1423,6 +1424,7 @@ export async function findSportsEvents(params: SportsSourceSuggestParams) {
     return []
   }
   const searchQuery = hints.teams.length >= 2 ? `${hints.teams[0]} vs ${hints.teams[1]}` : query
+  const candidateLimit = params.useDecisionModel ? Math.max(limit, DECISION_MODEL_CANDIDATE_LIMIT) : limit
 
   const candidates = await searchSportsEvents({
     q: searchQuery,
@@ -1433,7 +1435,7 @@ export async function findSportsEvents(params: SportsSourceSuggestParams) {
     category: params.category,
     tags: params.tags,
     provider: params.provider,
-    limit,
+    limit: candidateLimit,
     auth: params.auth,
   })
 

@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, mock, jest } from 'bun:test'
 
-import { stubGlobal } from '../bun-test-helpers'
+import { hoisted, stubGlobal } from '../bun-test-helpers'
+
+const mocks = hoisted(() => ({
+  loadOpenRouterProviderSettings: mock(),
+  requestOpenRouterCompletion: mock(),
+  requestOpenRouterDecisions: mock(),
+  rankCandidatesWithDecisionModel: mock(),
+}))
 
 function getRequestUrl(input: unknown) {
   if (typeof input === 'string') {
@@ -13,17 +20,25 @@ function getRequestUrl(input: unknown) {
 }
 
 void mock.module('@/lib/ai/market-context-config', () => ({
-  loadOpenRouterProviderSettings: mock(async () => ({ apiKey: '', model: '' })),
+  loadOpenRouterProviderSettings: (...args: unknown[]) => mocks.loadOpenRouterProviderSettings(...args),
 }))
 
 void mock.module('@/lib/ai/openrouter', () => ({
-  requestOpenRouterCompletion: mock(),
-  requestOpenRouterDecisions: mock(),
+  requestOpenRouterCompletion: (...args: unknown[]) => mocks.requestOpenRouterCompletion(...args),
+  requestOpenRouterDecisions: (...args: unknown[]) => mocks.requestOpenRouterDecisions(...args),
+}))
+
+void mock.module('@/lib/ai/decision-model', () => ({
+  rankCandidatesWithDecisionModel: (...args: unknown[]) => mocks.rankCandidatesWithDecisionModel(...args),
 }))
 
 describe('sports source providers', () => {
   beforeEach(() => {
     jest.restoreAllMocks()
+    mocks.loadOpenRouterProviderSettings.mockReset().mockResolvedValue({ apiKey: '', model: '' })
+    mocks.requestOpenRouterCompletion.mockReset()
+    mocks.requestOpenRouterDecisions.mockReset()
+    mocks.rankCandidatesWithDecisionModel.mockReset()
   })
 
   it('uses admin-provided provider auth when suggesting sports events', async () => {
@@ -61,6 +76,81 @@ describe('sports source providers', () => {
     expect(requestUrl).toContain('/api/v1/json/admin-tsdb-key/searchevents.php')
     expect(candidates[0]?.eventId).toBe('123')
     expect(candidates[0]?.livestreamUrl).toBeNull()
+  })
+
+  it('fetches a larger sports candidate pool before Decision ranking', async () => {
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL) =>
+        new Response(
+          JSON.stringify({
+            event: [
+              {
+                idEvent: '1',
+                idLeague: '100',
+                strLeague: 'Test League',
+                strSport: 'Soccer',
+                strEvent: 'Alpha vs Beta',
+                strHomeTeam: 'Alpha',
+                strAwayTeam: 'Beta',
+                strTimestamp: '2028-05-01T19:00:00Z',
+              },
+              {
+                idEvent: '2',
+                idLeague: '100',
+                strLeague: 'Test League',
+                strSport: 'Soccer',
+                strEvent: 'Alpha vs Gamma',
+                strHomeTeam: 'Alpha',
+                strAwayTeam: 'Gamma',
+                strTimestamp: '2028-05-01T20:00:00Z',
+              },
+              {
+                idEvent: '3',
+                idLeague: '100',
+                strLeague: 'Test League',
+                strSport: 'Soccer',
+                strEvent: 'Beta vs Gamma',
+                strHomeTeam: 'Beta',
+                strAwayTeam: 'Gamma',
+                strTimestamp: '2028-05-01T21:00:00Z',
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    )
+    stubGlobal('fetch', fetchMock)
+    mocks.loadOpenRouterProviderSettings.mockResolvedValue({
+      apiKey: 'openrouter-key',
+      model: 'hint-model',
+      decisionModel: 'typesafe/jev-1.13',
+    })
+    mocks.requestOpenRouterCompletion.mockResolvedValue(JSON.stringify({ query: 'Alpha vs Beta' }))
+
+    let rankedCandidates: Array<{ eventId: string }> = []
+    mocks.rankCandidatesWithDecisionModel.mockImplementation(
+      async ({ candidates }: { candidates: Array<{ eventId: string }> }) => {
+        rankedCandidates = candidates
+        return [...candidates].reverse()
+      },
+    )
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Alpha vs Beta',
+      teams: [{ name: 'Alpha' }, { name: 'Beta' }],
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: 'admin-tsdb-key' },
+      limit: 1,
+      useDecisionModel: true,
+    })
+
+    const requestUrl = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]))
+    expect(requestUrl.searchParams.get('e')).toBe('Alpha vs Beta')
+    expect(rankedCandidates).toHaveLength(3)
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0]?.eventId === rankedCandidates.at(-1)?.eventId).toBe(true)
   })
 
   it('rejects explicit provider values when none are supported', async () => {

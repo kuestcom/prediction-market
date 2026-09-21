@@ -10,6 +10,7 @@ import { isEventListSortBy, isEventListStatusFilter } from '@/lib/event-list-fil
 import { listPredictionResultsPage } from '@/lib/prediction-results-events'
 
 function buildPredictionSearchDecisionCacheKey({
+  userId,
   model,
   locale,
   normalizedSearch,
@@ -19,6 +20,7 @@ function buildPredictionSearchDecisionCacheKey({
   sortBy,
   candidates,
 }: {
+  userId: string
   model: string
   locale: string
   normalizedSearch: string
@@ -30,6 +32,7 @@ function buildPredictionSearchDecisionCacheKey({
 }) {
   return JSON.stringify([
     'prediction-search',
+    userId,
     model,
     locale,
     normalizedSearch.toLowerCase(),
@@ -95,14 +98,15 @@ export async function GET(request: Request) {
     const shouldRankFirstPage = clampedOffset === 0 && rankedEvents.length > 1
     if (shouldRankFirstPage && normalizedSearch.length >= 3 && decisionRankingUserId) {
       try {
-        if (!(await hasTradingActivity(decisionRankingUserId))) {
-          return NextResponse.json(rankedEvents)
-        }
-
         const openRouterSettings = await loadOpenRouterProviderSettings()
-        if (openRouterSettings.apiKey && openRouterSettings.decisionModel) {
+        if (
+          openRouterSettings.apiKey &&
+          openRouterSettings.decisionModel &&
+          (await hasTradingActivity(decisionRankingUserId))
+        ) {
           const candidatesToRank = rankedEvents.slice(0, 16)
           const cacheKey = buildPredictionSearchDecisionCacheKey({
+            userId: decisionRankingUserId,
             model: openRouterSettings.decisionModel,
             locale,
             normalizedSearch,
