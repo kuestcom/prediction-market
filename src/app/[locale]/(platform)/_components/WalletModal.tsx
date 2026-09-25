@@ -42,7 +42,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
     walletAddress,
     walletEoaAddress,
     siteName,
-    meldUrl,
+    canBuyMeld,
     hasDeployedDepositWallet,
     view,
     onViewChange,
@@ -152,14 +152,11 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
   const content =
     view === 'fund' ? (
       <WalletFundMenu
-        onBuy={(url) => {
-          onBuy(url)
-        }}
+        onBuy={onBuy}
         onReceive={() => onViewChange('receive')}
         onWallet={() => onViewChange('wallets')}
-        disabledBuy={!meldUrl}
         disabledReceive={!hasDeployedDepositWallet}
-        meldUrl={meldUrl}
+        canBuyMeld={canBuyMeld}
         walletEoaAddress={walletEoaAddress}
         walletBalance={effectiveWalletBalance}
         isBalanceLoading={isEffectiveWalletBalanceLoading}

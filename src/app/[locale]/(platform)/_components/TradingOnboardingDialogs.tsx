@@ -84,7 +84,7 @@ interface TradingOnboardingDialogsProps {
   withdrawModalOpen: boolean
   onWithdrawOpenChange: (open: boolean) => void
   user: User | null
-  meldUrl: string | null
+  canBuyMeld: boolean
 }
 
 function OnboardingDialogShell({
@@ -1015,7 +1015,7 @@ export default function TradingOnboardingDialogs({
   withdrawModalOpen,
   onWithdrawOpenChange,
   user,
-  meldUrl,
+  canBuyMeld,
 }: TradingOnboardingDialogsProps) {
   return (
     <>
@@ -1089,7 +1089,7 @@ export default function TradingOnboardingDialogs({
         withdrawOpen={withdrawModalOpen}
         onWithdrawOpenChange={onWithdrawOpenChange}
         user={user}
-        meldUrl={meldUrl}
+        canBuyMeld={canBuyMeld}
       />
     </>
   )

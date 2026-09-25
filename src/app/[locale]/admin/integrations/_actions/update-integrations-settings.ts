@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
+import { randomBytes } from 'node:crypto'
 
 import {
   getKuestSupportSettings,
@@ -19,6 +20,21 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
+import {
+  getPaymentsCanonicalDomain,
+  getPaymentsOperatorChallengeSettingKey,
+  PAYMENTS_ENABLED_KEY as PAYMENTS_ENABLED_SETTING_KEY,
+  PAYMENTS_OPERATOR_DOMAIN_KEY,
+  PAYMENTS_OPERATOR_CHALLENGE_KEY,
+  PAYMENTS_OPERATOR_LEGACY_CHALLENGE_KEY,
+  PAYMENTS_OPERATOR_KEY as PAYMENTS_OPERATOR_SETTING_KEY,
+  PAYMENTS_SETTINGS_GROUP,
+} from '@/lib/payments/operator-key'
+import {
+  PaymentsOperatorProvisioningError,
+  requestPaymentsOperatorChallenge,
+  verifyPaymentsOperatorDomain,
+} from '@/lib/payments/worker'
 import {
   SUMSUB_APP_TOKEN_KEY,
   SUMSUB_ENABLED_KEY,
@@ -40,6 +56,74 @@ function getString(formData: FormData, key: string) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function getCanonicalPaymentsDomain() {
+  const domain = getPaymentsCanonicalDomain()
+  if (!domain) {
+    throw new PaymentsOperatorProvisioningError('payments_site_url_invalid')
+  }
+  return domain
+}
+
+async function savePaymentsDomainChallenge(
+  domain: string,
+  challengeId: string,
+  challenge: string,
+  registrationToken: string,
+  expiresAt: number,
+  currentSettings: Record<string, Record<string, { value: string } | undefined> | undefined> | null | undefined,
+) {
+  let encryptedChallenge: string
+  try {
+    encryptedChallenge = encryptSecret(JSON.stringify({ domain, challengeId, challenge, registrationToken, expiresAt }))
+  } catch {
+    throw new PaymentsOperatorProvisioningError('payments_operator_storage_failed')
+  }
+
+  const updates = [
+    {
+      group: PAYMENTS_SETTINGS_GROUP,
+      key: getPaymentsOperatorChallengeSettingKey(challengeId),
+      value: encryptedChallenge,
+    },
+  ]
+  const savedChallenges = currentSettings?.[PAYMENTS_SETTINGS_GROUP] ?? {}
+  for (const [key, setting] of Object.entries(savedChallenges)) {
+    if (!key.startsWith(PAYMENTS_OPERATOR_CHALLENGE_KEY) || !setting?.value) {
+      continue
+    }
+    try {
+      const previous = decryptSecret(setting.value)
+      const parsed: unknown = JSON.parse(previous)
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        !('expiresAt' in parsed) ||
+        typeof parsed.expiresAt !== 'number' ||
+        parsed.expiresAt <= Date.now()
+      ) {
+        updates.push({ group: PAYMENTS_SETTINGS_GROUP, key, value: '' })
+      }
+    } catch {
+      updates.push({ group: PAYMENTS_SETTINGS_GROUP, key, value: '' })
+    }
+  }
+
+  const { error } = await SettingsRepository.updateSettings(updates)
+  if (error) {
+    throw new PaymentsOperatorProvisioningError('payments_operator_storage_failed')
+  }
+}
+
+async function clearPaymentsDomainChallenge(challengeId: string) {
+  await SettingsRepository.updateSettings([
+    {
+      group: PAYMENTS_SETTINGS_GROUP,
+      key: getPaymentsOperatorChallengeSettingKey(challengeId),
+      value: '',
+    },
+  ])
+}
+
 export async function updateIntegrationsSettingsAction(
   _previousState: IntegrationsSettingsActionState,
   formData: FormData,
@@ -59,6 +143,7 @@ export async function updateIntegrationsSettingsAction(
     const pandaScoreToken = getString(formData, 'sports_pandascore_token')
     const lifiIntegrator = getString(formData, 'lifi_integrator')
     const lifiApiKey = getString(formData, 'lifi_api_key')
+    const reissuePaymentsOperatorKey = formData.get('payments_reissue_operator_key') === 'true'
     const customJavascriptCodesJson = getString(formData, 'custom_javascript_codes_json')
     const kuestSupportPositionRaw = getString(formData, 'kuest_support_position')
 
@@ -123,6 +208,17 @@ export async function updateIntegrationsSettingsAction(
     const existingTheSportsDbApiKey = allSettings?.ai?.sports_thesportsdb_api_key?.value ?? ''
     const existingPandaScoreToken = allSettings?.ai?.sports_pandascore_token?.value ?? ''
     const existingLiFiApiKey = allSettings?.general?.lifi_api_key?.value ?? ''
+    const existingPaymentsOperatorKey =
+      allSettings?.[PAYMENTS_SETTINGS_GROUP]?.[PAYMENTS_OPERATOR_SETTING_KEY]?.value ?? ''
+    const existingPaymentsOperatorDomain =
+      allSettings?.[PAYMENTS_SETTINGS_GROUP]?.[PAYMENTS_OPERATOR_DOMAIN_KEY]?.value?.trim().toLowerCase() ?? ''
+    const existingPaymentsEnabled =
+      allSettings?.[PAYMENTS_SETTINGS_GROUP]?.[PAYMENTS_ENABLED_SETTING_KEY]?.value === 'true'
+    const paymentsEnabled = formData.has('payments_enabled')
+      ? formData.get('payments_enabled') === 'true'
+      : existingPaymentsEnabled
+    const existingPaymentsKey = decryptSecret(existingPaymentsOperatorKey)
+    const hasExistingPaymentsKey = /^[A-Za-z0-9_-]{40,64}$/u.test(existingPaymentsKey)
     const currentKuestSupportSettings = getKuestSupportSettings(allSettings)
     const sumsubGroup = allSettings?.[SUMSUB_SETTINGS_GROUP]
     const existingSumsubAppToken = sumsubGroup?.[SUMSUB_APP_TOKEN_KEY]?.value ?? ''
@@ -148,6 +244,63 @@ export async function updateIntegrationsSettingsAction(
     const encryptedTheSportsDbApiKey = theSportsDbApiKey ? encryptSecret(theSportsDbApiKey) : existingTheSportsDbApiKey
     const encryptedPandaScoreToken = pandaScoreToken ? encryptSecret(pandaScoreToken) : existingPandaScoreToken
     const encryptedLiFiApiKey = lifiApiKey ? encryptSecret(lifiApiKey) : existingLiFiApiKey
+    let encryptedPaymentsOperatorKey = hasExistingPaymentsKey
+      ? existingPaymentsOperatorKey.startsWith('enc.v1.')
+        ? existingPaymentsOperatorKey
+        : encryptSecret(existingPaymentsKey)
+      : ''
+    let provisionedPaymentsOperatorKey: string | null = null
+    let paymentsOperatorDomain = existingPaymentsOperatorDomain
+    let challengeSettingKey: string | null = null
+    const canonicalPaymentsDomain = paymentsEnabled || reissuePaymentsOperatorKey ? getCanonicalPaymentsDomain() : null
+    const paymentsDomainChanged = Boolean(
+      canonicalPaymentsDomain && canonicalPaymentsDomain !== existingPaymentsOperatorDomain,
+    )
+
+    if (
+      (reissuePaymentsOperatorKey || paymentsEnabled) &&
+      paymentsDomainChanged &&
+      existingPaymentsOperatorDomain &&
+      !hasExistingPaymentsKey
+    ) {
+      throw new PaymentsOperatorProvisioningError('payments_operator_domain_change_key_missing')
+    }
+
+    if (reissuePaymentsOperatorKey || (paymentsEnabled && (!hasExistingPaymentsKey || paymentsDomainChanged))) {
+      const domain = canonicalPaymentsDomain!
+      const registrationToken = randomBytes(32).toString('base64url')
+      const domainChallenge = await requestPaymentsOperatorChallenge(domain, registrationToken)
+      challengeSettingKey = getPaymentsOperatorChallengeSettingKey(domainChallenge.challengeId)
+      await savePaymentsDomainChallenge(
+        domain,
+        domainChallenge.challengeId,
+        domainChallenge.challenge,
+        registrationToken,
+        domainChallenge.expiresAt,
+        allSettings,
+      )
+
+      try {
+        provisionedPaymentsOperatorKey = await verifyPaymentsOperatorDomain(
+          domain,
+          domainChallenge.challengeId,
+          domainChallenge.challenge,
+          registrationToken,
+          hasExistingPaymentsKey ? existingPaymentsKey : undefined,
+        )
+      } catch (error) {
+        await clearPaymentsDomainChallenge(domainChallenge.challengeId)
+        throw error
+      }
+
+      try {
+        encryptedPaymentsOperatorKey = encryptSecret(provisionedPaymentsOperatorKey)
+        paymentsOperatorDomain = domain
+      } catch {
+        await clearPaymentsDomainChallenge(domainChallenge.challengeId)
+        throw new PaymentsOperatorProvisioningError('payments_operator_storage_failed')
+      }
+    }
     const encryptedSumsubAppToken = validatedSumsub.data.appToken
       ? encryptSecret(validatedSumsub.data.appToken)
       : existingSumsubAppToken
@@ -167,6 +320,19 @@ export async function updateIntegrationsSettingsAction(
       },
       { group: 'general', key: 'lifi_integrator', value: validatedThemeSettings.data.lifiIntegratorValue },
       { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
+      {
+        group: PAYMENTS_SETTINGS_GROUP,
+        key: PAYMENTS_OPERATOR_SETTING_KEY,
+        value: encryptedPaymentsOperatorKey,
+      },
+      { group: PAYMENTS_SETTINGS_GROUP, key: PAYMENTS_OPERATOR_DOMAIN_KEY, value: paymentsOperatorDomain },
+      ...(challengeSettingKey ? [{ group: PAYMENTS_SETTINGS_GROUP, key: challengeSettingKey, value: '' }] : []),
+      { group: PAYMENTS_SETTINGS_GROUP, key: PAYMENTS_OPERATOR_LEGACY_CHALLENGE_KEY, value: '' },
+      {
+        group: PAYMENTS_SETTINGS_GROUP,
+        key: PAYMENTS_ENABLED_SETTING_KEY,
+        value: paymentsEnabled ? 'true' : 'false',
+      },
       { group: 'ai', key: 'openrouter_model', value: openRouterModel },
       { group: 'ai', key: 'openrouter_translation_model', value: openRouterTranslationModel },
       ...(formData.has('openrouter_decision_model')
@@ -215,6 +381,23 @@ export async function updateIntegrationsSettingsAction(
       { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_ENFORCEMENT_KEY, value: validatedSumsub.data.enforcement },
     ])
     if (error) {
+      if (provisionedPaymentsOperatorKey) {
+        const fallback = await SettingsRepository.updateSettings([
+          {
+            group: PAYMENTS_SETTINGS_GROUP,
+            key: PAYMENTS_OPERATOR_SETTING_KEY,
+            value: encryptedPaymentsOperatorKey,
+          },
+          { group: PAYMENTS_SETTINGS_GROUP, key: PAYMENTS_OPERATOR_DOMAIN_KEY, value: paymentsOperatorDomain },
+          { group: PAYMENTS_SETTINGS_GROUP, key: PAYMENTS_ENABLED_SETTING_KEY, value: 'false' },
+          ...(challengeSettingKey ? [{ group: PAYMENTS_SETTINGS_GROUP, key: challengeSettingKey, value: '' }] : []),
+          { group: PAYMENTS_SETTINGS_GROUP, key: PAYMENTS_OPERATOR_LEGACY_CHALLENGE_KEY, value: '' },
+        ])
+        if (fallback.error) {
+          return { error: 'payments_operator_storage_failed' }
+        }
+        return { error: 'payments_operator_saved_disabled' }
+      }
       return { error: DEFAULT_ERROR_MESSAGE }
     }
 
@@ -225,6 +408,9 @@ export async function updateIntegrationsSettingsAction(
     revalidatePath('/[locale]/sports/[sport]/[event]', 'page')
     return { error: null }
   } catch (error) {
+    if (error instanceof PaymentsOperatorProvisioningError) {
+      return { error: error.code }
+    }
     console.error('Failed to update integration settings', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }

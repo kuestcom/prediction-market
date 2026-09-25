@@ -19,19 +19,17 @@ function WalletFundMenu({
   onBuy,
   onReceive,
   onWallet,
-  disabledBuy,
   disabledReceive,
-  meldUrl,
+  canBuyMeld,
   walletEoaAddress,
   walletBalance,
   isBalanceLoading,
 }: {
-  onBuy: (url: string) => void
+  onBuy: () => void
   onReceive: () => void
   onWallet: () => void
-  disabledBuy: boolean
   disabledReceive: boolean
-  meldUrl: string | null
+  canBuyMeld: boolean
   walletEoaAddress?: string | null
   walletBalance?: string | null
   isBalanceLoading?: boolean
@@ -128,12 +126,12 @@ function WalletFundMenu({
           `group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left transition hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50`,
         )}
         onClick={() => {
-          if (!meldUrl) {
+          if (!canBuyMeld) {
             return
           }
-          onBuy(meldUrl)
+          onBuy()
         }}
-        disabled={disabledBuy}
+        disabled={!canBuyMeld}
       >
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center text-foreground">

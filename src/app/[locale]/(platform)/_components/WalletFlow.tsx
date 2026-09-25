@@ -1,12 +1,13 @@
 'use client'
 
 import { useExtracted } from 'next-intl'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isAddress } from 'viem'
 import { useSignTypedData } from 'wagmi'
 
 import type { DepositWalletStatus } from '@/types'
 
+import { MeldOnrampDialog } from '@/app/[locale]/(platform)/_components/MeldOnrampDialog'
 import { WalletDepositModal, WalletWithdrawModal } from '@/app/[locale]/(platform)/_components/WalletModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { toast } from '@/components/ui/toast'
@@ -38,7 +39,7 @@ interface WalletFlowProps {
     deposit_wallet_address?: string | null
     deposit_wallet_status?: DepositWalletStatus | null
   } | null
-  meldUrl: string | null
+  canBuyMeld: boolean
 }
 
 interface WalletSendMessages {
@@ -205,37 +206,6 @@ function useWalletSendHandler({
   )
 }
 
-function useBuyHandler({
-  meldUrl,
-  handleDepositModalChange,
-}: {
-  meldUrl: string | null
-  handleDepositModalChange: (next: boolean) => void
-}) {
-  return useCallback(
-    (url?: string | null) => {
-      const targetUrl = url ?? meldUrl
-      if (!targetUrl) {
-        return
-      }
-
-      const width = 480
-      const height = 780
-      const popup = window.open(
-        targetUrl,
-        'meld_onramp',
-        `width=${width},height=${height},scrollbars=yes,resizable=yes`,
-      )
-
-      if (popup) {
-        popup.focus()
-        handleDepositModalChange(false)
-      }
-    },
-    [handleDepositModalChange, meldUrl],
-  )
-}
-
 function useUseConnectedWalletHandler({
   connectedWalletAddress,
   setWalletSendTo,
@@ -271,7 +241,7 @@ export function WalletFlow({
   withdrawOpen,
   onWithdrawOpenChange,
   user,
-  meldUrl,
+  canBuyMeld,
 }: WalletFlowProps) {
   const isMobile = useIsMobile()
   const t = useExtracted()
@@ -290,7 +260,7 @@ export function WalletFlow({
   } = useWithdrawFormState(onWithdrawOpenChange)
   const hasDeployedDepositWallet = useHasDeployedDepositWallet(user)
   const depositWalletAddress = user?.deposit_wallet_address ?? null
-  const { balance, isLoadingBalance } = useBalance({ depositWalletAddress })
+  const { balance, isLoadingBalance, refetchBalance } = useBalance({ depositWalletAddress })
   const {
     formattedUsdBalance: formattedConnectedWalletUsdBalance,
     isLoadingUsdBalance: isLoadingConnectedWalletUsdBalance,
@@ -326,9 +296,118 @@ export function WalletFlow({
     messages: walletSendMessages,
   })
 
-  const handleBuy = useBuyHandler({ meldUrl, handleDepositModalChange })
+  const [meldDialogOpen, setMeldDialogOpen] = useState(false)
+  const handleBuy = useCallback(() => {
+    if (!canBuyMeld) {
+      return
+    }
+    handleDepositModalChange(false)
+    setMeldDialogOpen(true)
+  }, [canBuyMeld, handleDepositModalChange])
   const handleUseConnectedWallet = useUseConnectedWalletHandler({ connectedWalletAddress, setWalletSendTo })
   const handleSetMaxAmount = useSetMaxAmountHandler({ balanceRaw: balance.raw, setWalletSendAmount })
+
+  useEffect(() => {
+    let isActive = true
+    const runningCheckouts = new Set<string>()
+    const timers = new Map<ReturnType<typeof setTimeout>, () => void>()
+
+    function wait(milliseconds: number): Promise<void> {
+      return new Promise<void>((resolve) => {
+        let timer: ReturnType<typeof setTimeout>
+        function finish() {
+          timers.delete(timer)
+          resolve()
+        }
+        timer = setTimeout(finish, milliseconds)
+        timers.set(timer, finish)
+      })
+    }
+
+    function clearPendingCheckout(checkoutId: string) {
+      try {
+        if (window.localStorage.getItem('kuest:pending-meld-checkout') === checkoutId) {
+          window.localStorage.removeItem('kuest:pending-meld-checkout')
+        }
+      } catch {
+        // Storage is optional; the return page continues polling the checkout.
+      }
+    }
+
+    async function pollCheckout(checkoutId: string) {
+      if (!/^[0-9a-f-]{36}$/iu.test(checkoutId) || runningCheckouts.has(checkoutId)) {
+        return
+      }
+      runningCheckouts.add(checkoutId)
+      for (let attempt = 0; isActive; attempt += 1) {
+        try {
+          const response = await fetch(`/api/payments/meld/checkouts/${encodeURIComponent(checkoutId)}/status`, {
+            cache: 'no-store',
+          })
+          if (response.status === 401) {
+            break
+          }
+          if (response.status === 404) {
+            clearPendingCheckout(checkoutId)
+            break
+          }
+          if (response.ok) {
+            const result: unknown = await response.json()
+            const status =
+              typeof result === 'object' && result !== null && 'status' in result && typeof result.status === 'string'
+                ? result.status
+                : null
+            if (status === 'SETTLED') {
+              clearPendingCheckout(checkoutId)
+              await refetchBalance()
+              break
+            }
+            if (status && ['FAILED', 'DECLINED', 'CANCELLED', 'REFUNDED', 'AUTHORIZATION_EXPIRED'].includes(status)) {
+              clearPendingCheckout(checkoutId)
+              break
+            }
+          }
+        } catch {
+          // Retry transient network and provider errors while the page remains open.
+        }
+
+        const delay = attempt < 12 ? 10_000 : 30_000
+        await wait(delay)
+      }
+      runningCheckouts.delete(checkoutId)
+    }
+
+    function readPendingCheckout() {
+      try {
+        const checkoutId = window.localStorage.getItem('kuest:pending-meld-checkout')
+        if (checkoutId) {
+          void pollCheckout(checkoutId)
+        }
+      } catch {
+        // Status tracking in the return page remains available without browser storage.
+      }
+    }
+    function onCreated(event: Event) {
+      const checkoutId = (event as CustomEvent<unknown>).detail
+      if (typeof checkoutId === 'string') {
+        void pollCheckout(checkoutId)
+      }
+    }
+
+    readPendingCheckout()
+    window.addEventListener('storage', readPendingCheckout)
+    window.addEventListener('kuest:meld-checkout-created', onCreated)
+    return () => {
+      isActive = false
+      window.removeEventListener('storage', readPendingCheckout)
+      window.removeEventListener('kuest:meld-checkout-created', onCreated)
+      for (const [timer, finish] of timers) {
+        clearTimeout(timer)
+        finish()
+      }
+      timers.clear()
+    }
+  }, [refetchBalance])
 
   return (
     <>
@@ -339,7 +418,7 @@ export function WalletFlow({
         walletAddress={depositWalletAddress}
         walletEoaAddress={user?.address ?? null}
         siteName={site.name}
-        meldUrl={meldUrl}
+        canBuyMeld={canBuyMeld}
         hasDeployedDepositWallet={hasDeployedDepositWallet}
         view={depositView}
         onViewChange={setDepositView}
@@ -366,6 +445,13 @@ export function WalletFlow({
         onMax={handleSetMaxAmount}
         isBalanceLoading={isLoadingBalance}
       />
+      {meldDialogOpen ? (
+        <MeldOnrampDialog
+          open={meldDialogOpen}
+          onOpenChange={setMeldDialogOpen}
+          onCheckoutCreated={() => handleDepositModalChange(false)}
+        />
+      ) : null}
     </>
   )
 }
