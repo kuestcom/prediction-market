@@ -176,6 +176,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
   const [sumsubSecretKey, setSumsubSecretKey] = useState('')
   const [sumsubWebhookSecret, setSumsubWebhookSecret] = useState('')
   const [paymentsEnabled, setPaymentsEnabled] = useState(props.paymentsSettings.enabled)
+  const [paymentsEnabledChanged, setPaymentsEnabledChanged] = useState(false)
   const [sumsubLevelName, setSumsubLevelName] = useState(props.sumsubSettings.levelName)
   const [sumsubEnforcement, setSumsubEnforcement] = useState<SumsubEnforcement>(props.sumsubSettings.enforcement)
   const [isTestingSumsub, setIsTestingSumsub] = useState(false)
@@ -220,9 +221,11 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
       if (error) {
         if (!props.paymentsSettings.enabled && formData.get('payments_enabled') === 'true') {
           setPaymentsEnabled(false)
+          setPaymentsEnabledChanged(false)
         }
         toast.error(error)
       } else {
+        setPaymentsEnabledChanged(false)
         toast.success(t('Settings saved successfully!'))
       }
       return { error }
@@ -373,6 +376,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
       <input type="hidden" name="sumsub_enabled" value={String(sumsubEnabled)} />
       <input type="hidden" name="sumsub_enforcement" value={sumsubEnforcement} />
       <input type="hidden" name="payments_enabled" value={String(paymentsEnabled)} />
+      <input type="hidden" name="payments_enabled_changed" value={String(paymentsEnabledChanged)} />
       <input type="hidden" name="custom_javascript_codes_json" value={serializedCustomJavascriptCodes} />
 
       <div className="grid gap-4">
@@ -873,7 +877,10 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
               <Switch
                 id="integration-payments-enabled"
                 checked={paymentsEnabled}
-                onCheckedChange={setPaymentsEnabled}
+                onCheckedChange={(checked) => {
+                  setPaymentsEnabled(checked)
+                  setPaymentsEnabledChanged(true)
+                }}
                 disabled={isPending}
               />
             </div>

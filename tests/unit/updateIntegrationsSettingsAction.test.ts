@@ -71,6 +71,7 @@ function formData() {
   data.set('sumsub_secret_key', '')
   data.set('sumsub_webhook_secret', '')
   data.set('payments_enabled', 'false')
+  data.set('payments_enabled_changed', 'false')
   return data
 }
 
@@ -181,7 +182,7 @@ describe('updateIntegrationsSettingsAction', () => {
     expect(rows.find((row) => row.key === 'sumsub_secret_key')?.value).toBe('encrypted:old-sumsub-secret-key')
     expect(rows.find((row) => row.key === 'sumsub_webhook_secret')?.value).toBe('encrypted:old-sumsub-webhook-secret')
     expect(rows.find((row) => row.key === 'operator_key')?.value).toBe(`encrypted:${'K'.repeat(43)}`)
-    expect(rows.find((row) => row.key === 'on_off_ramp_enabled')?.value).toBe('false')
+    expect(rows.find((row) => row.key === 'on_off_ramp_enabled')?.value).toBe('true')
   })
 
   it('preserves Kuest Support settings submitted by an older open form', async () => {
@@ -227,9 +228,92 @@ describe('updateIntegrationsSettingsAction', () => {
     expect(rows.some((row) => row.key === 'openrouter_decision_model')).toBe(false)
   })
 
+  it('preserves enabled payments on an unrelated save when the request domain changed', async () => {
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        payments: {
+          operator_key: { value: `encrypted:${'K'.repeat(43)}` },
+          operator_domain: { value: 'old-example.com' },
+          on_off_ramp_enabled: { value: 'true' },
+        },
+      },
+      error: null,
+    })
+    mocks.requestHeaders.mockResolvedValue(new Headers({ host: 'fork-example.com' }))
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+
+    await expect(updateIntegrationsSettingsAction({ error: null }, formData())).resolves.toEqual({ error: null })
+
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ group: string; key: string; value: string }>
+    expect(rows.find((row) => row.group === 'payments' && row.key === 'on_off_ramp_enabled')?.value).toBe('true')
+    expect(rows.find((row) => row.group === 'payments' && row.key === 'operator_domain')?.value).toBe('old-example.com')
+    expect(mocks.requestHeaders).not.toHaveBeenCalled()
+    expect(mocks.requestPaymentsOperatorChallenge).not.toHaveBeenCalled()
+    expect(mocks.verifyPaymentsOperatorDomain).not.toHaveBeenCalled()
+  })
+
+  it('allows an explicit payments switch change to disable payments', async () => {
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        payments: {
+          operator_key: { value: `encrypted:${'K'.repeat(43)}` },
+          operator_domain: { value: 'old-example.com' },
+          on_off_ramp_enabled: { value: 'true' },
+        },
+      },
+      error: null,
+    })
+    const data = formData()
+    data.set('payments_enabled', 'false')
+    data.set('payments_enabled_changed', 'true')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+
+    await expect(updateIntegrationsSettingsAction({ error: null }, data)).resolves.toEqual({ error: null })
+
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ group: string; key: string; value: string }>
+    expect(rows.find((row) => row.group === 'payments' && row.key === 'on_off_ramp_enabled')?.value).toBe('false')
+    expect(mocks.requestPaymentsOperatorChallenge).not.toHaveBeenCalled()
+  })
+
+  it('preserves enabled payments when the administrator explicitly submits a domain migration', async () => {
+    const currentOperatorKey = 'O'.repeat(43)
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        payments: {
+          operator_key: { value: `encrypted:${currentOperatorKey}` },
+          operator_domain: { value: 'old-example.com' },
+          on_off_ramp_enabled: { value: 'true' },
+        },
+      },
+      error: null,
+    })
+    const data = formData()
+    data.set('payments_reissue_operator_key', 'true')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+
+    await expect(updateIntegrationsSettingsAction({ error: null }, data)).resolves.toEqual({ error: null })
+
+    expect(mocks.verifyPaymentsOperatorDomain).toHaveBeenCalledWith(
+      'fork-example.com',
+      'I'.repeat(22),
+      'C'.repeat(43),
+      expect.stringMatching(/^[A-Za-z0-9_-]{43}$/u),
+      currentOperatorKey,
+    )
+    const savedRows = mocks.updateSettings.mock.calls[1]?.[0] as Array<{ group: string; key: string; value: string }>
+    expect(savedRows.find((row) => row.group === 'payments' && row.key === 'operator_domain')?.value).toBe(
+      'fork-example.com',
+    )
+    expect(savedRows.find((row) => row.group === 'payments' && row.key === 'on_off_ramp_enabled')?.value).toBe('true')
+  })
+
   it('verifies the canonical domain and stores the issued key without returning it', async () => {
     const data = formData()
     data.set('payments_enabled', 'true')
+    data.set('payments_enabled_changed', 'true')
     const { updateIntegrationsSettingsAction } =
       await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
@@ -276,6 +360,7 @@ describe('updateIntegrationsSettingsAction', () => {
     })
     const data = formData()
     data.set('payments_enabled', 'true')
+    data.set('payments_enabled_changed', 'true')
     const { updateIntegrationsSettingsAction } =
       await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
@@ -309,6 +394,7 @@ describe('updateIntegrationsSettingsAction', () => {
     })
     const data = formData()
     data.set('payments_enabled', 'true')
+    data.set('payments_enabled_changed', 'true')
     const { updateIntegrationsSettingsAction } =
       await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
@@ -408,6 +494,15 @@ describe('getPaymentsCanonicalDomain', () => {
     const { getPaymentsCanonicalDomain } = await import('@/lib/payments/operator-key')
 
     expect(getPaymentsCanonicalDomain(new Headers({ host: 'fork-example.com' }))).toBe('fork-example.com')
+  })
+
+  it('normalizes the final DNS dot before validation and returning the canonical domain', async () => {
+    const { getPaymentsCanonicalDomain } = await import('@/lib/payments/operator-key')
+
+    expect(getPaymentsCanonicalDomain(new Headers({ host: 'Fork-Example.com.' }))).toBe('fork-example.com')
+    expect(getPaymentsCanonicalDomain(new Headers({ host: 'fork.vercel.app.' }))).toBeNull()
+    expect(getPaymentsCanonicalDomain(new Headers({ host: 'localhost.' }))).toBeNull()
+    expect(getPaymentsCanonicalDomain(new Headers({ host: 'fork-example.com..' }))).toBeNull()
   })
 
   it('rejects insecure, ambiguous, and local request origins', async () => {

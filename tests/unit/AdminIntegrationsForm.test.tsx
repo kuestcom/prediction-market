@@ -160,6 +160,9 @@ describe('adminIntegrationsForm', () => {
 
     const enableSwitch = screen.getByRole('switch', { name: 'Enable payments' })
     expect(enableSwitch).not.toBeDisabled()
+    expect(document.querySelector('input[name="payments_enabled_changed"]')).toHaveValue('false')
+    fireEvent.click(enableSwitch)
+    expect(document.querySelector('input[name="payments_enabled_changed"]')).toHaveValue('true')
     expect(
       screen.getByText('Enable and save to verify this site and register its operator automatically.'),
     ).toBeInTheDocument()

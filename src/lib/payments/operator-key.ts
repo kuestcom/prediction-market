@@ -52,32 +52,34 @@ export function getPaymentsCanonicalDomain(requestHeaders: RequestHeaders | null
     }
 
     const url = new URL(`https://${host}`)
+    const hostname = url.hostname.toLowerCase().replace(/\.$/u, '')
     if (
-      !url.hostname ||
+      !hostname ||
+      hostname.endsWith('.') ||
       url.username ||
       url.password ||
       url.port ||
       url.pathname !== '/' ||
       url.search ||
       url.hash ||
-      url.hostname === 'localhost' ||
-      url.hostname.endsWith('.localhost') ||
-      url.hostname.endsWith('.local') ||
-      url.hostname.endsWith('.internal') ||
-      url.hostname.endsWith('.test') ||
-      url.hostname.endsWith('.invalid') ||
-      url.hostname.endsWith('.example') ||
-      url.hostname.endsWith('.onion') ||
-      url.hostname.endsWith('.home.arpa') ||
-      url.hostname === 'kuest.com' ||
-      url.hostname.endsWith('.kuest.com') ||
-      UNSUPPORTED_PAYMENT_DOMAIN_SUFFIXES.some((suffix) => url.hostname.endsWith(suffix)) ||
-      url.hostname.startsWith('[') ||
-      /^\d{1,3}(?:\.\d{1,3}){3}$/u.test(url.hostname)
+      hostname === 'localhost' ||
+      hostname.endsWith('.localhost') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal') ||
+      hostname.endsWith('.test') ||
+      hostname.endsWith('.invalid') ||
+      hostname.endsWith('.example') ||
+      hostname.endsWith('.onion') ||
+      hostname.endsWith('.home.arpa') ||
+      hostname === 'kuest.com' ||
+      hostname.endsWith('.kuest.com') ||
+      UNSUPPORTED_PAYMENT_DOMAIN_SUFFIXES.some((suffix) => hostname.endsWith(suffix)) ||
+      hostname.startsWith('[') ||
+      /^\d{1,3}(?:\.\d{1,3}){3}$/u.test(hostname)
     ) {
       return null
     }
-    return url.hostname.toLowerCase()
+    return hostname
   } catch {
     return null
   }
