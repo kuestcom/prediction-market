@@ -1334,6 +1334,37 @@ export default function EventOrderPanelForm({
     return false
   }
 
+  async function ensureDefaultTradingNetwork() {
+    if (!activeWalletConnector) {
+      return false
+    }
+
+    try {
+      const currentChainId = await activeWalletConnector.getChainId()
+      if (currentChainId === DEFAULT_CHAIN_ID) {
+        return true
+      }
+
+      await runWithSignaturePrompt(
+        () =>
+          switchChain(wagmiConfig, {
+            chainId: DEFAULT_CHAIN_ID,
+            connector: activeWalletConnector,
+          }),
+        {
+          title: t('Confirm network switch'),
+          description: t('Confirm the network switch in your wallet.'),
+        },
+      )
+      return true
+    } catch (error) {
+      if (!isUserRejectedRequestError(error)) {
+        handleOrderErrorFeedback(t('Trade failed'), t('An unexpected error occurred. Please try again.'))
+      }
+      return false
+    }
+  }
+
   async function submitOrderFlow(options: { confirmedSlippageWarning?: boolean } = {}) {
     if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
@@ -1480,6 +1511,10 @@ export default function EventOrderPanelForm({
     }
 
     clearSlippageWarning()
+
+    if (!(await ensureDefaultTradingNetwork())) {
+      return
+    }
 
     const effectiveAmountForOrder = (() => {
       if (state.type === ORDER_TYPE.MARKET) {
