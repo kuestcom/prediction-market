@@ -176,7 +176,7 @@ describe('adminIntegrationsForm', () => {
 
     expect(
       screen.getByText(
-        'SITE_URL changed. Verify the new domain to migrate this operator and rotate its key before payments can resume.',
+        'The site domain changed. Verify the new domain to migrate this operator and rotate its key before payments can resume.',
       ),
     ).toBeInTheDocument()
     expect(

@@ -41,21 +41,22 @@ describe('Meld checkout route', () => {
     )
     const { POST } = await import('@/app/api/payments/meld/checkouts/route')
 
-    const response = await POST(
-      new Request('https://fork.example/api/payments/meld/checkouts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Origin: 'https://fork.example',
-          'X-Forwarded-For': '203.0.113.42, 198.51.100.10',
-        },
-        body: JSON.stringify({ quoteId: '123e4567-e89b-12d3-a456-426614174001' }),
+    const request = {
+      url: 'https://fork-example.com/api/payments/meld/checkouts',
+      headers: new Headers({
+        'Content-Type': 'application/json',
+        Host: 'fork-example.com',
+        Origin: 'https://fork-example.com',
+        'X-Forwarded-For': '203.0.113.42, 198.51.100.10',
       }),
-    )
+      json: async () => ({ quoteId: '123e4567-e89b-12d3-a456-426614174001' }),
+    } as unknown as Request
+    const response = await POST(request)
 
     expect(response.status).toBe(201)
-    const [path, init] = mocks.requestPaymentsWorker.mock.calls[0]!
+    const [path, domain, init] = mocks.requestPaymentsWorker.mock.calls[0]!
     expect(path).toBe('/v1/checkouts')
+    expect(domain).toBe('fork-example.com')
     const workerPayload: unknown = JSON.parse(String(init?.body))
     expect(workerPayload).toEqual({
       quoteId: '123e4567-e89b-12d3-a456-426614174001',
