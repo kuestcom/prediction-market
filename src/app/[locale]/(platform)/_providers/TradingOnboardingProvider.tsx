@@ -495,6 +495,8 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   const [sumsubLoaded, setSumsubLoaded] = useState(false)
   const [sumsubObserveDismissed, setSumsubObserveDismissed] = useState(false)
   const [paymentsEnabled, setPaymentsEnabled] = useState(false)
+  const [paymentsEnabledUserId, setPaymentsEnabledUserId] = useState<string | null>(null)
+  const paymentsEnabledRefreshRef = useRef<(() => void) | null>(null)
   const pendingTradingReadyActionRef = useRef<(() => void) | null>(null)
   const pendingTradingReadyFlowStartedRef = useRef(false)
   const referralSetupVerificationVersionRef = useRef(0)
@@ -1798,6 +1800,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       openNextRequirement()
       return
     }
+    paymentsEnabledRefreshRef.current?.()
     setDepositModalOpen(true)
   }, [openAppKit, openNextRequirement, status.hasDeployedDepositWallet, user])
 
@@ -1808,6 +1811,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     }
 
     if (status.hasDeployedDepositWallet) {
+      paymentsEnabledRefreshRef.current?.()
       setDepositModalOpen(true)
       return
     }
@@ -1865,30 +1869,70 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       return
     }
 
-    const controller = new AbortController()
-    void fetch('/api/payments/meld/enabled', { cache: 'no-store', signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) {
-          return false
-        }
-        const payload: unknown = await response.json().catch(() => null)
-        return isPaymentsEnabledResponse(payload) && payload.enabled
-      })
-      .then((enabled) => {
-        if (!controller.signal.aborted) {
-          setPaymentsEnabled(enabled)
-        }
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setPaymentsEnabled(false)
-        }
-      })
+    let isActive = true
+    let requestController: AbortController | null = null
 
-    return () => controller.abort()
+    async function refreshPaymentsEnabled() {
+      requestController?.abort()
+      const controller = new AbortController()
+      requestController = controller
+      setPaymentsEnabled(false)
+      setPaymentsEnabledUserId(null)
+
+      try {
+        const response = await fetch('/api/payments/meld/enabled', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const payload: unknown = response.ok ? await response.json().catch(() => null) : null
+        if (isActive && !controller.signal.aborted) {
+          setPaymentsEnabled(isPaymentsEnabledResponse(payload) && payload.enabled)
+          setPaymentsEnabledUserId(userId ?? null)
+        }
+      } catch {
+        if (isActive && !controller.signal.aborted) {
+          setPaymentsEnabled(false)
+          setPaymentsEnabledUserId(null)
+        }
+      }
+    }
+
+    function onWindowFocus() {
+      void refreshPaymentsEnabled()
+    }
+
+    function refreshPaymentsEnabledForWalletOpen() {
+      void refreshPaymentsEnabled()
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        void refreshPaymentsEnabled()
+      }
+    }
+
+    paymentsEnabledRefreshRef.current = refreshPaymentsEnabledForWalletOpen
+    void refreshPaymentsEnabled()
+    window.addEventListener('focus', onWindowFocus)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      isActive = false
+      requestController?.abort()
+      window.removeEventListener('focus', onWindowFocus)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      if (paymentsEnabledRefreshRef.current === refreshPaymentsEnabledForWalletOpen) {
+        paymentsEnabledRefreshRef.current = null
+      }
+    }
   }, [userId])
 
-  const canBuyMeld = Boolean(paymentsEnabled && status.hasDeployedDepositWallet && user?.deposit_wallet_address)
+  const canBuyMeld = Boolean(
+    paymentsEnabled &&
+    paymentsEnabledUserId === userId &&
+    status.hasDeployedDepositWallet &&
+    user?.deposit_wallet_address,
+  )
 
   return (
     <TradingOnboardingContext value={contextValue}>

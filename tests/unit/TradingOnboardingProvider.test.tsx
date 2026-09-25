@@ -163,6 +163,16 @@ function EnsureTradingReadyProbe({ onTradingReady }: { onTradingReady: () => voi
   )
 }
 
+function StartDepositFlowProbe() {
+  const { startDepositFlow } = useTradingOnboarding()
+
+  return (
+    <button type="button" onClick={startDepositFlow}>
+      Open deposit wallet
+    </button>
+  )
+}
+
 describe('tradingOnboardingProvider', () => {
   beforeEach(() => {
     stubGlobal(
@@ -454,6 +464,119 @@ describe('tradingOnboardingProvider', () => {
     )
 
     await waitFor(() => expect(mocks.dialogProps.canBuyMeld).toBe(true))
+  })
+
+  it('refreshes Meld availability when the page regains focus', async () => {
+    let resolveRefresh!: (response: Response) => void
+    const refreshedPaymentsEnabled = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve
+    })
+    let enabledRequestCount = 0
+    mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = getRequestUrl(input)
+      if (url === '/api/payments/meld/enabled') {
+        enabledRequestCount += 1
+        return enabledRequestCount === 1
+          ? Promise.resolve(new Response(JSON.stringify({ enabled: true }), { status: 200 }))
+          : refreshedPaymentsEnabled
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            enabled: false,
+            configured: false,
+            effective: false,
+            enforcement: 'disabled',
+            levelName: '',
+            status: 'not_started',
+            approvedAt: null,
+            updatedAt: null,
+          }),
+          { status: 200 },
+        ),
+      )
+    })
+    useUser.setState(
+      createUser({
+        deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+        deposit_wallet_status: 'deployed',
+      }),
+    )
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await waitFor(() => expect(mocks.dialogProps.canBuyMeld).toBe(true))
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await waitFor(() => expect(enabledRequestCount).toBe(2))
+    expect(mocks.dialogProps.canBuyMeld).toBe(false)
+
+    await act(async () => {
+      resolveRefresh(new Response(JSON.stringify({ enabled: false }), { status: 200 }))
+    })
+
+    await waitFor(() => expect(mocks.dialogProps.canBuyMeld).toBe(false))
+  })
+
+  it('refreshes Meld availability when the deposit wallet opens', async () => {
+    let resolveRefresh!: (response: Response) => void
+    const refreshedPaymentsEnabled = new Promise<Response>((resolve) => {
+      resolveRefresh = resolve
+    })
+    let enabledRequestCount = 0
+    mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = getRequestUrl(input)
+      if (url === '/api/payments/meld/enabled') {
+        enabledRequestCount += 1
+        return enabledRequestCount === 1
+          ? Promise.resolve(new Response(JSON.stringify({ enabled: true }), { status: 200 }))
+          : refreshedPaymentsEnabled
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            enabled: false,
+            configured: false,
+            effective: false,
+            enforcement: 'disabled',
+            levelName: '',
+            status: 'not_started',
+            approvedAt: null,
+            updatedAt: null,
+          }),
+          { status: 200 },
+        ),
+      )
+    })
+    useUser.setState(
+      createUser({
+        deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+        deposit_wallet_status: 'deployed',
+      }),
+    )
+
+    render(
+      <TradingOnboardingProvider>
+        <StartDepositFlowProbe />
+      </TradingOnboardingProvider>,
+    )
+
+    await waitFor(() => expect(mocks.dialogProps.canBuyMeld).toBe(true))
+    await act(async () => {
+      screen.getByRole('button', { name: 'Open deposit wallet' }).click()
+    })
+    await waitFor(() => expect(enabledRequestCount).toBe(2))
+    expect(mocks.dialogProps.depositModalOpen).toBe(true)
+    expect(mocks.dialogProps.canBuyMeld).toBe(false)
+
+    await act(async () => {
+      resolveRefresh(new Response(JSON.stringify({ enabled: false }), { status: 200 }))
+    })
   })
 
   it('lets Observe only continue after the single Sumsub prompt is dismissed', async () => {

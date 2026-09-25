@@ -349,7 +349,7 @@ export function MeldOnrampDialog({
                 setIsLoadingCurrencies(Boolean(nextCountryCode))
                 clearOffers()
               }}
-              disabled={isLoadingCountries || isStartingCheckout}
+              disabled={isLoadingCountries || isGettingQuotes || isStartingCheckout}
             >
               <option value="">{isLoadingCountries ? t('Loading...') : t('Select a country')}</option>
               {countries.map((country) => (
@@ -370,7 +370,7 @@ export function MeldOnrampDialog({
                 setSourceCurrencyCode(event.target.value)
                 clearOffers()
               }}
-              disabled={!countryCode || isLoadingCurrencies || isStartingCheckout}
+              disabled={!countryCode || isLoadingCurrencies || isGettingQuotes || isStartingCheckout}
             >
               <option value="">{isLoadingCurrencies ? t('Loading...') : t('Select a currency')}</option>
               {currencies.map((currency) => (
@@ -392,7 +392,7 @@ export function MeldOnrampDialog({
                 setSourceAmount(event.target.value)
                 clearOffers()
               }}
-              disabled={isStartingCheckout}
+              disabled={isGettingQuotes || isStartingCheckout}
               placeholder={sourceCurrencyCode || t('Amount')}
             />
           </div>

@@ -89,7 +89,15 @@ async function requestPublicPaymentsWorker(
     throw new PaymentsOperatorProvisioningError('payments_worker_unavailable')
   }
 
-  const result = await readWorkerJson(response)
+  let result: unknown
+  try {
+    result = await readWorkerJson(response)
+  } catch (error) {
+    if (error instanceof PaymentsOperatorProvisioningError) {
+      throw error
+    }
+    throw new PaymentsOperatorProvisioningError('payments_worker_unavailable')
+  }
   if (!response.ok) {
     const errorCode =
       typeof result === 'object' && result !== null && 'error' in result && typeof result.error === 'string'

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { isIP } from 'node:net'
 import { isAddress } from 'viem'
 
 import { UserRepository } from '@/lib/db/queries/user'
@@ -60,9 +59,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid_quote_id' }, { status: 400 })
   }
 
-  const forwardedIp = request.headers.get('x-forwarded-for')?.split(',', 1)[0]?.trim()
-  const clientIpAddress = forwardedIp && isIP(forwardedIp) ? forwardedIp : undefined
-
   let response: Response
   try {
     response = await requestPaymentsWorker('/v1/checkouts', {
@@ -72,7 +68,6 @@ export async function POST(request: Request) {
         quoteId: body.quoteId,
         externalCustomerId: user.id,
         walletAddress,
-        ...(clientIpAddress ? { clientIpAddress } : {}),
       }),
     })
   } catch (error) {

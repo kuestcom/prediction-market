@@ -72,7 +72,12 @@ export function MeldReturnStatus({ checkoutId }: { checkoutId: string | null }) 
         if (!isActive) {
           return
         }
+        if (response.status === 401) {
+          setHasError(true)
+          return
+        }
         if (response.status === 404) {
+          clearPendingCheckout()
           setHasError(true)
           return
         }

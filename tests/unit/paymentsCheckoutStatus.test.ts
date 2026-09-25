@@ -53,4 +53,18 @@ describe('payments checkout status', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${storedKey}`)
     expect(new Headers(init?.headers).get('X-External-Customer-ID')).toBe('user-123')
   })
+
+  it('normalizes a failed Worker response stream as unavailable', async () => {
+    const responseBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(new Error('connection reset'))
+      },
+    })
+    spyOn(globalThis, 'fetch').mockResolvedValue(new Response(responseBody))
+    const { requestPaymentsOperatorChallenge } = await import('@/lib/payments/worker')
+
+    await expect(requestPaymentsOperatorChallenge('fork.example', 'R'.repeat(43))).rejects.toMatchObject({
+      code: 'payments_worker_unavailable',
+    })
+  })
 })
