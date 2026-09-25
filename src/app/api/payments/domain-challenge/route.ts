@@ -1,6 +1,6 @@
-import { SettingsRepository } from '../../../lib/db/queries/settings'
-import { decryptSecret } from '../../../lib/encryption'
-import { getPaymentsOperatorChallengeSettingKey, PAYMENTS_SETTINGS_GROUP } from '../../../lib/payments/operator-key'
+import { SettingsRepository } from '../../../../lib/db/queries/settings'
+import { decryptSecret } from '../../../../lib/encryption'
+import { getPaymentsOperatorChallengeSettingKey, PAYMENTS_SETTINGS_GROUP } from '../../../../lib/payments/operator-key'
 
 function notFound() {
   return new Response(null, {

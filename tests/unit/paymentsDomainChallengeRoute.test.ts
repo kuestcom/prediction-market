@@ -43,11 +43,9 @@ describe('payments domain challenge route', () => {
       },
       error: null,
     })
-    const { GET } = await import('@/app/.well-known/kuest-payments-challenge/route')
+    const { GET } = await import('@/app/api/payments/domain-challenge/route')
 
-    const response = await GET(
-      new Request(`https://fork.example/.well-known/kuest-payments-challenge?id=${challengeIdB}`),
-    )
+    const response = await GET(new Request(`https://fork.example/api/payments/domain-challenge?id=${challengeIdB}`))
     const body = await response.text()
 
     expect(response.status).toBe(200)
@@ -65,21 +63,21 @@ describe('payments domain challenge route', () => {
       },
       error: null,
     })
-    const { GET } = await import('@/app/.well-known/kuest-payments-challenge/route')
+    const { GET } = await import('@/app/api/payments/domain-challenge/route')
 
     const injectedResponse = await GET(
-      new Request(`https://fork.example/.well-known/kuest-payments-challenge?id=${challengeIdA}&challenge=attacker`),
+      new Request(`https://fork.example/api/payments/domain-challenge?id=${challengeIdA}&challenge=attacker`),
     )
     const duplicateIdResponse = await GET(
-      new Request(`https://fork.example/.well-known/kuest-payments-challenge?id=${challengeIdA}&id=${challengeIdA}`),
+      new Request(`https://fork.example/api/payments/domain-challenge?id=${challengeIdA}&id=${challengeIdA}`),
     )
     const wrongIdResponse = await GET(
-      new Request(`https://fork.example/.well-known/kuest-payments-challenge?id=${challengeIdB}`),
+      new Request(`https://fork.example/api/payments/domain-challenge?id=${challengeIdB}`),
     )
     const wrongHostResponse = await GET(
-      new Request(`https://alias.example/.well-known/kuest-payments-challenge?id=${challengeIdA}`),
+      new Request(`https://alias.example/api/payments/domain-challenge?id=${challengeIdA}`),
     )
-    const missingIdResponse = await GET(new Request('https://fork.example/.well-known/kuest-payments-challenge'))
+    const missingIdResponse = await GET(new Request('https://fork.example/api/payments/domain-challenge'))
 
     for (const response of [
       injectedResponse,
