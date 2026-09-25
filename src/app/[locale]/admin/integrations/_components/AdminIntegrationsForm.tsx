@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftRightIcon, FileBracesIcon, InfoIcon, RefreshCwIcon } from 'lucide-react'
+import { FileBracesIcon, InfoIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useActionState, useCallback, useMemo, useState } from 'react'
@@ -104,17 +104,13 @@ function IntegrationHeader({
   title: string
   description: string
   logo?: string
-  icon?: 'code' | 'payments'
+  icon?: 'code'
 }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
       {icon ? (
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
-          {icon === 'payments' ? (
-            <ArrowLeftRightIcon className="size-5 text-muted-foreground" />
-          ) : (
-            <FileBracesIcon className="size-5 text-muted-foreground" />
-          )}
+          <FileBracesIcon className="size-5 text-muted-foreground" />
         </span>
       ) : (
         <IntegrationLogo src={logo!} alt="" />
@@ -843,6 +839,63 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
         </SettingsAccordionSection>
 
         <SettingsAccordionSection
+          value="on-off-ramp-payments"
+          isOpen={visibleOpenSections.has('on-off-ramp-payments')}
+          onToggle={toggleSection}
+          header={
+            <IntegrationHeader
+              title={t('On/Off Ramp Payments')}
+              description={t('Connect the Kuest payments service for hosted on-ramp and off-ramp providers.')}
+              logo="/images/logos/meld-icon.svg"
+            />
+          }
+        >
+          <div className="grid gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="grid gap-1">
+                <Label htmlFor="integration-payments-enabled">{t('Enable payments')}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {isPending
+                    ? t('Verifying this site and saving payment settings…')
+                    : props.paymentsSettings.operatorDomainChanged
+                      ? t(
+                          'SITE_URL changed. Verify the new domain to migrate this operator and rotate its key before payments can resume.',
+                        )
+                      : props.paymentsSettings.operatorKeyConfigured
+                        ? paymentsEnabled
+                          ? t('Payments are active. The operator key is encrypted in this site’s server settings.')
+                          : t('The operator key is saved securely. Payments are currently disabled on this site.')
+                        : t('Enable and save to verify this site and register its operator automatically.')}
+                </p>
+              </div>
+              <Switch
+                id="integration-payments-enabled"
+                checked={paymentsEnabled}
+                onCheckedChange={setPaymentsEnabled}
+                disabled={isPending}
+              />
+            </div>
+            {(props.paymentsSettings.operatorKeyConfigured || props.paymentsSettings.operatorDomainChanged) && (
+              <Button
+                type="submit"
+                name="payments_reissue_operator_key"
+                value="true"
+                variant="outline"
+                className="w-fit"
+                disabled={isPending}
+              >
+                {t('Reverify this domain and replace its operator key')}
+              </Button>
+            )}
+            {props.paymentsSettings.operatorDomainChanged && (
+              <p className="text-xs text-muted-foreground">
+                {t('Keep the previous domain serving payment return pages for up to 30 days after a domain migration.')}
+              </p>
+            )}
+          </div>
+        </SettingsAccordionSection>
+
+        <SettingsAccordionSection
           value="polymarket"
           isOpen={visibleOpenSections.has('polymarket')}
           onToggle={toggleSection}
@@ -1021,66 +1074,6 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                 </div>
               </div>
             ))}
-          </div>
-        </SettingsAccordionSection>
-
-        <SettingsAccordionSection
-          value="on-off-ramp-payments"
-          isOpen={visibleOpenSections.has('on-off-ramp-payments')}
-          onToggle={toggleSection}
-          header={
-            <IntegrationHeader
-              title={t('On/Off Ramp Payments')}
-              description={t('Connect the Kuest payments service for hosted on-ramp and off-ramp providers.')}
-              icon="payments"
-            />
-          }
-        >
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="grid gap-1">
-                <Label htmlFor="integration-payments-enabled">{t('Enable payments')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {isPending
-                    ? t('Verifying this site and saving payment settings…')
-                    : props.paymentsSettings.operatorDomainChanged
-                      ? t(
-                          'SITE_URL changed. Verify the new domain to migrate this operator and rotate its key before payments can resume.',
-                        )
-                      : props.paymentsSettings.operatorKeyConfigured
-                        ? paymentsEnabled
-                          ? t('Payments are active. The operator key is encrypted in this site’s server settings.')
-                          : t('The operator key is saved securely. Payments are currently disabled on this site.')
-                        : t('Enable and save to verify this site and register its operator automatically.')}
-                </p>
-              </div>
-              <Switch
-                id="integration-payments-enabled"
-                checked={paymentsEnabled}
-                onCheckedChange={setPaymentsEnabled}
-                disabled={isPending}
-              />
-            </div>
-            {(props.paymentsSettings.operatorKeyConfigured || props.paymentsSettings.operatorDomainChanged) && (
-              <Button
-                type="submit"
-                name="payments_reissue_operator_key"
-                value="true"
-                variant="outline"
-                className="w-fit"
-                disabled={isPending}
-              >
-                {t('Reverify this domain and replace its operator key')}
-              </Button>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {t('The key is provisioned by the server and is never sent to your browser.')}
-            </p>
-            {props.paymentsSettings.operatorDomainChanged && (
-              <p className="text-xs text-muted-foreground">
-                {t('Keep the previous domain serving payment return pages for up to 30 days after a domain migration.')}
-              </p>
-            )}
           </div>
         </SettingsAccordionSection>
       </div>

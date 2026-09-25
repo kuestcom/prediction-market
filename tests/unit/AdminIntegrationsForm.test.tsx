@@ -105,15 +105,17 @@ describe('adminIntegrationsForm', () => {
       'thesportsdb',
       'pandascore',
       'lifi',
+      'on-off-ramp-payments',
       'polymarket',
       'kuest-support',
       'custom',
-      'on-off-ramp-payments',
     ])
     expect(screen.getByRole('button', { name: /TheSportsDB/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /PandaScore/ })).toBeInTheDocument()
-    expect(container.querySelectorAll('img')).toHaveLength(8)
+    expect(container.querySelectorAll('img')).toHaveLength(9)
     expect(container.querySelector('img[src="/images/logos/sumsub.svg"]')).toBeInTheDocument()
+    expect(container.querySelector('img[src="/images/logos/meld-icon.svg"]')).toBeInTheDocument()
+    expect(container.querySelector('img[src="/images/logos/kuest-icon.svg"]')).toBeInTheDocument()
     expect(container.querySelector('[data-settings-section="custom"] svg')).toBeInTheDocument()
   })
 
