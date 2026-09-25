@@ -187,7 +187,9 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
     async (previousState: { error: string | null }, formData: FormData) => {
       const result = await updateIntegrationsSettingsAction(previousState, formData)
       const paymentsErrors: Record<string, string> = {
-        payments_site_url_invalid: t('Set SITE_URL to this site’s canonical HTTPS origin before activating payments.'),
+        payments_site_url_invalid: t(
+          'Payments require a permanent custom HTTPS domain. Localhost and platform URLs such as *.vercel.app are not supported.',
+        ),
         payments_domain_banned: t('This domain is blocked by Kuest. Contact Kuest support.'),
         payments_registration_rate_limited: t('Too many activation attempts. Wait a while and try again.'),
         payments_domain_verification_failed: t(
@@ -196,7 +198,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
         payments_worker_unavailable: t('The payments service is unavailable. Please try again later.'),
         payments_operator_registration_failed: t('The operator could not be registered. Please try again.'),
         payments_operator_domain_change_key_missing: t(
-          'The previous operator key is missing. Restore it before changing SITE_URL so pending checkout status can be preserved.',
+          'The previous operator key is missing. Restore it before changing the site domain so pending checkout status can be preserved.',
         ),
         payments_operator_domain_conflict: t(
           'This domain already has another operator. Contact Kuest support before migrating it.',
@@ -859,7 +861,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                     ? t('Verifying this site and saving payment settings…')
                     : props.paymentsSettings.operatorDomainChanged
                       ? t(
-                          'SITE_URL changed. Verify the new domain to migrate this operator and rotate its key before payments can resume.',
+                          'The site domain changed. Verify the new domain to migrate this operator and rotate its key before payments can resume.',
                         )
                       : props.paymentsSettings.operatorKeyConfigured
                         ? paymentsEnabled

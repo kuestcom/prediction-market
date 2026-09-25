@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
+import { headers } from 'next/headers'
 import { randomBytes } from 'node:crypto'
 
 import {
@@ -56,8 +57,8 @@ function getString(formData: FormData, key: string) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function getCanonicalPaymentsDomain() {
-  const domain = getPaymentsCanonicalDomain()
+function getCanonicalPaymentsDomain(requestHeaders: Pick<Headers, 'get'>) {
+  const domain = getPaymentsCanonicalDomain(requestHeaders)
   if (!domain) {
     throw new PaymentsOperatorProvisioningError('payments_site_url_invalid')
   }
@@ -252,7 +253,8 @@ export async function updateIntegrationsSettingsAction(
     let provisionedPaymentsOperatorKey: string | null = null
     let paymentsOperatorDomain = existingPaymentsOperatorDomain
     let challengeSettingKey: string | null = null
-    const canonicalPaymentsDomain = paymentsEnabled || reissuePaymentsOperatorKey ? getCanonicalPaymentsDomain() : null
+    const canonicalPaymentsDomain =
+      paymentsEnabled || reissuePaymentsOperatorKey ? getCanonicalPaymentsDomain(await headers()) : null
     const paymentsDomainChanged = Boolean(
       canonicalPaymentsDomain && canonicalPaymentsDomain !== existingPaymentsOperatorDomain,
     )

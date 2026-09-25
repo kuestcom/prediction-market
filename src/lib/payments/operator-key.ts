@@ -9,23 +9,71 @@ export const PAYMENTS_OPERATOR_CHALLENGE_KEY = 'operator_domain_challenge:'
 export const PAYMENTS_OPERATOR_LEGACY_CHALLENGE_KEY = 'operator_domain_challenge'
 export const PAYMENTS_ENABLED_KEY = 'on_off_ramp_enabled'
 
-export function getPaymentsCanonicalDomain(): string | null {
-  const siteUrl = process.env.SITE_URL?.trim()
-  if (!siteUrl) {
+const UNSUPPORTED_PAYMENT_DOMAIN_SUFFIXES = [
+  '.vercel.app',
+  '.workers.dev',
+  '.pages.dev',
+  '.netlify.app',
+  '.ngrok-free.app',
+  '.ngrok.io',
+  '.trycloudflare.com',
+  '.localtunnel.me',
+  '.loca.lt',
+  '.serveo.net',
+  '.onrender.com',
+  '.fly.dev',
+  '.railway.app',
+  '.herokuapp.com',
+  '.replit.app',
+  '.replit.dev',
+  '.github.io',
+  '.gitlab.io',
+  '.surge.sh',
+]
+
+type RequestHeaders = Pick<Headers, 'get'>
+
+export function getPaymentsCanonicalDomain(requestHeaders: RequestHeaders | null | undefined): string | null {
+  if (!requestHeaders) {
     return null
   }
 
   try {
-    const url = new URL(siteUrl)
+    // Use the request authority itself; forwarded host values may come from an untrusted proxy.
+    // The Worker challenge separately proves that the domain serves the required public HTTPS route.
+    const host = requestHeaders.get('host')?.trim()
+    const forwardedProtocol = requestHeaders.get('x-forwarded-proto')?.trim().toLowerCase()
     if (
-      url.protocol !== 'https:' ||
+      !host ||
+      host.includes(',') ||
+      (forwardedProtocol && (forwardedProtocol.includes(',') || forwardedProtocol !== 'https'))
+    ) {
+      return null
+    }
+
+    const url = new URL(`https://${host}`)
+    if (
       !url.hostname ||
       url.username ||
       url.password ||
       url.port ||
       url.pathname !== '/' ||
       url.search ||
-      url.hash
+      url.hash ||
+      url.hostname === 'localhost' ||
+      url.hostname.endsWith('.localhost') ||
+      url.hostname.endsWith('.local') ||
+      url.hostname.endsWith('.internal') ||
+      url.hostname.endsWith('.test') ||
+      url.hostname.endsWith('.invalid') ||
+      url.hostname.endsWith('.example') ||
+      url.hostname.endsWith('.onion') ||
+      url.hostname.endsWith('.home.arpa') ||
+      url.hostname === 'kuest.com' ||
+      url.hostname.endsWith('.kuest.com') ||
+      UNSUPPORTED_PAYMENT_DOMAIN_SUFFIXES.some((suffix) => url.hostname.endsWith(suffix)) ||
+      url.hostname.startsWith('[') ||
+      /^\d{1,3}(?:\.\d{1,3}){3}$/u.test(url.hostname)
     ) {
       return null
     }
@@ -44,14 +92,16 @@ export function getPaymentsOperatorChallengeSettingKey(challengeId: string) {
 
 type SettingsMap = Record<string, Record<string, { value: string } | undefined> | undefined>
 
-export function getPaymentsIntegrationFormState(settings: SettingsMap | null | undefined) {
+export function getPaymentsIntegrationFormState(
+  settings: SettingsMap | null | undefined,
+  canonicalDomain: string | null,
+) {
   const group = settings?.[PAYMENTS_SETTINGS_GROUP]
   const encryptedKey = group?.[PAYMENTS_OPERATOR_KEY]?.value ?? ''
   const operatorKey = decryptSecret(encryptedKey)
   const configured = /^[A-Za-z0-9_-]{40,64}$/u.test(operatorKey)
   const enabledValue = group?.[PAYMENTS_ENABLED_KEY]?.value
   const storedDomain = group?.[PAYMENTS_OPERATOR_DOMAIN_KEY]?.value?.trim().toLowerCase() ?? ''
-  const canonicalDomain = getPaymentsCanonicalDomain()
   const operatorDomainChanged =
     (Boolean(storedDomain) && (!canonicalDomain || storedDomain !== canonicalDomain)) ||
     (configured && (!canonicalDomain || !storedDomain))
@@ -63,20 +113,21 @@ export function getPaymentsIntegrationFormState(settings: SettingsMap | null | u
   }
 }
 
-async function getStoredPaymentsOperatorKey(requireEnabled: boolean): Promise<string | null> {
+async function getStoredPaymentsOperatorKey(
+  requireEnabled: boolean,
+  canonicalDomain: string | null,
+): Promise<string | null> {
   const { data, error } = await SettingsRepository.getSettings()
   if (error) {
     return null
   }
 
   const group = data?.[PAYMENTS_SETTINGS_GROUP]
-  if (requireEnabled && group?.[PAYMENTS_ENABLED_KEY]?.value !== 'true') {
+  const storedDomain = group?.[PAYMENTS_OPERATOR_DOMAIN_KEY]?.value?.trim().toLowerCase() ?? ''
+  if (!canonicalDomain || !storedDomain) {
     return null
   }
-
-  const storedDomain = group?.[PAYMENTS_OPERATOR_DOMAIN_KEY]?.value?.trim().toLowerCase() ?? ''
-  const canonicalDomain = getPaymentsCanonicalDomain()
-  if (!canonicalDomain || storedDomain !== canonicalDomain) {
+  if (requireEnabled && (group?.[PAYMENTS_ENABLED_KEY]?.value !== 'true' || storedDomain !== canonicalDomain)) {
     return null
   }
 
@@ -84,11 +135,12 @@ async function getStoredPaymentsOperatorKey(requireEnabled: boolean): Promise<st
   return /^[A-Za-z0-9_-]{40,64}$/u.test(storedKey) ? storedKey : null
 }
 
-export function getPaymentsOperatorKey(): Promise<string | null> {
-  return getStoredPaymentsOperatorKey(true)
+export function getPaymentsOperatorKey(canonicalDomain: string | null): Promise<string | null> {
+  return getStoredPaymentsOperatorKey(true, canonicalDomain)
 }
 
-// Existing checkouts remain queryable after an administrator disables new payments.
-export function getPaymentsOperatorKeyForCheckoutStatus(): Promise<string | null> {
-  return getStoredPaymentsOperatorKey(false)
+// Status checks may arrive on the previous domain saved in a checkout's return URL.
+// The Worker scopes every status lookup to both operator_id and the authenticated user ID.
+export function getPaymentsOperatorKeyForCheckoutStatus(canonicalDomain: string | null): Promise<string | null> {
+  return getStoredPaymentsOperatorKey(false, canonicalDomain)
 }

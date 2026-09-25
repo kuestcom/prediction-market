@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { UserRepository } from '@/lib/db/queries/user'
+import { getPaymentsCanonicalDomain } from '@/lib/payments/operator-key'
 import { PaymentsWorkerRequestError, requestPaymentsWorker } from '@/lib/payments/worker'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -19,7 +20,10 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await requestPaymentsWorker(`/v1/onramp/currencies?countryCode=${encodeURIComponent(countryCode)}`)
+    const response = await requestPaymentsWorker(
+      `/v1/onramp/currencies?countryCode=${encodeURIComponent(countryCode)}`,
+      getPaymentsCanonicalDomain(request.headers),
+    )
     if (!response.ok) {
       return NextResponse.json({ error: 'currency_options_unavailable' }, { status: 502 })
     }

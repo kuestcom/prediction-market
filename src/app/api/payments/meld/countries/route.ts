@@ -1,20 +1,21 @@
 import { NextResponse } from 'next/server'
 
 import { UserRepository } from '@/lib/db/queries/user'
+import { getPaymentsCanonicalDomain } from '@/lib/payments/operator-key'
 import { PaymentsWorkerRequestError, requestPaymentsWorker } from '@/lib/payments/worker'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
   }
 
   try {
-    const response = await requestPaymentsWorker('/v1/onramp/countries')
+    const response = await requestPaymentsWorker('/v1/onramp/countries', getPaymentsCanonicalDomain(request.headers))
     if (!response.ok) {
       return NextResponse.json({ error: 'country_options_unavailable' }, { status: 502 })
     }

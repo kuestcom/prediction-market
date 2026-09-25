@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { isAddress } from 'viem'
 
 import { UserRepository } from '@/lib/db/queries/user'
+import { getPaymentsCanonicalDomain } from '@/lib/payments/operator-key'
 import { PAYMENTS_WORKER_ORIGIN, PaymentsWorkerRequestError, requestPaymentsWorker } from '@/lib/payments/worker'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
 
   let response: Response
   try {
-    response = await requestPaymentsWorker('/v1/checkouts', {
+    response = await requestPaymentsWorker('/v1/checkouts', getPaymentsCanonicalDomain(request.headers), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

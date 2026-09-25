@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 
 import { UserRepository } from '@/lib/db/queries/user'
+import { getPaymentsCanonicalDomain } from '@/lib/payments/operator-key'
 import { PaymentsWorkerRequestError, requestPaymentsCheckoutStatus } from '@/lib/payments/worker'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ checkoutId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ checkoutId: string }> }) {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ che
 
   let response: Response
   try {
-    response = await requestPaymentsCheckoutStatus(checkoutId, user.id)
+    response = await requestPaymentsCheckoutStatus(checkoutId, user.id, getPaymentsCanonicalDomain(request.headers))
   } catch (error) {
     if (error instanceof PaymentsWorkerRequestError) {
       return NextResponse.json(

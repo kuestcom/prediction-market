@@ -184,8 +184,12 @@ async function requestPaymentsWorkerWithKey(path: string, init: RequestInit, ope
   }
 }
 
-export async function requestPaymentsWorker(path: string, init: RequestInit = {}): Promise<Response> {
-  const operatorKey = await getPaymentsOperatorKey()
+export async function requestPaymentsWorker(
+  path: string,
+  canonicalDomain: string | null,
+  init: RequestInit = {},
+): Promise<Response> {
+  const operatorKey = await getPaymentsOperatorKey(canonicalDomain)
   if (!operatorKey) {
     throw new PaymentsWorkerRequestError('not_configured')
   }
@@ -193,12 +197,16 @@ export async function requestPaymentsWorker(path: string, init: RequestInit = {}
   return requestPaymentsWorkerWithKey(path, init, operatorKey)
 }
 
-export async function requestPaymentsCheckoutStatus(checkoutId: string, externalCustomerId: string): Promise<Response> {
+export async function requestPaymentsCheckoutStatus(
+  checkoutId: string,
+  externalCustomerId: string,
+  canonicalDomain: string | null,
+): Promise<Response> {
   if (!/^[0-9a-f-]{36}$/iu.test(checkoutId) || !externalCustomerId || /[\r\n]/u.test(externalCustomerId)) {
     throw new PaymentsWorkerRequestError('unavailable')
   }
 
-  const operatorKey = await getPaymentsOperatorKeyForCheckoutStatus()
+  const operatorKey = await getPaymentsOperatorKeyForCheckoutStatus(canonicalDomain)
   if (!operatorKey) {
     throw new PaymentsWorkerRequestError('not_configured')
   }

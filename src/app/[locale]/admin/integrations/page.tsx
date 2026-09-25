@@ -1,5 +1,6 @@
 import { getExtracted } from 'next-intl/server'
 import { io } from 'next/cache'
+import { headers } from 'next/headers'
 import { Suspense } from 'react'
 
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
@@ -10,7 +11,7 @@ import { parseOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { fetchAllOpenRouterModels, fetchOpenRouterDecisionModels, fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { isArbitrageEnabled, isArbitrageMultiWalletEnabled } from '@/lib/arbitrage-settings'
 import { SettingsRepository } from '@/lib/db/queries/settings'
-import { getPaymentsIntegrationFormState } from '@/lib/payments/operator-key'
+import { getPaymentsCanonicalDomain, getPaymentsIntegrationFormState } from '@/lib/payments/operator-key'
 import { parseSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { parseSumsubSettings, sanitizeSumsubSettings } from '@/lib/sumsub/settings'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
@@ -23,6 +24,7 @@ function AdminIntegrationsFallback() {
 
 async function AdminIntegrationsContent() {
   await io()
+  const requestHeaders = await headers()
   const locale = await getRootLocale()
   const t = await getExtracted()
   const { data: allSettings } = await SettingsRepository.getSettings()
@@ -30,7 +32,7 @@ async function AdminIntegrationsContent() {
   const openRouterSettings = parseOpenRouterProviderSettings(allSettings ?? undefined)
   const sportsSourceSettings = parseSportsSourceProviderSettings(allSettings ?? undefined)
   const parsedSumsubSettings = parseSumsubSettings(allSettings ?? undefined)
-  const paymentsSettings = getPaymentsIntegrationFormState(allSettings)
+  const paymentsSettings = getPaymentsIntegrationFormState(allSettings, getPaymentsCanonicalDomain(requestHeaders))
 
   let modelOptions: Array<{ id: string; label: string; contextWindow?: number }> = []
   let translationModelOptions: Array<{ id: string; label: string; contextWindow?: number }> = []

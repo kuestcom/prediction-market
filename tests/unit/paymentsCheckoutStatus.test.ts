@@ -21,29 +21,21 @@ void mock.module('@/lib/encryption', () => ({
   decryptSecret: (value: string) => (value.startsWith('encrypted:') ? value.slice('encrypted:'.length) : ''),
 }))
 
-const originalSiteUrl = process.env.SITE_URL
-
 afterEach(() => {
   jest.restoreAllMocks()
-  if (originalSiteUrl === undefined) {
-    delete process.env.SITE_URL
-  } else {
-    process.env.SITE_URL = originalSiteUrl
-  }
 })
 
 describe('payments checkout status', () => {
-  it('keeps existing checkout status available when new payments are disabled', async () => {
-    process.env.SITE_URL = 'https://fork.example'
+  it('keeps pending status available after disabling payments and migrating domains', async () => {
     const fetchMock = spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"status":"PENDING"}'))
     const { requestPaymentsCheckoutStatus, requestPaymentsWorker } = await import('@/lib/payments/worker')
 
-    await expect(requestPaymentsWorker('/v1/checkouts', { method: 'POST' })).rejects.toMatchObject({
+    await expect(requestPaymentsWorker('/v1/checkouts', 'fork.example', { method: 'POST' })).rejects.toMatchObject({
       code: 'not_configured',
     })
 
     await expect(
-      requestPaymentsCheckoutStatus('123e4567-e89b-12d3-a456-426614174000', 'user-123'),
+      requestPaymentsCheckoutStatus('123e4567-e89b-12d3-a456-426614174000', 'user-123', 'previous.example'),
     ).resolves.toBeInstanceOf(Response)
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
