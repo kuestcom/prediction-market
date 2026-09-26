@@ -1,7 +1,7 @@
 'use client'
 
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isAddress } from 'viem'
 import { useSignTypedData } from 'wagmi'
 
@@ -16,11 +16,13 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { useLiFiWalletUsdBalance } from '@/hooks/useLiFiWalletUsdBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { useRouter } from '@/i18n/navigation'
 import { MAX_AMOUNT_INPUT } from '@/lib/amount-input'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { IS_TEST_MODE } from '@/lib/network'
+import { isMeldCheckoutReturnMessage, MELD_CHECKOUT_RETURN_CHANNEL } from '@/lib/payments/meld-return-channel'
 import { startMeldCheckout } from '@/lib/payments/start-meld-checkout'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -245,10 +247,12 @@ export function WalletFlow({
 }: WalletFlowProps) {
   const isMobile = useIsMobile()
   const t = useExtracted()
+  const router = useRouter()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { open: openAppKit } = useAppKit()
   const { depositView, setDepositView, handleDepositModalChange } = useDepositViewState(onDepositOpenChange)
+  const meldCheckoutPopupsRef = useRef(new Map<string, Window>())
   const {
     walletSendTo,
     setWalletSendTo,
@@ -301,16 +305,58 @@ export function WalletFlow({
       return
     }
 
-    const popup = window.open('', 'meld-checkout', 'width=450,height=790,scrollbars=yes,resizable=yes')
+    const popup = window.open('', '_blank', 'width=450,height=790,scrollbars=yes,resizable=yes')
     if (popup) {
       popup.opener = null
       popup.focus()
     }
     handleDepositModalChange(false)
-    void startMeldCheckout(popup).catch(() => {
+    void startMeldCheckout(popup, {
+      onCheckoutCreated: (checkoutId) => {
+        if (popup && !popup.closed) {
+          meldCheckoutPopupsRef.current.set(checkoutId, popup)
+        }
+      },
+    }).catch(() => {
       toast.error(t('An unexpected error occurred. Please try again.'))
     })
   }, [canBuyMeld, handleDepositModalChange, t])
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') {
+      return
+    }
+
+    const channel = new BroadcastChannel(MELD_CHECKOUT_RETURN_CHANNEL)
+    function handleReturn(event: MessageEvent<unknown>) {
+      if (!isMeldCheckoutReturnMessage(event.data) || event.data.type !== 'return') {
+        return
+      }
+
+      const popup = meldCheckoutPopupsRef.current.get(event.data.checkoutId)
+      if (!popup) {
+        return
+      }
+
+      meldCheckoutPopupsRef.current.delete(event.data.checkoutId)
+      channel.postMessage({ type: 'ack', checkoutId: event.data.checkoutId })
+      if (!popup.closed) {
+        try {
+          popup.close()
+        } catch {
+          // The return window has its own close attempt and a fallback screen.
+        }
+      }
+      router.replace({ pathname: '/', query: { meldCheckoutId: event.data.checkoutId } })
+    }
+
+    channel.addEventListener('message', handleReturn)
+    return () => {
+      channel.removeEventListener('message', handleReturn)
+      channel.close()
+    }
+  }, [router])
+
   const handleUseConnectedWallet = useUseConnectedWalletHandler({ connectedWalletAddress, setWalletSendTo })
   const handleSetMaxAmount = useSetMaxAmountHandler({ balanceRaw: balance.raw, setWalletSendAmount })
 

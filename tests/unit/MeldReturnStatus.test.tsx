@@ -7,6 +7,7 @@ import { advanceTimersByTimeAsync, useFakeTimers, useRealTimers } from '../bun-t
 
 const mocks = {
   refetchBalance: mock(),
+  replace: mock(),
 }
 const checkoutId = '123e4567-e89b-12d3-a456-426614174000'
 const pendingCheckoutKey = 'kuest:pending-meld-checkout'
@@ -22,11 +23,16 @@ void mock.module('@/hooks/useBalance', () => ({
   useBalance: () => ({ refetchBalance: mocks.refetchBalance }),
 }))
 
+void mock.module('@/i18n/navigation', () => ({
+  useRouter: () => ({ replace: mocks.replace }),
+}))
+
 afterEach(() => {
   useRealTimers()
   jest.restoreAllMocks()
   window.localStorage.removeItem(pendingCheckoutKey)
   mocks.refetchBalance.mockReset()
+  mocks.replace.mockReset()
 })
 
 describe('Meld return status polling', () => {

@@ -3,12 +3,23 @@
 import { useExtracted } from 'next-intl'
 import { useEffect, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useBalance } from '@/hooks/useBalance'
+import { useRouter } from '@/i18n/navigation'
 
 const TERMINAL_STATUSES = new Set(['SETTLED', 'FAILED', 'DECLINED', 'CANCELLED', 'REFUNDED', 'AUTHORIZATION_EXPIRED'])
 
 export function MeldReturnStatus({ checkoutId }: { checkoutId: string | null }) {
   const t = useExtracted()
+  const router = useRouter()
   const { refetchBalance } = useBalance()
   const [status, setStatus] = useState<string | null>(null)
   const [hasError, setHasError] = useState(false)
@@ -128,15 +139,22 @@ export function MeldReturnStatus({ checkoutId }: { checkoutId: string | null }) 
   }, [checkoutId, refetchBalance, t])
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-lg items-center justify-center px-6 py-16">
-      <section className="w-full rounded-xl border border-border bg-card p-6 text-center">
-        <h1 className="text-xl font-semibold">Meld</h1>
-        <p aria-live="polite" className="mt-3 text-sm text-muted-foreground">
-          {hasError || !hasValidCheckoutId
-            ? t('We could not refresh the status yet. The payment may still be processing.')
-            : getStatusMessage()}
-        </p>
-      </section>
-    </main>
+    <Dialog open onOpenChange={(open) => !open && router.replace('/')}>
+      <DialogContent className="max-w-md" closeLabel={t('Close')}>
+        <DialogHeader className="text-center sm:text-center">
+          <DialogTitle>Meld</DialogTitle>
+          <DialogDescription aria-live="polite">
+            {hasError || !hasValidCheckoutId
+              ? t('We could not refresh the status yet. The payment may still be processing.')
+              : getStatusMessage()}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-center">
+          <Button onClick={() => router.replace('/')} variant="outline">
+            {t('Close')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

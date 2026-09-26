@@ -364,6 +364,10 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
     }))
   }
 
+  function toggleCustomDepositModal(index: number, checked: boolean) {
+    updateCustomCode(index, (code) => ({ ...code, onlyWhenDepositModalOpen: checked }))
+  }
+
   return (
     <form action={formAction} className="grid max-w-full min-w-0 gap-6">
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
@@ -1059,6 +1063,22 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
                     placeholder={'<script src="https://..."></script>'}
                     className="font-mono text-xs"
                   />
+                </div>
+                <div className="grid gap-2">
+                  <div
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border px-3 py-2 text-sm',
+                      code.onlyWhenDepositModalOpen && 'border-primary/50 bg-primary/5',
+                    )}
+                  >
+                    <Checkbox
+                      id={`custom-deposit-modal-${code.id}`}
+                      checked={code.onlyWhenDepositModalOpen === true}
+                      disabled={isPending}
+                      onCheckedChange={(checked) => toggleCustomDepositModal(index, checked === true)}
+                    />
+                    <Label htmlFor={`custom-deposit-modal-${code.id}`}>{t('Deposit')}</Label>
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label>{t('Disable on')}</Label>

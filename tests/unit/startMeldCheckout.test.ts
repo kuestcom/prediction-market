@@ -26,8 +26,9 @@ describe('startMeldCheckout', () => {
     const close = mock()
     const popup = { closed: false, close, location: { replace } }
     const navigate = mock()
+    const onCheckoutCreated = mock()
 
-    await startMeldCheckout(popup, { fetcher, navigate })
+    await startMeldCheckout(popup, { fetcher, navigate, onCheckoutCreated })
 
     expect(fetcher).toHaveBeenCalledWith('/api/payments/meld/checkouts', {
       method: 'POST',
@@ -38,6 +39,8 @@ describe('startMeldCheckout', () => {
     expect(navigate).not.toHaveBeenCalled()
     expect(close).not.toHaveBeenCalled()
     expect(window.localStorage.getItem('kuest:pending-meld-checkout')).toBe(checkoutId)
+    expect(onCheckoutCreated).toHaveBeenCalledWith(checkoutId)
+    expect(onCheckoutCreated.mock.invocationCallOrder[0]).toBeLessThan(replace.mock.invocationCallOrder[0])
   })
 
   it('continues in the current tab when the popup was blocked', async () => {
@@ -65,7 +68,15 @@ describe('startMeldCheckout', () => {
         }),
     )
 
-    await expect(startMeldCheckout(popup, { fetcher })).rejects.toThrow('checkout_creation_failed')
+    let caughtError: unknown
+    try {
+      await startMeldCheckout(popup, { fetcher })
+    } catch (error) {
+      caughtError = error
+    }
+
+    expect(caughtError).toBeInstanceOf(Error)
+    expect((caughtError as Error).message).toBe('checkout_creation_failed')
     expect(popup.close).toHaveBeenCalledTimes(1)
     expect(popup.location.replace).not.toHaveBeenCalled()
   })

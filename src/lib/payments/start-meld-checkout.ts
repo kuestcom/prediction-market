@@ -9,6 +9,7 @@ interface MeldCheckoutPopup {
 interface StartMeldCheckoutOptions {
   fetcher?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
   navigate?: (url: string) => void
+  onCheckoutCreated?: (checkoutId: string) => void
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -17,7 +18,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export async function startMeldCheckout(
   popup: MeldCheckoutPopup | null,
-  { fetcher = fetch, navigate = (url) => window.location.assign(url) }: StartMeldCheckoutOptions = {},
+  {
+    fetcher = fetch,
+    navigate = (url) => window.location.assign(url),
+    onCheckoutCreated,
+  }: StartMeldCheckoutOptions = {},
 ): Promise<void> {
   try {
     const response = await fetcher('/api/payments/meld/checkouts', {
@@ -40,6 +45,8 @@ export async function startMeldCheckout(
     ) {
       throw new Error('checkout_creation_failed')
     }
+
+    onCheckoutCreated?.(result.checkoutId)
 
     try {
       window.localStorage.setItem('kuest:pending-meld-checkout', result.checkoutId)
