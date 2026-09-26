@@ -13,13 +13,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useRouter } from '@/i18n/navigation'
-import { isMeldCheckoutReturnMessage, MELD_CHECKOUT_RETURN_CHANNEL } from '@/lib/payments/meld-return-channel'
+import {
+  isMeldCheckoutId,
+  isMeldCheckoutReturnMessage,
+  MELD_CHECKOUT_RETURN_CHANNEL,
+} from '@/lib/payments/meld-return-channel'
 
 export function MeldReturnRelay({ checkoutId }: { checkoutId: string | null }) {
   const t = useExtracted()
   const router = useRouter()
   const [showCloseFallback, setShowCloseFallback] = useState(false)
-  const isValidCheckoutId = Boolean(checkoutId && /^[0-9a-f-]{36}$/iu.test(checkoutId))
+  const isValidCheckoutId = isMeldCheckoutId(checkoutId)
 
   useEffect(() => {
     function goToStatus() {

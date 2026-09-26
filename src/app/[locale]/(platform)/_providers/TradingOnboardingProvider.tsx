@@ -469,7 +469,6 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   const [fundModalOpen, setFundModalOpen] = useState(false)
   const [shouldShowFundAfterTradingReady, setShouldShowFundAfterTradingReady] = useState(false)
   const [depositModalOpen, setDepositModalOpen] = useState(false)
-  const depositModalOpenRef = useRef(depositModalOpen)
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false)
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [emailError, setEmailError] = useState<string | null>(null)
@@ -1794,14 +1793,9 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   ])
 
   const handleDepositModalOpenChange = useCallback((open: boolean) => {
-    depositModalOpenRef.current = open
     setDepositModalOpen(open)
     if (open) {
-      window.requestAnimationFrame(() => {
-        if (depositModalOpenRef.current) {
-          window.dispatchEvent(new Event(DEPOSIT_MODAL_OPEN_EVENT))
-        }
-      })
+      window.dispatchEvent(new Event(DEPOSIT_MODAL_OPEN_EVENT))
     }
   }, [])
 

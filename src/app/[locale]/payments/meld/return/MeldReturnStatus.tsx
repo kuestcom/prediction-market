@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { useBalance } from '@/hooks/useBalance'
 import { useRouter } from '@/i18n/navigation'
+import { isMeldCheckoutId } from '@/lib/payments/meld-return-channel'
 
 const TERMINAL_STATUSES = new Set(['SETTLED', 'FAILED', 'DECLINED', 'CANCELLED', 'REFUNDED', 'AUTHORIZATION_EXPIRED'])
 
@@ -23,7 +24,7 @@ export function MeldReturnStatus({ checkoutId }: { checkoutId: string | null }) 
   const { refetchBalance } = useBalance()
   const [status, setStatus] = useState<string | null>(null)
   const [hasError, setHasError] = useState(false)
-  const hasValidCheckoutId = Boolean(checkoutId && /^[0-9a-f-]{36}$/iu.test(checkoutId))
+  const hasValidCheckoutId = isMeldCheckoutId(checkoutId)
 
   function getStatusMessage() {
     if (status === 'SETTLED') {
@@ -51,7 +52,7 @@ export function MeldReturnStatus({ checkoutId }: { checkoutId: string | null }) 
   }
 
   useEffect(() => {
-    if (!checkoutId || !/^[0-9a-f-]{36}$/iu.test(checkoutId)) {
+    if (!isMeldCheckoutId(checkoutId)) {
       return
     }
     const validCheckoutId = checkoutId

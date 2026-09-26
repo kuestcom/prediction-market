@@ -22,7 +22,11 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { IS_TEST_MODE } from '@/lib/network'
-import { isMeldCheckoutReturnMessage, MELD_CHECKOUT_RETURN_CHANNEL } from '@/lib/payments/meld-return-channel'
+import {
+  isMeldCheckoutId,
+  isMeldCheckoutReturnMessage,
+  MELD_CHECKOUT_RETURN_CHANNEL,
+} from '@/lib/payments/meld-return-channel'
 import { startMeldCheckout } from '@/lib/payments/start-meld-checkout'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -51,6 +55,13 @@ interface WalletSendMessages {
   reconnectWallet: string
   withdrawalSubmitted: string
   withdrawalSubmittedDescription: string
+}
+
+const MELD_CHECKOUT_POPUP_REFERENCE_TTL_MS = 30 * 24 * 60 * 60 * 1_000
+
+interface MeldCheckoutPopupReference {
+  popup: Window
+  expiresAt: number
 }
 
 function useDepositViewState(onDepositOpenChange: (open: boolean) => void) {
@@ -252,7 +263,8 @@ export function WalletFlow({
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { open: openAppKit } = useAppKit()
   const { depositView, setDepositView, handleDepositModalChange } = useDepositViewState(onDepositOpenChange)
-  const meldCheckoutPopupsRef = useRef(new Map<string, Window>())
+  const meldCheckoutPopupsRef = useRef(new Map<string, MeldCheckoutPopupReference>())
+  const meldCheckoutPollStopsRef = useRef(new Map<string, () => void>())
   const {
     walletSendTo,
     setWalletSendTo,
@@ -314,7 +326,10 @@ export function WalletFlow({
     void startMeldCheckout(popup, {
       onCheckoutCreated: (checkoutId) => {
         if (popup && !popup.closed) {
-          meldCheckoutPopupsRef.current.set(checkoutId, popup)
+          meldCheckoutPopupsRef.current.set(checkoutId, {
+            popup,
+            expiresAt: Date.now() + MELD_CHECKOUT_POPUP_REFERENCE_TTL_MS,
+          })
         }
       },
     }).catch(() => {
@@ -323,8 +338,17 @@ export function WalletFlow({
   }, [canBuyMeld, handleDepositModalChange, t])
 
   useEffect(() => {
+    const cleanupPopupReferences = window.setInterval(() => {
+      const now = Date.now()
+      for (const [checkoutId, reference] of meldCheckoutPopupsRef.current) {
+        if (reference.popup.closed || reference.expiresAt <= now) {
+          meldCheckoutPopupsRef.current.delete(checkoutId)
+        }
+      }
+    }, 60_000)
+
     if (typeof BroadcastChannel === 'undefined') {
-      return
+      return () => window.clearInterval(cleanupPopupReferences)
     }
 
     const channel = new BroadcastChannel(MELD_CHECKOUT_RETURN_CHANNEL)
@@ -333,13 +357,17 @@ export function WalletFlow({
         return
       }
 
-      const popup = meldCheckoutPopupsRef.current.get(event.data.checkoutId)
-      if (!popup) {
+      const checkoutId = event.data.checkoutId
+      const popupReference = meldCheckoutPopupsRef.current.get(checkoutId)
+      if (!popupReference || popupReference.expiresAt <= Date.now()) {
+        meldCheckoutPopupsRef.current.delete(checkoutId)
         return
       }
 
-      meldCheckoutPopupsRef.current.delete(event.data.checkoutId)
-      channel.postMessage({ type: 'ack', checkoutId: event.data.checkoutId })
+      meldCheckoutPopupsRef.current.delete(checkoutId)
+      meldCheckoutPollStopsRef.current.get(checkoutId)?.()
+      channel.postMessage({ type: 'ack', checkoutId })
+      const popup = popupReference.popup
       if (!popup.closed) {
         try {
           popup.close()
@@ -347,11 +375,12 @@ export function WalletFlow({
           // The return window has its own close attempt and a fallback screen.
         }
       }
-      router.replace({ pathname: '/', query: { meldCheckoutId: event.data.checkoutId } })
+      router.replace({ pathname: '/', query: { meldCheckoutId: checkoutId } })
     }
 
     channel.addEventListener('message', handleReturn)
     return () => {
+      window.clearInterval(cleanupPopupReferences)
       channel.removeEventListener('message', handleReturn)
       channel.close()
     }
@@ -364,18 +393,7 @@ export function WalletFlow({
     let isActive = true
     const runningCheckouts = new Set<string>()
     const timers = new Map<ReturnType<typeof setTimeout>, () => void>()
-
-    function wait(milliseconds: number): Promise<void> {
-      return new Promise<void>((resolve) => {
-        let timer: ReturnType<typeof setTimeout>
-        function finish() {
-          timers.delete(timer)
-          resolve()
-        }
-        timer = setTimeout(finish, milliseconds)
-        timers.set(timer, finish)
-      })
-    }
+    const pollStops = meldCheckoutPollStopsRef.current
 
     function clearPendingCheckout(checkoutId: string) {
       try {
@@ -388,46 +406,85 @@ export function WalletFlow({
     }
 
     async function pollCheckout(checkoutId: string) {
-      if (!/^[0-9a-f-]{36}$/iu.test(checkoutId) || runningCheckouts.has(checkoutId)) {
+      if (!isMeldCheckoutId(checkoutId) || runningCheckouts.has(checkoutId)) {
         return
       }
       runningCheckouts.add(checkoutId)
-      for (let attempt = 0; isActive; attempt += 1) {
-        try {
-          const response = await fetch(`/api/payments/meld/checkouts/${encodeURIComponent(checkoutId)}/status`, {
-            cache: 'no-store',
-          })
-          if (response.status === 401) {
-            break
-          }
-          if (response.status === 404) {
-            clearPendingCheckout(checkoutId)
-            break
-          }
-          if (response.ok) {
-            const result: unknown = await response.json()
-            const status =
-              typeof result === 'object' && result !== null && 'status' in result && typeof result.status === 'string'
-                ? result.status
-                : null
-            if (status === 'SETTLED') {
-              clearPendingCheckout(checkoutId)
-              await refetchBalance()
-              break
-            }
-            if (status && ['FAILED', 'DECLINED', 'CANCELLED', 'REFUNDED', 'AUTHORIZATION_EXPIRED'].includes(status)) {
-              clearPendingCheckout(checkoutId)
-              break
-            }
-          }
-        } catch {
-          // Retry transient network and provider errors while the page remains open.
-        }
-
-        const delay = attempt < 12 ? 10_000 : 30_000
-        await wait(delay)
+      const controller = new AbortController()
+      let cancelWait: (() => void) | undefined
+      function stop() {
+        controller.abort()
+        cancelWait?.()
       }
-      runningCheckouts.delete(checkoutId)
+      pollStops.set(checkoutId, stop)
+
+      try {
+        for (let attempt = 0; isActive && !controller.signal.aborted; attempt += 1) {
+          try {
+            const response = await fetch(`/api/payments/meld/checkouts/${encodeURIComponent(checkoutId)}/status`, {
+              cache: 'no-store',
+              signal: controller.signal,
+            })
+            if (!isActive || controller.signal.aborted) {
+              break
+            }
+            if (response.status === 401) {
+              break
+            }
+            if (response.status === 404) {
+              clearPendingCheckout(checkoutId)
+              break
+            }
+            if (response.ok) {
+              const result: unknown = await response.json()
+              if (!isActive || controller.signal.aborted) {
+                break
+              }
+              const status =
+                typeof result === 'object' && result !== null && 'status' in result && typeof result.status === 'string'
+                  ? result.status
+                  : null
+              if (status === 'SETTLED') {
+                clearPendingCheckout(checkoutId)
+                await refetchBalance()
+                break
+              }
+              if (status && ['FAILED', 'DECLINED', 'CANCELLED', 'REFUNDED', 'AUTHORIZATION_EXPIRED'].includes(status)) {
+                clearPendingCheckout(checkoutId)
+                break
+              }
+            }
+          } catch {
+            if (controller.signal.aborted) {
+              break
+            }
+            // Retry transient network and provider errors while the page remains open.
+          }
+
+          if (!isActive || controller.signal.aborted) {
+            break
+          }
+          const delay = attempt < 12 ? 10_000 : 30_000
+          await new Promise<void>((resolve) => {
+            let timer: ReturnType<typeof setTimeout>
+            function finish() {
+              timers.delete(timer)
+              if (cancelWait === finish) {
+                cancelWait = undefined
+              }
+              resolve()
+            }
+            timer = setTimeout(finish, delay)
+            timers.set(timer, finish)
+            cancelWait = finish
+          })
+        }
+      } finally {
+        runningCheckouts.delete(checkoutId)
+        if (pollStops.get(checkoutId) === stop) {
+          pollStops.delete(checkoutId)
+        }
+      }
     }
 
     function readPendingCheckout() {
@@ -459,6 +516,10 @@ export function WalletFlow({
         finish()
       }
       timers.clear()
+      for (const stop of pollStops.values()) {
+        stop()
+      }
+      pollStops.clear()
     }
   }, [refetchBalance])
 
