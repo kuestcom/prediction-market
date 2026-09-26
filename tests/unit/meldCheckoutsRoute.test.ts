@@ -49,7 +49,7 @@ describe('Meld checkout route', () => {
         Origin: 'https://fork-example.com',
         'X-Forwarded-For': '203.0.113.42, 198.51.100.10',
       }),
-      json: async () => ({ quoteId: '123e4567-e89b-12d3-a456-426614174001' }),
+      json: async () => ({}),
     } as unknown as Request
     const response = await POST(request)
 
@@ -59,9 +59,27 @@ describe('Meld checkout route', () => {
     expect(domain).toBe('fork-example.com')
     const workerPayload: unknown = JSON.parse(String(init?.body))
     expect(workerPayload).toEqual({
-      quoteId: '123e4567-e89b-12d3-a456-426614174001',
       externalCustomerId: 'user-123',
       walletAddress: '0x1111111111111111111111111111111111111111',
     })
+  })
+
+  it('rejects client-supplied checkout fields', async () => {
+    mocks.getCurrentUser.mockResolvedValue({
+      id: 'user-123',
+      deposit_wallet_address: '0x1111111111111111111111111111111111111111',
+      deposit_wallet_status: 'deployed',
+    })
+    const { POST } = await import('@/app/api/payments/meld/checkouts/route')
+    const request = {
+      url: 'https://fork-example.com/api/payments/meld/checkouts',
+      headers: new Headers({ 'Content-Type': 'application/json', Origin: 'https://fork-example.com' }),
+      json: async () => ({ walletAddress: '0x2222222222222222222222222222222222222222' }),
+    } as unknown as Request
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(400)
+    expect(mocks.requestPaymentsWorker).not.toHaveBeenCalled()
   })
 })

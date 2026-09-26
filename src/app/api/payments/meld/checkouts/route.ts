@@ -56,8 +56,8 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
-  if (!isRecord(body) || typeof body.quoteId !== 'string' || !/^[0-9a-f-]{36}$/iu.test(body.quoteId)) {
-    return NextResponse.json({ error: 'invalid_quote_id' }, { status: 400 })
+  if (!isRecord(body) || Object.keys(body).length !== 0) {
+    return NextResponse.json({ error: 'invalid_request' }, { status: 400 })
   }
 
   let response: Response
@@ -66,7 +66,6 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        quoteId: body.quoteId,
         externalCustomerId: user.id,
         walletAddress,
       }),
@@ -82,10 +81,7 @@ export async function POST(request: Request) {
   }
 
   if (!response.ok) {
-    return NextResponse.json(
-      { error: response.status === 409 ? 'quote_expired' : 'checkout_creation_failed' },
-      { status: response.status === 409 ? 409 : 502 },
-    )
+    return NextResponse.json({ error: 'checkout_creation_failed' }, { status: 502 })
   }
 
   let result: unknown
