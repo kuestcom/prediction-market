@@ -55,6 +55,21 @@ describe('startMeldCheckout', () => {
     expect(navigate).toHaveBeenCalledWith(launchUrl)
   })
 
+  it('rejects launch URLs outside the shared Worker URL contract', async () => {
+    const popup = { closed: false, close: mock(), location: { replace: mock() } }
+    const fetcher = mock(
+      async () =>
+        new Response(JSON.stringify({ checkoutId, launchUrl: 'https://evil.example/launch/forged' }), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+
+    await expect(startMeldCheckout(popup, { fetcher })).rejects.toThrow('checkout_creation_failed')
+    expect(popup.close).toHaveBeenCalledTimes(1)
+    expect(popup.location.replace).not.toHaveBeenCalled()
+  })
+
   it('closes the pre-opened popup when checkout creation fails', async () => {
     const popup = { closed: false, close: mock(), location: { replace: mock() } }
     const fetcher = mock(async () => new Response(JSON.stringify({ error: 'payments_unavailable' }), { status: 502 }))

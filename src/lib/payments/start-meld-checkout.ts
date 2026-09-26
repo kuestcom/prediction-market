@@ -1,4 +1,4 @@
-const PAYMENTS_WORKER_ORIGIN = 'https://payments.kuest.com'
+import { isPaymentsLaunchUrl } from '@/lib/payments/launch-url'
 
 interface MeldCheckoutPopup {
   closed: boolean
@@ -13,25 +13,6 @@ interface StartMeldCheckoutOptions {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isLaunchUrl(value: unknown): value is string {
-  if (typeof value !== 'string') {
-    return false
-  }
-  try {
-    const url = new URL(value)
-    return (
-      url.origin === PAYMENTS_WORKER_ORIGIN &&
-      /^\/launch\/[A-Za-z0-9_-]{40,64}$/u.test(url.pathname) &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash
-    )
-  } catch {
-    return false
-  }
 }
 
 export async function startMeldCheckout(
@@ -55,7 +36,7 @@ export async function startMeldCheckout(
       !isRecord(result) ||
       typeof result.checkoutId !== 'string' ||
       !/^[0-9a-f-]{36}$/iu.test(result.checkoutId) ||
-      !isLaunchUrl(result.launchUrl)
+      !isPaymentsLaunchUrl(result.launchUrl)
     ) {
       throw new Error('checkout_creation_failed')
     }

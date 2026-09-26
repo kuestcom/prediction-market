@@ -2,31 +2,12 @@ import { NextResponse } from 'next/server'
 import { isAddress } from 'viem'
 
 import { UserRepository } from '@/lib/db/queries/user'
+import { isPaymentsLaunchUrl } from '@/lib/payments/launch-url'
 import { getPaymentsCanonicalDomain } from '@/lib/payments/operator-key'
-import { PAYMENTS_WORKER_ORIGIN, PaymentsWorkerRequestError, requestPaymentsWorker } from '@/lib/payments/worker'
+import { PaymentsWorkerRequestError, requestPaymentsWorker } from '@/lib/payments/worker'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isLaunchUrl(value: unknown): value is string {
-  if (typeof value !== 'string') {
-    return false
-  }
-
-  try {
-    const url = new URL(value)
-    return (
-      url.origin === PAYMENTS_WORKER_ORIGIN &&
-      !url.username &&
-      !url.password &&
-      /^\/launch\/[A-Za-z0-9_-]{40,64}$/u.test(url.pathname) &&
-      !url.search &&
-      !url.hash
-    )
-  } catch {
-    return false
-  }
 }
 
 export async function POST(request: Request) {
@@ -95,7 +76,7 @@ export async function POST(request: Request) {
     !isRecord(result) ||
     typeof result.checkoutId !== 'string' ||
     !/^[0-9a-f-]{36}$/iu.test(result.checkoutId) ||
-    !isLaunchUrl(result.launchUrl)
+    !isPaymentsLaunchUrl(result.launchUrl)
   ) {
     return NextResponse.json({ error: 'invalid_payments_response' }, { status: 502 })
   }
