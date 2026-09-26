@@ -119,6 +119,24 @@ describe('adminIntegrationsForm', () => {
     expect(container.querySelector('[data-settings-section="custom"] svg')).toBeInTheDocument()
   })
 
+  it('saves custom integration snippets for the Deposit modal trigger', () => {
+    render(<AdminIntegrationsForm {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /Custom Integrations/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add Integration' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Deposit' }))
+
+    expect(document.querySelector('input[name="custom_javascript_codes_json"]')).toHaveValue(
+      JSON.stringify([
+        {
+          name: '',
+          snippet: '',
+          disabledOn: [],
+          onlyWhenDepositModalOpen: true,
+        },
+      ]),
+    )
+  })
+
   it('shows an official destination inside every provider card', () => {
     const { container } = render(<AdminIntegrationsForm {...props} />)
     const providerSections = [

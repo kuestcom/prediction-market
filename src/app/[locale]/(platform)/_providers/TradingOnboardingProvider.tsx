@@ -56,6 +56,7 @@ import {
   UMA_NEG_RISK_ADAPTER_ADDRESS,
   ZERO_ADDRESS,
 } from '@/lib/contracts'
+import { DEPOSIT_MODAL_OPEN_EVENT } from '@/lib/custom-javascript-code'
 import { fetchReferralLocked } from '@/lib/exchange'
 import { SUMSUB_ENFORCEMENTS } from '@/lib/sumsub/types'
 import {
@@ -1791,6 +1792,13 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
     user,
   ])
 
+  const handleDepositModalOpenChange = useCallback((open: boolean) => {
+    setDepositModalOpen(open)
+    if (open) {
+      window.dispatchEvent(new Event(DEPOSIT_MODAL_OPEN_EVENT))
+    }
+  }, [])
+
   const openWalletModal = useCallback(() => {
     if (!user) {
       void openAppKit()
@@ -1801,8 +1809,8 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       return
     }
     paymentsEnabledRefreshRef.current?.()
-    setDepositModalOpen(true)
-  }, [openAppKit, openNextRequirement, status.hasDeployedDepositWallet, user])
+    handleDepositModalOpenChange(true)
+  }, [handleDepositModalOpenChange, openAppKit, openNextRequirement, status.hasDeployedDepositWallet, user])
 
   const startDepositFlow = useCallback(() => {
     if (!user) {
@@ -1812,13 +1820,13 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
 
     if (status.hasDeployedDepositWallet) {
       paymentsEnabledRefreshRef.current?.()
-      setDepositModalOpen(true)
+      handleDepositModalOpenChange(true)
       return
     }
 
     setShouldShowFundAfterTradingReady(true)
     openNextRequirement()
-  }, [openAppKit, openNextRequirement, status.hasDeployedDepositWallet, user])
+  }, [handleDepositModalOpenChange, openAppKit, openNextRequirement, status.hasDeployedDepositWallet, user])
 
   const startWithdrawFlow = useCallback(() => {
     if (!user) {
@@ -1976,7 +1984,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
           openWalletModal()
         }}
         depositModalOpen={depositModalOpen}
-        onDepositOpenChange={setDepositModalOpen}
+        onDepositOpenChange={handleDepositModalOpenChange}
         withdrawModalOpen={withdrawModalOpen}
         onWithdrawOpenChange={setWithdrawModalOpen}
         user={user}

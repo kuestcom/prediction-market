@@ -66,6 +66,46 @@ describe('custom javascript code helpers', () => {
     ])
   })
 
+  it('preserves the deposit-modal trigger for a custom integration', () => {
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Deposit chat',
+          snippet: '<script src="https://chat.example/widget.js"></script>',
+          disabledOn: [],
+          onlyWhenDepositModalOpen: true,
+        },
+      ]),
+      'Custom javascript code',
+    )
+
+    expect(result.error).toBeNull()
+    expect(result.value).toEqual([
+      {
+        name: 'Deposit chat',
+        snippet: '<script src="https://chat.example/widget.js"></script>',
+        disabledOn: [],
+        onlyWhenDepositModalOpen: true,
+      },
+    ])
+  })
+
+  it('rejects an invalid deposit-modal trigger setting', () => {
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Deposit chat',
+          snippet: 'window.chat = true',
+          disabledOn: [],
+          onlyWhenDepositModalOpen: 'yes',
+        },
+      ]),
+      'Custom javascript code',
+    )
+
+    expect(result.error).toBe('Custom javascript code 1 deposit modal setting is invalid.')
+  })
+
   it('allows raw javascript snippets that include comparison operators', () => {
     const result = validateCustomJavascriptCodesJson(
       JSON.stringify([

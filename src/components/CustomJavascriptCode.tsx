@@ -5,7 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type { CustomJavascriptCodeAttributeValue, CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
 
-import { isCustomJavascriptCodeEnabledOnPathname, parseCustomJavascriptCodeTags } from '@/lib/custom-javascript-code'
+import {
+  DEPOSIT_MODAL_OPEN_EVENT,
+  isCustomJavascriptCodeEnabledOnPathname,
+  parseCustomJavascriptCodeTags,
+} from '@/lib/custom-javascript-code'
 
 interface CustomJavascriptCodeProps {
   locale: string
@@ -196,13 +200,23 @@ function useCustomJavascriptCodeExecution(locale: string, codes: CustomJavascrip
     () => codes.filter((code) => isCustomJavascriptCodeEnabledOnPathname(code, localizedPathname)),
     [codes, localizedPathname],
   )
+  const interactionCodes = useMemo(() => activeCodes.filter((code) => !code.onlyWhenDepositModalOpen), [activeCodes])
+  const depositModalCodes = useMemo(() => activeCodes.filter((code) => code.onlyWhenDepositModalOpen), [activeCodes])
   const activeCodeSignature = useMemo(
     () =>
       activeCodes
-        .map((code) => `${code.name}\u0000${code.snippet}`)
+        .map((code) => `${code.name}\u0000${code.snippet}\u0000${code.onlyWhenDepositModalOpen === true}`)
         .sort()
         .join('\u0001'),
     [activeCodes],
+  )
+  const interactionCodeSignature = useMemo(
+    () =>
+      interactionCodes
+        .map((code) => `${code.name}\u0000${code.snippet}`)
+        .sort()
+        .join('\u0001'),
+    [interactionCodes],
   )
   const previousActiveCodeSignatureRef = useRef<string | null>(null)
   const [interactionSignature, setInteractionSignature] = useState<string | null>(null)
@@ -216,13 +230,13 @@ function useCustomJavascriptCodeExecution(locale: string, codes: CustomJavascrip
 
   useEffect(
     function executeCodesOnFirstInteraction() {
-      if (interactionSignature === activeCodeSignature || activeCodes.length === 0) {
+      if (interactionSignature === interactionCodeSignature || interactionCodes.length === 0) {
         return
       }
 
       function handleInteraction() {
-        setInteractionSignature(activeCodeSignature)
-        executeCustomJavascriptCodes(activeCodes)
+        setInteractionSignature(interactionCodeSignature)
+        executeCustomJavascriptCodes(interactionCodes)
       }
 
       window.addEventListener('pointerdown', handleInteraction, { once: true, passive: true })
@@ -237,7 +251,25 @@ function useCustomJavascriptCodeExecution(locale: string, codes: CustomJavascrip
         window.removeEventListener('scroll', handleInteraction)
       }
     },
-    [activeCodeSignature, activeCodes, interactionSignature],
+    [interactionCodeSignature, interactionCodes, interactionSignature],
+  )
+
+  useEffect(
+    function executeCodesOnDepositModalOpen() {
+      if (depositModalCodes.length === 0) {
+        return
+      }
+
+      function handleDepositModalOpen() {
+        executeCustomJavascriptCodes(depositModalCodes)
+      }
+
+      window.addEventListener(DEPOSIT_MODAL_OPEN_EVENT, handleDepositModalOpen)
+      return function cleanupDepositModalOpenListener() {
+        window.removeEventListener(DEPOSIT_MODAL_OPEN_EVENT, handleDepositModalOpen)
+      }
+    },
+    [depositModalCodes],
   )
 }
 

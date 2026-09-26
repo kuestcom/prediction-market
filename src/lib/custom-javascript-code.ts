@@ -4,6 +4,7 @@ const CUSTOM_JAVASCRIPT_CODE_TAG_PATTERN = /<script\b/i
 export const MAX_CUSTOM_JAVASCRIPT_CODES = 12
 export const MAX_CUSTOM_JAVASCRIPT_CODE_NAME_LENGTH = 80
 export const MAX_CUSTOM_JAVASCRIPT_CODE_SNIPPET_LENGTH = 20_000
+export const DEPOSIT_MODAL_OPEN_EVENT = 'kuest:deposit-modal-open'
 
 export const CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS = [
   'home',
@@ -38,6 +39,7 @@ export interface CustomJavascriptCodeConfig {
   name: string
   snippet: string
   disabledOn: CustomJavascriptCodeDisablePage[]
+  onlyWhenDepositModalOpen?: boolean
 }
 
 export interface ParsedCustomJavascriptCodeTag {
@@ -495,11 +497,19 @@ function normalizeCustomJavascriptCodeEntry(value: unknown, index: number) {
     return { value: null as CustomJavascriptCodeConfig | null, error: disabledOnValidated.error }
   }
 
+  if (rawEntry.onlyWhenDepositModalOpen !== undefined && typeof rawEntry.onlyWhenDepositModalOpen !== 'boolean') {
+    return {
+      value: null as CustomJavascriptCodeConfig | null,
+      error: `Custom javascript code ${index + 1} deposit modal setting is invalid.`,
+    }
+  }
+
   return {
     value: {
       name: nameValidated.value!,
       snippet: snippetValidated.value!,
       disabledOn: disabledOnValidated.value,
+      ...(rawEntry.onlyWhenDepositModalOpen === true ? { onlyWhenDepositModalOpen: true } : {}),
     },
     error: null as string | null,
   }
