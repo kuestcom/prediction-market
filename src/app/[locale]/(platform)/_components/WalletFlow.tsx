@@ -7,7 +7,6 @@ import { useSignTypedData } from 'wagmi'
 
 import type { DepositWalletStatus } from '@/types'
 
-import { MeldOnrampDialog } from '@/app/[locale]/(platform)/_components/MeldOnrampDialog'
 import { WalletDepositModal, WalletWithdrawModal } from '@/app/[locale]/(platform)/_components/WalletModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { toast } from '@/components/ui/toast'
@@ -22,6 +21,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { formatAmountInputValue } from '@/lib/formatters'
 import { IS_TEST_MODE } from '@/lib/network'
+import { startMeldCheckout } from '@/lib/payments/start-meld-checkout'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildSendErc20Call } from '@/lib/wallet/transactions'
@@ -296,14 +296,21 @@ export function WalletFlow({
     messages: walletSendMessages,
   })
 
-  const [meldDialogOpen, setMeldDialogOpen] = useState(false)
   const handleBuy = useCallback(() => {
     if (!canBuyMeld) {
       return
     }
+
+    const popup = window.open('', 'meld-checkout', 'width=450,height=790,scrollbars=yes,resizable=yes')
+    if (popup) {
+      popup.opener = null
+      popup.focus()
+    }
     handleDepositModalChange(false)
-    setMeldDialogOpen(true)
-  }, [canBuyMeld, handleDepositModalChange])
+    void startMeldCheckout(popup).catch(() => {
+      toast.error(t('An unexpected error occurred. Please try again.'))
+    })
+  }, [canBuyMeld, handleDepositModalChange, t])
   const handleUseConnectedWallet = useUseConnectedWalletHandler({ connectedWalletAddress, setWalletSendTo })
   const handleSetMaxAmount = useSetMaxAmountHandler({ balanceRaw: balance.raw, setWalletSendAmount })
 
@@ -445,13 +452,6 @@ export function WalletFlow({
         onMax={handleSetMaxAmount}
         isBalanceLoading={isLoadingBalance}
       />
-      {meldDialogOpen ? (
-        <MeldOnrampDialog
-          open={meldDialogOpen}
-          onOpenChange={setMeldDialogOpen}
-          onCheckoutCreated={() => handleDepositModalChange(false)}
-        />
-      ) : null}
     </>
   )
 }

@@ -1,7 +1,6 @@
 import 'server-only'
+import { PAYMENTS_WORKER_ORIGIN } from '@/lib/payments/launch-url'
 import { getPaymentsOperatorKey, getPaymentsOperatorKeyForCheckoutStatus } from '@/lib/payments/operator-key'
-
-export const PAYMENTS_WORKER_ORIGIN = 'https://payments.kuest.com'
 
 export class PaymentsWorkerRequestError extends Error {
   constructor(readonly code: 'not_configured' | 'unavailable') {
